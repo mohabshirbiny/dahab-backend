@@ -1,0 +1,1421 @@
+{
+    "info": {
+        "_postman_id": "d4h4b-b4ck3nd-c0ll3ct10n-0001",
+        "name": "Dahab Backend API",
+        "description": "API collection for the Dahab Backend (Laravel 12 + Sanctum). Organized by domain folder to mirror routes/api.php. Two API surfaces with separate tokens: Customer API (/api/v1/customer/*, customer tokens) and Dashboard API (/api/v1/dashboard/*, staff tokens). A token of the other principal is rejected with 401; an access token on a refresh endpoint (or a refresh token on an access endpoint) is rejected with 403. Keep this file updated whenever an endpoint is added, changed, or removed \u2014 see postman/README.md.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost",
+            "type": "string"
+        },
+        {
+            "key": "device_id",
+            "value": "postman-local-device-0000000001",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "refresh_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "staff_access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "staff_refresh_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "staff_mfa_session_ref",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "upload_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "document_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "registration_ref",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "customer_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Dashboard",
+            "item": [
+                {
+                    "name": "Auth",
+                    "description": "Dashboard API. Uses staff tokens only (staff_access_token / staff_refresh_token); a customer token is rejected with 401. Sign in with Staff Login (local accounts <role>@dahab.test after `php artisan db:seed`, password seeded-password-1). ceo/coo/finance never get a session from Staff Login: it answers mfa_required (enrolled) or mfa_enrollment_required (first time) with a session_ref, saved to staff_mfa_session_ref \u2014 finish with Staff MFA Verify or Staff MFA Enroll.",
+                    "item": [
+                        {
+                            "name": "Staff Login",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"email\": \"verification@dahab.test\",\n    \"password\": \"seeded-password-1\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/login",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "login"
+                                    ]
+                                },
+                                "description": "Email + password. 200 with data.session (roles without MFA), OR data.mfa_required, OR data.mfa_enrollment_required (otpauth_url + one-time recovery_codes). 401 invalid_credentials is identical for unknown email, wrong password and a disabled account; 403 account_frozen; 429 account_locked after 5 failures / 30 min per email (auth.staff.login)."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const data = pm.response.json().data;",
+                                            "    if (data.session) {",
+                                            "        pm.collectionVariables.set('staff_access_token', data.session.access_token);",
+                                            "        pm.collectionVariables.set('staff_refresh_token', data.session.refresh_token);",
+                                            "    } else if (data.session_ref) {",
+                                            "        pm.collectionVariables.set('staff_mfa_session_ref', data.session_ref);",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Staff MFA Verify",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"session_ref\": \"{{staff_mfa_session_ref}}\",\n    \"code\": \"123456\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/mfa/verify",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "mfa",
+                                        "verify"
+                                    ]
+                                },
+                                "description": "Completes an mfa_required sign-in. Send the current 6-digit TOTP as code, or a single-use recovery_code instead of code. session_ref is single-use and expires after 5 minutes. 401 mfa_invalid for a wrong/replayed code or a dead session_ref; 429 after 5 attempts per session_ref (auth.staff.mfa)."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const body = pm.response.json();",
+                                            "    pm.collectionVariables.set('staff_access_token', body.data.session.access_token);",
+                                            "    pm.collectionVariables.set('staff_refresh_token', body.data.session.refresh_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Staff MFA Enroll",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"session_ref\": \"{{staff_mfa_session_ref}}\",\n    \"code\": \"123456\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/mfa/enroll",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "mfa",
+                                        "enroll"
+                                    ]
+                                },
+                                "description": "Completes an mfa_enrollment_required sign-in: scan the otpauth_url from Staff Login in an authenticator app, then send its current 6-digit code. Nothing is stored until the code is right. Returns the session and the one-time recovery_codes. 401 mfa_invalid; 429 after 5 attempts per session_ref (auth.staff.mfa)."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const body = pm.response.json();",
+                                            "    pm.collectionVariables.set('staff_access_token', body.data.session.access_token);",
+                                            "    pm.collectionVariables.set('staff_refresh_token', body.data.session.refresh_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Staff Logout",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/logout",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "logout"
+                                    ]
+                                },
+                                "description": "Revokes the current access token and its paired refresh token (204). Uses {{staff_access_token}}."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Staff Logout All",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/logout-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "logout-all"
+                                    ]
+                                },
+                                "description": "Revokes every token issued to the staff member (204). Uses {{staff_access_token}}."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Staff Me",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/me",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "me"
+                                    ]
+                                },
+                                "description": "Authenticated staff member with their Spatie roles and effective permissions. Uses {{staff_access_token}} (ability staff:access), not the customer access_token (a customer token is rejected with 401) and not the staff refresh token (rejected with 403)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Staff Refresh",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_refresh_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/refresh",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "refresh"
+                                    ]
+                                },
+                                "description": "Uses {{staff_refresh_token}} (ability staff:refresh) as the Bearer credential; the staff access token is rejected here with 403. Rotates on every use; replaying an old refresh token returns 401 refresh_invalid and revokes the whole token family."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const body = pm.response.json();",
+                                            "    pm.collectionVariables.set('staff_access_token', body.data.access_token);",
+                                            "    pm.collectionVariables.set('staff_refresh_token', body.data.refresh_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Identity",
+                    "description": "Dashboard API \u2014 identity document review. Uses staff_access_token. Listing/showing/viewing needs identity.view; approving/rejecting needs identity.review (both held by ceo and verification). Every successful View Document Image writes an append-only document_view_log row in the same transaction as the read.",
+                    "item": [
+                        {
+                            "name": "List Identity Documents",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents?status=pending&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents?status=pending&per_page=25"
+                                    ]
+                                },
+                                "description": "Oldest-first list. status: pending | verified | needs_resubmission | rejected. Requires identity.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show Identity Document",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents/{{document_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents",
+                                        "{{document_id}}"
+                                    ]
+                                },
+                                "description": "Metadata only. Does NOT open the image or log a view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "View Identity Document \u2014 Front",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents/{{document_id}}/image?side=front",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents",
+                                        "{{document_id}}",
+                                        "image?side=front"
+                                    ]
+                                },
+                                "description": "Returns decrypted image bytes. Writes a document_view_log row inside the same transaction as the read. Response is never cacheable. Requires identity.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "View Identity Document \u2014 Back",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents/{{document_id}}/image?side=back",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents",
+                                        "{{document_id}}",
+                                        "image?side=back"
+                                    ]
+                                },
+                                "description": "Same as Front but returns the back side. Returns 410 document_image_deleted if the document has no back page (e.g. a passport)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Review \u2014 Verify",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents/{{document_id}}/review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents",
+                                        "{{document_id}}",
+                                        "review"
+                                    ]
+                                },
+                                "description": "Approves the document. Customer.status \u2192 active; IdentityDocument.status \u2192 verified. Dispatches CustomerVerifiedNotification (SMS + email) after commit. Requires identity.review.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"action\": \"verify\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Review \u2014 Request Resubmission",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents/{{document_id}}/review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents",
+                                        "{{document_id}}",
+                                        "review"
+                                    ]
+                                },
+                                "description": "Ask again. IdentityDocument.status \u2192 needs_resubmission; Customer stays pending_verification. Reasons are required (enum: blurred_or_glare, card_cut_off, name_does_not_match, card_expired, back_missing, text_not_readable). Notification sent after commit.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"action\": \"request_resubmission\",\n    \"reasons\": [\n        \"blurred_or_glare\",\n        \"back_missing\"\n    ],\n    \"note\": \"Please upload a clearer image.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Review \u2014 Reject",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents/{{document_id}}/review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents",
+                                        "{{document_id}}",
+                                        "review"
+                                    ]
+                                },
+                                "description": "Rejects the registration. Customer.status \u2192 rejected. Reasons are required. Notification sent after commit.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"action\": \"reject\",\n    \"reasons\": [\n        \"card_expired\"\n    ],\n    \"note\": \"Card has expired.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Customers",
+                    "item": [
+                        {
+                            "name": "List Customers \u2014 Waiting",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers?status=pending_verification&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers?status=pending_verification&per_page=25"
+                                    ]
+                                },
+                                "description": "Dashboard \"Users and Verification\" list. status can be pending_verification / active / rejected / suspended. Requires the staff permission customer.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Details",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}"
+                                    ]
+                                },
+                                "description": "Detail view: customer + every identity document (newest first). Audited (auth.customer.verification_details_viewed). Requires customer.view."
+                            },
+                            "response": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Customer",
+            "item": [
+                {
+                    "name": "Auth",
+                    "description": "Customer API. Access endpoints use the customer access_token (ability customer:access); Customer Refresh uses the customer refresh_token (ability customer:refresh). A staff token is rejected with 401.",
+                    "item": [
+                        {
+                            "name": "Customer Register \u2014 1. Start",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/register/start",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "register",
+                                        "start"
+                                    ]
+                                },
+                                "description": "Step 1 of the six-step registration. Validates name/phone/password, hashes the password server-side and sends a phone OTP by SMS. Saves the returned registration_ref into {{registration_ref}}. No customer row is created here.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Mona Hassan Ibrahim\",\n    \"phone\": \"+201000000001\",\n    \"password\": \"correct-horse-battery\",\n    \"password_confirmation\": \"correct-horse-battery\",\n    \"preferred_lang\": \"ar\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('202 accepted', () => pm.response.to.have.status(202));",
+                                            "var d = pm.response.json().data;",
+                                            "pm.collectionVariables.set('registration_ref', d.registration_ref);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Customer Register \u2014 2. Verify Phone OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/register/verify-phone-otp",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "register",
+                                        "verify-phone-otp"
+                                    ]
+                                },
+                                "description": "Step 2. Marks the session phone-verified. Idempotent \u2014 a retry after success succeeds unchanged.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"registration_ref\": \"{{registration_ref}}\",\n    \"otp\": \"123456\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Register \u2014 3. Email + Governorate",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/register/email",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "register",
+                                        "email"
+                                    ]
+                                },
+                                "description": "Step 3. Attaches email + Egyptian governorate to the session and sends an email OTP. Uniqueness is rechecked at submit time.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"registration_ref\": \"{{registration_ref}}\",\n    \"email\": \"mona@example.com\",\n    \"governorate\": \"cairo\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Register \u2014 4. Verify Email OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/register/verify-email-otp",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "register",
+                                        "verify-email-otp"
+                                    ]
+                                },
+                                "description": "Step 4. Marks the session email-verified.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"registration_ref\": \"{{registration_ref}}\",\n    \"otp\": \"123456\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Register \u2014 5. Upload Documents",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/register/documents",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "register",
+                                        "documents"
+                                    ]
+                                },
+                                "description": "Step 5. multipart/form-data. Egyptian ID needs front+back; passport needs front only. Files land encrypted on the private disk under identity-pending/{ref}/.",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "registration_ref",
+                                            "value": "{{registration_ref}}",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "document_type",
+                                            "value": "egyptian_id",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "front",
+                                            "type": "file",
+                                            "src": []
+                                        },
+                                        {
+                                            "key": "back",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Register \u2014 6. Submit",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/register/submit",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "register",
+                                        "submit"
+                                    ]
+                                },
+                                "description": "Step 6. Creates the customer as pending_verification with the pending identity document. Does NOT issue a session \u2014 the customer must wait for staff approval before any login. Response contains { data: { customer, status: \"pending_verification\" } }.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"registration_ref\": \"{{registration_ref}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Register \u2014 DEPRECATED: /complete",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/register/complete",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "register",
+                                        "complete"
+                                    ]
+                                },
+                                "description": "DEPRECATED. Always returns 410 registration_endpoint_deprecated. Use /register/submit instead. Creates nothing, issues no session, sends no notifications.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"registration_ref\": \"{{registration_ref}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Login",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"+201234567890\",\n    \"password\": \"Password123!\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/login",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "login"
+                                    ]
+                                },
+                                "description": "Phone + password from a trusted device. A device that has not been trusted yet is refused with 401 invalid_credentials (the OTP branch is not built). 429 account_locked after 5 failures per phone in 15 minutes."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const body = pm.response.json();",
+                                            "    pm.collectionVariables.set('access_token', body.data.session.access_token);",
+                                            "    pm.collectionVariables.set('refresh_token', body.data.session.refresh_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Refresh",
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{refresh_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/refresh",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "refresh"
+                                    ]
+                                },
+                                "description": "Uses the customer refresh_token (ability customer:refresh) as the Bearer credential; the access_token is rejected here with 403. The refresh token rotates on every use \u2014 replaying an old one returns 401 refresh_invalid and revokes the whole token family."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const body = pm.response.json();",
+                                            "    pm.collectionVariables.set('access_token', body.data.access_token);",
+                                            "    pm.collectionVariables.set('refresh_token', body.data.refresh_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Me",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/me",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "me"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Logout",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/logout",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "logout"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Logout All",
+                            "request": {
+                                "method": "POST",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/logout-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "logout-all"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Identity",
+                    "description": "Customer API \u2014 private ID upload and identity document submission. Uses the customer access_token. Flow: Upload ID Image (stores upload_token) \u2192 Submit Identity Document (stores document_id). The customer stays unverified until staff approve it (see Dashboard Identity).",
+                    "item": [
+                        {
+                            "name": "Upload ID Image",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "identity",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Pick a JPEG, PNG or WebP image (max 8 MB). It is stored encrypted on a private disk; the response carries a single-use upload_token, saved to the upload_token variable. Rate limit: customer.uploads (10/min)."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('upload_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Submit Identity Document",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"doc_kind\": \"egyptian_id\",\n    \"upload_token\": \"{{upload_token}}\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/identity-documents",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "identity-documents"
+                                    ]
+                                },
+                                "description": "doc_kind is egyptian_id or passport (anything else is 422 unsupported_doc_kind). Creates a pending document; 409 document_already_pending if one is already waiting; 422 upload_token_invalid for an unknown/expired/used/foreign token."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('document_id', pm.response.json().data.document_id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Health",
+            "item": [
+                {
+                    "name": "Health Check",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "health"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

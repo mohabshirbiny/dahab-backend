@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dahab · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{
+  --nav:#16150F; --nav-2:#211F17; --nav-line:#2E2C22; --nav-txt:#A7A498;
+  --bg:#FAFAF8; --panel:#FFFFFF; --line:#E6E3DC; --line-2:#D2CEC4;
+  --ink:#17160F; --ink-2:#55524A; --ink-3:#8A867C;
+  --gold:#8B6F3D; --ok:#1F6B4C; --ok-bg:#E8F2EC; --wait:#8A6516; --wait-bg:#FBF2DF;
+  --bad:#9B3B2E; --bad-bg:#F8EAE7; --info:#2B5C7E; --info-bg:#E9F1F6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:400 13px/1.5 Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg);
+  -webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* shell */
+.app{display:flex;min-height:100vh}
+.nav{width:216px;background:var(--nav);color:var(--nav-txt);flex-shrink:0;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:20px 18px 16px;border-bottom:1px solid var(--nav-line);display:flex;
+  align-items:center;justify-content:space-between}
+.brand svg{height:20px;width:70px;color:#fff}
+.brand .env{font-size:9px;letter-spacing:.6px;color:#6E6B60;border:1px solid var(--nav-line);
+  padding:2px 6px;border-radius:4px}
+.navsec{padding:14px 0 4px 18px;font-size:10px;letter-spacing:.5px;color:#5E5B51}
+.navlink{display:flex;align-items:center;gap:9px;padding:7px 18px;cursor:pointer;
+  font-size:12.5px;color:var(--nav-txt);border-left:2px solid transparent}
+.navlink:hover{background:var(--nav-2);color:#E8E6DE}
+.navlink.on{background:var(--nav-2);color:#fff;border-left-color:var(--gold);font-weight:500}
+.navlink .n{margin-left:auto;font-size:11px;background:#3A3729;color:#D8D5C9;
+  padding:1px 6px;border-radius:9px;min-width:20px;text-align:center}
+.navlink.on .n{background:var(--gold);color:#fff}
+.who{margin-top:auto;padding:14px 18px;border-top:1px solid var(--nav-line);font-size:11px}
+.who b{display:block;color:#E8E6DE;font-weight:500;font-size:12px}
+
+/* main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{background:var(--panel);border-bottom:1px solid var(--line);padding:0 24px;
+  height:56px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20}
+.top h1{font-size:16px;font-weight:600}
+.search{margin-left:auto;position:relative}
+.search input{width:260px;padding:7px 11px;border:1px solid var(--line);border-radius:7px;
+  font:400 12.5px Inter,sans-serif;background:var(--bg)}
+.tbtn{padding:7px 12px;border:1px solid var(--line);background:var(--panel);border-radius:7px;
+  font:500 12px Inter,sans-serif;cursor:pointer;color:var(--ink)}
+.tbtn:hover{background:var(--bg)}
+.tbtn.p{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tbtn.p:hover{background:#000}
+.wrap{padding:22px 24px 60px;max-width:1400px}
+
+/* page */
+.page{display:none}.page.on{display:block}
+.lead{color:var(--ink-2);font-size:13px;margin-bottom:18px;max-width:70ch}
+
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 15px}
+.stat .k{font-size:11.5px;color:var(--ink-3);margin-bottom:6px}
+.stat .v{font-size:23px;font-weight:600;letter-spacing:-.4px}
+.stat .s{font-size:11px;color:var(--ink-3);margin-top:3px}
+.stat.hero{grid-column:span 2;background:var(--nav);border-color:var(--nav);color:#fff}
+.stat.hero .k{color:#9C998D}.stat.hero .v{font-size:30px}.stat.hero .s{color:#8A877C}
+
+/* panel + table */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-bottom:18px;overflow:hidden}
+.ph{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.ph h2{font-size:13.5px;font-weight:600}
+.ph .sub{font-size:11.5px;color:var(--ink-3)}
+.ph .r{margin-left:auto;display:flex;gap:7px}
+.pb{padding:16px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;font-weight:500;color:var(--ink-3);padding:9px 16px;
+  border-bottom:1px solid var(--line);background:#FCFCFA;white-space:nowrap}
+td{padding:11px 16px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#FCFCFA}
+td.r,th.r{text-align:right}
+.mono{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink-2)}
+.who2{font-size:11px;color:var(--ink-3);margin-top:2px}
+
+/* bits */
+.tag{display:inline-block;font-size:10.5px;font-weight:500;padding:2px 8px;border-radius:5px;white-space:nowrap}
+.t-ok{background:var(--ok-bg);color:var(--ok)}
+.t-wait{background:var(--wait-bg);color:var(--wait)}
+.t-bad{background:var(--bad-bg);color:var(--bad)}
+.t-warn{background:#fbeecf;color:#8a5a00}
+.t-info{background:var(--info-bg);color:var(--info)}
+.t-off{background:#F0EEE9;color:var(--ink-3)}
+.btn{padding:6px 11px;border:1px solid var(--line);background:var(--panel);border-radius:6px;
+  font:500 11.5px Inter,sans-serif;cursor:pointer;color:var(--ink)}
+.btn:hover{background:var(--bg)}
+.btn.p{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.d{color:var(--bad);border-color:#E8D5D0}
+.btn.g{color:var(--ok);border-color:#CFE3D7}
+.row2{display:flex;gap:6px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11.5px;color:var(--ink-2);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);
+  border-radius:7px;font:400 12.5px Inter,sans-serif;background:var(--panel)}
+.field .h{font-size:11px;color:var(--ink-3);margin-top:4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.note{padding:11px 13px;border-radius:8px;font-size:12px;line-height:1.65;margin-bottom:14px;
+  display:flex;gap:9px;align-items:flex-start}
+.n-info{background:var(--info-bg);color:#22485F}
+.n-wait{background:var(--wait-bg);color:#6E5112}
+.n-bad{background:var(--bad-bg);color:#7E2F24}
+.n-ok{background:var(--ok-bg);color:#17543B}
+.kv{display:flex;justify-content:space-between;padding:7px 0;font-size:12.5px;
+  border-bottom:1px solid var(--line)}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--ink-2)}
+.kv .v{font-weight:500;font-variant-numeric:tabular-nums}
+.kv.big{padding:11px 0}.kv.big .v{font-size:16px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:5px 11px;border:1px solid var(--line);border-radius:99px;font-size:11.5px;
+  cursor:pointer;background:var(--panel)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.bar{height:7px;background:#EFEDE7;border-radius:99px;overflow:hidden;margin:7px 0 4px}
+.bar i{display:block;height:100%;background:var(--gold)}
+.thumb{aspect-ratio:1;background:#F2F0EB;border:1px solid var(--line);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:11px;cursor:pointer}
+.thumb:hover{border-color:var(--gold);color:var(--gold)}
+.vid{background:#16150F;border-radius:7px;padding:12px;cursor:pointer;display:flex;gap:11px;
+  align-items:center;color:#E8E6DE;font-size:12px}
+.vid:hover{background:#211F17}
+.vid .play{width:30px;height:30px;border-radius:50%;background:#2E2C22;display:flex;
+  align-items:center;justify-content:center;font-size:11px;color:#D4AF37;flex-shrink:0}
+.vid b{font-weight:500;font-size:12.5px}
+.doc{background:#F2F0EB;border:1px solid var(--line);border-radius:7px;padding:12px;
+  cursor:pointer;display:flex;align-items:center;font-size:12px}
+.doc:hover{border-color:var(--gold)}
+.doc b{font-weight:500;font-size:12.5px}
+.fbar{display:flex;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);
+  background:#FCFCFA;flex-wrap:wrap}
+.fbar select,.fbar input{padding:6px 9px;border:1px solid var(--line);border-radius:6px;
+  font:400 12px Inter,sans-serif;background:var(--panel)}
+.fbar input{width:190px}
+.fbar .sp{margin-left:auto;display:flex;gap:7px}
+.sub2{font-size:11px;color:var(--ink-3)}
+.ratio{font-variant-numeric:tabular-nums}
+.ratio b{font-weight:600}
+.ck{display:flex;gap:8px;align-items:flex-start;margin-bottom:7px;font-size:12.5px;cursor:pointer}
+.empty{padding:44px 20px;text-align:center;color:var(--ink-3);font-size:12.5px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);
+  background:var(--ink);color:#fff;padding:11px 18px;border-radius:9px;font-size:12.5px;
+  opacity:0;transition:.22s;z-index:99}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.split{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:start}
+@media(max-width:1100px){.split{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+
+input,textarea,select{font-size:16px}
+button,.chip,.navlink{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.navtoggle{display:none}
+@media (max-width:900px){
+  .app{flex-direction:column}
+  .nav{width:100%;height:auto;position:static;max-height:0;overflow:hidden;transition:max-height .25s}
+  .nav.open{max-height:1400px;overflow-y:auto}
+  .brand{padding:14px 16px}
+  .navsec{padding:10px 0 3px 16px}
+  .navlink{padding:9px 16px}
+  .who{padding:12px 16px}
+  .navtoggle{display:flex;align-items:center;gap:8px;background:var(--nav);color:#E8E6DE;
+    padding:12px 16px;font:500 13px Inter,sans-serif;cursor:pointer;border:0;width:100%;
+    justify-content:space-between}
+  .top{padding:0 16px;height:52px}
+  .top h1{font-size:15px}
+  .search{display:none}
+  .wrap{padding:16px 14px 50px}
+  .stats{grid-template-columns:1fr;gap:10px}
+  .stat.hero{grid-column:span 1}
+  .split{grid-template-columns:1fr;gap:14px}
+  .g2,.g3{grid-template-columns:1fr}
+  .panel table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fbar input{width:100%}
+  .fbar .sp{margin-left:0;width:100%}
+  .fbar select,.fbar .sp button{width:100%}
+  .row2{flex-wrap:wrap}
+}
+</style></head><body>
+<button class="navtoggle" onclick="navToggle()"><span>Menu</span><span id="navState">Show</span></button>
+<div class="app"><div class="nav"><div class="brand"><svg viewBox="0 0 280 80" xmlns="http://www.w3.org/2000/svg"><text x="6" y="60" font-family="Didot,'Playfair Display',serif" font-size="60" font-weight="600" fill="currentColor" letter-spacing="-1">Dahab</text><circle cx="198" cy="56" r="6" fill="#D4AF37"/></svg><span class="env">LIVE</span></div><div class="navsec">Today</div><div class="navlink on" data-p="overview" onclick="go('overview')">Overview</div><div class="navsec">Daily work</div><div class="navlink" data-p="listings" onclick="go('listings')">Listings to review<span class="n">14</span></div><div class="navlink" data-p="orders" onclick="go('orders')">Orders<span class="n">6</span></div><div class="navlink" data-p="inspections" onclick="go('inspections')">Inspections<span class="n">3</span></div><div class="navlink" data-p="disputes" onclick="go('disputes')">Disputes and reports<span class="n">2</span></div><div class="navsec">Money</div><div class="navlink" data-p="withdrawals" onclick="go('withdrawals')">Withdrawals<span class="n">5</span></div><div class="navlink" data-p="transfers" onclick="go('transfers')">Incoming transfers<span class="n">8</span></div><div class="navlink" data-p="statement" onclick="go('statement')">Wallet statement</div><div class="navlink" data-p="compensation" onclick="go('compensation')">Compensation</div><div class="navlink" data-p="bankbook" onclick="go('bankbook')">Bank movements</div><div class="navlink" data-p="closing" onclick="go('closing')">Daily closing</div><div class="navlink" data-p="invoices" onclick="go('invoices')">Invoices</div><div class="navsec">Controls</div><div class="navlink" data-p="pricing" onclick="go('pricing')">Gold pricing</div><div class="navlink" data-p="rates" onclick="go('rates')">Commission rates</div><div class="navlink" data-p="promos" onclick="go('promos')">Promo codes</div><div class="navlink" data-p="mm" onclick="go('mm')">Market maker approvals<span class="n">2</span></div><div class="navlink" data-p="karats" onclick="go('karats')">Karats</div><div class="navlink" data-p="switches" onclick="go('switches')">Switches</div><div class="navlink" data-p="branches" onclick="go('branches')">Branches and hours</div><div class="navlink" data-p="content" onclick="go('content')">App text</div><div class="navlink" data-p="docs" onclick="go('docs')">Terms and versions</div><div class="navsec">People</div><div class="navlink" data-p="customer" onclick="go('customer')">Customer file</div><div class="navlink" data-p="users" onclick="go('users')">Users and verification<span class="n">9</span></div><div class="navlink" data-p="staff" onclick="go('staff')">Staff and permissions</div><div class="navlink" data-p="audit" onclick="go('audit')">Audit log</div><div class="who"><b>Ahmed Ezz El-Din</b><span>Chief Executive Officer</span><div style="margin-top:8px"><span style="color:#6E6B60;cursor:pointer" onclick="sw()">Switch role</span></div></div></div><div class="main">
+<div class="top"><h1 id="ttl">Overview</h1>
+  <div class="search"><input placeholder="Search an order, a wallet, a person"></div>
+  <button class="tbtn" onclick="xls('everything')">Export</button>
+</div><div class="wrap">
+<div class="page on" id="p-overview">
+  <p class="lead">Everything that needs a decision today, and where the money stands.</p>
+
+  <div class="stats">
+    <div class="stat hero">
+      <div class="k">Bank balance minus customer wallets</div>
+      <div class="v num" style="color:#7FD0A8">+ 184,320 EGP</div>
+      <div class="s">Bank 3,142,880 &nbsp;·&nbsp; wallets 2,958,560. A negative figure here means customer money is short.</div>
+    </div>
+    <div class="stat">
+      <div class="k">Held on open orders</div>
+      <div class="v num">612,400</div>
+      <div class="s">Across 23 orders</div>
+    </div>
+    <div class="stat">
+      <div class="k">Paid out ahead of buyers</div>
+      <div class="v num" style="color:var(--wait)">184,900</div>
+      <div class="s">6 first gold sales, cap 100,000 each</div>
+    </div>
+    <div class="stat">
+      <div class="k">Dahab earned this month</div>
+      <div class="v num">78,240</div>
+      <div class="s">Commission 61,900 · spread 16,340</div>
+    </div>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="panel">
+        <div class="ph"><h2>Transactions</h2><span class="sub">Last 30 days</span>
+          <div class="r"><button class="btn" onclick="xls('transactions')">Export to Excel</button></div></div>
+        <table>
+          <thead><tr><th>Status</th><th class="r">Count</th><th class="r">Value</th><th class="r">Held now</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag t-wait">Waiting for the seller</span></td><td class="r mono">6</td><td class="r mono">342,180</td><td class="r mono">68,436</td><td class="r"><button class="btn" onclick="go('orders')">Open</button></td></tr>
+            <tr><td><span class="tag t-info">On the way to IGI</span></td><td class="r mono">4</td><td class="r mono">198,900</td><td class="r mono">39,780</td><td class="r"><button class="btn" onclick="go('orders')">Open</button></td></tr>
+            <tr><td><span class="tag t-info">At IGI, being inspected</span></td><td class="r mono">3</td><td class="r mono">156,700</td><td class="r mono">31,340</td><td class="r"><button class="btn" onclick="go('inspections')">Open</button></td></tr>
+            <tr><td><span class="tag t-wait">Waiting for the balance</span></td><td class="r mono">7</td><td class="r mono">489,220</td><td class="r mono">97,844</td><td class="r"><button class="btn" onclick="go('orders')">Open</button></td></tr>
+            <tr><td><span class="tag t-wait">Ready to collect</span></td><td class="r mono">3</td><td class="r mono">187,400</td><td class="r mono">375,000</td><td class="r"><button class="btn" onclick="go('orders')">Open</button></td></tr>
+            <tr><td><span class="tag t-ok">Completed</span></td><td class="r mono">41</td><td class="r mono">2,214,600</td><td class="r mono">—</td><td class="r"><button class="btn" onclick="xls('completed')">Export</button></td></tr>
+            <tr><td><span class="tag t-bad">Cancelled</span></td><td class="r mono">5</td><td class="r mono">271,300</td><td class="r mono">—</td><td class="r"><button class="btn" onclick="go('disputes')">Review</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Needs a decision</h2><span class="sub">Oldest first</span></div>
+        <table>
+          <thead><tr><th>What</th><th>Waiting</th><th>Who it is on</th><th class="r"></th></tr></thead>
+          <tbody>
+            <tr><td>Gold bangle, 21K &middot; listing review<div class="who2">Seller 8842</div></td><td><span class="tag t-bad">2 days</span></td><td>Operations</td><td class="r"><button class="btn p" onclick="go('listings')">Review</button></td></tr>
+            <tr><td>Withdrawal 42,000 EGP<div class="who2">Seller 4417 &middot; CIB ••4417</div></td><td><span class="tag t-wait">19 hours</span></td><td>Finance</td><td class="r"><button class="btn p" onclick="go('withdrawals')">Review</button></td></tr>
+            <tr><td>Dispute: weight after inspection<div class="who2">Order DH-2026-004402</div></td><td><span class="tag t-wait">14 hours</span></td><td>Operations</td><td class="r"><button class="btn p" onclick="go('disputes')">Open</button></td></tr>
+            <tr><td>ID verification, 9 waiting<div class="who2">Oldest submitted yesterday</div></td><td><span class="tag t-info">9 hours</span></td><td>Verification</td><td class="r"><button class="btn p" onclick="go('users')">Open</button></td></tr>
+            <tr><td>Rapaport matrix is 9 days old<div class="who2">Uploaded 24 Aug</div></td><td><span class="tag t-wait">Weekly</span></td><td>Finance</td><td class="r"><button class="btn p" onclick="go('pricing')">Upload</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="ph"><h2>Look up a customer</h2></div>
+        <div class="pb">
+          <div class="field" style="margin-bottom:10px"><input placeholder="Number, phone or name" value="4417"></div>
+          <button class="btn p" style="width:100%" onclick="go('customer')">Open the file</button>
+          <div class="who2" style="margin-top:9px">Everything on one person: wallet, orders, listings, documents and history.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Customer wallets</h2>
+          <div class="r"><button class="btn" onclick="xls('wallets')">Export</button></div></div>
+        <div class="pb">
+          <div class="kv"><span class="k">Available to spend</span><span class="v num">2,346,160</span></div>
+          <div class="kv"><span class="k">Held on open orders</span><span class="v num">612,400</span></div>
+          <div class="kv big"><span class="k">Total owed to customers</span><span class="v num">2,958,560</span></div>
+          <div class="note n-info" style="margin:14px 0 0">
+            <span>Held money is set aside against a specific order. It is still the customer's, and it returns to available if the order is cancelled.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Gold price now</h2><span class="sub">From Evolve</span></div>
+        <div class="pb">
+          <div class="kv"><span class="k">21K, sellers get</span><span class="v num">6,951</span></div>
+          <div class="kv"><span class="k">21K, buyers pay</span><span class="v num">6,975</span></div>
+          <div class="kv"><span class="k">Difference per gram</span><span class="v num">24</span></div>
+          <div class="kv"><span class="k">Feed</span><span class="v"><span class="tag t-ok">Healthy</span></span></div>
+          <div class="kv"><span class="k">Last update</span><span class="v">2 minutes ago</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>This month</h2></div>
+        <div class="pb">
+          <div class="kv"><span class="k">New sellers</span><span class="v num">128</span></div>
+          <div class="kv"><span class="k">Pieces listed</span><span class="v num">214</span></div>
+          <div class="kv"><span class="k">Sold</span><span class="v num">41</span></div>
+          <div class="kv"><span class="k">Sell-through</span><span class="v num">19%</span></div>
+          <div class="kv"><span class="k">Money reaches sellers in</span><span class="v">4.2 days</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-listings">
+  <p class="lead">A piece goes live only after someone here approves it. Check the photos show the piece and the condition, and that the description matches.</p>
+  <div class="chips">
+    <span class="chip on">Waiting, 14</span><span class="chip">Changes asked, 3</span>
+    <span class="chip">Approved today, 22</span><span class="chip">Rejected, 1</span>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Waiting for review</h2><span class="sub">Oldest first</span>
+        <div class="r"><button class="btn" onclick="xls('listings')">Export</button></div></div>
+      <table>
+        <thead><tr><th>Piece</th><th>Seller</th><th>Asking</th><th>Waiting</th><th class="r"></th></tr></thead>
+        <tbody>
+          <tr><td>Gold bangle, 21K &middot; 30.00 g<div class="who2">Making charge 400/g</div></td><td>8842<div class="who2">3rd listing</div></td><td class="mono">253,050</td><td><span class="tag t-bad">2 days</span></td><td class="r"><button class="btn p" onclick="show('rev')">Review</button></td></tr>
+          <tr><td>Diamond ring, 0.8 ct<div class="who2">VS1, G colour</div></td><td>4417<div class="who2">Verified</div></td><td class="mono">120,000</td><td><span class="tag t-wait">1 day</span></td><td class="r"><button class="btn" onclick="show('rev')">Review</button></td></tr>
+          <tr><td>Gold chain, 18K &middot; 12.40 g<div class="who2">Making charge 180/g</div></td><td>9014<div class="who2">First listing</div></td><td class="mono">76,020</td><td><span class="tag t-wait">6 hours</span></td><td class="r"><button class="btn" onclick="show('rev')">Review</button></td></tr>
+          <tr><td>Earrings with diamonds, 21K<div class="who2">6.10 g plus stones</div></td><td>7731</td><td class="mono">80,150</td><td><span class="tag t-info">3 hours</span></td><td class="r"><button class="btn" onclick="show('rev')">Review</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel" id="rev">
+      <div class="ph"><h2>Gold bangle, 21K</h2><span class="sub">Seller 8842</span></div>
+      <div class="pb">
+        <div class="g3" style="margin-bottom:8px">
+          <div class="thumb" onclick="ok('Opening the full-size photo.')">Full piece</div>
+          <div class="thumb" onclick="ok('Opening the full-size photo.')">Hallmark</div>
+          <div class="thumb" onclick="ok('Opening the full-size photo.')">Inner band</div>
+        </div>
+        <div class="g3" style="margin-bottom:12px">
+          <div class="thumb" onclick="ok('Opening the full-size photo.')">Clasp</div>
+          <div class="thumb" onclick="ok('Opening the full-size photo.')">On the hand</div>
+          <div class="thumb" onclick="ok('Opening the full-size photo.')">In its box</div>
+        </div>
+
+        <div class="g2" style="margin-bottom:14px">
+          <div class="vid" onclick="ok('Playing the video. Check the piece turns and every side is visible.')">
+            <div class="play">&#9654;</div>
+            <div><b>Video</b><div class="who2" style="color:#8A877C">14 seconds</div></div>
+          </div>
+          <div class="doc" onclick="ok('Opening the original invoice. Buyers never see this.')">
+            <div><b>Original invoice</b><div class="who2">2021 · Al-Sagheer Jewellers</div></div>
+          </div>
+        </div>
+        <div class="kv"><span class="k">Seller</span><span class="v">Sara M. Abdelrahman &middot; 8842</span></div>
+        <div class="kv"><span class="k">Phone</span><span class="v">+20 10 •••• 8842</span></div>
+        <div class="kv"><span class="k">Sent back on this piece</span><span class="v" style="color:var(--wait)">2 times</span></div>
+        <div class="kv"><span class="k">Sent back across all their listings</span><span class="v" style="color:var(--bad)">5 of 7</span></div>
+        <div class="kv"><span class="k">Weight stated</span><span class="v">30.00 g</span></div>
+        <div class="kv"><span class="k">Karat stated</span><span class="v">21K</span></div>
+        <div class="kv"><span class="k">Making charge</span><span class="v num">400 per gram</span></div>
+        <div class="kv"><span class="k">As % of gold value</span><span class="v" style="color:var(--wait)">21%</span></div>
+        <div class="kv"><span class="k">Video</span><span class="v">Uploaded</span></div>
+        <div class="kv"><span class="k">Original invoice</span><span class="v">Uploaded</span></div>
+
+        <div style="margin:14px 0 6px;font-size:11.5px;color:var(--ink-2)">Description</div>
+        <div style="font-size:12.5px;color:var(--ink-2);line-height:1.7;background:var(--bg);padding:11px;border-radius:7px">
+          Worn a few times and kept in its box. Small scratch on the inner band, visible in the third photo. Bought in 2021, original receipt available.
+        </div>
+
+        <div class="note n-wait" style="margin:14px 0">
+          <span>The making charge is high for a piece this weight. It is allowed, but it usually means the piece sits unsold.</span>
+        </div>
+
+        <div class="row2">
+          <button class="btn p" style="flex:1" onclick="ok('Approved. It is live now.')">Approve and publish</button>
+          <button class="btn" onclick="openBox('chg')">Ask for changes</button>
+          <button class="btn d" onclick="ok('Rejected and the seller was told why.')">Reject</button>
+        </div>
+        <div class="who2" style="margin-top:10px">Whatever you choose is logged against your name.</div>
+
+        <div id="chg" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+          <div style="font-size:12px;font-weight:600;margin-bottom:10px">What needs changing</div>
+          <label class="ck"><input type="checkbox" onchange="chgText()" data-t="The hallmark photo is blurred and we cannot read the karat. Please retake it in daylight."> The hallmark photo is unreadable</label>
+          <label class="ck"><input type="checkbox" onchange="chgText()" data-t="The photos do not show the whole piece. Please add one with all of it in frame."> Photos do not show the whole piece</label>
+          <label class="ck"><input type="checkbox" onchange="chgText()" data-t="The description does not mention the wear that is visible in the photos. Say it plainly, it protects you at inspection."> Damage visible but not described</label>
+          <label class="ck"><input type="checkbox" onchange="chgText()" data-t="The weight or karat does not match what the hallmark shows. Please check and correct it."> Weight or karat does not match</label>
+          <label class="ck"><input type="checkbox" onchange="chgText()" data-t="Please add a short video. Pieces with a video sell noticeably faster."> No video</label>
+          <label class="ck" style="margin-bottom:11px"><input type="checkbox" onchange="chgText()" data-t="Please upload the original invoice if you still have it. It reassures buyers."> No original invoice</label>
+          <div class="field"><textarea id="chgMsg" rows="4" placeholder="This goes to the seller. Add anything else in your own words."></textarea></div>
+          <button class="btn p" style="width:100%" onclick="ok('Sent to the seller with your notes.')">Send to the seller</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-customer">
+  <p class="lead">Everything on one person. Opening this file is logged, because it shows identity documents.</p>
+  <div class="stats">
+    <div class="stat"><div class="k">Available</div><div class="v num">56,760</div><div class="s">Can spend or withdraw</div></div>
+    <div class="stat"><div class="k">Held</div><div class="v num">24,000</div><div class="s">On 1 open order</div></div>
+    <div class="stat"><div class="k">Sold with us</div><div class="v num">9</div><div class="s">Since May 2026</div></div>
+    <div class="stat"><div class="k">Bought with us</div><div class="v num">3</div><div class="s">1 cancelled after inspection</div></div>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="panel">
+        <div class="ph"><h2>Orders</h2><div class="r"><button class="btn" onclick="xls('customer orders')">Export</button></div></div>
+        <table>
+          <thead><tr><th>Order</th><th>Piece</th><th>Side</th><th class="r">Value</th><th>Stage</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">DH-004417</td><td>Gold ring, 21K</td><td>Selling</td><td class="r mono">58,200</td><td><span class="tag t-wait">At IGI</span></td></tr>
+            <tr><td class="mono">DH-004398</td><td>Diamond ring, 0.8 ct</td><td>Buying</td><td class="r mono">120,000</td><td><span class="tag t-bad">Cancelled</span></td></tr>
+            <tr><td class="mono">DH-004301</td><td>Gold bracelet, 18K</td><td>Selling</td><td class="r mono">41,220</td><td><span class="tag t-ok">Completed</span></td></tr>
+            <tr><td class="mono">DH-004288</td><td>Earrings with diamonds</td><td>Buying</td><td class="r mono">78,400</td><td><span class="tag t-ok">Completed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Wallet history</h2><div class="r"><button class="btn" onclick="xls('customer wallet')">Export</button></div></div>
+        <table>
+          <thead><tr><th>When</th><th>What</th><th class="r">In</th><th class="r">Out</th><th class="r">Balance</th></tr></thead>
+          <tbody>
+            <tr><td>28 Aug</td><td>Sale settled, gold ring</td><td class="r mono" style="color:var(--ok)">56,952</td><td class="r mono">—</td><td class="r mono">80,760</td></tr>
+            <tr><td>26 Aug</td><td>Deposit held, diamond ring</td><td class="r mono">—</td><td class="r mono">24,000</td><td class="r mono">23,808</td></tr>
+            <tr><td>24 Aug</td><td>Added by bank transfer</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono">47,808</td></tr>
+            <tr><td>21 Aug</td><td>Withdrawn to CIB ••4417</td><td class="r mono">—</td><td class="r mono">40,000</td><td class="r mono">23,808</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="ph"><h2>Mona Hassan Ibrahim</h2><span class="sub">Seller 4417</span></div>
+        <div class="pb">
+          <div class="kv"><span class="k">Phone</span><span class="v">+20 10 •••• 4417</span></div>
+          <div class="kv"><span class="k">Email</span><span class="v">mona.h@email.com</span></div>
+          <div class="kv"><span class="k">Where</span><span class="v">Cairo</span></div>
+          <div class="kv"><span class="k">Joined</span><span class="v">12 May 2026</span></div>
+          <div class="kv"><span class="k">Identity</span><span class="v"><span class="tag t-ok">Verified</span></span></div>
+          <div class="kv"><span class="k">Payout account</span><span class="v">CIB ••4417</span></div>
+          <div class="kv"><span class="k">Name on the account</span><span class="v"><span class="tag t-ok">Matches ID</span></span></div>
+          <div class="kv"><span class="k">Type</span><span class="v">Ordinary</span></div>
+          <div class="kv"><span class="k">Weight difference</span><span class="v" style="color:var(--ok)">− 0.3% over 9 inspections</span></div>
+          <div class="row2" style="margin-top:14px">
+            <button class="btn" onclick="ok('Opening the identity documents. This view is logged.')">Documents</button>
+            <button class="btn" onclick="ok('Building the full case file. It is logged with who asked and when.')">Full case file</button>
+            <button class="btn d" onclick="openBox('susp')">Suspend</button>
+          </div>
+
+          <div id="susp" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px">Suspend this account</div>
+            <div class="sub2" style="margin-bottom:11px">They keep their wallet but cannot buy, sell or withdraw.</div>
+            <div class="field"><label>Reason</label>
+              <select><option>A piece was not what they said it was</option>
+              <option>Tried to deal outside Dahab</option>
+              <option>Repeated disputes against them</option>
+              <option>Reported by other users</option>
+              <option>Identity could not be confirmed</option>
+              <option>They asked us to close it</option>
+              <option>Something else</option></select></div>
+            <div class="field"><label>Note for the record</label><textarea rows="2" placeholder="Required."></textarea></div>
+            <button class="btn d" style="width:100%" onclick="ok('Suspended. Logged with your name and the reason.')">Suspend</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Listings</h2></div>
+        <table>
+          <thead><tr><th>Piece</th><th>Listed</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td>Gold necklace, 21K</td><td>19 Aug</td><td><span class="tag t-wait">3 in the queue</span><div class="who2" style="margin-top:4px">Seller takes the first in line</div></td></tr>
+            <tr><td>Gold ring, 21K</td><td>24 Aug</td><td><span class="tag t-info">At IGI</span></td></tr>
+            <tr><td>Gold bracelet, 18K</td><td>21 Aug</td><td><span class="tag t-ok">Sold</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>History</h2></div>
+        <table>
+          <thead><tr><th>When</th><th>What</th></tr></thead>
+          <tbody>
+            <tr><td>28 Aug</td><td>Withdrawal released, 42,000</td></tr>
+            <tr><td>26 Aug</td><td>Raised a dispute, DSP-4417</td></tr>
+            <tr><td>12 May</td><td>Identity verified</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-orders">
+  <p class="lead">Every live order and where it is stuck. Use the filters to find what needs chasing.</p>
+  <div class="chips">
+    <span class="chip on">All open, 23</span><span class="chip">Waiting for the seller, 6</span>
+    <span class="chip">On the way to IGI, 4</span><span class="chip">Waiting for the balance, 7</span>
+    <span class="chip">Ready to collect, 3</span><span class="chip">Past deadline, 3</span><span class="chip">Needs a decision, 2</span>
+  </div>
+  <div class="panel">
+    <div class="ph"><h2>Open orders</h2><span class="sub">23 orders, 612,400 EGP held</span>
+      <div class="r"><button class="btn" onclick="xls('orders')">Export to Excel</button></div></div>
+    <table>
+      <thead><tr><th>Order</th><th>Piece</th><th>Seller / Buyer</th><th>Value</th><th>Held</th><th>Stage</th><th>Deadline</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td class="mono">DH-004417</td><td>Gold ring, 21K<div class="who2">8.00 g</div></td><td>4417 → 6620<div class="who2">3 in queue, first shown</div></td><td class="mono">58,200</td><td class="mono">11,640</td><td><span class="tag t-wait">Waiting for the seller</span></td><td><span class="tag t-bad">Overdue 4h</span></td><td class="r"><button class="btn" onclick="ok('Reminder sent to the seller.')">Chase</button></td></tr>
+        <tr><td class="mono">DH-004402</td><td>Gold bangle, 21K<div class="who2">30.00 g</div></td><td>8842 → 5510</td><td class="mono">253,050</td><td class="mono">50,610</td><td><span class="tag t-bad">Dispute open</span></td><td>Frozen</td><td class="r"><button class="btn p" onclick="go('disputes')">Open</button></td></tr>
+        <tr><td class="mono">DH-004398</td><td>Diamond ring, 0.8 ct</td><td>7731 → 4417</td><td class="mono">120,000</td><td class="mono">24,000</td><td><span class="tag t-info">At IGI</span></td><td>Today 18:00</td><td class="r"><button class="btn" onclick="go('inspections')">Result</button></td></tr>
+        <tr><td class="mono">DH-004390</td><td>Gold chain, 18K<div class="who2">12.40 g</div></td><td>9014 → 3302</td><td class="mono">76,020</td><td class="mono">15,204</td><td><span class="tag t-wait">Waiting for the balance</span></td><td>2 Sep</td><td class="r"><button class="btn" onclick="ok('Reminder sent to the buyer.')">Chase</button></td></tr>
+        <tr><td class="mono">DH-004381</td><td>Gold bracelet, 18K<div class="who2">5.20 g</div></td><td>4417 → 8842</td><td class="mono">32,270</td><td class="mono">32,270</td><td><span class="tag t-wait">Ready to collect</span></td><td>14 Sep</td><td class="r"><button class="btn" onclick="ok('Reminder sent.')">Chase</button></td></tr>
+        <tr><td class="mono">DH-004377</td><td>Earrings with diamonds</td><td>5510 → 9014</td><td class="mono">80,150</td><td class="mono">16,030</td><td><span class="tag t-info">On the way to IGI</span></td><td>Today 15:20</td><td class="r"><button class="btn p" onclick="show('ext')">Review</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h2>Pieces needing a decision</h2><span class="sub">Storage window passed — hand over or resolve, case by case</span>
+      <div class="r"><button class="btn" onclick="xls('needs-decision')">Export to Excel</button></div></div>
+    <table>
+      <thead><tr><th>Order</th><th>Piece</th><th>Whose / why</th><th>Held / paid</th><th>State</th><th>Window passed</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td class="mono">DH-004390</td><td>Gold chain, 21K<div class="who2">12.40 g</div></td><td>Seller 9014<div class="who2">Buyer never paid; piece returned, seller never collected</div></td><td class="mono">—</td><td><span class="tag t-warn">Seller unclaimed</span></td><td><span class="tag t-bad">Passed 21 Sep</span></td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn p" onclick="ok('Handover to the seller arranged and logged.')">Hand over</button><button class="btn" onclick="ok('Marked for follow-up, logged against your name.')">Resolve</button></div></td></tr>
+        <tr><td class="mono">DH-004372</td><td>Gold ring, 21K<div class="who2">8.00 g</div></td><td>Buyer 6620<div class="who2">Paid in full, never collected</div></td><td class="mono">56,952</td><td><span class="tag t-warn">Uncollected, paid</span></td><td><span class="tag t-bad">Passed 14 Sep</span></td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn p" onclick="ok('Handover to the buyer arranged and logged.')">Hand over</button><button class="btn d" onclick="ok('Refund from escrow queued for Finance, logged.')">Refund</button></div></td></tr>
+      </tbody>
+    </table>
+    <div class="pb" style="padding-top:0">
+      <div class="note n-info" style="margin-top:12px">
+        <span>These are not automatic. The piece is still the owner's and still accounted for. When they make contact, hand the piece over, or — for a paid-but-uncollected buyer — refund from escrow. Every action here is logged against your name.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="panel" id="ext">
+      <div class="ph"><h2>More time requested</h2><span class="sub">DH-004377, seller 5510</span></div>
+      <div class="pb">
+        <div class="kv"><span class="k">Deadline now</span><span class="v">Today 15:20</span></div>
+        <div class="kv"><span class="k">Time left</span><span class="v" style="color:var(--bad)">2 hours</span></div>
+        <div class="kv"><span class="k">Reason they chose</span><span class="v">The branch was closed when I went</span></div>
+        <div class="kv"><span class="k">Extensions before</span><span class="v">None</span></div>
+        <div style="margin:14px 0 6px;font-size:11.5px;color:var(--ink-2)">What they wrote</div>
+        <div style="font-size:12.5px;color:var(--ink-2);line-height:1.7;background:var(--bg);padding:11px;border-radius:7px">
+          I went yesterday evening and the branch had already closed. I can go tomorrow morning first thing.
+        </div>
+        <div class="note n-info" style="margin:14px 0">
+          <span>The buyer is waiting and their deposit is held. If you extend, they are told the new deadline.</span>
+        </div>
+        <div class="field">
+          <label>Extend by</label>
+          <select><option>6 working hours</option><option selected>12 working hours</option>
+          <option>24 working hours</option><option>48 working hours</option></select>
+        </div>
+        <div class="field"><label>Note to both sides</label>
+          <textarea rows="2" placeholder="Optional. Both the buyer and the seller see this."></textarea></div>
+        <div class="row2">
+          <button class="btn g" style="flex:1" onclick="ok('Extended by 12 working hours. Both sides told.')">Accept and extend</button>
+          <button class="btn d" onclick="ok('Refused. The original deadline stands and both sides were told.')">Refuse</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>Extension requests</h2><span class="sub">This month</span></div>
+      <table>
+        <thead><tr><th>Order</th><th>Reason</th><th>Outcome</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">DH-004377</td><td>Branch was closed</td><td><span class="tag t-wait">Waiting</span></td></tr>
+          <tr><td class="mono">DH-004344</td><td>Travelling</td><td><span class="tag t-ok">Extended 24h</span></td></tr>
+          <tr><td class="mono">DH-004320</td><td>Sold it elsewhere</td><td><span class="tag t-bad">Cancelled instead</span></td></tr>
+          <tr><td class="mono">DH-004299</td><td>Family emergency</td><td><span class="tag t-ok">Extended 48h</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-inspections">
+  <p class="lead">Results come from the IGI branch account. A submitted result cannot be edited. A correction is a new entry, and both are kept.</p>
+
+  <div class="panel" id="insp" style="display:none">
+    <div class="ph"><h2>DH-004417</h2><span class="sub">Gold ring, 21K &middot; IGI Nasr City</span></div>
+    <div class="pb">
+      <div class="split">
+        <div>
+          <div class="label" style="font-size:11.5px;color:var(--ink-2);margin-bottom:8px">What IGI entered</div>
+          <div class="kv"><span class="k">Received</span><span class="v">28 Aug 11:20</span></div>
+          <div class="kv"><span class="k">Result entered</span><span class="v">28 Aug 13:40</span></div>
+          <div class="kv"><span class="k">Karat</span><span class="v">21K, matches</span></div>
+          <div class="kv"><span class="k">Weight</span><span class="v" style="color:var(--wait)">7.62 g, stated 8.00 g</span></div>
+          <div class="kv"><span class="k">Certificate</span><span class="v mono">IGI-EG-88214</span></div>
+          <div style="margin:14px 0 6px;font-size:11.5px;color:var(--ink-2)">Inspector's note</div>
+          <div style="font-size:12.5px;color:var(--ink-2);line-height:1.7;background:var(--bg);padding:11px;border-radius:7px">
+            Light surface wear on the band, consistent with regular use. Hallmark clear and matches 21K. No stones on this piece.
+          </div>
+          <div style="margin:14px 0 8px;font-size:11.5px;color:var(--ink-2)">Files they attached</div>
+          <div class="g2">
+            <div class="doc" onclick="ok('Opening the certificate.')"><div><b>Certificate</b><div class="who2">PDF, 240 KB</div></div></div>
+            <div class="doc" onclick="ok('Opening the photo.')"><div><b>Scale photo</b><div class="who2">JPG, 1.2 MB</div></div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="note n-wait">
+            <span>IGI records the measurement. What the customer reads is written here, by you. Nothing is sent until you approve it.</span>
+          </div>
+          <div class="field"><label>Message to the seller</label>
+            <textarea rows="4">IGI weighed your ring at 7.62 g rather than the 8.00 g on your listing. The karat is confirmed as 21K. We have told the buyer and asked whether they accept the adjusted price. Nothing has been charged and your piece is safe at the branch.</textarea></div>
+          <div class="field"><label>Message to the buyer</label>
+            <textarea rows="4">IGI has inspected the ring. The karat is 21K as listed, but the weight is 7.62 g rather than 8.00 g, so the price comes down to 54,884 EGP. You can accept the new price or decline and have your deposit returned in full.</textarea></div>
+          <div class="row2">
+            <button class="btn p" style="flex:1" onclick="ok('Both messages sent and logged against your name.')">Approve and send both</button>
+            <button class="btn" onclick="ok('Held. Nothing has been sent.')">Hold</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Results</h2><span class="sub">From the inspection branches</span></div>
+      <div class="fbar"><select><option>Last 30 days</option><option>Last 60 days</option><option>Last 90 days</option><option>This year</option><option>Custom dates</option></select><input placeholder="Search name, number or reason"><div class="sp"><button class="btn" onclick="xls('inspections')">Export to Excel</button></div></div>
+      <table>
+        <thead><tr><th>Order and piece</th><th>Received</th><th>Stated vs measured</th><th>Difference</th><th>Outcome</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">DH-004417<div class="who2">Gold ring, 21K &middot; seller 4417</div></td><td>28 Aug 11:20<div class="who2">Result 2h 20m later</div></td><td>21K · 8.00 g<div class="who2">Measured 21K · 7.62 g</div></td><td style="color:var(--wait)">− 4.8%</td><td><span class="tag t-wait">Both must approve</span><div class="who2" style="margin-top:4px"><span style="color:var(--gold);cursor:pointer" onclick="openBox('insp')">Open the result</span></div></td></tr>
+          <tr><td class="mono">DH-004398<div class="who2">Diamond ring &middot; seller 7731</div></td><td>27 Aug 14:05<div class="who2">Result next day</div></td><td>VS1 · G<div class="who2">Measured VS2 · G</div></td><td style="color:var(--bad)">Grade lower</td><td><span class="tag t-bad">Buyer declined</span><div class="who2" style="margin-top:4px"><span style="color:var(--gold);cursor:pointer" onclick="ok('Opening the report and photos.')">Report, 3 files</span></div></td></tr>
+          <tr><td class="mono">DH-004390<div class="who2">Gold chain, 18K &middot; seller 9014</div></td><td>26 Aug 09:40<div class="who2">Result 1h 10m later</div></td><td>18K · 12.40 g<div class="who2">Measured 18K · 12.38 g</div></td><td style="color:var(--ok)">− 0.2%</td><td><span class="tag t-ok">Adjusted, settled</span><div class="who2" style="margin-top:4px"><span style="color:var(--gold);cursor:pointer" onclick="ok('Opening the certificate.')">Certificate</span></div></td></tr>
+          <tr><td class="mono">DH-004355<div class="who2">Gold ring, 21K &middot; seller 3302</div></td><td>24 Aug 16:30<div class="who2">Result 4h later</div></td><td>21K · 6.00 g<div class="who2">Measured 18K · 6.00 g</div></td><td style="color:var(--bad)">Karat wrong</td><td><span class="tag t-bad">Refunded, suspended</span><div class="who2" style="margin-top:4px"><span style="color:var(--gold);cursor:pointer" onclick="ok('Opening the test result.')">Report, 5 files</span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="ph"><h2>People to watch</h2><span class="sub">Counted from 5 transactions up</span></div>
+        <div class="fbar"><select><option>Last 30 days</option><option>Last 60 days</option><option>Last 90 days</option><option>This year</option><option>Custom dates</option></select><input placeholder="Search name, number or reason"><div class="sp"><button class="btn" onclick="xls('people to watch')">Export to Excel</button></div></div>
+        <table>
+          <thead><tr><th>Person</th><th>Sold / bought</th><th>What stands out</th></tr></thead>
+          <tbody>
+            <tr><td>8842<div class="who2">Mostly selling</div></td><td class="ratio"><b>7</b> / 1</td><td><span class="tag t-bad">Weight always short</span><div class="who2">6 of 7 came in under, − 4.1% average</div></td></tr>
+            <tr><td>5510<div class="who2">Mostly buying</div></td><td class="ratio">1 / <b>9</b></td><td><span class="tag t-bad">Asks then does not pay</span><div class="who2">4 of 9 requests never paid</div></td></tr>
+            <tr><td>3302<div class="who2">Both sides</div></td><td class="ratio"><b>4</b> / 6</td><td><span class="tag t-wait">Traded with 6620 five times</span><div class="who2">Same pair over and over</div></td></tr>
+            <tr><td>9014<div class="who2">Selling</div></td><td class="ratio"><b>6</b> / 0</td><td><span class="tag t-wait">Listings sent back often</span><div class="who2">5 of 6 needed changes</div></td></tr>
+            <tr><td>4417<div class="who2">Both sides</div></td><td class="ratio"><b>9</b> / 3</td><td><span class="tag t-ok">Nothing unusual</span><div class="who2">− 0.3% average difference</div></td></tr>
+          </tbody>
+        </table>
+        <div class="pb" style="padding-top:0">
+          <div class="note n-wait" style="margin:12px 0 0">
+            <span>A pattern in one direction is worth a look; an honest guess is random. Two people who keep trading with each other are the pattern to watch hardest.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-disputes">
+  <p class="lead">While a dispute is open the order is frozen. No money moves and no deadline runs against either side.</p>
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Open</h2><span class="sub">2 disputes, 3 reports</span></div>
+      <table>
+        <thead><tr><th>Reference</th><th>What</th><th>Raised by</th><th>Age</th><th class="r"></th></tr></thead>
+        <tbody>
+          <tr><td class="mono">DSP-4417</td><td>Disagrees with the inspection result<div class="who2">Order DH-004402</div></td><td>Seller 8842</td><td><span class="tag t-wait">14h</span></td><td class="r"><button class="btn p" onclick="openDsp('DSP-4417','Seller 8842','Disagrees with the inspection','253,050','50,610','I weighed it at the pharmacy before I brought it and it was 30 grams exactly. IGI says 28.6. I want it weighed again.')">Open</button></td></tr>
+          <tr><td class="mono">DSP-4408</td><td>Piece is not as the listing showed<div class="who2">Order DH-004371</div></td><td>Buyer 5510</td><td><span class="tag t-info">6h</span></td><td class="r"><button class="btn" onclick="openDsp('DSP-4408','Buyer 5510','Piece is not as the listing showed','76,020','15,204','The photos showed no damage but there is a deep scratch across the front. I want to cancel.')">Open</button></td></tr>
+          <tr><td class="mono">RPT-2291</td><td>Photos look taken from elsewhere<div class="who2">Listing L-8842-03</div></td><td>Anonymous</td><td><span class="tag t-info">3h</span></td><td class="r"><button class="btn" onclick="openDsp('RPT-2291','Anonymous report','Photos may be taken from elsewhere','253,050','—','The same photos appear on another site under a different seller name.')">Open</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel" id="dsp">
+      <div class="ph"><h2 id="dRef">DSP-4417</h2><span class="sub">Order frozen</span></div>
+      <div class="pb">
+        <div class="kv"><span class="k">Raised by</span><span class="v" id="dBy">Seller 8842</span></div>
+        <div class="kv"><span class="k">Reason chosen</span><span class="v" id="dWhy">Disagrees with the inspection</span></div>
+        <div class="kv"><span class="k">Order value</span><span class="v num" id="dVal">253,050 EGP</span></div>
+        <div class="kv"><span class="k">Deposit held</span><span class="v num" id="dDep">50,610 EGP</span></div>
+        <div style="margin:14px 0 6px;font-size:11.5px;color:var(--ink-2)">What they wrote</div>
+        <div style="font-size:12.5px;color:var(--ink-2);line-height:1.7;background:var(--bg);padding:11px;border-radius:7px" id="dTxt">
+          I weighed it at the pharmacy before I brought it and it was 30 grams exactly. IGI says 28.6. I want it weighed again.
+        </div>
+        <div style="margin:16px 0 8px;font-size:11.5px;color:var(--ink-2)">What you are doing about it</div>
+        <div class="row2" style="flex-wrap:wrap">
+          <button class="btn" onclick="ok('IGI asked to weigh it again.')">Ask IGI to re-weigh</button>
+          <button class="btn g" onclick="go('compensation')">Pay compensation</button>
+          <button class="btn" onclick="ok('Cancelled, deposit returned to the buyer.')">Cancel and refund</button>
+
+          <button class="btn" onclick="openBox('esc')">Pass it to someone else</button>
+        </div>
+
+        <div class="field" style="margin-top:14px">
+          <label>Reply to the person who raised it</label>
+          <select id="dspTpl" onchange="fillReply()">
+            <option value="">Write your own</option>
+            <option value="We asked IGI to weigh the piece again. We will come back to you within one working day with the result.">Re-weigh requested</option>
+            <option value="We looked at the inspection again and the result stands. The scale at IGI is calibrated and certified, and small differences from a shop scale are normal.">Inspection result stands</option>
+            <option value="You were right and we have put it right. The difference is in your wallet now.">Resolved in your favour</option>
+            <option value="We cancelled the order. Your deposit is back in your wallet in full and nothing was charged.">Cancelled and refunded</option>
+            <option value="We looked into this and found nothing wrong with the listing. If you have anything else that would help, send it and we will look again.">Nothing found</option>
+          </select>
+        </div>
+        <div class="field">
+          <textarea id="dspMsg" rows="4" placeholder="This is sent to them, so write it as they will read it."></textarea>
+        </div>
+        <div class="note n-wait">
+          <span>Every dispute ends with a reply. There is no way to close one silently.</span>
+        </div>
+        <button class="btn p" style="width:100%" onclick="ok('Reply sent and the dispute closed. Logged against your name.')">Send the reply and close</button>
+
+        <div id="esc" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px">Pass it to someone else</div>
+          <div class="sub2" style="margin-bottom:11px">The dispute stays open and becomes theirs. Nothing is sent to the customer.</div>
+          <div class="field"><label>Who takes it</label>
+            <select><option>Chief Executive Officer</option><option>Chief Operating Officer</option>
+            <option>Chief Financial Officer</option><option>Operations</option><option>Verification</option></select></div>
+          <div class="field"><label>What you need from them</label>
+            <textarea rows="3" placeholder="Say what you have already checked and what you need decided."></textarea></div>
+          <button class="btn" style="width:100%" onclick="ok('Passed on. They are notified and it is now theirs.')">Pass it on</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-withdrawals">
+  <p class="lead">Every withdrawal is checked by a person before it leaves. Money only goes to an account in the wallet holder's own name.</p>
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="k">Waiting for review</div><div class="v num">5</div><div class="s">184,600 EGP</div></div>
+    <div class="stat"><div class="k">Released today</div><div class="v num">12</div><div class="s">402,800 EGP</div></div>
+    <div class="stat"><div class="k">On hold</div><div class="v num">2</div><div class="s">Name does not match</div></div>
+    <div class="stat"><div class="k">Average time to release</div><div class="v num">6h</div><div class="s">Target is under 24</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><h2>Waiting for review</h2></div>
+    <div class="fbar"><select><option>Last 30 days</option><option>Last 60 days</option><option>Last 90 days</option><option>This year</option><option>Custom dates</option></select><input placeholder="Search name, number or reason"><div class="sp"><button class="btn" onclick="xls('withdrawals')">Export to Excel</button></div></div>
+    <table>
+      <thead><tr><th>Requested</th><th>Amount</th><th>Where it goes</th><th>Before you release</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Today 09:12<div class="who2">Mona H. Ibrahim &middot; 4417</div><div class="who2"><span style="color:var(--gold);cursor:pointer" onclick="go('customer')">Open the file</span></div></td>
+          <td class="mono" style="font-weight:600">42,000<div class="who2">Of 56,760 available</div></td>
+          <td>CIB ••4417<div class="who2">Mona Hassan Ibrahim</div><div class="who2">Added 12 May, paid out 3 times</div></td>
+          <td>
+            <div class="who2" style="color:var(--ok)">Name verified by M. Adel, 12 May</div>
+            <div class="who2" style="color:var(--ok)">Identity verified &middot; no open disputes</div>
+            <div class="who2" style="color:var(--ok)">Money came from 9 completed sales</div>
+          </td>
+          <td class="r"><div class="row2" style="justify-content:flex-end">
+            <button class="btn g" onclick="openBox('rel')">Release</button>
+            <button class="btn" onclick="ok('Transfer file ready to print.')">Transfer file</button>
+            <button class="btn" onclick="openBox('hold')">Hold</button></div></td></tr>
+
+        <tr>
+          <td>Today 08:40<div class="who2">Sara M. Abdelrahman &middot; 8842</div><div class="who2"><span style="color:var(--gold);cursor:pointer" onclick="go('customer')">Open the file</span></div></td>
+          <td class="mono" style="font-weight:600">90,000<div class="who2">Of 91,200 available</div></td>
+          <td>NBE ••2210<div class="who2">Sara M. Abdelrahman</div><div class="who2" style="color:var(--wait)">Account changed 3 days ago</div></td>
+          <td>
+            <div class="who2" style="color:var(--ok)">Name verified by M. Adel, 26 Aug</div>
+            <div class="who2" style="color:var(--wait)">New account, first payout to it</div>
+            <div class="who2" style="color:var(--wait)">Weight short on 6 of 7 pieces</div>
+          </td>
+          <td class="r"><div class="row2" style="justify-content:flex-end">
+            <button class="btn g" onclick="ok('Released.')">Release</button>
+            <button class="btn" onclick="ok('Transfer file ready to print.')">Transfer file</button>
+            <button class="btn" onclick="ok('Held.')">Hold</button></div></td></tr>
+
+        <tr>
+          <td>Yesterday 21:05<div class="who2">M. A. Ibrahim &middot; 9014</div></td>
+          <td class="mono" style="font-weight:600">30,000<div class="who2">Of 33,400 available</div></td>
+          <td>Banque Misr ••7781<div class="who2">M. A. Ibrahim</div></td>
+          <td>
+            <div class="who2" style="color:var(--wait)">Name is shortened, ID says Mahmoud Ali Ibrahim</div>
+            <div class="who2" style="color:var(--ok)">Identity verified</div>
+          </td>
+          <td class="r"><button class="btn" onclick="ok('Asked the customer for the full name.')">Ask for the full name</button></td></tr>
+
+        <tr>
+          <td>Yesterday 18:22<div class="who2">Buyer 5510</div></td>
+          <td class="mono" style="font-weight:600">12,600<div class="who2">Of 12,800 available</div></td>
+          <td>CIB ••9930<div class="who2">Youssef Nabil Kamal</div></td>
+          <td>
+            <div class="who2" style="color:var(--bad)">Account is in someone else's name</div>
+            <div class="who2" style="color:var(--bad)">Topped up 3 days ago, never traded</div>
+          </td>
+          <td class="r"><button class="btn d" onclick="ok('Refused. Money only goes to an account in the holder name.')">Refuse</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="split">
+    <div class="panel" id="rel" style="display:none">
+      <div class="ph"><h2>Release 42,000 EGP</h2><span class="sub">Mona H. Ibrahim &middot; CIB ••4417</span></div>
+      <div class="pb">
+        <div class="note n-info"><span>Send the transfer at the bank first, then record its details here so the two records match.</span></div>
+        <div class="g2">
+          <div class="field"><label>Bank transaction number</label><input placeholder="From the bank"></div>
+          <div class="field"><label>Reference on the transfer</label><input value="DH-W-004417"></div>
+        </div>
+        <div class="field"><label>Value date</label><input type="date"></div>
+        <button class="btn g" style="width:100%" onclick="ok('Released and recorded. The customer has been told.')">Record and release</button>
+      </div>
+    </div>
+
+    <div class="panel" id="hold" style="display:none">
+      <div class="ph"><h2>Hold this withdrawal</h2></div>
+      <div class="pb">
+        <div class="field"><label>Why</label>
+          <select><option>Name does not match the ID</option><option>Bank account changed recently</option>
+          <option>Waiting for identity verification</option><option>Open dispute on this account</option>
+          <option>Money came in and is going straight out</option><option>Something else</option></select></div>
+        <div class="field"><label>What the customer is told</label>
+          <textarea rows="3">We need to check something before this goes out. We will come back to you within one working day.</textarea></div>
+        <button class="btn" style="width:100%" onclick="ok('Held. The customer has been told and it is logged.')">Hold it</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-statement">
+  <p class="lead">Every movement with the balance before and after it, so any single row makes sense on its own. This is the ledger, not the person.</p>
+
+  <div class="panel" style="margin-bottom:14px">
+    <div class="fbar">
+      <select id="stScope" onchange="stSwitch()">
+        <option value="one">One customer wallet</option>
+        <option value="all">All customer wallets together</option>
+        <option value="dahab">The Dahab wallet</option>
+      </select>
+      <input id="stWho" placeholder="Wallet number, phone or name" value="4417">
+      <select><option>August 2026</option><option>July 2026</option><option>Last 90 days</option><option>Custom dates</option></select>
+      <select id="stGrain" onchange="stSwitch()">
+        <option value="each">Every movement</option>
+        <option value="day">One line per day</option>
+        <option value="month">One line per month</option>
+      </select>
+      <div class="sp">
+        <button class="btn" onclick="go('customer')" id="stFile">Open their file</button>
+        <button class="btn" onclick="xls('wallet statement')">Export to Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><div class="k">Balance on 1 August</div><div class="v num" id="stOpen">23,808</div><div class="s">Where the month started</div></div>
+    <div class="stat"><div class="k">In</div><div class="v num" style="color:var(--ok)" id="stIn">146,972</div><div class="s">8 movements</div></div>
+    <div class="stat"><div class="k">Out</div><div class="v num" id="stOut">114,020</div><div class="s">Including 114,020 held</div></div>
+    <div class="stat"><div class="k">Balance on 31 August</div><div class="v num" id="stClose">56,760</div><div class="s">Available 32,760, held 24,000</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h2 id="stTitle">Wallet 4417</h2><span class="sub" id="stSub">Mona Hassan Ibrahim</span></div>
+    <table>
+      <thead><tr><th>When</th><th>What</th><th>Order</th><th class="r">Before</th><th class="r">In</th><th class="r">Out</th><th class="r">After</th><th class="r"></th></tr></thead>
+      <tbody id="stRows">
+        <tr><td>2 Aug 10:12</td><td>Sale settled<div class="who2">Gold bracelet, 18K &middot; commission 446 taken</div></td><td class="mono">DH-004301</td><td class="r mono" style="color:var(--ink-3)">23,808</td><td class="r mono" style="color:var(--ok)">41,220</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">65,028</td><td class="r"><button class="btn" onclick="ok('Opening the movement.')">Open</button></td></tr>
+        <tr><td>21 Aug 09:40</td><td>Withdrawn to CIB ••4417<div class="who2">Released by N. Sherif &middot; bank ref DH-W-004301</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">65,028</td><td class="r mono">—</td><td class="r mono">40,000</td><td class="r mono" style="font-weight:600">25,028</td><td class="r"><button class="btn" onclick="ok('Opening the transfer file.')">Open</button></td></tr>
+        <tr><td>24 Aug 14:02</td><td>Added by bank transfer<div class="who2">Matched by reference MONA-4417</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">25,028</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">49,028</td><td class="r"><button class="btn" onclick="ok('Opening the bank advice.')">Open</button></td></tr>
+        <tr><td>26 Aug 19:22</td><td>Deposit held<div class="who2">Diamond ring, 0.8 ct</div></td><td class="mono">DH-004398</td><td class="r mono" style="color:var(--ink-3)">49,028</td><td class="r mono">—</td><td class="r mono">24,000</td><td class="r mono" style="font-weight:600">25,028</td><td class="r"><button class="btn" onclick="ok('Opening the order.')">Open</button></td></tr>
+        <tr><td>27 Aug 11:15</td><td>Deposit returned<div class="who2">Buyer declined the adjusted grade</div></td><td class="mono">DH-004398</td><td class="r mono" style="color:var(--ink-3)">25,028</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">49,028</td><td class="r"><button class="btn" onclick="ok('Opening the order.')">Open</button></td></tr>
+        <tr style="background:#FBF2DF"><td>28 Aug 10:14</td><td>Compensation from Dahab<div class="who2">Wasted trip to IGI &middot; paid by A. Mostafa</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">49,028</td><td class="r mono" style="color:var(--ok)">800</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">49,828</td><td class="r"><button class="btn" onclick="ok('Opening the compensation record.')">Open</button></td></tr>
+        <tr><td>28 Aug 13:55</td><td>Sale settled<div class="who2">Gold ring, 21K &middot; commission 400 taken</div></td><td class="mono">DH-004417</td><td class="r mono" style="color:var(--ink-3)">49,828</td><td class="r mono" style="color:var(--ok)">56,952</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">106,780</td><td class="r"><button class="btn" onclick="ok('Opening the movement.')">Open</button></td></tr>
+        <tr><td>29 Aug 09:12</td><td>Deposit held<div class="who2">Gold bangle, 21K</div></td><td class="mono">DH-004402</td><td class="r mono" style="color:var(--ink-3)">106,780</td><td class="r mono">—</td><td class="r mono">50,020</td><td class="r mono" style="font-weight:600">56,760</td><td class="r"><button class="btn" onclick="ok('Opening the order.')">Open</button></td></tr>
+      </tbody>
+    </table>
+    <div class="pb" style="padding-top:0">
+      <div class="note n-info" style="margin-top:12px" id="stNote">
+        <span>Rows shaded amber were entered by hand rather than produced by a transaction. They are the ones to look at first when a balance does not make sense.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-transfers">
+  <p class="lead">Money coming in from banks and wallets. Matched automatically by reference, or by hand when the reference is missing.</p>
+  <div class="panel">
+    <div class="ph"><h2>Unmatched</h2><span class="sub">8 transfers, 96,400 EGP</span>
+      <div class="r"><button class="btn" onclick="xls('transfers')">Export</button></div></div>
+    <div class="fbar"><select><option>Last 30 days</option><option>Last 60 days</option><option>Last 90 days</option><option>This year</option><option>Custom dates</option></select><input placeholder="Search name, number or reason"><div class="sp"><button class="btn" onclick="xls('incoming transfers')">Export to Excel</button></div></div>
+    <table>
+      <thead><tr><th>Received</th><th>Amount</th><th>From</th><th>Reference</th><th>Best guess</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td>Today 10:04</td><td class="mono" style="font-weight:600">24,000</td><td>CIB transfer<div class="who2">Mona H Ibrahim</div></td><td class="mono">MONA-4417</td><td>Wallet 4417<div class="who2">Reference and name both match</div><div class="who2">Topping up for a diamond ring, DH-004398</div></td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="go('statement')">Wallet statement</button><button class="btn g" onclick="ok('Matched and credited.')">Credit wallet</button></div></td></tr>
+        <tr><td>Today 09:31</td><td class="mono" style="font-weight:600">15,000</td><td>InstaPay<div class="who2">01x xxxx 8842</div></td><td class="mono">—</td><td>Wallet 8842<div class="who2">Phone number matches, no reference</div></td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="go('statement')">Wallet statement</button><button class="btn" onclick="ok('Matched by hand and logged.')">Match by hand</button></div></td></tr>
+        <tr><td>Yesterday</td><td class="mono" style="font-weight:600">7,400</td><td>Vodafone Cash<div class="who2">01x xxxx 1180</div></td><td class="mono">—</td><td><span class="tag t-bad">No match found</span></td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="ok('Opening their identity document. This view is logged.')">Sender ID</button><button class="btn" onclick="ok('Marked for follow-up.')">Investigate</button></div></td></tr>
+        <tr><td>Yesterday</td><td class="mono" style="font-weight:600">40,000</td><td>CIB transfer<div class="who2">Hassan A. Nour</div></td><td class="mono">MONA-4417</td><td>Wallet 4417<div class="who2" style="color:var(--bad)">Reference matches but the sender is a different person</div></td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="ok('Opening their identity document. This view is logged.')">Sender ID</button><button class="btn d" onclick="ok('Held. Money must come from an account in the wallet holder name.')">Hold</button></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="page" id="p-compensation">
+  <p class="lead">Pays money into a customer wallet outside the normal flow. Every payment is logged with your name and appears on their statement as compensation from Dahab.</p>
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Pay compensation</h2></div>
+      <div class="pb">
+        <div class="g2">
+          <div class="field"><label>Wallet</label><input placeholder="Seller or buyer number" value="8842"></div>
+          <div class="field"><label>Amount in EGP</label><input placeholder="0" value="500"></div>
+        </div>
+        <div class="field"><label>Reason</label>
+          <select><option>A delay caused by IGI</option><option>A mistake on Dahab's side</option>
+          <option>A wasted trip to IGI</option><option>Settlement of a dispute</option><option>Goodwill</option></select></div>
+        <div class="field"><label>Note for the record</label>
+          <textarea rows="3" placeholder="What happened, in one or two lines."></textarea></div>
+        <div class="kv"><span class="k">Approved by</span><span class="v">Ahmed Ezz El-Din</span></div>
+        <div class="kv"><span class="k">Your remaining limit today</span><span class="v num">5,000 EGP</span></div>
+        <button class="btn p" style="margin-top:14px" onclick="ok('Paid into the wallet and logged against your name.')">Pay into the wallet</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>Paid out</h2><span class="sub">18,400 EGP this month</span></div>
+      <div class="fbar"><select><option>Last 30 days</option><option>Last 60 days</option><option>Last 90 days</option><option>This year</option><option>Custom dates</option></select><input placeholder="Search name, number or reason"><div class="sp"><button class="btn" onclick="xls('compensation')">Export to Excel</button></div></div>
+      <table>
+        <thead><tr><th>When</th><th>Wallet</th><th class="r">Amount</th><th>Reason</th><th>By</th></tr></thead>
+        <tbody>
+          <tr><td>28 Aug</td><td>4417</td><td class="r mono">800</td><td>Wasted trip</td><td>A. Mostafa</td></tr>
+          <tr><td>26 Aug</td><td>9014</td><td class="r mono">2,000</td><td>Dahab error</td><td>Ahmed E.</td></tr>
+          <tr><td>24 Aug</td><td>8842</td><td class="r mono">1,500</td><td>IGI delay</td><td>A. Mostafa</td></tr>
+          <tr><td>21 Aug</td><td>5510</td><td class="r mono">500</td><td>Goodwill</td><td>A. Mostafa</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-invoices">
+  <p class="lead">Invoices are issued automatically at settlement and sent to the Tax Authority e-invoicing system. Nobody issues them by hand. A registered invoice cannot be edited, so a mistake is corrected with a credit note that reverses it.</p>
+  <div class="stats">
+    <div class="stat"><div class="k">Issued this month</div><div class="v num">41</div><div class="s">All registered</div></div>
+    <div class="stat"><div class="k">Rejected by the Tax Authority</div><div class="v num" style="color:var(--bad)">1</div><div class="s">Revenue booked but not recognised</div></div>
+    <div class="stat"><div class="k">VAT collected</div><div class="v num">8,666</div><div class="s">On commission only</div></div>
+    <div class="stat"><div class="k">Credit notes</div><div class="v num">2</div><div class="s">Corrections to earlier invoices</div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><h2>Invoices</h2></div>
+    <div class="fbar"><select><option>Last 30 days</option><option>Last 60 days</option><option>Last 90 days</option><option>This year</option><option>Custom dates</option></select><input placeholder="Search name, number or reason"><div class="sp"><button class="btn" onclick="xls('invoices')">Export to Excel</button></div></div>
+    <table>
+      <thead><tr><th>Number</th><th>Date</th><th>Order</th><th class="r">Commission</th><th class="r">VAT</th><th>Tax Authority</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td class="mono">DH-2026-004417</td><td>28 Aug</td><td class="mono">DH-004417</td><td class="r mono">400</td><td class="r mono">49</td><td><span class="tag t-ok">Registered</span></td><td class="r"><button class="btn" onclick="ok('Opening the invoice.')">View</button></td></tr>
+        <tr><td class="mono">DH-2026-004402</td><td>27 Aug</td><td class="mono">DH-004402</td><td class="r mono">2,400</td><td class="r mono">295</td><td><span class="tag t-ok">Registered</span></td><td class="r"><button class="btn" onclick="ok('Opening the invoice.')">View</button></td></tr>
+        <tr><td class="mono">DH-2026-004398</td><td>26 Aug</td><td class="mono">DH-004398</td><td class="r mono">1,200</td><td class="r mono">147</td><td><span class="tag t-bad">Rejected</span><div class="who2">Tax number format &middot; tried twice</div></td><td class="r"><button class="btn p" onclick="ok('Sending to the Tax Authority again.')">Send again</button></td></tr>
+        <tr><td class="mono">DH-2026-004390</td><td>25 Aug</td><td class="mono">DH-004390</td><td class="r mono">446</td><td class="r mono">55</td><td><span class="tag t-ok">Registered</span></td><td class="r"><button class="btn" onclick="ok('Opening the invoice.')">View</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h2>Credit notes</h2><span class="sub">Each one reverses an invoice that was already registered</span></div>
+    <table>
+      <thead><tr><th>Credit note</th><th>Reverses</th><th>Why</th><th class="r">Amount</th><th>Registered</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">CN-2026-000031</td><td class="mono">DH-2026-004355</td><td>Inspection found a lower karat, the sale was cancelled</td><td class="r mono">− 320</td><td><span class="tag t-ok">Registered</span></td></tr>
+        <tr><td class="mono">CN-2026-000030</td><td class="mono">DH-2026-004301</td><td>Weight adjusted after inspection, commission was overstated</td><td class="r mono">− 84</td><td><span class="tag t-ok">Registered</span></td></tr>
+      </tbody>
+    </table>
+    <div class="pb" style="padding-top:0">
+      <div class="note n-info" style="margin-top:12px">
+        <span>If this number grows month on month, invoices are being issued too early. The fix is to issue at settlement, not at acceptance.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-pricing">
+  <p class="lead">Three separate controls sit between the Evolve feed and the price a customer sees. They are not interchangeable.</p>
+
+  <div class="split">
+    <div>
+      <div class="panel">
+        <div class="ph"><h2>Price correction</h2><span class="sub">Always on</span></div>
+        <div class="pb">
+          <div class="note n-info">
+            <span>A fixed amount per gram added to the reference price. It applies while the feed is healthy and updates with every refresh. This corrects the feed against the real market. It is not a revenue line.</span>
+          </div>
+          <div class="g2">
+            <div class="field"><label>Buy side, EGP per gram</label><input value="20" id="corrBuy" oninput="spread()">
+              <div class="h">The rate the seller receives (buy from the seller), gold only</div></div>
+            <div class="field"><label>Sell side, EGP per gram</label><input value="10" id="corrSell" oninput="spread()">
+              <div class="h">The rate the buyer pays (sell to the buyer), gold only. The difference is Dahab's spread</div></div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:13px;margin-bottom:14px">
+            <div class="kv"><span class="k">21K, sellers get</span><span class="v num" id="pSell">6,951</span></div>
+            <div class="kv"><span class="k">21K, buyers pay</span><span class="v num" id="pBuy">6,975</span></div>
+            <div class="kv big"><span class="k">Published difference per gram</span><span class="v num" id="pDiff">24</span></div>
+            <div class="h" style="margin-top:6px;font-size:11px;color:var(--ink-3)">Calculated from the two fields above, never typed in. Customers always read the figure they are actually charged. The spread applies to gold only — diamonds and gold-with-diamond are sold at one fixed price with no spread, and it is computed at balance payment from the IGI-confirmed weight.</div>
+          </div>
+          <button class="btn p" onclick="ok('Correction saved and logged. The published difference updated with it.')">Save correction</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Manual price</h2><span class="sub">Only when the feed is down</span></div>
+        <div class="pb">
+          <div class="note n-wait">
+            <span>While a manual price is live, a banner appears in the app and the system returns to the feed automatically as soon as it recovers. Above 10% deviation you are asked to confirm again.</span>
+          </div>
+          <div class="kv"><span class="k">Feed status</span><span class="v"><span class="tag t-ok">Healthy, 2 minutes ago</span></span></div>
+          <div class="kv"><span class="k">Last manual price</span><span class="v">14 Aug, by Ahmed E.</span></div>
+          <div class="g2" style="margin-top:14px">
+            <div class="field"><label>Enter as</label><select><option>24K price per gram</option><option>Percentage change from the last price</option></select></div>
+            <div class="field"><label>24K, sellers get</label><input value="7944" id="k24" oninput="karats()"></div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:13px;margin-bottom:13px">
+            <div class="sub2" style="margin-bottom:8px">The rest follow from purity. Check them before you save.</div>
+            <div class="kv"><span class="k">22K &middot; 916</span><span class="v num" id="k22" style="color:var(--ink-3)">7,283</span></div>
+            <div class="kv"><span class="k">21K &middot; 875</span><span class="v num" id="k21">6,955</span></div>
+            <div class="kv"><span class="k">20K &middot; 833</span><span class="v num" id="k20" style="color:var(--ink-3)">6,621</span></div>
+            <div class="kv"><span class="k">18K &middot; 750</span><span class="v num" id="k18">5,961</span></div>
+            <div class="sub2" style="margin-top:8px">Greyed karats are turned off in <span style="color:var(--gold);cursor:pointer" onclick="go('karats')">karats</span>. Their price is worked out anyway, so it is ready if you turn them on.</div>
+          </div>
+          <div class="field"><label>Why you are doing this</label><input placeholder="Required. You will read this in the log months from now."><div class="h">For example: feed down since 11:00, price taken from the exchange by phone</div></div>
+          <button class="btn" onclick="ok('A manual price is only accepted while the feed is down.')">Set manual price</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="ph"><h2>Rapaport matrix</h2><span class="sub">Diamond guide</span></div>
+        <div class="pb">
+          <div class="kv"><span class="k">Current file</span><span class="v">rap-2026-08-24.xlsx</span></div>
+          <div class="kv"><span class="k">Uploaded</span><span class="v">24 Aug by Ahmed E.</span></div>
+          <div class="kv"><span class="k">Age</span><span class="v" style="color:var(--wait)">9 days</span></div>
+          <div class="kv"><span class="k">Dollar rate used</span><span class="v num">48.60</span></div>
+          <div class="note n-wait" style="margin:14px 0">
+            <span>The matrix is a week old. Diamond suggestions drift from the market as it ages.</span>
+          </div>
+          <button class="btn p" onclick="ok('Uploaded and logged. Suggestions updated.')">Upload this week's file</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><h2>Recent price changes</h2></div>
+        <table>
+          <thead><tr><th>When</th><th>What</th><th>By</th></tr></thead>
+          <tbody>
+            <tr><td>28 Aug</td><td>Buy correction 18 → 20</td><td>Ahmed E.</td></tr>
+            <tr><td>24 Aug</td><td>Rapaport uploaded</td><td>Ahmed E.</td></tr>
+            <tr><td>14 Aug</td><td>Manual price, feed down 40 min</td><td>Ahmed E.</td></tr>
+            <tr><td>2 Aug</td><td>Sell correction 0 → 10</td><td>A. Mostafa</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-rates">
+  <p class="lead">What Dahab charges. Changing any of these affects every new listing immediately, and is logged with the old and new values.</p>
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Commission</h2></div>
+      <div class="pb">
+        <div class="g2">
+          <div class="field"><label>On gold</label><input value="20"><div class="h">Percent of the making charge the seller recovers</div></div>
+          <div class="field"><label>On diamonds and stones</label><input value="5"><div class="h">Percent of the value added above gold</div></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Minimum per sale</label><input value="200"><div class="h">EGP. Never broken, even by a promo code</div></div>
+          <div class="field"><label>VAT</label><input value="14"><div class="h">Percent, on commission only</div></div>
+        </div>
+        <div class="note n-info">
+          <span>Commission is taken from the making charge or the value the seller adds. It is never taken from the value of their gold.</span>
+        </div>
+        <button class="btn p" onclick="ok('Rates saved and logged with the previous values.')">Save rates</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>Deadlines and deposits</h2></div>
+      <div class="pb">
+        <div class="g2">
+          <div class="field"><label>Buyer deposit</label><input value="20"><div class="h">Percent of the price, held</div></div>
+          <div class="field"><label>Seller reply window</label><input value="48"><div class="h">Hours to accept or decline</div></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Time to reach IGI</label><input value="12"><div class="h">Working hours after accepting</div></div>
+          <div class="field"><label>Weeks the piece waits at the branch</label><input value="3"><div class="h">After paying, they collect whenever they like within this</div></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Free relist window</label><input value="12"><div class="h">Working hours after collection, 0% commission</div></div>
+          <div class="field"><label>Seller keeps of the deposit</label><input value="50"><div class="h">Percent, if the buyer never pays</div></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Difference adjusted automatically up to</label><input value="1.5"><div class="h">Percent either way. Larger needs both sides to approve</div></div>
+          <div class="field"><label>Listed this long before a market maker can buy</label><input value="7"><div class="h">Days</div></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>First gold sale paid in full up to</label><input value="100000"><div class="h">EGP, paid when Dahab receives the piece — before the buyer pays. Above this, even a first sale waits for the buyer. Never applies to diamonds</div></div>
+          <div class="field"><label>Total exposed to first-sale payouts</label><input value="1000000"><div class="h">EGP across everyone. The feature switches off above this</div></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Weeks a returned piece waits for the seller</label><input value="3"><div class="h">After a buyer never pays, the piece waits this long for the seller to collect before the window passes</div></div>
+          <div class="field"><label>Withdrawals pause after a payout-account change</label><input value="48"><div class="h">Hours. A person re-checks the name against the ID</div></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Count someone as a pattern from</label><input value="5"><div class="h">Transactions. Below this nothing is flagged</div></div>
+          <div class="field"><label>Days to pay after inspection</label><input value="10"><div class="h">The collection code only appears once the balance is paid</div></div>
+        </div>
+        <button class="btn p" onclick="ok('Saved and logged.')">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-promos">
+  <p class="lead">Codes are checked on the server, never in the app. A code tied to an account works only for that account, whatever device it is typed on.</p>
+  <div class="panel">
+    <div class="ph"><h2>Codes</h2><div class="r"><button class="btn p" onclick="openBox('newcode')">Add a code</button></div></div>
+    <table>
+      <thead><tr><th>Code</th><th>What it does</th><th>Tied to</th><th>Conditions</th><th>Used this month</th><th>Status</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td class="mono" style="font-weight:600">MM-KARIM</td><td>No commission<div class="who2">Spread goes to them</div></td><td>Karim S.<div class="who2">+20 10 ••8842</div></td><td>7 days old<div class="who2">Admin approved</div></td><td><div class="mono">312,400 of 500,000</div><div class="bar"><i style="width:62%"></i></div></td><td><span class="tag t-ok">On</span></td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="go('audit')">Uses</button><button class="btn d" onclick="ok('Turned off and logged.')">Turn off</button></div></td></tr>
+        <tr><td class="mono" style="font-weight:600">MM-HODA</td><td>No commission</td><td>Hoda F.</td><td>7 days old</td><td class="mono">—</td><td><span class="tag t-off">Off</span></td><td class="r"><button class="btn g" onclick="ok('Turned on and logged.')">Turn on</button></td></tr>
+        <tr><td class="mono" style="font-weight:600">WELCOME</td><td>50% off commission</td><td>Everyone<div class="who2">First sale only</div></td><td>Once per ID</td><td class="mono">64 uses</td><td><span class="tag t-ok">On</span></td><td class="r"><button class="btn d" onclick="ok('Turned off.')">Turn off</button></td></tr>
+        <tr><td class="mono" style="font-weight:600">EID25</td><td>25% off commission</td><td>Everyone</td><td>Ends 12 Sep</td><td class="mono">18 uses</td><td><span class="tag t-ok">On</span></td><td class="r"><button class="btn d" onclick="ok('Turned off.')">Turn off</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note n-info">
+    <span>Turning a code off stops it instantly. Anything already in progress carries on as normal.</span>
+  </div>
+
+  <div class="panel" id="newcode" style="display:none">
+    <div class="ph"><h2>New code</h2></div>
+    <div class="pb">
+      <div class="g2">
+        <div class="field"><label>The code itself</label><input placeholder="MM-KARIM"><div class="h">Letters, numbers and dashes. People will type this.</div></div>
+        <div class="field"><label>Who can use it</label><select id="ncWho" onchange="ncTied()">
+          <option value="one">One account only</option><option value="all">Anyone</option></select></div>
+      </div>
+      <div class="g2" id="ncTiedBox">
+        <div class="field"><label>Tied to</label><input placeholder="Account number or phone"><div class="h">It will not work from any other account, on any device</div></div>
+        <div class="field"><label>Times they can use it</label><select><option>No limit</option><option>Once</option><option>Once a month</option></select></div>
+      </div>
+      <div class="g3">
+        <div class="field"><label>Commission</label><select><option>Waive it entirely</option><option>Reduce by a percentage</option><option>Leave it as it is</option></select></div>
+        <div class="field"><label>Reduce by</label><input placeholder="50" ><div class="h">Percent, if you chose reduce</div></div>
+        <div class="field"><label>Buy and sell difference</label><select><option>Dahab keeps it</option><option>Give it to them</option></select></div>
+      </div>
+      <div class="g3">
+        <div class="field"><label>Piece must be listed for</label><input value="7"><div class="h">Days. Zero means no wait</div></div>
+        <div class="field"><label>Piece must be admin approved</label><select><option>Yes</option><option>No</option></select></div>
+        <div class="field"><label>Monthly cap</label><input placeholder="500,000"><div class="h">EGP of transaction value</div></div>
+      </div>
+      <div class="g2">
+        <div class="field"><label>Starts</label><input type="date"></div>
+        <div class="field"><label>Ends</label><input type="date"><div class="h">Leave empty for no end date</div></div>
+      </div>
+      <div class="note n-info">
+        <span>The minimum commission of 200 EGP is never broken, whatever this code says.</span>
+      </div>
+      <button class="btn p" onclick="ok('Code created and logged against your name.')">Create the code</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-mm">
+  <p class="lead">Only pieces older than the waiting period appear here, so a market maker never gets ahead of an ordinary buyer. Approving is a judgement about price, not about the piece.</p>
+  <div class="note n-info">
+    <span>The waiting period is <b>7 days</b> and the approval requirement is on. Both are set in <span style="color:var(--gold);cursor:pointer" onclick="go('rates')">commission rates</span>. This screen is yours, not the market maker's. They see approved pieces marked in the app, with a filter to show only those.</span>
+  </div>
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Waiting for approval</h2></div>
+      <table>
+        <thead><tr><th>Piece</th><th>Listed</th><th>Asking</th><th>Against the guide</th><th class="r"></th></tr></thead>
+        <tbody>
+          <tr><td>Gold bangle, 21K<div class="who2">30.00 g · 127 views, no requests</div><div class="who2" style="margin-top:4px"><span style="color:var(--gold);cursor:pointer" onclick="ok('Playing the video.')">Video</span> &nbsp;<span style="color:var(--gold);cursor:pointer" onclick="ok('Opening the original invoice.')">Original invoice</span> &nbsp;<span style="color:var(--gold);cursor:pointer" onclick="ok('Opening the photos.')">6 photos</span></div></td><td>9 days</td><td class="mono">253,050</td><td style="color:var(--ok)">Making charge 21% of gold</td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn g" onclick="ok('Approved and logged against your name.')">Price is sound</button><button class="btn" onclick="ok('Left as it is.')">Leave</button></div></td></tr>
+          <tr><td>Diamond ring, 0.8 ct<div class="who2">VS1, G · 44 views</div><div class="who2" style="margin-top:4px"><span style="color:var(--gold);cursor:pointer" onclick="ok('Opening the GIA certificate.')">GIA certificate</span> &nbsp;<span style="color:var(--gold);cursor:pointer" onclick="ok('Opening the photos.')">5 photos</span> &nbsp;<span style="color:var(--ink-3)">No video</span></div></td><td>11 days</td><td class="mono">120,000</td><td style="color:var(--bad)">30% above Rapaport</td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn g" onclick="ok('Approved and logged.')">Price is sound</button><button class="btn" onclick="ok('Left as it is.')">Leave</button></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>What this costs</h2><span class="sub">This month</span></div>
+      <div class="pb">
+        <div class="kv"><span class="k">Pieces bought by market makers</span><span class="v num">18</span></div>
+        <div class="kv"><span class="k">Commission given up</span><span class="v num">14,200 EGP</span></div>
+        <div class="kv"><span class="k">Spread given up</span><span class="v num">3,880 EGP</span></div>
+        <div class="kv big"><span class="k">Total cost</span><span class="v num">18,080 EGP</span></div>
+        <div class="note n-info" style="margin-top:14px">
+          <span>This is what you pay for liquidity. Sellers get their money faster and the market looks active. Watch it against the sell-through rate to know whether it is working.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="page" id="p-bankbook">
+  <p class="lead">Money that moves in or out of the Dahab bank account without going through the app. Without these entries, the bank balance and the wallets will never agree.</p>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Record a movement</h2></div>
+      <div class="pb">
+        <div class="g2">
+          <div class="field"><label>What kind</label>
+            <select><option>Capital paid in</option><option>Operating expense</option>
+            <option>Bank charge</option><option>Profit taken out</option>
+            <option>Transfer between our own accounts</option><option>Refund from a supplier</option>
+            <option>Something else</option></select>
+            <div class="h">If you pick something else, write what it was in the box below. That text is what you will read a year from now.</div></div>
+          <div class="field"><label>Amount in EGP</label><input placeholder="0"></div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>In or out</label><select><option>Out of the account</option><option>Into the account</option></select></div>
+          <div class="field"><label>Date on the statement</label><input type="date"></div>
+        </div>
+        <div class="field"><label>What it was for</label><input placeholder="Required. This is what you will read a year from now."></div>
+        <div class="field"><label>Proof</label><input type="file"><div class="h">Bank advice, receipt or invoice</div></div>
+        <button class="btn p" onclick="ok('Recorded and logged against your name.')">Record it</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h2>This month</h2></div>
+      <div class="fbar"><select><option>Last 30 days</option><option>Last 60 days</option><option>Last 90 days</option><option>This year</option><option>Custom dates</option></select><input placeholder="Search"><div class="sp"><button class="btn" onclick="xls('bank movements')">Export to Excel</button></div></div>
+      <table>
+        <thead><tr><th>Date</th><th>What</th><th class="r">In</th><th class="r">Out</th><th>By</th></tr></thead>
+        <tbody>
+          <tr><td>28 Aug</td><td>Bank charge<div class="who2">Monthly account fee</div></td><td class="r mono">—</td><td class="r mono">250</td><td>N. Sherif</td></tr>
+          <tr><td>26 Aug</td><td>Operating expense<div class="who2">IGI inspection invoice, August</div></td><td class="r mono">—</td><td class="r mono">14,800</td><td>N. Sherif</td></tr>
+          <tr><td>18 Aug</td><td>Capital paid in<div class="who2">From the founders</div></td><td class="r mono">500,000</td><td class="r mono">—</td><td>Ahmed E.</td></tr>
+          <tr><td>12 Aug</td><td>Operating expense<div class="who2">Server and services</div></td><td class="r mono">—</td><td class="r mono">8,400</td><td>N. Sherif</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-closing">
+  <p class="lead">Every day the bank balance is compared against everything the system says should be there. A difference that appears today is easy to find. The same difference found in three months is not.</p>
+
+  <div class="stats">
+    <div class="stat hero">
+      <div class="k">Today's difference</div>
+      <div class="v num" style="color:#7FD0A8">0 EGP</div>
+      <div class="s">The bank and the books agree</div>
+    </div>
+    <div class="stat"><div class="k">Days closed this month</div><div class="v num">27 of 28</div><div class="s">One still open</div></div>
+    <div class="stat"><div class="k">Last difference found</div><div class="v num">12 Aug</div><div class="s">250 EGP, a bank charge not recorded</div></div>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Today</h2><span class="sub">1 September</span>
+        <div class="r"><button class="btn" onclick="xls('daily closing')">Export</button></div></div>
+      <div class="pb">
+        <div class="kv"><span class="k">Bank balance at close</span><span class="v num">3,142,880</span></div>
+        <div class="kv"><span class="k">Customer wallets, available</span><span class="v num">2,346,160</span></div>
+        <div class="kv"><span class="k">Customer wallets, held</span><span class="v num">612,400</span></div>
+        <div class="kv"><span class="k">Dahab wallet, earned and not withdrawn</span><span class="v num">184,320</span></div>
+        <div class="kv"><span class="k">Movements outside the app today</span><span class="v num">0</span></div>
+        <div class="kv big"><span class="k">Difference</span><span class="v num" style="color:var(--ok)">0</span></div>
+        <div class="note n-ok" style="margin:14px 0 0">
+          <span>Nothing to explain. Close the day and it is locked, so tomorrow starts from a number you have already checked.</span>
+        </div>
+        <button class="btn p" style="width:100%;margin-top:14px" onclick="ok('Day closed and locked. Logged against your name.')">Close the day</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h2>Recent days</h2></div>
+      <table>
+        <thead><tr><th>Day</th><th class="r">Bank</th><th class="r">Books</th><th class="r">Difference</th><th>Closed by</th></tr></thead>
+        <tbody>
+          <tr><td>31 Aug</td><td class="r mono">3,118,220</td><td class="r mono">3,118,220</td><td class="r mono" style="color:var(--ok)">0</td><td>N. Sherif</td></tr>
+          <tr><td>30 Aug</td><td class="r mono">3,090,440</td><td class="r mono">3,090,440</td><td class="r mono" style="color:var(--ok)">0</td><td>N. Sherif</td></tr>
+          <tr><td>12 Aug</td><td class="r mono">2,640,100</td><td class="r mono">2,640,350</td><td class="r mono" style="color:var(--bad)">− 250</td><td>N. Sherif<div class="who2">Bank charge, recorded after</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-karats">
+  <p class="lead">Which karats sellers can choose. Turning one on makes it available in the app immediately, with no new release.</p>
+  <div class="panel">
+    <div class="ph"><h2>Karats</h2><div class="r"><button class="btn" onclick="ok('Opening the new karat form.')">Add a karat</button></div></div>
+    <table>
+      <thead><tr><th>Karat</th><th>Purity</th><th>Price today, sellers get</th><th>Pieces listed</th><th>Available</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600">24K</td><td class="mono">999</td><td class="mono">7,944</td><td class="mono">12</td><td><span class="tag t-ok">On</span></td><td class="r"><button class="btn d" onclick="ok('Turned off. Existing listings are not affected.')">Turn off</button></td></tr>
+        <tr><td style="font-weight:600">22K</td><td class="mono">916</td><td class="mono">7,283</td><td class="mono">0</td><td><span class="tag t-off">Off</span></td><td class="r"><button class="btn g" onclick="ok('Turned on. Sellers can choose it now.')">Turn on</button></td></tr>
+        <tr><td style="font-weight:600">21K</td><td class="mono">875</td><td class="mono">6,951</td><td class="mono">186</td><td><span class="tag t-ok">On</span></td><td class="r"><button class="btn d" onclick="ok('Turned off.')">Turn off</button></td></tr>
+        <tr><td style="font-weight:600">20K</td><td class="mono">833</td><td class="mono">6,619</td><td class="mono">0</td><td><span class="tag t-off">Off</span></td><td class="r"><button class="btn g" onclick="ok('Turned on.')">Turn on</button></td></tr>
+        <tr><td style="font-weight:600">18K</td><td class="mono">750</td><td class="mono">5,958</td><td class="mono">41</td><td><span class="tag t-ok">On</span></td><td class="r"><button class="btn d" onclick="ok('Turned off.')">Turn off</button></td></tr>
+      </tbody>
+    </table>
+    <div class="pb" style="padding-top:0">
+      <div class="note n-info" style="margin-top:12px">
+        <span>Prices are worked out from 24K and the purity, so you enter one price and the rest follow. Turning a karat off stops new listings; pieces already listed carry on to the end.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-branches">
+  <p class="lead">Where pieces are inspected and handed over. Working hours matter: every deadline in the system is counted in working hours at the branch the seller chose.</p>
+  <div class="panel">
+    <div class="ph"><h2>Branches</h2><div class="r"><button class="btn" onclick="ok('Opening the new branch form.')">Add a branch</button></div></div>
+    <table>
+      <thead><tr><th>Branch</th><th>Where</th><th>Open</th><th>Closed</th><th>In progress</th><th>Average time to a result</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600">IGI Nasr City</td><td>Cairo</td><td>Sun to Thu, 10:00 to 18:00</td><td>Fri, Sat<div class="who2">Plus public holidays</div></td><td class="mono">3</td><td class="mono">2h 30m</td><td class="r"><button class="btn" onclick="ok('Opening the branch settings.')">Edit</button></td></tr>
+        <tr><td style="font-weight:600">IGI Mohandessin</td><td>Giza</td><td>Sun to Thu, 11:00 to 19:00</td><td>Fri<div class="who2">Plus public holidays</div></td><td class="mono">1</td><td class="mono">3h 10m</td><td class="r"><button class="btn" onclick="ok('Opening the branch settings.')">Edit</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Public holidays</h2><span class="sub">Deadlines skip these days</span></div>
+      <table>
+        <thead><tr><th>Date</th><th>What</th><th>Branches</th></tr></thead>
+        <tbody>
+          <tr><td>6 Oct</td><td>Armed Forces Day</td><td>All</td></tr>
+          <tr><td>7 Jan</td><td>Coptic Christmas</td><td>All</td></tr>
+          <tr><td>25 Apr</td><td>Sinai Liberation Day</td><td>All</td></tr>
+        </tbody>
+      </table>
+      <div class="pb" style="padding-top:0"><button class="btn" style="margin-top:12px" onclick="ok('Opening the holiday form.')">Add a holiday</button></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>Why this matters</h2></div>
+      <div class="pb">
+        <div class="note n-info" style="margin-bottom:0">
+          <span>A seller who accepts at 4pm on Thursday has 12 working hours to reach the branch. With Friday and Saturday closed, that is Sunday afternoon, not Friday morning. Get the hours wrong here and the app will chase people on days the branch is shut.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-content">
+  <p class="lead">The words customers read. Every change needs both languages, and legal text is locked because changing it changes what you have committed to.</p>
+  <div class="chips">
+    <span class="chip on">Everything</span><span class="chip">Home</span><span class="chip">Selling</span>
+    <span class="chip">Buying</span><span class="chip">Wallet</span><span class="chip">Legal, locked</span>
+  </div>
+  <div class="panel">
+    <div class="ph"><h2>Text</h2><span class="sub">1,097 pieces of text</span>
+      <div class="r"><button class="btn" onclick="xls('app text')">Export to Excel</button><button class="btn p" onclick="ok('Changes are live in the app.')">Publish changes</button></div></div>
+    <table>
+      <thead><tr><th>Where</th><th>English</th><th>Arabic</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td>Home<div class="who2">Headline</div></td><td>Sell your jewellery for what it's really worth</td><td>بيع مجوهراتك بقيمتها الحقيقية</td><td class="r"><button class="btn" onclick="ok('Editing. Both languages are required.')">Edit</button></td></tr>
+        <tr><td>Home<div class="who2">Protection card</div></td><td>We don't set the price</td><td>مش إحنا اللي بنحدد السعر</td><td class="r"><button class="btn" onclick="ok('Editing.')">Edit</button></td></tr>
+        <tr><td>Selling<div class="who2">Deadline</div></td><td>You have {hours} working hours to reach the branch</td><td>قدامك {hours} ساعة عمل توصل الفرع</td><td class="r"><button class="btn" onclick="ok('The number comes from settings, so the text stays true when you change it.')">Edit</button></td></tr>
+        <tr><td>Terms<div class="who2">Locked</div></td><td>Dahab acts as an intermediary between buyer and seller...</td><td>دهب بتعمل كوسيط بين المشتري والبايع...</td><td class="r"><button class="btn" onclick="ok('Legal text needs a founder and a new document version.')">Locked</button></td></tr>
+      </tbody>
+    </table>
+    <div class="pb" style="padding-top:0">
+      <div class="note n-wait" style="margin-top:12px">
+        <span>Text with {braces} pulls its number from settings. Never type the number in, or the words will say one thing while the system does another.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-docs">
+  <p class="lead">Terms, privacy and the declarations people tick. Every version is kept forever, because a customer agreed to the version that was live on the day they signed.</p>
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Documents</h2><div class="r"><button class="btn" onclick="ok('Opening the new version editor.')">New version</button></div></div>
+      <table>
+        <thead><tr><th>Document</th><th>Live version</th><th>Since</th><th>Agreed by</th><th class="r"></th></tr></thead>
+        <tbody>
+          <tr><td>Terms of use</td><td class="mono">v3</td><td>12 Jul 2026</td><td class="mono">1,284</td><td class="r"><button class="btn" onclick="ok('Opening version history.')">History</button></td></tr>
+          <tr><td>Privacy policy</td><td class="mono">v2</td><td>2 Jun 2026</td><td class="mono">1,284</td><td class="r"><button class="btn" onclick="ok('Opening version history.')">History</button></td></tr>
+          <tr><td>Ownership declaration<div class="who2">Ticked when listing a piece</div></td><td class="mono">v1</td><td>1 May 2026</td><td class="mono">214</td><td class="r"><button class="btn" onclick="ok('Opening version history.')">History</button></td></tr>
+          <tr><td>Collection authorisation<div class="who2">Ticked when someone else collects</div></td><td class="mono">v1</td><td>1 May 2026</td><td class="mono">6</td><td class="r"><button class="btn" onclick="ok('Opening version history.')">History</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>What is recorded on every tick</h2></div>
+      <div class="pb">
+        <div class="kv"><span class="k">Which document</span><span class="v">Terms of use</span></div>
+        <div class="kv"><span class="k">Which version</span><span class="v mono">v3</span></div>
+        <div class="kv"><span class="k">When</span><span class="v">12 May 2026, 14:22:08</span></div>
+        <div class="kv"><span class="k">Device and address</span><span class="v">iPhone, Cairo</span></div>
+        <div class="note n-wait" style="margin:14px 0 0">
+          <span>When you publish a new version, everyone who agreed to the old one stays bound to the old one until they accept the new. If the change is material, ask them again on their next sign-in.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-switches">
+  <p class="lead">Three levels, from stopping new pieces to stopping everything. Each one leaves anything with a locked price alone, because that is a promise already made to two people.</p>
+
+  <div class="panel">
+    <div class="ph"><h2>Categories</h2><span class="sub">Each one works on its own</span></div>
+    <table>
+      <thead><tr><th>Category</th><th>Live now</th><th>No request on them</th><th>Price locked</th><th>State</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:600">Gold</td>
+          <td class="mono">186</td><td class="mono">168</td><td class="mono">18</td>
+          <td><span class="tag t-ok">Open</span></td>
+          <td class="r"><div class="row2" style="justify-content:flex-end">
+            <button class="btn" onclick="stopBox('Gold','168','18')">Stop new only</button>
+            <button class="btn d" onclick="pauseBox('Gold','168','18','186')">Pause the category</button></div></td></tr>
+        <tr>
+          <td style="font-weight:600">Diamond</td>
+          <td class="mono">24</td><td class="mono">21</td><td class="mono">3</td>
+          <td><span class="tag t-ok">Open</span></td>
+          <td class="r"><div class="row2" style="justify-content:flex-end">
+            <button class="btn" onclick="stopBox('Diamond','21','3')">Stop new only</button>
+            <button class="btn d" onclick="pauseBox('Diamond','21','3','24')">Pause the category</button></div></td></tr>
+        <tr>
+          <td style="font-weight:600">Gold and diamond</td>
+          <td class="mono">31</td><td class="mono">29</td><td class="mono">2</td>
+          <td><span class="tag t-ok">Open</span></td>
+          <td class="r"><div class="row2" style="justify-content:flex-end">
+            <button class="btn" onclick="stopBox('Gold and diamond','29','2')">Stop new only</button>
+            <button class="btn d" onclick="pauseBox('Gold and diamond','29','2','31')">Pause the category</button></div></td></tr>
+      </tbody>
+    </table>
+    <div class="pb" style="padding-top:0">
+      <div class="note n-info" style="margin-top:12px">
+        <span><b>Stop new only</b> blocks new listings. Everything already live stays where it is.<br>
+        <b>Pause the category</b> also hides live pieces that nobody has asked to buy. They come back on their own when you open the category again.<br>
+        Pieces with a locked price finish normally either way.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="pauseBox" style="display:none">
+    <div class="ph"><h2 id="pbTitle">Pause gold</h2></div>
+    <div class="pb">
+      <div class="split">
+        <div>
+          <div class="label" style="font-size:11.5px;color:var(--ink-2);margin-bottom:8px">What happens</div>
+          <div class="kv"><span class="k">New listings</span><span class="v" style="color:var(--bad)">Blocked</span></div>
+          <div class="kv"><span class="k">Live, nobody has asked</span><span class="v" style="color:var(--wait)"><span id="pbHide">168</span> hidden, they come back</span></div>
+          <div class="kv"><span class="k">Price already locked</span><span class="v" style="color:var(--ok)"><span id="pbKeep">18</span> carry on</span></div>
+          <div class="kv"><span class="k">Requests for more time</span><span class="v" style="color:var(--bad)">Cancelled, deposits returned</span></div>
+          <div class="kv"><span class="k">People told</span><span class="v"><span id="pbWho">186</span> sellers in this category only</span></div>
+          <div class="note n-wait" style="margin-top:14px">
+            <span>Sellers keep their listings. They see them marked paused, and they go live again by themselves when you reopen.</span>
+          </div>
+        </div>
+        <div>
+          <div class="field"><label>Why</label>
+            <select><option>The price is moving too fast</option><option>The inspection branch cannot keep up</option>
+            <option>A problem with the price feed</option><option>We need to look into something</option>
+            <option>Something else</option></select></div>
+          <div class="field"><label>Message to sellers in this category</label>
+            <textarea rows="5">We have paused new listings for a short while and taken pieces that have no buyer yet off the market. Nothing is lost. Your listing is still yours and comes back on its own as soon as we open again. Anything already being sold carries on as normal.</textarea>
+            <div class="h">Only people with pieces in this category get this. Nobody else is told.</div></div>
+          <div class="row2">
+            <button class="btn d" style="flex:1" onclick="ok('Paused. Sellers in this category have been told.')">Pause and send</button>
+            <button class="btn" onclick="ok('Nothing changed.')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="stopBox" style="display:none">
+    <div class="ph"><h2 id="sbTitle">Stop new gold listings</h2></div>
+    <div class="pb">
+      <div class="kv"><span class="k">Live pieces that stay on the market</span><span class="v num" id="sbLive">168</span></div>
+      <div class="kv"><span class="k">Orders that finish normally</span><span class="v num" id="sbKeep">18</span></div>
+      <div class="field" style="margin-top:14px"><label>Why</label>
+        <select><option>The price is moving too fast</option><option>The inspection branch cannot keep up</option>
+        <option>Too many listings to review</option><option>Something else</option></select></div>
+      <div class="field"><label>What a seller sees when they try to list</label>
+        <textarea rows="3">We have paused new listings in this category for a short while. Anything already listed carries on as normal.</textarea></div>
+      <div class="row2">
+        <button class="btn d" style="flex:1" onclick="ok('New listings stopped. Everything live carries on.')">Stop new listings</button>
+        <button class="btn" onclick="ok('Nothing changed.')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h2>Full stop</h2><span class="sub">Emergency only</span></div>
+    <div class="pb">
+      <div class="note n-bad">
+        <span>Freezes everything at once: no listings, no requests, no withdrawals, all categories. Money already held stays held and nothing is lost, but every customer sees the app is paused. Both founders are notified the moment it is used.</span>
+      </div>
+      <div class="field"><label>Why</label><input placeholder="Required. Everyone on the team sees this."></div>
+      <button class="btn d" onclick="ok('Nothing was stopped. In production this asks you to confirm twice.')">Stop everything</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><h2>What customers can see</h2></div>
+    <table>
+      <thead><tr><th>What</th><th>Where it shows</th><th>Now</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:600">Rapaport reference price<div class="who2">The suggested price on a diamond</div></td>
+          <td>Selling a diamond, and on the listing</td>
+          <td><span class="tag t-ok">Shown</span></td>
+          <td class="r"><button class="btn" onclick="ok('Hidden. Sellers now set a diamond price without a suggestion.')">Hide it</button></td></tr>
+        <tr>
+          <td style="font-weight:600">Payout averages<div class="who2">How long money takes, how many sales complete</div></td>
+          <td>Before listing, and on the order</td>
+          <td><span class="tag t-off">Hidden</span></td>
+          <td class="r"><button class="btn g" onclick="ok('Shown. Make sure the numbers come from real data.')">Show it</button></td></tr>
+        <tr>
+          <td style="font-weight:600">Views and requests on a listing</td>
+          <td>The piece page</td>
+          <td><span class="tag t-ok">Shown</span></td>
+          <td class="r"><button class="btn" onclick="ok('Hidden.')">Hide it</button></td></tr>
+        <tr>
+          <td style="font-weight:600">Sharing a piece<div class="who2">Sending a link outside the app</div></td>
+          <td>The piece page</td>
+          <td><span class="tag t-ok">On</span></td>
+          <td class="r"><button class="btn" onclick="ok('Turned off. Links already sent stop working.')">Turn off</button></td></tr>
+      </tbody>
+    </table>
+    <div class="pb" style="padding-top:0">
+      <div class="note n-info" style="margin-top:12px">
+        <span>Hiding the Rapaport suggestion does not change how diamonds are priced. Sellers set their own price without a guide, and IGI still decides the grade.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-users">
+  <p class="lead">Identity documents are the most sensitive data here. Every view is logged, whether or not it leads to a decision.</p>
+  <div class="chips">
+    <span class="chip on">Waiting, 9</span><span class="chip">Verified</span><span class="chip">Rejected</span><span class="chip">Suspended, 2</span>
+  </div>
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Waiting for verification</h2>
+        <div class="r"><button class="btn" onclick="xls('all customers, with type and counts')">Export all customers</button></div></div>
+      <table>
+        <thead><tr><th>Person</th><th>Type</th><th>Document</th><th>Submitted</th><th class="r"></th></tr></thead>
+        <tbody>
+          <tr><td>Mona Hassan Ibrahim<div class="who2">Cairo · joined today</div></td><td>Ordinary</td><td>Egyptian ID</td><td>9 hours ago</td><td class="r"><button class="btn p" onclick="show('ver')">Review</button></td></tr>
+          <tr><td>Youssef N. Kamal<div class="who2">Giza · joined today</div></td><td>Ordinary</td><td>Egyptian ID</td><td>7 hours ago</td><td class="r"><button class="btn" onclick="show('ver')">Review</button></td></tr>
+          <tr><td>Laura Bianchi<div class="who2">Cairo · resident</div></td><td>Ordinary</td><td>Passport</td><td>4 hours ago</td><td class="r"><button class="btn" onclick="show('ver')">Review</button></td></tr>
+          <tr><td>Sara M. Abdelrahman<div class="who2">Alexandria · waitlist</div></td><td><span class="tag t-info">Market maker</span><div class="who2">MM-HODA</div></td><td>Egyptian ID</td><td>2 hours ago</td><td class="r"><button class="btn" onclick="show('ver')">Review</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel" id="ver">
+      <div class="ph"><h2>Mona Hassan Ibrahim</h2><span class="sub">Egyptian ID</span></div>
+      <div class="pb">
+        <div class="g2" style="margin-bottom:14px">
+          <div style="aspect-ratio:1.6;background:#F2F0EB;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:11px">Front</div>
+          <div style="aspect-ratio:1.6;background:#F2F0EB;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:11px">Back</div>
+        </div>
+        <div class="kv"><span class="k">Name on the account</span><span class="v">Mona Hassan Ibrahim</span></div>
+        <div class="kv"><span class="k">Phone</span><span class="v">+20 10 •••• 4417</span></div>
+        <div class="kv"><span class="k">Where</span><span class="v">Cairo</span></div>
+        <div class="kv"><span class="k">Payout account</span><span class="v">Not added yet</span></div>
+        <div class="note n-info" style="margin:14px 0">
+          <span>Check the name matches exactly, the card is not expired, and all four corners are readable. Do not approve a blurred hallmark or a cropped card.</span>
+        </div>
+        <div class="row2">
+          <button class="btn g" style="flex:1" onclick="ok('Verified. They can now buy and sell.')">Verify</button>
+          <button class="btn" onclick="openBox('ask')">Ask again</button>
+          <button class="btn d" onclick="ok('Rejected and the person was told why.')">Reject</button>
+        </div>
+
+        <div id="ask" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px">What is wrong with it</div>
+          <div class="sub2" style="margin-bottom:11px">They get a notification and a text message, and the app shows them exactly what to fix.</div>
+          <label class="ck"><input type="checkbox" onchange="askText()" data-t="The photo is blurred or there is glare on the card. Take it again in daylight, away from a window."> Blurred or glare</label>
+          <label class="ck"><input type="checkbox" onchange="askText()" data-t="Part of the card is cut off. Make sure the whole card is inside the frame."> Card is cut off</label>
+          <label class="ck"><input type="checkbox" onchange="askText()" data-t="The name on the card does not match the name on your account. Check the spelling and correct whichever is wrong."> Name does not match</label>
+          <label class="ck"><input type="checkbox" onchange="askText()" data-t="The card has expired. Please upload a valid one."> Card has expired</label>
+          <label class="ck"><input type="checkbox" onchange="askText()" data-t="The back of the card is missing. Please add it."> Back is missing</label>
+          <label class="ck" style="margin-bottom:11px"><input type="checkbox" onchange="askText()" data-t="The text on the card cannot be read. Please take a sharper photo."> Text is not readable</label>
+          <div class="field"><textarea id="askMsg" rows="3" placeholder="This goes to them. Add anything else in your own words."></textarea></div>
+          <button class="btn p" style="width:100%" onclick="ok('Sent by notification and text message.')">Send it</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-staff">
+  <p class="lead">Staff sign in with their own credentials. Shared logins are not permitted, because the log stops meaning anything.</p>
+  <div class="panel">
+    <div class="ph"><h2>Accounts</h2><div class="r"><button class="btn p" onclick="ok('Opening the new account form.')">Create an account</button></div></div>
+    <table>
+      <thead><tr><th>Person</th><th>Role</th><th>Can do</th><th>Last active</th><th class="r"></th></tr></thead>
+      <tbody>
+        <tr><td>Ahmed Ezz El-Din<div class="who2">You</div></td><td>Chief Executive Officer</td><td>Everything, including wallets</td><td>Now</td><td class="r"><span class="tag t-ok">Active</span></td></tr>
+        <tr><td>A. Mostafa</td><td>Chief Operating Officer</td><td>Everything except wallets</td><td>20 minutes ago</td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="ok('Opening permissions.')">Permissions</button><button class="btn d" onclick="ok('Frozen. Both founders must confirm to unfreeze.')">Freeze</button></div></td></tr>
+        <tr><td>N. Sherif</td><td>Chief Financial Officer</td><td>Wallets, withdrawals, pricing, codes</td><td>1 hour ago</td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="ok('Opening permissions.')">Permissions</button><button class="btn d" onclick="ok('Suspended and logged.')">Suspend</button></div></td></tr>
+        <tr><td>H. Ramadan</td><td>Operations</td><td>Listings, orders, disputes</td><td>5 minutes ago</td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="ok('Opening permissions.')">Permissions</button><button class="btn d" onclick="ok('Suspended.')">Suspend</button></div></td></tr>
+        <tr><td>M. Adel</td><td>Verification</td><td>Identity documents only</td><td>Yesterday</td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="ok('Opening permissions.')">Permissions</button><button class="btn d" onclick="ok('Suspended.')">Suspend</button></div></td></tr>
+        <tr><td>IGI Nasr City<div class="who2">Shared branch account</div></td><td>IGI inspector</td><td>Inspection results, handover</td><td>2 hours ago</td><td class="r"><div class="row2" style="justify-content:flex-end"><button class="btn" onclick="ok('Opening permissions.')">Permissions</button><button class="btn d" onclick="ok('Suspended.')">Suspend</button></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="ph"><h2>Founder security</h2></div>
+      <div class="pb">
+        <div class="kv"><span class="k">Sign-in from a new device</span><span class="v">Held until the other founder confirms</span></div>
+        <div class="kv"><span class="k">Emergency freeze</span><span class="v">Either founder, from their phone</span></div>
+        <div class="kv"><span class="k">Unfreezing</span><span class="v">Needs both founders</span></div>
+        <div class="kv"><span class="k">Live alerts on sensitive actions</span><span class="v">Both founders</span></div>
+        <div class="note n-info" style="margin-top:14px">
+          <span>A freeze is not a deletion. Nothing is lost and the account resumes the moment both founders confirm. It exists to be used the instant something feels wrong.</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>Recent sign-ins</h2></div>
+      <table>
+        <thead><tr><th>Who</th><th>Device</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>Ahmed E.</td><td>MacBook, Dubai</td><td>Now</td></tr>
+          <tr><td>A. Mostafa</td><td>Windows, Cairo</td><td>20 min ago</td></tr>
+          <tr><td>IGI Nasr City</td><td>Windows, Cairo</td><td>2 hours ago</td></tr>
+          <tr><td>N. Sherif</td><td>iPhone, Cairo</td><td><span class="tag t-wait">New device, held</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="p-audit">
+  <p class="lead">Every sensitive action, in order. Nobody can edit or delete an entry, including you.</p>
+  <div class="chips">
+    <span class="chip on">Everything</span><span class="chip">Money</span><span class="chip">Pricing</span>
+    <span class="chip">Accounts</span><span class="chip">Identity documents</span><span class="chip">Promo codes</span>
+  </div>
+  <div class="panel">
+    <div class="ph"><h2>Log</h2><span class="sub">Last 7 days, 1,284 entries</span>
+      <div class="r"><button class="btn" onclick="xls('audit')">Export to Excel</button></div></div>
+    <table>
+      <thead><tr><th>When</th><th>Who</th><th>What</th><th>Before</th><th>After</th><th>Device</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">28 Aug 14:22</td><td>Ahmed E.</td><td>Buy correction changed</td><td class="mono">18</td><td class="mono">20</td><td>MacBook, Dubai</td></tr>
+        <tr><td class="mono">28 Aug 13:40</td><td>IGI Nasr City</td><td>Inspection result entered<div class="who2">DH-004417</div></td><td class="mono">8.00 g</td><td class="mono">7.62 g</td><td>Windows, Cairo</td></tr>
+        <tr><td class="mono">28 Aug 11:05</td><td>N. Sherif</td><td>Withdrawal released<div class="who2">Wallet 4417</div></td><td class="mono">56,760</td><td class="mono">14,760</td><td>Windows, Cairo</td></tr>
+        <tr><td class="mono">28 Aug 10:14</td><td>A. Mostafa</td><td>Compensation paid<div class="who2">Wasted trip to IGI</div></td><td class="mono">—</td><td class="mono">800</td><td>Windows, Cairo</td></tr>
+        <tr><td class="mono">28 Aug 09:31</td><td>M. Adel</td><td>Identity document viewed<div class="who2">No decision taken</div></td><td class="mono">—</td><td class="mono">—</td><td>Windows, Cairo</td></tr>
+        <tr><td class="mono">27 Aug 16:50</td><td>H. Ramadan</td><td>Listing approved<div class="who2">L-4417-02</div></td><td>In review</td><td>Live</td><td>Windows, Cairo</td></tr>
+        <tr><td class="mono">26 Aug 12:08</td><td>Ahmed E.</td><td>Promo code turned off<div class="who2">MM-HODA</div></td><td>On</td><td>Off</td><td>iPhone, Dubai</td></tr>
+        <tr><td class="mono">26 Aug 09:44</td><td>Ahmed E.</td><td>Account suspended<div class="who2">Seller 3302, counterfeit</div></td><td>Active</td><td>Suspended</td><td>MacBook, Dubai</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div></div></div>
+<div class="toast" id="toast"></div>
+<script>
+function go(p){
+  document.querySelectorAll('.page').forEach(function(x){x.classList.toggle('on', x.id==='p-'+p)});
+  document.querySelectorAll('.navlink').forEach(function(x){x.classList.toggle('on', x.dataset.p===p)});
+  var t=document.querySelector('.navlink[data-p="'+p+'"]');
+  document.getElementById('ttl').textContent = t ? t.childNodes[0].textContent.trim() : '';
+  if(window.scrollTo) window.scrollTo(0,0);
+}
+var tm;
+function ok(m){
+  var t=document.getElementById('toast');
+  t.textContent=m; t.classList.add('on');
+  clearTimeout(tm); tm=setTimeout(function(){t.classList.remove('on')},2600);
+}
+function xls(what){ ok('Exporting '+what+' to Excel. The file downloads when it is ready.'); }
+function show(id){ var e=document.getElementById(id); if(e&&e.scrollIntoView) e.scrollIntoView({behavior:'smooth',block:'center'}); }
+function sw(){ ok('Switching roles is for testing. In production you sign in as yourself.'); }
+function spread(){
+  var b=+document.getElementById('corrBuy').value||0, s=+document.getElementById('corrSell').value||0;
+  var base=6941, sell=base+s, buy=base+b+14;
+  document.getElementById('pSell').textContent=sell.toLocaleString();
+  document.getElementById('pBuy').textContent=buy.toLocaleString();
+  document.getElementById('pDiff').textContent=(buy-sell).toLocaleString();
+}
+document.querySelectorAll('.chips').forEach(function(g){
+  g.querySelectorAll('.chip').forEach(function(c){
+    c.onclick=function(){ g.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on')}); c.classList.add('on'); };
+  });
+});
+
+function openDsp(ref,by,why,val,dep,txt){
+  document.getElementById('dRef').textContent=ref;
+  document.getElementById('dBy').textContent=by;
+  document.getElementById('dWhy').textContent=why;
+  document.getElementById('dVal').textContent=val+' EGP';
+  document.getElementById('dDep').textContent=dep==='—'?'—':dep+' EGP';
+  document.getElementById('dTxt').textContent=txt;
+  document.getElementById('dspMsg').value='';
+  document.getElementById('dspTpl').value='';
+  show('dsp');
+}
+function fillReply(){
+  var v=document.getElementById('dspTpl').value;
+  if(v) document.getElementById('dspMsg').value=v;
+}
+function chgText(){
+  var t=[];
+  document.querySelectorAll('#chg input[type=checkbox]').forEach(function(c){ if(c.checked) t.push(c.dataset.t); });
+  document.getElementById('chgMsg').value=t.join('\n\n');
+}
+
+function askText(){
+  var t=[];
+  document.querySelectorAll('#ask input[type=checkbox]').forEach(function(c){ if(c.checked) t.push(c.dataset.t); });
+  document.getElementById('askMsg').value=t.join('\n\n');
+}
+function ncTied(){
+  var v=document.getElementById('ncWho').value;
+  document.getElementById('ncTiedBox').style.display = v==='one' ? 'grid' : 'none';
+}
+
+function openBox(id){
+  var e=document.getElementById(id); if(!e) return;
+  e.style.display = (e.style.display==='none') ? (e.classList.contains('panel')?'block':'block') : 'none';
+  if(e.style.display!=='none') show(id);
+}
+function karats(){
+  var b=+document.getElementById('k24').value||0;
+  var m={k22:916,k21:875,k20:833,k18:750};
+  for(var id in m){
+    var el=document.getElementById(id);
+    if(el) el.textContent = Math.round(b*m[id]/999).toLocaleString();
+  }
+}
+
+
+
+var ST = {};
+function stGrainTo(g){ document.getElementById('stGrain').value=g; stSwitch(); }
+function stSwitch(){
+  var v=document.getElementById('stScope').value;
+  var g=document.getElementById('stGrain').value;
+  var who=document.getElementById('stWho'), file=document.getElementById('stFile');
+  var t=document.getElementById('stTitle'), s=document.getElementById('stSub');
+  var body=document.getElementById('stRows');
+  if(!ST.oneEach) ST.oneEach=body.innerHTML;
+  who.style.display = v==='one' ? '' : 'none';
+  file.style.display = v==='one' ? '' : 'none';
+
+  if(v==='one'){
+    t.textContent='Wallet 4417'; s.textContent='Mona Hassan Ibrahim';
+    body.innerHTML = g==='each' ? ST.oneEach : (g==='day' ? ST.oneDay : ST.oneMonth);
+    setStat('23,808','146,972','114,020','56,760','Where the month started','8 movements','Including 114,020 held','Available 32,760, held 24,000');
+  } else if(v==='all'){
+    t.textContent='All customer wallets'; s.textContent='What Dahab owes customers';
+    body.innerHTML = g==='each' ? ST.allEach : ST.allMonth;
+    setStat('2,612,400','3,997,200','3,651,040','2,958,560','Owed on 1 August','Added and settled in','Withdrawn and held out','Available 2,346,160, held 612,400');
+  } else {
+    t.textContent='The Dahab wallet'; s.textContent='What Dahab has earned and not yet taken out';
+    body.innerHTML = g==='each' ? ST.dahabEach : ST.dahabMonth;
+    setStat('106,080','78,240','41,600','142,720','Earned and not withdrawn','Commission and spread','Compensation and costs','Available to take out');
+  }
+}
+function setStat(o,i,ou,c,so,si,sou,sc){
+  document.getElementById('stOpen').textContent=o;
+  document.getElementById('stIn').textContent=i;
+  document.getElementById('stOut').textContent=ou;
+  document.getElementById('stClose').textContent=c;
+  var st=document.querySelectorAll('#p-statement .stat .s');
+  if(st.length>=4){ st[0].textContent=so; st[1].textContent=si; st[2].textContent=sou; st[3].textContent=sc; }
+}
+ST.oneDay='\n        <tr><td>2 Aug</td><td>1 movement<div class="who2">Sale settled</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">23,808</td><td class="r mono" style="color:var(--ok)">41,220</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">65,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>21 Aug</td><td>1 movement<div class="who2">Withdrawal</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">65,028</td><td class="r mono">—</td><td class="r mono">40,000</td><td class="r mono" style="font-weight:600">25,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>24 Aug</td><td>1 movement<div class="who2">Top-up</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">25,028</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">49,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>26 Aug</td><td>1 movement<div class="who2">Deposit held</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">49,028</td><td class="r mono">—</td><td class="r mono">24,000</td><td class="r mono" style="font-weight:600">25,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>27 Aug</td><td>1 movement<div class="who2">Deposit returned</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">25,028</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">49,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>28 Aug</td><td>2 movements<div class="who2">Compensation, sale settled</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">49,028</td><td class="r mono" style="color:var(--ok)">57,752</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">106,780</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>29 Aug</td><td>1 movement<div class="who2">Deposit held</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">106,780</td><td class="r mono">—</td><td class="r mono">50,020</td><td class="r mono" style="font-weight:600">56,760</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n';
+ST.oneMonth='\n        <tr><td>2 Aug</td><td>1 movement<div class="who2">Sale settled</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">23,808</td><td class="r mono" style="color:var(--ok)">41,220</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">65,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>21 Aug</td><td>1 movement<div class="who2">Withdrawal</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">65,028</td><td class="r mono">—</td><td class="r mono">40,000</td><td class="r mono" style="font-weight:600">25,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>24 Aug</td><td>1 movement<div class="who2">Top-up</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">25,028</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">49,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>26 Aug</td><td>1 movement<div class="who2">Deposit held</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">49,028</td><td class="r mono">—</td><td class="r mono">24,000</td><td class="r mono" style="font-weight:600">25,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>27 Aug</td><td>1 movement<div class="who2">Deposit returned</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">25,028</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">49,028</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>28 Aug</td><td>2 movements<div class="who2">Compensation, sale settled</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">49,028</td><td class="r mono" style="color:var(--ok)">57,752</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">106,780</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>29 Aug</td><td>1 movement<div class="who2">Deposit held</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">106,780</td><td class="r mono">—</td><td class="r mono">50,020</td><td class="r mono" style="font-weight:600">56,760</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n';
+ST.allEach='\n        <tr><td>29 Aug 09:12</td><td>Deposit held<div class="who2">Wallet 4417 &middot; gold bangle, 21K</div></td><td class="mono">DH-004402</td><td class="r mono" style="color:var(--ink-3)">2,958,560</td><td class="r mono">—</td><td class="r mono">50,020</td><td class="r mono" style="font-weight:600">2,958,560</td><td class="r"><button class="btn" onclick="go(\'orders\')">Order</button></td></tr>\n        <tr><td>28 Aug 13:55</td><td>Sale settled to a seller<div class="who2">Wallet 4417 &middot; gold ring, 21K</div></td><td class="mono">DH-004417</td><td class="r mono" style="color:var(--ink-3)">2,902,000</td><td class="r mono" style="color:var(--ok)">56,952</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">2,958,952</td><td class="r"><button class="btn" onclick="go(\'orders\')">Order</button></td></tr>\n        <tr style="background:#FBF2DF"><td>28 Aug 10:14</td><td>Compensation received<div class="who2">Wallet 4417 &middot; paid by A. Mostafa</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">2,901,200</td><td class="r mono" style="color:var(--ok)">800</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">2,902,000</td><td class="r"><button class="btn" onclick="go(\'compensation\')">Record</button></td></tr>\n        <tr><td>28 Aug 11:05</td><td>Withdrawal released<div class="who2">Wallet 4417 &middot; CIB ••4417 &middot; by N. Sherif</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">2,943,200</td><td class="r mono">—</td><td class="r mono">42,000</td><td class="r mono" style="font-weight:600">2,901,200</td><td class="r"><button class="btn" onclick="go(\'withdrawals\')">Transfer</button></td></tr>\n        <tr><td>27 Aug 11:15</td><td>Deposit returned<div class="who2">Wallet 4417 &middot; buyer declined the grade</div></td><td class="mono">DH-004398</td><td class="r mono" style="color:var(--ink-3)">2,943,200</td><td class="r mono">—</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">2,943,200</td><td class="r"><button class="btn" onclick="go(\'orders\')">Order</button></td></tr>\n        <tr><td>24 Aug 14:02</td><td>Added by bank transfer<div class="who2">Wallet 4417 &middot; matched by reference</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">2,919,200</td><td class="r mono" style="color:var(--ok)">24,000</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">2,943,200</td><td class="r"><button class="btn" onclick="go(\'transfers\')">Transfer</button></td></tr>\n';
+ST.allMonth='<tr><td>August 2026</td><td>Money added by customers<div class="who2">412 transfers</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">2,612,400</td><td class="r mono" style="color:var(--ok)">1,842,600</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">4,455,000</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>August 2026</td><td>Withdrawn to banks<div class="who2">96 withdrawals</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">4,455,000</td><td class="r mono">—</td><td class="r mono">1,514,840</td><td class="r mono" style="font-weight:600">2,940,160</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr style="background:#FBF2DF"><td>August 2026</td><td>Compensation paid by Dahab<div class="who2">14 payments</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">2,940,160</td><td class="r mono" style="color:var(--ok)">18,400</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">2,958,560</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>';
+ST.dahabEach='\n        <tr><td>28 Aug 13:55</td><td>Commission on a sale<div class="who2">Gold ring, 21K &middot; seller 4417 &middot; VAT 49 included</div></td><td class="mono">DH-004417</td><td class="r mono" style="color:var(--ink-3)">183,920</td><td class="r mono" style="color:var(--ok)">400</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">184,320</td><td class="r"><button class="btn" onclick="go(\'invoices\')">Invoice</button></td></tr>\n        <tr><td>28 Aug 13:55</td><td>Buy and sell difference<div class="who2">8.00 g at 24 per gram</div></td><td class="mono">DH-004417</td><td class="r mono" style="color:var(--ink-3)">183,728</td><td class="r mono" style="color:var(--ok)">192</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">183,920</td><td class="r"><button class="btn" onclick="go(\'orders\')">Order</button></td></tr>\n        <tr style="background:#FBF2DF"><td>28 Aug 10:14</td><td>Compensation paid<div class="who2">Wasted trip to IGI &middot; wallet 4417 &middot; by A. Mostafa</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">184,528</td><td class="r mono">—</td><td class="r mono">800</td><td class="r mono" style="font-weight:600">183,728</td><td class="r"><button class="btn" onclick="go(\'compensation\')">Record</button></td></tr>\n        <tr><td>27 Aug 16:40</td><td>Commission on a sale<div class="who2">Gold bangle, 21K &middot; seller 8842 &middot; VAT 295 included</div></td><td class="mono">DH-004402</td><td class="r mono" style="color:var(--ink-3)">181,408</td><td class="r mono" style="color:var(--ok)">2,400</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">183,808</td><td class="r"><button class="btn" onclick="go(\'invoices\')">Invoice</button></td></tr>\n        <tr style="background:#FBF2DF"><td>26 Aug 11:20</td><td>IGI inspection invoice, August<div class="who2">Recorded by N. Sherif &middot; proof attached</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">196,208</td><td class="r mono">—</td><td class="r mono">14,800</td><td class="r mono" style="font-weight:600">181,408</td><td class="r"><button class="btn" onclick="go(\'bankbook\')">Record</button></td></tr>\n        <tr><td>26 Aug 09:40</td><td>Commission on a sale<div class="who2">Gold chain, 18K &middot; seller 9014 &middot; VAT 55 included</div></td><td class="mono">DH-004390</td><td class="r mono" style="color:var(--ink-3)">195,762</td><td class="r mono" style="color:var(--ok)">446</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">196,208</td><td class="r"><button class="btn" onclick="go(\'invoices\')">Invoice</button></td></tr>\n        <tr style="background:#F8EAE7"><td>25 Aug 14:02</td><td>Credit note<div class="who2">Weight adjusted after inspection, commission overstated</div></td><td class="mono">CN-000030</td><td class="r mono" style="color:var(--ink-3)">195,846</td><td class="r mono">—</td><td class="r mono">84</td><td class="r mono" style="font-weight:600">195,762</td><td class="r"><button class="btn" onclick="go(\'invoices\')">Credit note</button></td></tr>\n';
+ST.dahabMonth='<tr><td>August 2026</td><td>Commission earned<div class="who2">41 sales, VAT included</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">106,080</td><td class="r mono" style="color:var(--ok)">61,900</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">167,980</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr><td>August 2026</td><td>Buy and sell difference<div class="who2">On settled gold value</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">167,980</td><td class="r mono" style="color:var(--ok)">16,340</td><td class="r mono">—</td><td class="r mono" style="font-weight:600">184,320</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>\n        <tr style="background:#FBF2DF"><td>August 2026</td><td>Compensation and costs<div class="who2">Entered by hand</div></td><td class="mono">—</td><td class="r mono" style="color:var(--ink-3)">184,320</td><td class="r mono">—</td><td class="r mono">41,600</td><td class="r mono" style="font-weight:600">142,720</td><td class="r"><button class="btn" onclick="stGrainTo(\'each\')">Break it down</button></td></tr>';
+
+
+function pauseBox(cat,hide,keep,live){
+  document.getElementById('pbTitle').textContent='Pause '+cat.toLowerCase();
+  document.getElementById('pbHide').textContent=hide;
+  document.getElementById('pbKeep').textContent=keep;
+  document.getElementById('pbWho').textContent=live;
+  var e=document.getElementById('pauseBox');
+  e.style.display='block';
+  document.getElementById('stopBox').style.display='none';
+  show('pauseBox');
+}
+function stopBox(cat,live,keep){
+  document.getElementById('sbTitle').textContent='Stop new '+cat.toLowerCase()+' listings';
+  document.getElementById('sbLive').textContent=live;
+  document.getElementById('sbKeep').textContent=keep;
+  var e=document.getElementById('stopBox');
+  e.style.display='block';
+  document.getElementById('pauseBox').style.display='none';
+  show('stopBox');
+}
+
+
+function navToggle(){
+  var n=document.querySelector('.nav');
+  n.classList.toggle('open');
+  document.getElementById('navState').textContent = n.classList.contains('open') ? 'Hide' : 'Show';
+}
+var _go = go;
+go = function(p){ _go(p); var n=document.querySelector('.nav');
+  if(n && n.classList.contains('open') && window.innerWidth<=900){ navToggle(); } };
+karats();
+spread();
+</script></body></html>

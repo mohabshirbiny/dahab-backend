@@ -1,0 +1,804 @@
+openapi: 3.0.3
+info:
+  title: Dahab Auth API
+  version: 1.0.0
+  description: |
+    Authentication surface for the Dahab Gold Marketplace Backend.
+    Two principals — customer and dashboard staff — share primitives
+    (rate limits, audit log, error envelope) but do not share tokens.
+    All rules trace back to `docs/Technical Spec/dahab-spec-part1-auth.md`.
+
+    Two API surfaces, two guards, four token abilities:
+
+    | Surface | Prefix | Guard | Access ability | Refresh ability |
+    |---|---|---|---|---|
+    | Customer API | `/customer/*` | `auth:customer` | `customer:access` | `customer:refresh` |
+    | Dashboard API | `/dashboard/*` | `auth:staff` | `staff:access` | `staff:refresh` |
+
+    A token of the other principal is rejected with 401 `unauthenticated`. A token
+    of the right principal but the wrong ability (a refresh token on an access
+    endpoint, or the reverse) is rejected with 403 `forbidden`.
+
+    `x-implemented: true` marks operations that exist in the running API today;
+    `x-implemented: false` marks planned operations (see `../tasks.md`).
+servers:
+  - url: /api/v1
+    description: v1
+components:
+  securitySchemes:
+    customerBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum personal access token
+      description: Customer API. The customer access token (ability `customer:access`).
+    customerRefreshBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum personal access token
+      description: Customer API refresh endpoint only. The customer refresh token (ability `customer:refresh`).
+    dashboardBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum personal access token
+      description: Dashboard API. The staff access token (ability `staff:access`).
+    dashboardRefreshBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum personal access token
+      description: Dashboard API refresh endpoint only. The staff refresh token (ability `staff:refresh`).
+  schemas:
+    Envelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          nullable: true
+        meta:
+          type: object
+    ErrorEnvelope:
+      type: object
+      required: [message, code]
+      properties:
+        message: { type: string }
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+    ErrorCode:
+      type: string
+      enum:
+        - validation_failed
+        - unauthenticated
+        - invalid_credentials
+        - account_suspended
+        - account_frozen
+        - account_locked
+        - permission_denied
+        - otp_required
+        - otp_invalid
+        - otp_expired
+        - mfa_required
+        - mfa_enrollment_required
+        - mfa_invalid
+        - token_invalid
+        - token_expired
+        - refresh_invalid
+        - forbidden
+        - too_many_requests
+        - not_found
+        - server_error
+    Session:
+      type: object
+      required: [access_token, access_token_expires_at, refresh_token, refresh_token_expires_at, token_type]
+      properties:
+        token_type: { type: string, enum: [Bearer] }
+        access_token: { type: string, description: "Sanctum PAT, ~15 min TTL, ability `<principal>:access`" }
+        access_token_expires_at: { type: string, format: date-time }
+        refresh_token: { type: string, description: "Sanctum PAT with ability `<principal>:refresh`, 30 day TTL, rotates on every use" }
+        refresh_token_expires_at: { type: string, format: date-time }
+        family_id: { type: string, format: uuid }
+    OtpChallenge:
+      type: object
+      required: [otp_required, challenge_id, expires_at, resend_available_at]
+      properties:
+        otp_required: { type: boolean, enum: [true] }
+        challenge_id: { type: string, format: uuid }
+        expires_at: { type: string, format: date-time }
+        resend_available_at: { type: string, format: date-time }
+    MfaChallenge:
+      type: object
+      required: [mfa_required, session_ref, expires_at]
+      properties:
+        mfa_required: { type: boolean, enum: [true] }
+        session_ref: { type: string, format: uuid }
+        expires_at: { type: string, format: date-time }
+    MfaEnrollmentPending:
+      type: object
+      required: [mfa_enrollment_required, otpauth_url, recovery_codes, session_ref]
+      properties:
+        mfa_enrollment_required: { type: boolean, enum: [true] }
+        otpauth_url: { type: string }
+        recovery_codes:
+          type: array
+          items: { type: string }
+        session_ref: { type: string, format: uuid }
+    Customer:
+      type: object
+      required: [id, display_ref, phone, is_verified, is_suspended, trade_allowed, preferred_lang, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        display_ref: { type: string }
+        phone: { type: string }
+        email: { type: string, nullable: true, format: email }
+        email_verified_at: { type: string, nullable: true, format: date-time }
+        full_name: { type: string, nullable: true }
+        preferred_lang: { type: string, enum: [ar, en] }
+        is_verified: { type: boolean }
+        is_suspended: { type: boolean }
+        suspended_reason: { type: string, nullable: true }
+        suspended_at: { type: string, nullable: true, format: date-time }
+        trade_allowed: { type: boolean }
+        created_at: { type: string, format: date-time }
+    Staff:
+      type: object
+      required: [id, role, full_name, email, is_active, permissions]
+      properties:
+        id: { type: string, format: uuid }
+        role: { type: string, enum: [ceo, coo, finance, operations, verification, igi_branch] }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        is_active: { type: boolean }
+        branch_id: { type: integer, nullable: true }
+        roles:
+          type: array
+          description: Spatie roles held on the staff guard
+          items: { type: string }
+          example: [ceo]
+        permissions:
+          type: array
+          description: Effective Spatie permissions (direct + via roles)
+          items: { type: string }
+          example: [customer.suspend]
+        mfa_enrolled: { type: boolean }
+  parameters:
+    DeviceIdHeader:
+      in: header
+      name: X-Device-Id
+      required: false
+      description: Client-generated opaque device id (128-bit random, persisted client-side)
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    DevicePlatformHeader:
+      in: header
+      name: X-Device-Platform
+      required: false
+      schema: { type: string, enum: [ios, android, web] }
+
+paths:
+  # ------------------------------ CUSTOMER ------------------------------
+  /customer/auth/register:
+    post:
+      tags: [Customer Auth]
+      x-implemented: true
+      security: []
+      summary: Register a new customer (phone + password)
+      parameters:
+        - $ref: '#/components/parameters/DeviceIdHeader'
+        - $ref: '#/components/parameters/DevicePlatformHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password, preferred_lang]
+              properties:
+                phone: { type: string, example: "+201000000001" }
+                password: { type: string, minLength: 10, writeOnly: true }
+                email: { type: string, format: email }
+                preferred_lang: { type: string, enum: [ar, en] }
+      responses:
+        '201':
+          description: Registered and signed in on this device
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          customer: { $ref: '#/components/schemas/Customer' }
+                          session: { $ref: '#/components/schemas/Session' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /customer/auth/login:
+    post:
+      tags: [Customer Auth]
+      x-implemented: true
+      security: []
+      summary: Customer sign-in (phone + password; OTP on new device)
+      description: |
+        Implemented today: the known-device branch only. A correct password from a device that is
+        not trusted is refused with 401 `invalid_credentials` until the OTP branch (US3, tasks
+        T081–T091) is built; the `OtpChallenge` response below is the planned shape.
+        Identity bucket exhausted → 429 `account_locked`; per-IP bucket exhausted → 429 `too_many_requests`.
+      parameters:
+        - $ref: '#/components/parameters/DeviceIdHeader'
+        - $ref: '#/components/parameters/DevicePlatformHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone: { type: string }
+                password: { type: string, writeOnly: true }
+      responses:
+        '200':
+          description: Session issued (known device) OR OTP challenge (new device)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/Envelope'
+                      - type: object
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              customer: { $ref: '#/components/schemas/Customer' }
+                              session: { $ref: '#/components/schemas/Session' }
+                  - allOf:
+                      - $ref: '#/components/schemas/Envelope'
+                      - type: object
+                        properties:
+                          data: { $ref: '#/components/schemas/OtpChallenge' }
+        '401': { $ref: '#/components/responses/InvalidCredentials' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /customer/auth/otp/verify:
+    post:
+      tags: [Customer Auth]
+      x-implemented: false
+      security: []
+      summary: Verify the OTP for a pending sign-in challenge
+      parameters:
+        - $ref: '#/components/parameters/DeviceIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challenge_id, code]
+              properties:
+                challenge_id: { type: string, format: uuid }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200':
+          description: OTP verified; session issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          customer: { $ref: '#/components/schemas/Customer' }
+                          session: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/OtpInvalidOrExpired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /customer/auth/otp/resend:
+    post:
+      tags: [Customer Auth]
+      x-implemented: false
+      security: []
+      summary: Resend the OTP for a pending challenge (rate-limited)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challenge_id]
+              properties:
+                challenge_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Same shape as the initial OTP challenge response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/OtpChallenge' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /customer/auth/refresh:
+    post:
+      tags: [Customer Auth]
+      x-implemented: true
+      security:
+        - customerRefreshBearer: []
+      summary: Rotate the customer refresh token
+      description: The bearer token here MUST be a customer refresh token (ability `customer:refresh`); an access token is 403. Replaying an already-rotated refresh token revokes the whole family.
+      responses:
+        '200':
+          description: New access/refresh pair, same family
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/RefreshInvalid' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /customer/auth/logout:
+    post:
+      tags: [Customer Auth]
+      x-implemented: true
+      security:
+        - customerBearer: []
+      summary: Revoke the current access+refresh pair
+      responses:
+        '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /customer/auth/logout-all:
+    post:
+      tags: [Customer Auth]
+      x-implemented: true
+      security:
+        - customerBearer: []
+      summary: Revoke every token for the current actor
+      responses:
+        '204': { description: Logged out from all devices }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /customer/auth/me:
+    get:
+      tags: [Customer Auth]
+      x-implemented: true
+      security:
+        - customerBearer: []
+      summary: Get the authenticated customer
+      responses:
+        '200':
+          description: Own customer row
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Customer' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /customer/auth/password/reset-request:
+    post:
+      tags: [Customer Auth]
+      x-implemented: false
+      security: []
+      summary: Request a password-reset SMS token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string }
+      responses:
+        '204': { description: Same shape whether the phone exists or not (enumeration protection) }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /customer/auth/password/reset:
+    post:
+      tags: [Customer Auth]
+      x-implemented: false
+      security: []
+      summary: Consume the reset token and set a new password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 10, writeOnly: true }
+      responses:
+        '204': { description: Password reset; all existing sessions revoked }
+        '401': { $ref: '#/components/responses/TokenInvalid' }
+  /customer/auth/email:
+    post:
+      tags: [Customer Auth]
+      x-implemented: false
+      security:
+        - customerBearer: []
+      summary: Set or change the customer's email; issues verification link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '204': { description: Verification link sent to the new address }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /customer/auth/email/verify:
+    post:
+      tags: [Customer Auth]
+      x-implemented: false
+      security: []
+      summary: Consume the email-verification token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '204': { description: Email marked verified }
+        '401': { $ref: '#/components/responses/TokenInvalid' }
+
+  # ------------------------------ STAFF ------------------------------
+  /dashboard/auth/login:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: false
+      security: []
+      summary: Staff sign-in (email + password; TOTP for ceo/coo/finance)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, writeOnly: true }
+      responses:
+        '200':
+          description: Session issued OR MFA challenge OR MFA enrollment required
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/Envelope'
+                      - type: object
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              staff: { $ref: '#/components/schemas/Staff' }
+                              session: { $ref: '#/components/schemas/Session' }
+                  - allOf:
+                      - $ref: '#/components/schemas/Envelope'
+                      - type: object
+                        properties:
+                          data: { $ref: '#/components/schemas/MfaChallenge' }
+                  - allOf:
+                      - $ref: '#/components/schemas/Envelope'
+                      - type: object
+                        properties:
+                          data: { $ref: '#/components/schemas/MfaEnrollmentPending' }
+        '401': { $ref: '#/components/responses/InvalidCredentials' }
+        '403': { $ref: '#/components/responses/AccountFrozen' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /dashboard/auth/mfa/verify:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: false
+      security: []
+      summary: Complete the TOTP challenge for a pending staff sign-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_ref, code]
+              properties:
+                session_ref: { type: string, format: uuid }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200':
+          description: Session issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          staff: { $ref: '#/components/schemas/Staff' }
+                          session: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/MfaInvalid' }
+  /dashboard/auth/mfa/enroll:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: false
+      security: []
+      summary: Complete MFA enrollment by confirming a TOTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_ref, code]
+              properties:
+                session_ref: { type: string, format: uuid }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200':
+          description: MFA enrolled; session issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          staff: { $ref: '#/components/schemas/Staff' }
+                          session: { $ref: '#/components/schemas/Session' }
+                          recovery_codes:
+                            type: array
+                            items: { type: string }
+        '401': { $ref: '#/components/responses/MfaInvalid' }
+  /dashboard/auth/refresh:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: true
+      security:
+        - dashboardRefreshBearer: []
+      summary: Rotate the staff refresh token
+      description: The bearer token here MUST be a staff refresh token (ability `staff:refresh`); an access token is 403. Replaying an already-rotated refresh token revokes the whole family.
+      responses:
+        '200':
+          description: New access/refresh pair, same family
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/RefreshInvalid' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /dashboard/auth/logout:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: false
+      security:
+        - dashboardBearer: []
+      summary: Revoke the current staff session
+      responses:
+        '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /dashboard/auth/logout-all:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: false
+      security:
+        - dashboardBearer: []
+      summary: Revoke every staff token for the current staff
+      responses:
+        '204': { description: Logged out from all devices }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /dashboard/auth/me:
+    get:
+      tags: [Dashboard Auth]
+      x-implemented: true
+      security:
+        - dashboardBearer: []
+      summary: Get the authenticated staff and effective permission set
+      responses:
+        '200':
+          description: Own staff row + permissions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Staff' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /dashboard/auth/password/reset-request:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: false
+      security: []
+      summary: Request a staff password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '204': { description: Same shape whether the email exists or not }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /dashboard/auth/password/reset:
+    post:
+      tags: [Dashboard Auth]
+      x-implemented: false
+      security: []
+      summary: Consume the staff reset token and set a new password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 10, writeOnly: true }
+      responses:
+        '204': { description: Password reset; MFA re-enrollment forced for ceo/coo }
+        '401': { $ref: '#/components/responses/TokenInvalid' }
+  /dashboard/customers/{customer_id}/suspend:
+    post:
+      tags: [dashboard.customers]
+      x-implemented: false
+      security:
+        - dashboardBearer: []
+      summary: Suspend a customer (requires `customer.suspend`)
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  enum: [fraud_suspected, policy_violation, kyc_failed, staff_request, other]
+                notes: { type: string }
+      responses:
+        '200':
+          description: Customer suspended
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Customer' }
+        '403': { $ref: '#/components/responses/PermissionDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /dashboard/customers/{customer_id}/unsuspend:
+    post:
+      tags: [dashboard.customers]
+      x-implemented: false
+      security:
+        - dashboardBearer: []
+      summary: Unsuspend a customer (requires `customer.suspend`)
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Customer unsuspended
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Customer' }
+        '403': { $ref: '#/components/responses/PermissionDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  responses:
+    ValidationFailed:
+      description: 422 — validation_failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthenticated:
+      description: 401 — unauthenticated
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    InvalidCredentials:
+      description: 401 — invalid_credentials
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    AccountFrozen:
+      description: 403 — account_frozen
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    PermissionDenied:
+      description: 403 — permission_denied
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooManyRequests:
+      description: 429 — `account_locked` when a login identity bucket is exhausted, otherwise `too_many_requests`. Which code applies is decided by the limiter that tripped, never by the URL. `Retry-After` is set.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    OtpInvalidOrExpired:
+      description: 401 — otp_invalid or otp_expired
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    MfaInvalid:
+      description: 401 — mfa_invalid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TokenInvalid:
+      description: 401 — token_invalid or token_expired
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: 403 — forbidden (the token is the right principal's but carries the wrong ability, e.g. a refresh token on an access endpoint)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    RefreshInvalid:
+      description: 401 — refresh_invalid (family revoked)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: 404 — not_found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }

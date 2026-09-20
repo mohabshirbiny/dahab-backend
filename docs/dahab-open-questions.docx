@@ -1,0 +1,147 @@
+**Dahab**
+
+Open questions and things still to decide
+
+*Everything agreed in conversation that is not yet written into the other documents, plus what still needs a decision.*
+
+# **1. For the legal clinic**
+
+These need a lawyer before launch. Each one decides where responsibility sits when something goes wrong.
+
+## **Collection authorisation**
+
+A buyer can send someone else to collect their piece. They upload that person’s ID and tick a declaration accepting responsibility for the choice. Dahab does not verify the relationship.
+
+- The exact wording of that declaration needs drafting. It is what decides liability if a collection is later disputed.
+
+- Does uploading a third party’s ID need that person’s own consent under the data protection law?
+
+## **Liability for a piece left at the branch**
+
+Agreed in conversation: the buyer has three weeks to collect after paying. The contract with IGI runs three months. If a piece is lost while it is there, Dahab pays the owner its value.
+
+- **After the contracted period, is a clause saying “we are no longer responsible” enforceable under Egyptian law on deposit and custody? A full disclaimer is often not upheld where negligence is involved.**
+
+- Better framed as “insurance cover ends” than “we are not responsible”. Needs confirming.
+
+- Notice must be sent before the period runs out, with a record that it was delivered.
+
+## **Buyer deposit forfeiture**
+
+If the buyer does not pay, they lose the deposit and half of it goes to the seller as compensation.
+
+- Must be drafted as agreed compensation, not a penalty. Penalty clauses can be reduced by a court.
+
+- The buyer must consent to it clearly and separately, not buried in the terms.
+
+## **Ownership and stolen goods**
+
+- The seller’s ownership declaration wording.
+
+- The clause allowing Dahab to cooperate with law enforcement and hand over records.
+
+- Subrogation: if Dahab compensates a buyer, it recovers from the seller.
+
+## **Other**
+
+- Is a residence permit required alongside a passport for foreign residents? Current position: passport only, residence not checked.
+
+- Any fee for early payout would be a financing product. Not being built, but if it returns it needs a legal description first.
+
+- Does the platform need a formal AML policy and a named compliance officer at this size?
+
+- How long must the audit log be kept? Tax records have a statutory period; operational logs may differ.
+
+# **2. Waiting on partners**
+
+## **IGI**
+
+- **Does the contract include an explicit guarantee on inspection results? The app says IGI “confirms and guarantees” karat, weight and stones. That wording needs to be backed by the contract.**
+
+- What exactly is free? Inspection is free. Issuing a diamond certificate is charged. The reduced price when another lab’s certificate already exists needs a number.
+
+- Insurance while a piece is at the branch: what limit, and who claims.
+
+- Written permission to use the IGI name and logo in the app.
+
+- Branch working hours and the holiday calendar, in a form the system can read.
+
+## **Evolve**
+
+- The exact wording Dahab may use publicly to describe them and their role. Currently described only as the source of the gold rate.
+
+- Written permission to use their name and logo.
+
+- What happens contractually when the feed goes down.
+
+## **Rapaport**
+
+- Licence to use the matrix commercially and to show suggested prices to consumers.
+
+- Written permission for the name.
+
+# **3. Decided, and worth not revisiting**
+
+*These came up, were argued through, and settled. The reasoning matters as much as the decision.*
+
+- **No paying sellers before the buyer pays. Dahab is an intermediary and will not carry credit risk. Publish honest waiting times instead.**
+
+- No fee for early payout, for the same reason.
+
+- No penalty charged to a seller caught with a counterfeit piece. Refund the buyer and suspend the account; that is deterrent enough.
+
+- No extension for the buyer beyond the ten days. Someone who cannot pay in ten days will not pay in thirteen.
+
+- No 14K. Other karats are available but switched off, and can be turned on from the admin panel.
+
+- The COO has full permissions except wallets. Wallet access is CEO and Finance only.
+
+- One shared IGI branch account rather than one per inspector. Simpler to run, but the log records the branch, not the person.
+
+- Invoices are issued automatically at settlement. Nobody issues one by hand.
+
+- The original invoice travels with the piece, unedited, and only reaches the buyer after the sale if they ask. Redacting it would destroy its value as evidence.
+
+- Multiple buyers on one piece queue in order. Each holds a deposit and locks a price at request. The seller accepts the first; the rest are released and refunded at once. No standby queue behind the accepted buyer.
+
+- A buyer who leaves the queue can ask to be notified only once the piece returns to the market with no requests on it at all, and rejoins at the back if they come back.
+
+- Any karat difference between stated and measured cancels the sale and suspends the seller. Weight keeps its 1.5% tolerance; karat has none, because it is stamped on the piece.
+
+- The seller names the willing inspection branch or branches at listing and picks the final one on accepting. Changing it afterwards goes through an admin; the deadline keeps running and the admin may extend it if the new branch is closed.
+
+- Changing a payout account pauses withdrawals for a set period (48 hours), read from the admin panel rather than written into the app.
+
+- **Money timing: the seller is paid the moment the buyer pays the balance, not when the piece is collected.** Collection is a physical handover only and moves no money. The full price passes through the holding (escrow) account as an instant step at payment, so there is always one clean source for a refund if a paid piece is never collected.
+
+- **The first gold sale is the one exception to “never pay the seller before the buyer pays.”** A first-time gold seller can be paid in full the moment Dahab receives her piece — before the buyer pays — capped (100,000 EGP, adjustable) and switched on per seller by an admin or a promo code, never automatic. Dahab recovers the advance from the buyer’s later payment and never buys the piece. Gold only; never diamonds.
+
+- **Buyer never pays: the piece returns to the seller** and she keeps 50% of the buyer’s deposit as compensation. The returned piece waits three weeks (set in the admin panel) for her to collect or relist; if she never comes, it moves to a “window passed, not our liability” state and Dahab hands it over or compensates, case by case, on contact.
+
+- **Buyer pays but never collects: resolved.** The paid piece waits three weeks, then moves to a “window passed, Dahab not liable” state and the buyer is notified. Disposition — hand over on contact, or refund from the money still held — is a manual, case-by-case operator decision, not automatic. (The legal framing of the liability wording still needs the clinic; see §1.)
+
+- **Spread applies to gold only.** The buyer pays at the sell-side corrected rate, the seller receives at the buy-side corrected rate, and Dahab keeps the difference on the gold value. It is computed at payment from the IGI-confirmed weight and is not stored. Diamonds and gold-with-diamond carry no spread — one fixed price from the seller, commission on the stone value only.
+
+- **Change authority: commission and spread rates are changed by the founders and Finance; releasing a withdrawal is CEO and Finance.** (One remaining wording conflict between the roles matrix and the settings table on the commission cell is tracked in the technical spec, Part 1 OI-1.4.)
+
+# **4. Still to build**
+
+- Database design: tables, relationships, and the state machine for a listing and an order.
+
+- A seller-facing “paused” state in the app for when a category is paused.
+
+- The market maker marker and filter exist in the prototype but the server logic behind them does not.
+
+- A buyer-facing view of queue position, and the notify-when-free option for a buyer who leaves a queue.
+
+# **5. Questions with no answer yet**
+
+- Who receives the alert when a cap is hit or an unusual pattern appears, and through which channel?
+
+- At what point does manual review of every withdrawal stop being possible, and what replaces it?
+
+- If a founder account is compromised: the freeze covers it, but the recovery path is not written down.
+
+- **Does the market maker programme scale beyond people you know personally? Current controls assume you do.**
+
+Dahab  ·  Page

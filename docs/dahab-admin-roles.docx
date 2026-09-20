@@ -1,0 +1,336 @@
+**Dahab**
+
+Admin roles and permissions
+
+*Version 1.0  ·  Reference for the development team*
+
+# **1. Why roles exist**
+
+Dahab holds other people’s money and other people’s gold. Every action that moves money, changes a price, or closes an account must be attributable to a named person. Roles are not about mistrust between the founders. They exist so that when something goes wrong, the record shows exactly who did what and when.
+
+Three principles govern the whole model:
+
+- Least privilege. An account gets the permissions its job needs and nothing more.
+
+- Everything is logged. Every privileged action records the actor, the timestamp, the values before and after, and the reason where one is required.
+
+- Caps before approvals. Where possible, limit exposure with a numeric cap rather than an approval step, so daily work is not blocked.
+
+# **2. The roles**
+
+## **CEO and COO — the founders**
+
+Two accounts, identical and unrestricted permissions. Either can do anything in the system, including creating accounts and assigning permissions to others.
+
+They are distinguished only by the audit log: every action is recorded against the individual who performed it. Neither can act as the other, and neither can delete or alter the log.
+
+*No dual approval is required for any action. This is a deliberate choice for a two-founder company and should be revisited if a third full-permission account is ever created.*
+
+**One deliberate exception: wallet access is limited to the CEO and Finance. The COO does not see or move wallet balances. This narrows the number of people who can touch customer money to two.**
+
+## **Operations**
+
+Handles the daily flow of listings and orders. Sees personal data only where the job requires it.
+
+- Reviews and approves or rejects new listings
+
+- Handles disputes and reports, and freezes an order while a dispute is open
+
+- Answers support and communicates with buyers and sellers
+
+- Changes a seller’s inspection branch on request while an order is open, within the branches the seller listed
+
+- Cannot move money, change pricing, or suspend an account
+
+## **Finance**
+
+Handles money leaving the platform and the records that go with it.
+
+- Reviews and releases withdrawals
+
+- Matches incoming bank transfers to wallets
+
+- Verifies payout bank accounts against the holder’s ID, including re-checking a changed account before withdrawals resume
+
+- Handles tax invoice corrections and exceptions. Invoices are issued automatically at settlement and filed with the e-invoicing system; nobody issues them by hand
+
+- Manages promo codes, including market maker codes
+
+- Uploads the weekly Rapaport matrix
+
+- Enters gold price corrections and manual prices
+
+- Pays compensation within a daily cap
+
+- Cannot approve listings or change commission and spread rates
+
+## **Verification**
+
+Handles identity documents. This is the most sensitive data in the system and the role is deliberately narrow.
+
+- Views and approves or rejects ID and passport uploads
+
+- Confirms that a payout account name matches the account holder’s ID
+
+- Cannot see wallets, orders, or prices
+
+- Every document view is logged, including views that lead to no decision
+
+## **IGI inspector — external**
+
+Staff at the IGI branch, working inside the Dahab system with the narrowest permission set of any role.
+
+- Sees only pieces routed to their own branch, and only while those pieces are in inspection
+
+- Enters the inspection result: measured karat, measured weight, condition notes, certificate number
+
+- Confirms handover after checking the collection code and the collector’s ID
+
+- Confirms handover of a returned piece back to the seller (after a buyer failed to pay), against the seller’s return code and ID
+
+- Sees no prices, no wallets, no seller or buyer contact details
+
+- **Cannot edit a result once submitted. A correction is a new entry that supersedes the first, and both are kept.**
+
+*IGI works from a single shared branch account issued by Dahab. This is simpler to administer, but it means the log records the branch, not the individual inspector. If a result is ever disputed, IGI has to identify the person from their own records.*
+
+# **3. Permission matrix**
+
+*Read this as the definitive list. If an action is not listed, it belongs to the founders only.*
+
+### **Listings and orders**
+
+| **Action** | **CEO / COO** | **Operations** | **Finance** | **Verification** | **IGI** |
+| --- | --- | --- | --- | --- | --- |
+| Approve or reject a new listing | Yes | Yes | No | No | No |
+| Ask a seller for a better photo | Yes | Yes | No | No | No |
+| Take a live listing down | Yes | Yes | No | No | No |
+| Approve a piece for market makers | Yes | No | Yes | No | No |
+| Extend a deadline on request | Yes | Yes | No | No | No |
+| Change the inspection branch on an open order | Yes | Yes | No | No | No |
+| Cancel an order | Yes | Yes | No | No | No |
+| Freeze an order during a dispute | Yes | Yes | No | No | No |
+| Enter an inspection result | Yes | No | No | No | Yes |
+| Confirm handover at the counter | Yes | No | No | No | Yes |
+| Confirm handover of a returned piece to the seller | Yes | No | No | No | Yes |
+| Check the ID of someone collecting for another person | No | No | No | No | Yes |
+
+### **Money**
+
+| **Action** | **CEO / COO** | **Operations** | **Finance** | **Verification** | **IGI** |
+| --- | --- | --- | --- | --- | --- |
+| Release a withdrawal | Yes | No | Yes | No | No |
+| Match an incoming transfer | CEO only | No | Yes | No | No |
+| View a wallet balance | CEO only | No | Yes | No | No |
+| Open a wallet statement | CEO only | No | Yes | No | No |
+| Pay compensation to a wallet | Yes | No | Up to cap | No | No |
+| Enable the first-sale early payout for a seller | Yes | No | Yes | No | No |
+| Refund a buyer in full | Yes | No | Yes | No | No |
+| Issue or correct a tax invoice | Yes | No | Yes | No | No |
+| Adjust a wallet balance directly | CEO only | No | No | No | No |
+| Change commission or spread rates | Yes | No | Yes | No | No |
+| Enter a gold price manually | Yes | No | Yes | No | No |
+| Set the gold price correction | Yes | No | Yes | No | No |
+| Upload the Rapaport matrix | Yes | No | Yes | No | No |
+| Turn a karat on or off | Yes | No | Yes | No | No |
+| Stop new listings in a category | Yes | Yes | No | No | No |
+| Pause a whole category | Yes | No | No | No | No |
+| Stop everything | Yes | No | No | No | No |
+| Show or hide something customers see | Yes | No | No | No | No |
+| Record a bank movement outside the app | CEO only | No | Yes | No | No |
+| Close the day | CEO only | No | Yes | No | No |
+
+### **Accounts and access**
+
+| **Action** | **CEO / COO** | **Operations** | **Finance** | **Verification** | **IGI** |
+| --- | --- | --- | --- | --- | --- |
+| Approve an ID or passport | Yes | No | No | Yes | No |
+| Verify a payout bank account | Yes | No | Yes | Yes | No |
+| Suspend a user account | Yes | No | No | No | No |
+| Reinstate a suspended account | Yes | No | No | No | No |
+| Create a staff account | Yes | No | No | No | No |
+| Change a staff member’s permissions | Yes | No | No | No | No |
+| Manage promo codes | Yes | No | Yes | No | No |
+| Edit app text | Yes | Yes | No | No | No |
+| Edit legal text and publish a new version | Yes | No | No | No | No |
+| Add or edit an inspection branch | Yes | Yes | No | No | No |
+| Build a full case file | Yes | Yes | Yes | No | No |
+| View the audit log | Yes | Own actions | Own actions | Own actions | No |
+
+# **4. Caps and limits**
+
+Caps are set in the admin panel and can be changed by the founders at any time. Changing a cap is itself a logged action.
+
+| **Limit** | **Default** | **Applies to** |
+| --- | --- | --- |
+| Compensation, per payment | 2,000 EGP | Finance |
+| Compensation, per day | 5,000 EGP | Finance |
+| Compensation, no limit | — | CEO and COO |
+| Manual gold price | No hard limit | CEO, COO, CFO |
+| Manual gold price, warning threshold | Confirm again above 10% deviation | CEO, COO, CFO |
+| Gold price correction, buy side | Set in EGP per gram | CEO, COO, CFO |
+| Gold price correction, sell side | Set in EGP per gram | CEO, COO, CFO |
+| Weight difference adjusted automatically | 1.5% either way | CEO, COO, CFO |
+| Karat difference tolerance | None. Any difference cancels the sale | CEO, COO, CFO |
+| Withdrawals pause after a payout-account change | 48 hours | CEO, COO, CFO |
+| Market maker monthly cap | Set per code | Applies to the code, not the staff member |
+| Failed sign-in attempts | 5, then a 30 minute lock | All staff accounts |
+| Session timeout | 30 minutes idle | All staff accounts |
+
+# **5. Stopping things**
+
+Three levels, and the difference between them matters. Each one leaves alone anything with a locked price, because that is a promise already made to two people.
+
+- Stop new listings. Nothing already live is touched. Operations can do this.
+
+- Pause a category. New listings stop and live pieces that nobody has asked to buy are hidden, coming back on their own when the category reopens. Any request for more time becomes a cancellation. Founders only.
+
+- Stop everything. Every category, plus withdrawals. Emergency only, founders only, and both founders are notified the instant it is used.
+
+Whoever pauses a category writes the message that goes out, and it reaches only the sellers with pieces in that category. Telling everyone about a problem that affects a few makes it look larger than it is.
+
+## **Collection by someone else**
+
+A buyer can send someone to collect for them. They upload that person’s ID and accept responsibility for the choice. Dahab does not verify the relationship between them, and this is stated plainly in the app before they confirm.
+
+At the counter, the branch checks the ID against what was uploaded and against the collection code. If either does not match, the piece is not handed over.
+
+*The wording of that authorisation needs the legal clinic to draft it, because it is what decides where responsibility sits if a collection is later disputed.*
+
+# **6. Reconciliation**
+
+Money moves in and out of the Dahab bank account for reasons the app knows nothing about: capital paid in, rent, bank charges, profit taken out. Unless those are recorded, the bank balance and the wallet balances drift apart and nobody can say why.
+
+- Every movement outside the app is recorded with its kind, amount, date, a written reason and proof attached.
+
+- At the end of each day the bank balance is compared against customer wallets, the Dahab wallet, and the movements recorded that day.
+
+- A day with no difference is closed and locked, so the next day starts from a figure already checked.
+
+- **A difference found today is a morning of work. The same difference found in three months is an audit.**
+
+The overview screen leads with the single figure this produces: bank balance minus what is owed to customers. If it ever goes negative, customer money is short and everything else stops.
+
+# **7. Gold pricing controls**
+
+Three separate controls sit between the Evolve feed and the price a customer sees. They are not interchangeable and the difference matters.
+
+## **Price correction, always on**
+
+A fixed amount in EGP per gram added to the reference price, with a separate field for the buy side and the sell side. It applies continuously while the API is healthy, and updates with every price refresh.
+
+This exists because the reference feed can sit slightly away from the real market. It is a correction, not a revenue line.
+
+**The published buy and sell difference is calculated from these two fields, never typed in by hand. If the corrections change, the published figure changes with them, so what customers read always matches what they are charged.**
+
+## **Manual price, emergencies only**
+
+If the Evolve feed goes down, a founder or the CFO enters a price directly, as a percentage or an amount. There is no hard ceiling on the deviation, because a real market move can be large. Above 10% the system asks for a second confirmation, which catches a typed extra digit without blocking a genuine entry.
+
+While a manual price is live, a banner appears in the app. The system returns to the feed automatically as soon as it recovers.
+
+## **Rapaport matrix**
+
+Uploaded weekly as a spreadsheet by the CFO or a founder. It guides diamond suggestions only, and never sets a final price. IGI decides the real grade.
+
+# **8. What is always logged**
+
+Every entry records: who, when, from which device and address, what changed, and the reason where one is required.
+
+- Any change to a wallet balance, in either direction
+
+- Any withdrawal released, and by whom
+
+- Any first-sale early payout to a seller, with the cap in force and who enabled it
+
+- Any return of a piece to a seller after a buyer no-pay, and its handover
+
+- Any payout-account change, and the withdrawal pause it triggers
+
+- Any listing approved, rejected or taken down
+
+- Any inspection result entered, including corrections and the entry each one supersedes
+
+- Any sale cancelled for a karat difference, with the stated and measured karat
+
+- Any identity document viewed, whether or not a decision followed
+
+- Any account suspended or reinstated
+
+- Any promo code created, changed, turned on or turned off
+
+- Any manual gold price entered, with the API price at that moment
+
+- Any commission or spread rate change, with the old and new values
+
+- Any staff account created, or permission granted or removed
+
+- Any karat turned on or off
+
+- Any inspection branch changed on an open order, with who asked and who made the change
+
+- Any app text or legal document changed, with the version it replaced
+
+- Any bank movement recorded outside the app, and any day closed
+
+- Any full case file built, with who asked for it and who received it
+
+- Any category stopped or paused, and anything stopped everywhere
+
+- Anything shown to or hidden from customers
+
+- Any wallet statement opened, and whose
+
+- Every agreement a customer ticks, with the exact document version they saw
+
+**The log is append-only. No role, including the founders, can edit or delete an entry.**
+
+# **9. Rules that hold regardless of role**
+
+- No one can see a user’s password. Passwords are stored hashed and are never recoverable.
+
+- No one can move money to an account that is not in the wallet holder’s own name.
+
+- No one can edit a submitted inspection result. Corrections supersede, they do not overwrite.
+
+- No one can approve their own action where a second pair of eyes is required by a cap.
+
+- No karat difference is ever adjusted or waived. Any difference between stated and measured karat cancels the sale and suspends the seller, and no role can override this.
+
+- Changing a payout account always pauses withdrawals for the set period and forces a fresh check against the ID. No role can skip the pause.
+
+- Identity documents are visible only to Verification and the founders, and every view is logged.
+
+- Staff accounts use their own credentials. Shared logins are not permitted, because the log becomes meaningless. The one exception is the IGI branch account, which is shared by agreement and logs the branch rather than the person.
+
+- A dispute cannot be closed silently. It ends either with a reply to the person who raised it, or by passing it to a named colleague. Both are logged.
+
+- Suspending an account needs a reason from a fixed list and a written note. There is no unexplained suspension.
+
+- A published document version is never edited or deleted. A correction is a new version, and the old one is kept because customers agreed to it.
+
+- **Rates, durations, karats and piece types are settings, not code. Anything an operator may need to change is changed in the admin panel, not in a release.**
+
+# **10. Open questions**
+
+*These need a decision before build, and some need the legal clinic.*
+
+- How long is the audit log retained? Tax records have a statutory period; operational logs may differ. To be confirmed with the tax advisor.
+
+- Does the data protection law require a formal record of who accessed identity documents, beyond the internal log? For the legal clinic.
+
+- Who receives the alert when a cap is hit or an unusual pattern appears, and through which channel?
+
+# **11. Founder account security**
+
+Because neither founder can lock the other out and no action needs a second approval, a compromised founder account is the single largest risk in the system. Two measures cover it without adding friction to daily work.
+
+- **A sign-in from an unrecognised device on a founder account is held until the other founder confirms it. Known devices sign in normally.**
+
+- **Either founder can freeze the other account immediately, from their own phone. A freeze stops all activity at once. Unfreezing needs both founders, so a single compromised account cannot undo it.**
+
+- Both founders are notified in real time of any sensitive action on either account: a wallet adjustment, a rate change, a promo code change, a manual price, or a new staff account.
+
+*A freeze is not a deletion. Nothing is lost, and the account resumes the moment both founders confirm. It is designed to be used the instant something feels wrong, without hesitation.*
+
+Dahab  ·  Page

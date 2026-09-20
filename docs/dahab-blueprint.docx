@@ -1,0 +1,472 @@
+**Dahab**
+
+Business blueprint
+
+*Version 1.0  ·  September 2026  ·  For the development team, the legal clinic and partners*
+
+# **1. What Dahab is**
+
+*A woman in Cairo has a gold ring she no longer wears. She takes it to a jeweller, who weighs it, quotes her the scrap gold value, and keeps the craftsmanship she paid for when she bought it. She loses that money every time.*
+
+Dahab is a marketplace where she sells that ring to another person who wants to wear it, rather than to a jeweller who wants to melt it. The buyer pays for the piece, so the making charge comes back to the seller instead of disappearing.
+
+Dahab does not buy, does not own, and does not hold stock. It connects two people who have never met and makes the trade safe enough that neither has to trust the other.
+
+### **Why anyone would use it**
+
+|  | **The seller** | **The buyer** |
+| --- | --- | --- |
+| What they get | Meaningfully more than a jeweller pays, because the making charge comes back | A real piece at a fair price, verified before they pay in full |
+| What they risk without Dahab | Handing gold to a stranger and hoping to be paid | Paying a stranger and hoping the gold is real |
+| What removes the risk | Money is held before the piece moves | An independent lab checks the piece before the balance is due |
+
+### **The three parties that make it work**
+
+Dahab decides almost nothing on its own. That is deliberate: a marketplace that sets its own prices and grades its own goods is asking to be doubted.
+
+- Evolve provides the gold rate. Dahab applies it to weight and karat without adjusting it by hand.
+
+- Rapaport guides diamond pricing. It is a suggestion, never a valuation.
+
+- IGI inspects every piece and confirms karat, weight and stones before any money settles.
+
+**Dahab holds the money, runs the market, and takes a commission. Nothing else.**
+
+# **2. How a sale works**
+
+One path, twelve steps. Everything else in this document is a variation on it.
+
+**1.  **The seller lists a piece: photos, hallmark, weight, karat, condition, the making charge she wants back, and which inspection branch or branches she is willing to deliver to. The original invoice is optional but encouraged.
+
+**2.  **Dahab reviews the listing before it goes live, usually within a few hours. The reviewer checks the photos show the piece and its condition, and that the description matches.
+
+**3.  **The piece goes live. Its price moves with the gold rate until someone commits.
+
+**4.  **A buyer sends a request. A deposit of 20% (set in the admin panel) is held from their wallet and the price locks, for that buyer, at that moment. More than one buyer may request the same piece; each holds their own deposit and locks their own price, and they wait in a queue in the order they arrived.
+
+**5.  **The seller accepts the first buyer in the queue, or declines. Accepting binds the piece to that buyer and immediately releases every other buyer in the queue, returning each deposit in full. Declining releases the first deposit immediately.
+
+**6.  **On accepting, the seller chooses the inspection branch from the ones she named at listing, and has twelve working hours at that branch to deliver the piece. The count runs from the moment she accepts.
+
+**7.  **IGI inspects. Karat, weight and stones are confirmed and recorded.
+
+**8.  **A weight difference under 1.5% (set in the admin panel) is adjusted automatically. Anything larger needs both sides to approve the new price; if either declines, the buyer is refunded in full. Any difference in karat is not adjusted: it cancels the sale (see the rules).
+
+**9.  **On approval, the piece is confirmed and safe. Money moves only under the payment rules below.
+
+**10.  **The buyer pays the balance within ten days (set in the admin panel). **The moment the balance is paid, the money is distributed: the seller is paid in full, commission and spread go to Dahab, and a tax invoice is issued automatically to both sides.** Only then does a collection code appear.
+
+**11.  **The buyer collects from the branch with the code and their ID, or sends someone with an uploaded ID and a signed authorisation. The piece waits three weeks.
+
+**12.  **Collection is a physical handover only. No money moves at collection — it has already moved when the balance was paid. The piece changes hands against the code and the ID, and nothing else.
+
+### **When more than one buyer wants the same piece**
+
+A piece is not taken off the market when a request arrives. Other buyers can still see it and send their own requests, and each is placed in a queue in the order it was received. A buyer is told how many requests are already ahead of them before they commit, so the wait is a known thing rather than a surprise.
+
+Each buyer in the queue has their deposit held and their price locked from the moment they requested. When the seller accepts, she takes the first in line; everyone else is released at once and refunded in full, and the piece is now bound to a single buyer with no standby queue behind it.
+
+A buyer who does not want to wait can withdraw from the queue and ask to be told if the piece later returns to the market with no requests on it at all. If it does and they still want it, they send a fresh request and join the back of the new queue like anyone else.
+
+### **When the seller is paid**
+
+Dahab does not pay a seller with money it has not received. There is exactly one exception, and it is a deliberate one.
+
+| **Situation** | **When the money moves** | **Why** |
+| --- | --- | --- |
+| **First gold sale, under the cap** | **In full, as soon as Dahab receives the piece from the seller — before the buyer pays** | A new seller has no reason to trust the platform yet. Paying her the moment her piece is in Dahab's hands, before the buyer has paid, is what earns that trust |
+| Any gold sale after the first | In full, the moment the buyer pays the balance | She has seen the platform work. There is no longer a reason to carry the risk. She does not wait for collection — collection is a physical handover only |
+| Diamond or gold with diamond, always | In full, the moment the buyer pays the balance | Higher value and slower to resell. The exception is not extended to it |
+
+**The first-sale early payment is a deliberate exception and the only time Dahab pays before the buyer. It is capped (set in the admin panel, 100,000 EGP) and switched on per seller — by an admin, or through a promo code — not automatic for everyone. Above the cap, even a first sale waits for the buyer. Dahab recovers the advance from the buyer's later payment; it never buys the piece.**
+
+For every other sale, the change from the earlier design is simple: **the seller is paid when the buyer pays the balance, not when the piece is collected.** Collection moves no money.
+
+This is a marketing cost with a known ceiling, not a financing arrangement. Dahab’s exposure at any moment is the number of first-time sellers multiplied by the cap (set in the admin panel), and both are visible in the dashboard.
+
+### **What each side risks at every point**
+
+| **Stage** | **The seller** | **The buyer** |
+| --- | --- | --- |
+| Listed | Nothing. No fee, no commitment. | Nothing. |
+| Request sent | Nothing yet. | 20% held, returned in full if the seller declines, misses the deadline, or accepts someone ahead in the queue. |
+| Accepted | A trip to the branch. Cancelling now counts against her. | Deposit held while the piece is inspected. Buyers not chosen are refunded at once. |
+| Inspected | Already paid in full if this is her first gold sale (paid at receipt). Otherwise waiting for the buyer to pay the balance. | Can walk away with a full refund if the piece is not as described. |
+| Balance paid | Paid in full at this moment. | Owns the piece and has a tax invoice. Waiting only to collect. |
+| Collected | Nothing changes — she was already paid. | Has the piece physically. No money moves at collection. |
+
+# **3. Money**
+
+### **How a price is built**
+
+Every figure a customer sees comes from the same four inputs. Nothing is typed in by hand.
+
+| **Input** | **Where it comes from** |
+| --- | --- |
+| Gold rate | Evolve, updated through the day |
+| Price correction | A fixed amount per gram, set separately for the buy and sell sides, to keep the reference in line with the real market |
+| Weight and karat | Stated by the seller, confirmed by IGI before settlement |
+| Making charge | Chosen by the seller. The buyer accepts it or does not buy |
+
+**The published difference between the buy and sell rate is calculated from the two corrections, never entered separately. If a correction changes, the published figure changes with it, so what customers read always matches what they are charged.**
+
+### **What Dahab earns**
+
+| **Source** | **Rate** | **Taken from** |
+| --- | --- | --- |
+| Commission on gold | 20% (set in the admin panel) | The making charge the seller recovers |
+| Commission on stones | 5% (set in the admin panel) | The value added above the gold |
+| Minimum commission | 200 EGP (set in the admin panel) | Never broken, not even by a promo code |
+| Buy and sell difference (spread) | From the corrections, **gold only** | The gold value at settlement. The buyer pays at the sell-side rate, the seller receives at the buy-side rate, and the difference is Dahab’s. Diamonds and gold-with-diamond carry no spread — one fixed price from the seller, commission on the stone value only |
+
+**Commission is never taken from the value of the customer’s gold. That single rule is what makes the pricing defensible: Dahab is paid for the service, not for the metal.**
+
+VAT at 14% applies to commission only. It is included in the figure the customer sees, and shown separately on the invoice. The buy and sell difference is trading margin and is treated as income, not as a service fee.
+
+### **A worked example**
+
+A 21K ring, 8.00 g, making charge 300 per gram, at a gold rate of 6,951.
+
+| **Line** | **Amount** | **Who** |
+| --- | --- | --- |
+| Gold value, 8.00 g at 6,951 | 55,608 | To the seller |
+| Making charge, 8.00 g at 300 | + 2,400 | To the seller |
+| Commission, 20% of 2,400, VAT included | − 480 | To Dahab |
+| **The seller receives** | **57,528** |  |
+| Buy and sell difference, 8.00 g at 24 | 192 | To Dahab |
+| **A jeweller would have paid** | **55,608** | **Gold only** |
+| **The seller gets extra** | **1,920** |  |
+
+### **Wallets**
+
+Every customer has a wallet. Money enters by bank transfer, InstaPay or a mobile wallet, and always from an account in their own name. Money leaves only to a bank account in their own name, and every withdrawal is checked by a person before it goes.
+
+- Available: can be spent or withdrawn now.
+
+- Held: set aside against a specific open order. Still theirs, and it returns to available if the order is cancelled.
+
+Changing the payout account is treated as a sensitive event. It cancels any withdrawal that has not yet left, and pauses new withdrawals for a set period (48 hours, set in the admin panel) while a person re-checks the name against the ID. The app reads that period from the setting, so what the customer is told always matches what is enforced.
+
+Dahab has a wallet too, holding commission and spread earned but not yet taken out. Customer money and Dahab money are never mixed.
+
+### **The number that matters most**
+
+*Bank balance minus what is owed to customers. If it is ever negative, customer money is short and everything else stops.*
+
+This figure leads the admin overview. It only stays meaningful if every movement in and out of the bank account is recorded, including the ones the app knows nothing about: capital paid in, rent, bank charges, profit taken out. Those are recorded by hand, with proof attached.
+
+At the end of each day the bank balance is compared against customer wallets, the Dahab wallet, and the movements recorded that day. A day with no difference is closed and locked. A difference found today is a morning of work; the same difference found in three months is an audit.
+
+# **4. The rules**
+
+*Every rule below exists because of a specific way the market could go wrong. The reasoning is given with each one, because a rule whose purpose is forgotten gets removed by the next person who finds it inconvenient.*
+
+### **Deadlines (set in the admin panel)**
+
+| **What** | **How long** | **Why that long** |
+| --- | --- | --- |
+| Seller replies to a request | 48 hours | Long enough for someone who is not on their phone, short enough that a buyer’s money is not tied up |
+| Seller reaches the branch | 12 working hours | Counted at the branch she chose, so a Thursday afternoon acceptance is Sunday, not Friday |
+| Buyer pays after inspection | 10 days | Someone who cannot pay in ten days will not pay in thirteen |
+| Buyer collects after paying | 3 weeks | They have paid and it is theirs. This is a storage limit, not a penalty |
+| Free relist after collecting | 12 working hours | Enough to change your mind, not enough to trade on the gold price |
+| Withdrawals pause after a payout-account change | 48 hours | Time for a person to re-check the name against the ID, and a brake on a hijacked account |
+
+### **When someone does not do what they said**
+
+**The seller accepts and then cancels**
+
+The buyer’s deposit is released immediately and the piece returns to the market. The cancellation counts against the seller; two of them.
+
+**“I sold it elsewhere” is a cancellation, not a request for more time. Treating it as an extension would let a seller hold a buyer’s money while shopping the piece around.**
+
+**The buyer never pays**
+
+The buyer has ten days to pay the balance. If they do not, the sale is cancelled, the piece returns to the seller, and she keeps 50% (set in the admin panel) of the buyer’s deposit, as compensation for her time and the trip to the branch. The rest covers Dahab’s costs on a sale that produced nothing. Because the seller was never paid (the buyer never paid), there is nothing to reverse — the money simply never moved.
+
+The buyer is told this before they send a request, in plain words, next to the deposit figure. A forfeiture nobody saw coming is a complaint; one that was stated up front is a rule.
+
+The returned piece waits at the branch for the seller to collect it, for a set period (three weeks, set in the admin panel). She can collect it or relist it. If she does not come within that period, the piece moves to a state that says plainly the window has passed and Dahab is no longer holding it under the same terms; from there Dahab hands it over or compensates, decided case by case when she makes contact. This mirrors how an uncollected paid piece is handled on the buyer’s side.
+
+**The buyer pays but never collects**
+
+The buyer has paid in full, so the seller is already paid and the piece is the buyer’s, sitting at the branch. It waits three weeks (set in the admin panel). If the buyer does not collect within that window, the piece moves to a state that says the window has passed and Dahab is no longer liable under the same terms, and the buyer is notified. What happens then — hand the piece over when they finally come, or refund them — is decided case by case when the buyer makes contact, not automatically. The refund, where it happens, comes from the money still held for that sale.
+
+**The weight is different**
+
+Under 1.5% (set in the admin panel) either way, the price adjusts automatically and the sale continues. Small differences are honest: a shop scale and a laboratory scale do not agree to two decimal places.
+
+Above that, both sides must approve the new price. If either declines, the buyer is refunded in full, the piece goes back to the market at the corrected weight, and Dahab pays for the second inspection.
+
+**The seller is not charged for a weight difference. She may have guessed, and guessing is not fraud. What matters is the pattern: a seller whose weight comes in short six times out of seven is not guessing.**
+
+**The karat is different**
+
+**There is no tolerance on karat. The karat is stamped on the piece and the seller can read it, so a stated karat that does not match the measured one is not an honest guess the way a weight can be. Any difference at all, in either direction, cancels the sale: the buyer is refunded in full and the seller’s account is suspended. This is the same treatment as a piece that is not what it claims to be, because that is what a wrong karat is.**
+
+The weight tolerance and the karat rule are deliberately different. A weight can drift between two honest scales. A karat is a number written on the metal.
+
+**The piece is not what it claims to be**
+
+The buyer is refunded in full from escrow immediately and the seller’s account is suspended. No penalty is charged, because suspension is the deterrent and chasing money from a suspended account is not realistic.
+
+### **Who can trade**
+
+- Everyone is identity verified before their first sale or purchase. Browsing needs no account.
+
+- An Egyptian ID or, for foreign residents, a passport. Residence is not checked.
+
+- A foreign phone number is fine. Egyptians abroad are a real part of the market. Handover is still in Cairo.
+
+- **Money in must come from an account in the customer’s own name, and money out goes only to an account in their own name. This closes the simplest route to laundering.**
+
+### **Market makers**
+
+A small number of known dealers are given a code that waives Dahab’s commission and gives them the buy and sell difference. In exchange they buy pieces that have not sold, so sellers get paid and the market looks alive.
+
+Dahab earns nothing on those trades. It is a marketing cost with a measurable price, not a hidden arrangement.
+
+- They see the whole market at normal prices, like anyone else.
+
+- Approved pieces carry a marker only they can see, and a filter to show just those.
+
+- **A piece must have been listed seven days (set in the admin panel) before it can be bought with the code, so a dealer never gets ahead of an ordinary buyer.**
+
+- An admin approves each piece on price alone, and that approval is logged with the numbers they saw.
+
+- The code is tied to one account. It fails from any other account, on any device.
+
+- A monthly cap limits the cost, and the code can be switched off in a second.
+
+*This works because the dealers are people you know. It does not obviously scale to people you do not.*
+
+# **5. Diamonds and pieces with stones**
+
+Almost everything so far describes gold, where a price follows from weight and karat. Diamonds do not work that way, and pieces that are part gold and part diamond are priced from both. The differences below are not details; they change how a piece is valued, inspected and settled.
+
+### **Three categories, not one**
+
+| **Category** | **What decides the price** | **What the laboratory confirms** |
+| --- | --- | --- |
+| Gold | Weight, karat, and the making charge the seller sets | Karat and weight |
+| Diamond | The stone: carat, colour, clarity, cut. Guided by Rapaport, priced by the seller | Grade and carat, on its own certificate |
+| Gold with diamond | Gold value plus what the stones and the craft add | Karat, weight, and the stones |
+
+The seller chooses the category first, and everything after that follows from it: which photographs are required, which piece types are offered, whether a certificate is needed, and how the price is built.
+
+### **How a diamond is priced**
+
+Rapaport publishes a price list the diamond trade uses worldwide. Dahab uploads it weekly, converts it to Egyptian pounds, and uses it to suggest a price from the carat, colour and clarity the seller enters.
+
+- It is a suggestion, not a valuation. The seller may ask for more or less.
+
+- The suggestion can be hidden from customers entirely, from the admin panel, without changing anything else.
+
+- A matrix more than a week old drifts from the market. Its age is shown in the dashboard for that reason.
+
+**The laboratory decides the grade. If it grades the stone below what the listing claimed, the price falls with it and the buyer chooses whether to continue.**
+
+### **Certificates**
+
+A diamond cannot be sold on Dahab without a certificate, because a stone nobody has graded is a stone nobody can price. Three situations, and the cost differs in each.
+
+| **What the seller has** | **What it costs them** | **Why** |
+| --- | --- | --- |
+| **An IGI certificate** | **Nothing** | It is already the laboratory doing the inspection. It is checked against the stone at handover |
+| A certificate from another laboratory | Reduced, taken from the settlement | It is uploaded and buyers can see it while browsing. IGI still issues its own, but starts from something rather than nothing |
+| No certificate | Full cost, taken from the settlement | IGI grades the stone from scratch and issues a certificate |
+
+**The seller is never asked to pay upfront. The cost comes out of what they receive when the piece sells, so a piece that does not sell costs them nothing.**
+
+### **When the measurement differs**
+
+For gold, a difference is a number: 7.62 grams against a stated 8.00. The 1.5% (set in the admin panel) rule handles it, because a small difference between a shop scale and a laboratory scale is honest. Karat is the exception even for gold: any difference there cancels the sale, as set out in the rules.
+
+**For a diamond there is no equivalent. A stone graded VS2 when the listing said VS1 is not 4% different, it is a different stone commercially. There is no automatic adjustment.**
+
+- The laboratory grade replaces what the seller claimed.
+
+- The price is recalculated from the new grade.
+
+- Both sides must approve the new price. If either declines, the buyer is refunded in full.
+
+- The seller is not charged. Sellers are not gemmologists, and an honest mistake about clarity is expected.
+
+For a piece that is part gold and part diamond, all three rules apply: the gold weight adjusts automatically within 1.5%, any karat difference cancels the sale, and any change to the stone needs approval.
+
+### **Commission on stones**
+
+Commission on gold is 20% (set in the admin panel) of the making charge, because that is the value the seller recovers that a jeweller would have kept. Stones have no making charge, so the equivalent is the value the piece carries above its gold.
+
+| **Line** | **Example** | **Note** |
+| --- | --- | --- |
+| Asking price | 80,150 | Set by the seller |
+| Gold value, 6.10 g at 6,951 | 42,401 | From the rate |
+| **Value above the gold** | **37,749** | What the stones and the craft add |
+| Commission, 5% of that (set in the admin panel) | 1,887 | VAT included |
+| Minimum commission | 200 | Never broken |
+
+On a pure diamond there is no gold value, so the whole asking price is the value above gold and commission is 5% of it.
+
+### **Photographs and piece types**
+
+The requirements change with the category, because what a buyer needs to see is different.
+
+- Gold: the whole piece, the hallmark, and any wear.
+
+- Diamond: the stone in close-up, the setting, and the certificate.
+
+- Gold with diamond: both, plus the hallmark.
+
+Piece types are offered per category too. A chain or a bangle is a gold shape; a bridal set belongs with stones. The lists are set in the admin panel, not written into the app.
+
+### **Why diamonds do not get the first-sale exception**
+
+A first-time gold seller is paid in full before the buyer pays. Diamonds are excluded from that, and the reason is not caution about the seller.
+
+**Gold has a price anyone can look up and a buyer for it at any hour. A diamond is worth what a specific buyer will pay for that specific stone, and if a sale falls through the piece may sit for months. The exception exists to build trust cheaply; on diamonds it would not be cheap.**
+
+# **6. What could go wrong**
+
+The risks that shaped the design, and what each one is met with.
+
+| **Risk** | **What it looks like** | **What stops it** |
+| --- | --- | --- |
+| Two people colluding | A buyer and a seller trading with each other repeatedly to extract something | Dahab never pays before the buyer pays, so there is nothing to extract. Repeat pairs are flagged for review |
+| Fake or misdescribed gold | A seller lists 21K and sends 18K | Every piece is inspected before money settles. Any karat difference cancels the sale and suspends the account. Nobody takes the other side’s word |
+| Stolen goods | A piece sold that is not the seller’s to sell | Identity verification, an ownership declaration, and a full case file available to law enforcement |
+| Laundering | Money in and straight back out with no trade | Bank channels only, name must match the ID both ways, every withdrawal reviewed by a person |
+| SIM swap | Someone takes over a phone number and withdraws | Withdrawals go only to an account in the holder’s name, every one is checked by a person, and changing that account pauses withdrawals for a set period |
+| Gold price moves during a sale | The price at listing is not the price at settlement | The price locks the moment a request is sent, and the windows either side are short |
+| Price feed fails | No rate to price with | A manual price with a stated reason, a banner in the app, and automatic return to the feed |
+| A piece lost at the branch | It disappears between delivery and collection | IGI insures pieces in its custody. Dahab compensates the owner and recovers from IGI |
+| A founder account compromised | Full permissions in the wrong hands | New-device sign-in held until the other founder confirms; either can freeze the other instantly |
+
+### **The risk that was designed out**
+
+Paying sellers before buyers pay was considered at length and rejected. It would have meant Dahab carrying credit risk, tying up capital, and creating exactly the incentive for collusion that the rest of the design removes.
+
+**Instead, sellers are told honestly how long the money takes, and once there is real data, the average waiting time and the completion rate are published in the app (set in the admin panel). A clear wait is easier to accept than a promise that sometimes breaks.**
+
+# **7. Operating it**
+
+### **Who does what**
+
+Set out in full in the roles document. In short: two founders with full permissions, distinguished only by the audit log; a CFO over money and pricing; operations over listings and disputes; verification over identity documents; and IGI with the narrowest permissions of all.
+
+Wallet access is limited to the CEO and Finance. That is a deliberate narrowing, not an oversight.
+
+### **What is always true**
+
+- Nothing that moves money, changes a price or closes an account happens without a named person attached to it.
+
+- A submitted inspection result cannot be edited. A correction is a new entry, and both are kept.
+
+- A dispute cannot be closed silently. It ends with a reply to the person who raised it, or it passes to a named colleague.
+
+- **IGI records the measurement. The words the customer reads are written by Dahab and approved before they are sent.**
+
+- A published document version is never edited. Customers stay bound to the version they agreed to.
+
+- **Rates, deadlines, karats and piece types are settings, not code. Anything an operator may need to change is changed in the admin panel, not in a release.**
+
+### **Stopping things**
+
+Three levels, and each one applies to gold, diamond, and gold with diamond separately. Every level leaves alone anything with a locked price, because that is a promise already made to two people.
+
+| **Level** | **What it does** | **Who can** |
+| --- | --- | --- |
+| Stop new listings | New listings in that category are blocked. Everything already live stays exactly where it is | Founders or Operations |
+| Pause the category | Also hides live pieces nobody has asked to buy. They return on their own when it reopens. Requests for more time become cancellations | Founders only |
+| Stop everything | All three categories at once, plus withdrawals. Emergency only | Founders only |
+
+**The same three buttons exist for each category. Pausing diamonds does not touch gold, and sellers of gold are not told anything about it.**
+
+Whoever pauses a category writes the message, and it reaches only the sellers in that category. Telling everyone about a problem that affects a few makes it look larger than it is.
+
+# **8. Everything that can be changed without a release**
+
+None of these numbers are written into the code. They are set in the admin panel, take effect on the next transaction, and every change is logged with the value it replaced.
+
+### **Money**
+
+| **Setting** | **Now** | **Who can change it** |
+| --- | --- | --- |
+| Commission on gold | 20% of the making charge | Founders and CFO |
+| Commission on stones | 5% of the value added | Founders and CFO |
+| Minimum commission | 200 EGP | Founders and CFO |
+| VAT | 14%, on commission only | CFO |
+| Buyer deposit | 20% of the price | Founders and CFO |
+| Price correction, buy side | EGP per gram | Founders or CFO |
+| Price correction, sell side | EGP per gram | Founders or CFO |
+| First-sale full payout cap | 100,000 EGP | Founders and CFO |
+
+### **Time**
+
+| **Setting** | **Now** | **Who can change it** |
+| --- | --- | --- |
+| Seller replies to a request | 48 hours | Founders or CFO |
+| Seller reaches the branch | 12 working hours | Founders or CFO |
+| Buyer pays after inspection | 10 days | Founders or CFO |
+| Piece waits at the branch | 3 weeks | Founders or CFO |
+| Free relist window | 12 working hours | Founders or CFO |
+| Listed before a market maker can buy | 7 days | Founders or CFO |
+| Withdrawals pause after a payout-account change | 48 hours | Founders or CFO |
+
+### **Rules and thresholds**
+
+| **Setting** | **Now** | **Who can change it** |
+| --- | --- | --- |
+| Weight difference adjusted automatically | 1.5% either way | Founders or CFO |
+| Karat difference tolerance | None. Any difference cancels the sale | Founders or CFO |
+| Seller keeps of a forfeited deposit | 50% | Founders or CFO |
+| Cancellations before a seller is suspended | 2 | Founders or CFO |
+| Transactions before a pattern is flagged | 5 | Founders or CFO |
+| Compensation cap, per payment | 2,000 EGP | Founders or CFO |
+| Compensation cap, per day | 5,000 EGP | Founders or CFO |
+
+### **Lists**
+
+| **Setting** | **Now** | **Who can change it** |
+| --- | --- | --- |
+| Karats offered | 18, 21, 24 on. 20 and 22 available | Founders or Operations |
+| Piece types | Per category | Founders or Operations |
+| Inspection branches and their hours | Two branches | Founders or Operations |
+| Public holidays | Deadlines skip them | Founders or Operations |
+| Promo codes | Per code | Founders or CFO |
+| App text | Both languages | Founders or Operations |
+| What customers can see | Rapaport, averages, sharing, social proof | Founders |
+
+**Anything in these tables that turns out to need a developer is a design failure. An operator must be able to run the business without one.**
+
+# **9. Where it starts**
+
+Cairo and Giza only, because inspection and handover happen at an IGI branch and that is where the branches are. Someone elsewhere can still sign up and is told plainly that they are on a waiting list. That list becomes the expansion map, built from real demand rather than guesswork.
+
+A second inspection partner would be added as another branch. Nothing in the design assumes there is only one.
+
+### **What to watch in the first months**
+
+| **Number** | **Why it matters** |
+| --- | --- |
+| Sell-through rate | If pieces do not sell, making charges are too high and the guidance needs work |
+| Days from listing to money | The promise the app makes. Publish it only once it is honest |
+| Completion rate | How often a request becomes a sale. Falling means something in the middle is broken |
+| Listings sent back for changes | High means the photo guidance is failing, not that sellers are careless |
+| Weight differences by seller | A pattern in one direction is not guessing |
+| Cost of the market maker programme | Commission and spread given up. Judge it against sell-through, not in isolation |
+| Withdrawal review time | When manual review stops being possible, something has to replace it |
+
+# **10. What is not decided**
+
+Listed in full in the open questions document. The ones that shape the build:
+
+- Database design and the state machine for listings and orders.
+
+- **Whether IGI’s contract backs the guarantee the app promises.**
+
+- The legal wording for collection by proxy, deposit forfeiture, and liability once the storage period ends.
+
+- Whether the market maker programme extends beyond people you know.
+
+Dahab  ·  Page

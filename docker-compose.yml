@@ -1,0 +1,98 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dahab/app
+    container_name: dahab-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [dahab]
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: dahab-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks: [dahab]
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: dahab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dahab
+      POSTGRES_USER: dahab
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dahab -d dahab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [dahab]
+
+  redis:
+    image: redis:7-alpine
+    container_name: dahab-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [dahab]
+
+  horizon:
+    image: dahab/app
+    container_name: dahab-horizon
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: ["php", "artisan", "horizon"]
+    volumes:
+      - ./:/var/www/html
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks: [dahab]
+
+networks:
+  dahab:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
