@@ -24,7 +24,7 @@ class CustomerAuthController extends Controller
     #[OA\Post(
         path: '/customer/auth/login',
         operationId: 'customerAuthLogin',
-        summary: 'Sign a customer in with phone and password',
+        summary: 'Sign a customer in with phone and password.',
         tags: ['Customer Auth'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/LoginCustomerRequest')),
         responses: [
