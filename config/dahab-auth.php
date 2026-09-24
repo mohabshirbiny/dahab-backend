@@ -62,6 +62,12 @@ return [
             'per_ip_max' => 30,
             'per_ip_window' => 60 * 60,
         ],
+        'customer_register_documents' => [
+            'per_session_max' => 10,
+            'per_session_window' => 15 * 60,
+            'per_ip_max' => 30,
+            'per_ip_window' => 60 * 60,
+        ],
         'customer_login' => [
             'per_identity_max' => 5,
             'per_identity_window' => 15 * 60, // 15 min

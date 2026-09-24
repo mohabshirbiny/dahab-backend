@@ -84,6 +84,14 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        $registerDocuments = config('dahab-auth.rate_limits.customer_register_documents');
+        RateLimiter::for('auth.customer.register.documents', function (Request $request) use ($registerDocuments) {
+            return [
+                $this->limit($registerDocuments['per_session_max'], $registerDocuments['per_session_window'], 'cust-register-documents-ref:'.$this->identity($request, 'registration_ref')),
+                $this->limit($registerDocuments['per_ip_max'], $registerDocuments['per_ip_window'], 'cust-register-documents-ip:'.$request->ip()),
+            ];
+        });
+
         $login = config('dahab-auth.rate_limits.customer_login');
         RateLimiter::for('auth.customer.login', function (Request $request) use ($login) {
             return [

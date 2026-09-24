@@ -76,6 +76,11 @@ final class StartCustomerRegistrationAction
 
     private function newOtpCode(): string
     {
+
+        if(app()->environment('development', 'local')) {
+            return '123456';
+        }
+
         $length = (int) config('dahab-auth.otp.code_length');
 
         return str_pad((string) random_int(0, (10 ** $length) - 1), $length, '0', STR_PAD_LEFT);

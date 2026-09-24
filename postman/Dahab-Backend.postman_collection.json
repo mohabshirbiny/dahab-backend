@@ -90,6 +90,11 @@
             "key": "customer_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "challenge_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -1152,7 +1157,69 @@
                                         "login"
                                     ]
                                 },
-                                "description": "Phone + password from a trusted device. A device that has not been trusted yet is refused with 401 invalid_credentials (the OTP branch is not built). 429 account_locked after 5 failures per phone in 15 minutes."
+                                "description": "Phone + password. From a trusted device \u2192 200 with customer + session. From a new device \u2192 200 with data.otp_required=true, challenge_id, expires_at, resend_available_at, and an SMS code is sent (local env: 123456); finish with Customer Login \u2014 Verify OTP from the same X-Device-Id. Missing X-Device-Id \u2192 401 invalid_credentials. Pending/rejected/suspended \u2192 403. 429 account_locked after 5 failures per phone in 15 minutes."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const body = pm.response.json();",
+                                            "    if (body.data.otp_required) {",
+                                            "        pm.collectionVariables.set('challenge_id', body.data.challenge_id);",
+                                            "    } else {",
+                                            "        pm.collectionVariables.set('access_token', body.data.session.access_token);",
+                                            "        pm.collectionVariables.set('refresh_token', body.data.session.refresh_token);",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Login \u2014 Verify OTP",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"challenge_id\": \"{{challenge_id}}\",\n    \"code\": \"123456\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/otp/verify",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "otp",
+                                        "verify"
+                                    ]
+                                },
+                                "description": "Releases a sign-in held for a new device: correct SMS code \u2192 200 with customer + session, and this X-Device-Id becomes trusted (next login skips the code). 401 otp_invalid (wrong code, voided after 5 wrong attempts, or another device) / otp_expired. Must use the same X-Device-Id as the login."
                             },
                             "event": [
                                 {
@@ -1169,6 +1236,49 @@
                                     }
                                 }
                             ],
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Login \u2014 Resend OTP",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"challenge_id\": \"{{challenge_id}}\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/otp/resend",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "otp",
+                                        "resend"
+                                    ]
+                                },
+                                "description": "Sends a fresh SMS code on the pending challenge. 429 too_many_requests within the 60 s cooldown (Retry-After set) or after 5 codes on one challenge."
+                            },
                             "response": []
                         },
                         {

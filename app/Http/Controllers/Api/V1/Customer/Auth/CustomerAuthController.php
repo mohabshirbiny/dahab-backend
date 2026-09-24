@@ -25,16 +25,25 @@ class CustomerAuthController extends Controller
         path: '/customer/auth/login',
         operationId: 'customerAuthLogin',
         summary: 'Sign a customer in with phone and password.',
+        description: 'From a trusted device the session is issued at once. From a new device the session is held: the response is a `CustomerOtpChallenge` and an SMS code is sent; call /customer/auth/otp/verify from the same device to finish. A request without `X-Device-Id` is refused with invalid_credentials.',
         tags: ['Customer Auth'],
+        parameters: [
+            new OA\Parameter(name: 'X-Device-Id', in: 'header', required: true, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'X-Device-Platform', in: 'header', required: false, schema: new OA\Schema(type: 'string', default: 'web')),
+        ],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/LoginCustomerRequest')),
         responses: [
-            new OA\Response(response: 200, description: 'Session issued (known device)', content: new OA\JsonContent(properties: [
-                new OA\Property(property: 'data', properties: [
-                    new OA\Property(property: 'customer', ref: '#/components/schemas/CustomerProfile'),
-                    new OA\Property(property: 'session', ref: '#/components/schemas/Session'),
-                ], type: 'object'),
+            new OA\Response(response: 200, description: 'Session issued (trusted device) OR OTP challenge (new device)', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', oneOf: [
+                    new OA\Schema(properties: [
+                        new OA\Property(property: 'customer', ref: '#/components/schemas/CustomerProfile'),
+                        new OA\Property(property: 'session', ref: '#/components/schemas/Session'),
+                    ], type: 'object'),
+                    new OA\Schema(ref: '#/components/schemas/CustomerOtpChallenge'),
+                ]),
             ])),
-            new OA\Response(response: 401, description: 'invalid_credentials — same shape for unknown phone and wrong password', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 401, description: 'invalid_credentials — same shape for unknown phone, wrong password and a missing X-Device-Id', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 403, description: 'account_pending_verification, account_rejected or account_suspended', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 422, description: 'validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 429, description: 'account_locked (identity bucket) or too_many_requests (IP bucket); Retry-After is set', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
         ],
@@ -48,6 +57,10 @@ class CustomerAuthController extends Controller
             $request->validated('password'),
             $ctx,
         );
+
+        if (isset($result['challenge'])) {
+            return response()->json(['data' => CustomerLoginOtpController::challengePayload($result['challenge'])]);
+        }
 
         return response()->json([
             'data' => [

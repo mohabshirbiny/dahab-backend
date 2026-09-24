@@ -35,8 +35,12 @@ then **Dashboard → Identity** (list → view image → approve/reject) as `ver
 3. Run **Customer → Auth → Customer Register** (or **Customer Login**) once — its test script
    writes `access_token`/`refresh_token` into the collection variables automatically, so
    every other customer request (Bearer auth inherited from the collection) picks it up.
-   Register and Login send `X-Device-Id: {{device_id}}`: registering trusts that device, and
-   a login from a device that was never trusted is refused until the OTP flow exists.
+   Login sends `X-Device-Id: {{device_id}}`. From a device that was never trusted, Login
+   answers `otp_required` and saves `challenge_id`; finish with **Customer Login — Verify
+   OTP** (SMS code; `123456` in the local environment) from the same device, which trusts
+   the device and stores the tokens. **Customer Login — Resend OTP** sends a new code.
+   Registration does not trust a device and issues no session — a new customer must be
+   approved by staff (Dashboard → Identity → Review — Verify) before they can log in.
 4. **Customer Refresh** / **Staff Refresh** send the refresh token and store the new pair.
 
 ## Keeping it updated

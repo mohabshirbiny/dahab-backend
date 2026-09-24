@@ -183,20 +183,20 @@ description: "Task list for feature 001-auth-customer-staff"
 
 ### Tests
 
-- [ ] T081 [P] [US3] `tests/Feature/Auth/Customer/OtpChallengeIssuedTest.php` — login with a fresh `X-Device-Id` → 200 with `otp_required=true`, `challenge_id`, `expires_at`, `resend_available_at`; no session; `OtpCodeNotification` was queued exactly once. (skill: laravel-pest-testing)
-- [ ] T082 [P] [US3] `tests/Feature/Auth/Customer/OtpVerifySuccessTest.php` — with a valid challenge and correct code → session issued; the `X-Device-Id` is now in `customer_trusted_device`; a second login from the same device skips the challenge.
-- [ ] T083 [P] [US3] `tests/Feature/Auth/Customer/OtpVerifyFailureTest.php` — wrong code returns 401 `otp_invalid`; after 5 wrong codes the challenge is voided and the next verify returns `otp_invalid` even for the right code; `Carbon::setTestNow(+6 minutes)` returns `otp_expired`.
-- [ ] T084 [P] [US3] `tests/Feature/Auth/Customer/OtpResendRateLimitTest.php` — resending within 60 s → 429 `too_many_requests`; sixth send within an hour → 429.
+- [X] T081 [P] [US3] `tests/Feature/Auth/Customer/OtpChallengeIssuedTest.php` — login with a fresh `X-Device-Id` → 200 with `otp_required=true`, `challenge_id`, `expires_at`, `resend_available_at`; no session; `OtpCodeNotification` was queued exactly once. (skill: laravel-pest-testing) — *Tests T081–T084 live in `tests/Feature/Auth/Customer/NewDeviceOtpTest.php`.*
+- [X] T082 [P] [US3] `tests/Feature/Auth/Customer/OtpVerifySuccessTest.php` — with a valid challenge and correct code → session issued; the `X-Device-Id` is now in `customer_trusted_device`; a second login from the same device skips the challenge.
+- [X] T083 [P] [US3] `tests/Feature/Auth/Customer/OtpVerifyFailureTest.php` — wrong code returns 401 `otp_invalid`; after 5 wrong codes the challenge is voided and the next verify returns `otp_invalid` even for the right code; `Carbon::setTestNow(+6 minutes)` returns `otp_expired`.
+- [X] T084 [P] [US3] `tests/Feature/Auth/Customer/OtpResendRateLimitTest.php` — resending within 60 s → 429 `too_many_requests`; sixth send within an hour → 429.
 
 ### Implementation
 
-- [ ] T085 [US3] `app/Services/OtpChallengeService.php` — Redis hash keyed by `challenge_id`; fields `{customer_id, phone, code_hash, expires_at, verify_attempts, sends}`. Methods `issue()`, `verify()`, `resend()`. Uses `Cache::store('redis')` in prod / `Cache::store('array')` in tests (TTL honored via `Carbon::now()`). (skill: laravel-actions-services)
-- [ ] T086 [US3] `app/Notifications/Customer/OtpCodeNotification.php` — SMS channel (via a small `SmsChannel` shim in `app/Notifications/Channels/SmsChannel.php` that queues the message; in tests `Notification::fake()` captures it). (skill: laravel-queues-notifications)
-- [ ] T087 [US3] `app/Actions/Auth/Customer/VerifyOtpAction.php` — hashed compare, TTL check, attempts counter; on success upserts `customer_trusted_device` and calls `IssueTokenFamilyAction`; audit-logs the outcome. (skill: laravel-actions-services)
-- [ ] T088 [US3] Wire the `LoginCustomerAction` new-device branch to `OtpChallengeService::issue()` and dispatch the notification.
-- [ ] T089 [US3] `app/Http/Controllers/Api/V1/Auth/CustomerOtpController.php` — `verify`, `resend`. (skill: laravel-api-endpoints)
-- [ ] T090 [US3] Add routes `POST /auth/otp/verify` and `POST /auth/otp/resend` with the `auth.otp.verify` and `auth.otp.send` limiters.
-- [ ] T091 [US3] Run `./vendor/bin/pest --filter=Customer/Otp` — green. (skill: laravel-quality-gates)
+- [X] T085 [US3] `app/Services/OtpChallengeService.php` — Redis hash keyed by `challenge_id`; fields `{customer_id, phone, code_hash, expires_at, verify_attempts, sends}`. Methods `issue()`, `verify()`, `resend()`. Uses `Cache::store('redis')` in prod / `Cache::store('array')` in tests (TTL honored via `Carbon::now()`). (skill: laravel-actions-services) — *Done as `app/Services/CustomerLoginChallengeStore.php` (encrypted payload on the default cache store, like `CustomerRegistrationSessionStore`) + `app/Actions/Auth/Customer/CustomerLoginChallengeAction.php` (issue/resend).*
+- [X] T086 [US3] `app/Notifications/Customer/OtpCodeNotification.php` — SMS channel (via a small `SmsChannel` shim in `app/Notifications/Channels/SmsChannel.php` that queues the message; in tests `Notification::fake()` captures it). (skill: laravel-queues-notifications) — *Done as `app/Notifications/CustomerLoginOtpNotification.php` on the existing `sms` channel.*
+- [X] T087 [US3] `app/Actions/Auth/Customer/VerifyOtpAction.php` — hashed compare, TTL check, attempts counter; on success upserts `customer_trusted_device` and calls `IssueTokenFamilyAction`; audit-logs the outcome. (skill: laravel-actions-services) — *Done as `VerifyCustomerLoginOtpAction`; the challenge is also bound to the requesting device fingerprint.*
+- [X] T088 [US3] Wire the `LoginCustomerAction` new-device branch to `OtpChallengeService::issue()` and dispatch the notification.
+- [X] T089 [US3] `app/Http/Controllers/Api/V1/Auth/CustomerOtpController.php` — `verify`, `resend`. (skill: laravel-api-endpoints) — *Done as `app/Http/Controllers/Api/V1/Customer/Auth/CustomerLoginOtpController.php`.*
+- [X] T090 [US3] Add routes `POST /auth/otp/verify` and `POST /auth/otp/resend` with the `auth.otp.verify` and `auth.otp.send` limiters. — *Routes are `/customer/auth/otp/verify` (limiter `auth.otp.verify`) and `/customer/auth/otp/resend` (cooldown and hourly cap enforced per challenge in the action, since the request carries no phone).*
+- [X] T091 [US3] Run `./vendor/bin/pest --filter=Customer/Otp` — green. (skill: laravel-quality-gates)
 
 ---
 

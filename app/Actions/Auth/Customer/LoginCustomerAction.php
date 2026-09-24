@@ -5,13 +5,12 @@ namespace App\Actions\Auth\Customer;
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
-use App\Enums\AuthErrorCode;
-use App\Enums\CustomerStatus;
 use App\Exceptions\AuthApiException;
 use App\Models\Customer;
 use App\Models\CustomerTrustedDevice;
 use App\Support\RequestContext;
 use App\Support\SessionDto;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 final class LoginCustomerAction
@@ -19,10 +18,15 @@ final class LoginCustomerAction
     public function __construct(
         private readonly IssueTokenFamilyAction $issueTokens,
         private readonly RecordAuditLogAction $audit,
+        private readonly AssertCustomerCanSignIn $gate,
+        private readonly CustomerLoginChallengeAction $challenge,
     ) {}
 
     /**
-     * @return array{customer: Customer, session: SessionDto}|array{otp_required: true}
+     * Known device → a session. New device → a challenge; the session is
+     * issued by VerifyCustomerLoginOtpAction once the SMS code is confirmed.
+     *
+     * @return array{customer: Customer, session: SessionDto}|array{challenge: array{challenge_id: string, expires_at: Carbon, resend_available_at: Carbon}}
      */
     public function execute(string $phone, string $password, RequestContext $ctx): array
     {
@@ -52,11 +56,7 @@ final class LoginCustomerAction
             ]);
         }
 
-        // Lifecycle gate: only ACTIVE customers may open a session. A pending
-        // applicant must wait for staff approval; a rejected customer must
-        // re-register; a suspended customer gets the existing `account_suspended`
-        // shape with its stored reason.
-        $this->assertLifecycleAllowsLogin($customer);
+        $this->gate->execute($customer);
 
         if ($ctx->deviceFingerprintHash !== null && $this->deviceIsTrusted($customer->customer_id, $ctx->deviceFingerprintHash)) {
             CustomerTrustedDevice::query()
@@ -78,17 +78,24 @@ final class LoginCustomerAction
             return ['customer' => $customer, 'session' => $session];
         }
 
-        // MVP scope (US1): device unknown => refuse; US3 wires the OTP branch.
-        $this->audit->execute(
-            AuditEvent::CUSTOMER_SIGN_IN_FAILED,
-            'failure',
-            ['reason' => 'unknown_device', 'phone' => $phone],
-            'customer',
-            $customer->customer_id,
-            RequestContext::forCustomer(request(), $customer->customer_id, $ctx->deviceFingerprintHash),
-        );
+        // A request with no X-Device-Id cannot be trusted later, so there is
+        // nothing to challenge: refuse with the usual shape.
+        if ($ctx->deviceFingerprintHash === null) {
+            $this->audit->execute(
+                AuditEvent::CUSTOMER_SIGN_IN_FAILED,
+                'failure',
+                ['reason' => 'missing_device_id', 'phone' => $phone],
+                'customer',
+                $customer->customer_id,
+                RequestContext::forCustomer(request(), $customer->customer_id, null),
+            );
 
-        throw AuthApiException::invalidCredentials();
+            throw AuthApiException::invalidCredentials();
+        }
+
+        // New device (Part 1 §2.3): hold the session and send a code to the
+        // customer's phone; POST /customer/auth/otp/verify releases it.
+        return ['challenge' => $this->challenge->issue($customer, $ctx)];
     }
 
     private function deviceIsTrusted(string $customerId, string $fingerprintHash): bool
@@ -102,25 +109,5 @@ final class LoginCustomerAction
     private function refuse(): never
     {
         throw AuthApiException::invalidCredentials();
-    }
-
-    private function assertLifecycleAllowsLogin(Customer $customer): void
-    {
-        match ($customer->status) {
-            CustomerStatus::ACTIVE => null,
-            CustomerStatus::PENDING_VERIFICATION => throw new AuthApiException(
-                AuthErrorCode::ACCOUNT_PENDING_VERIFICATION,
-                403,
-                'This account is waiting for verification.',
-            ),
-            CustomerStatus::REJECTED => throw new AuthApiException(
-                AuthErrorCode::ACCOUNT_REJECTED,
-                403,
-                'This account was rejected during verification.',
-            ),
-            CustomerStatus::SUSPENDED => throw AuthApiException::accountSuspended(
-                $customer->suspended_reason?->value,
-            ),
-        };
     }
 }

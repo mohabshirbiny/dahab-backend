@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerAuthController;
+use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
@@ -40,7 +41,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->middleware('throttle:auth.customer.register.otp')->name('verify-email-otp');
 
                 Route::post('/documents', [CustomerRegistrationController::class, 'documents'])
-                    ->middleware('throttle:auth.customer.register')->name('documents');
+                    ->middleware('throttle:auth.customer.register.documents')->name('documents');
 
                 Route::post('/submit', [CustomerRegistrationController::class, 'submit'])
                     ->middleware('throttle:auth.customer.register')->name('submit');
@@ -54,6 +55,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::post('/login', [CustomerAuthController::class, 'login'])
                 ->middleware('throttle:auth.customer.login')->name('login');
+
+            // New-device sign-in (Part 1 §2.3): login answers `otp_required`
+            // with a challenge_id; these release it. Code guessing is capped
+            // per challenge by the limiter and by the challenge itself.
+            Route::prefix('otp')->name('otp.')->group(function () {
+                Route::post('/verify', [CustomerLoginOtpController::class, 'verify'])
+                    ->middleware('throttle:auth.otp.verify')->name('verify');
+                Route::post('/resend', [CustomerLoginOtpController::class, 'resend'])
+                    ->name('resend');
+            });
 
             Route::middleware('auth:customer')->group(function () {
                 Route::post('/refresh', [CustomerAuthController::class, 'refresh'])
