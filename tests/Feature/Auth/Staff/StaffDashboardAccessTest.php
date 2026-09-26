@@ -2,7 +2,7 @@
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Enums\AuditEvent;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Staff;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
@@ -25,7 +25,7 @@ function staffBearer(Staff $staff): string
 }
 
 it('authenticates a staff token on the dashboard and returns roles and permissions', function () {
-    $staff = Staff::factory()->role(StaffRole::CEO)->create(['email' => 'boss@dahab.test']);
+    $staff = Staff::factory()->role(SeedRole::CEO)->create(['email' => 'boss@dahab.test']);
 
     $this->withToken(staffBearer($staff))->getJson('/api/v1/dashboard/auth/me')
         ->assertOk()
@@ -33,12 +33,12 @@ it('authenticates a staff token on the dashboard and returns roles and permissio
         ->assertJsonPath('data.email', 'boss@dahab.test')
         ->assertJsonPath('data.role', 'ceo')
         ->assertJsonPath('data.roles', ['ceo'])
-        ->assertJsonPath('data.permissions', ['customer.suspend', 'customer.view', 'identity.review', 'identity.view'])
+        ->assertJsonPath('data.permissions', ['customer.suspend', 'customer.view', 'identity.review', 'identity.view', 'roles.manage', 'staff.view'])
         ->assertJsonMissingPath('data.password_hash');
 });
 
 it('lists no permissions for a role that has none', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
 
     $this->withToken(staffBearer($staff))->getJson('/api/v1/dashboard/auth/me')
         ->assertOk()
@@ -51,15 +51,15 @@ it('returns 401 without a token', function () {
     $this->getJson('/api/v1/dashboard/_probe')->assertStatus(401)->assertJsonPath('code', 'unauthenticated');
 });
 
-it('lets staff holding the permission through the gate', function (StaffRole $role) {
+it('lets staff holding the permission through the gate', function (SeedRole $role) {
     $staff = Staff::factory()->role($role)->create();
 
     $this->withToken(staffBearer($staff))->getJson('/api/v1/dashboard/_probe')
         ->assertOk()
         ->assertJson(['ok' => true]);
-})->with([StaffRole::CEO, StaffRole::COO]);
+})->with([SeedRole::CEO, SeedRole::COO]);
 
-it('refuses staff without the permission with 403 permission_denied and audits it', function (StaffRole $role) {
+it('refuses staff without the permission with 403 permission_denied and audits it', function (SeedRole $role) {
     $staff = Staff::factory()->role($role)->create();
 
     $this->withToken(staffBearer($staff))->getJson('/api/v1/dashboard/_probe')
@@ -70,10 +70,10 @@ it('refuses staff without the permission with 403 permission_denied and audits i
     expect($row->actor_staff_id)->toBe($staff->staff_id)
         ->and($row->actor_customer_id)->toBeNull()
         ->and($row->after_json['permission'])->toBe('customer.suspend');
-})->with([StaffRole::FINANCE, StaffRole::OPERATIONS, StaffRole::VERIFICATION, StaffRole::IGI_BRANCH]);
+})->with([SeedRole::FINANCE, SeedRole::OPERATIONS, SeedRole::VERIFICATION, SeedRole::IGI_BRANCH]);
 
 it('honours a permission granted directly and takes it away again', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     $token = staffBearer($staff);
 
     $this->withToken($token)->getJson('/api/v1/dashboard/_probe')->assertStatus(403);
@@ -90,7 +90,7 @@ it('honours a permission granted directly and takes it away again', function () 
 });
 
 it('honours a role change on the next request', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     $token = staffBearer($staff);
 
     $staff->syncRoles(['coo']);

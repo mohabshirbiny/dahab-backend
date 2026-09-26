@@ -178,9 +178,10 @@ CREATE TYPE ledger_event_kind AS ENUM (
   'reversal'               -- correcting reversal of a prior event
 );
 
-CREATE TYPE staff_role AS ENUM (
-  'ceo', 'coo', 'finance', 'operations', 'verification', 'igi_branch'
-);
+-- Changed by spec 002 (product-owner decision 2026-09-26): staff roles are
+-- Dashboard-managed data (Spatie `roles`), not a Postgres enum. The former
+-- `staff_role` enum is removed; the six original roles are only the initial
+-- seed. See docs/Technical Spec/dahab-dashboard-authorization.md §3.
 
 -- ---------------------------------------------------------------------
 -- 2. Reference data (operator-editable; the "data not code" rule)
@@ -330,25 +331,31 @@ SET search_path = dahab, public;
 -- 4. Staff (internal actors). Every privileged action references one.
 --    Roles map to the permission matrix in the admin-roles document.
 --    Founders (ceo/coo) are unrestricted and distinguished ONLY by the
---    audit log. Wallet access is limited to ceo + finance (enforced in
---    Part 4 via RLS + grants, not by a column here).
+--    audit log. Wallet access starts limited to ceo + finance as an
+--    application permission (spec 002: no per-staff-role DB grants).
 -- ---------------------------------------------------------------------
+-- Changed by spec 002: a staff member's roles live in Spatie's
+-- model_has_roles; `role` and `igi_has_branch` are removed. Founder status
+-- is a flag no endpoint writes; exactly one row is the non-login system
+-- actor used by scheduled jobs.
 CREATE TABLE staff (
   staff_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  role          staff_role NOT NULL,
   full_name     TEXT NOT NULL,
   email         CITEXT UNIQUE NOT NULL,
   phone         TEXT,
   is_active     BOOLEAN NOT NULL DEFAULT TRUE,
-  -- The IGI branch account is a single shared login by agreement; it is
-  -- tied to a branch so the log records the branch, not an individual.
+  -- Optional for anyone. Branch-scoped permissions only authorize records
+  -- of this branch (e.g. the shared IGI branch login, which logs the branch).
   branch_id     SMALLINT REFERENCES branch(branch_id),
+  -- Founders (seeded: ceo@ and coo@). Never changeable through the API.
+  is_founder    BOOLEAN NOT NULL DEFAULT FALSE,
+  -- The single "System" actor for scheduled jobs; cannot sign in.
+  is_system     BOOLEAN NOT NULL DEFAULT FALSE,
   created_by    UUID REFERENCES staff(staff_id),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT igi_has_branch CHECK (
-    (role = 'igi_branch') = (branch_id IS NOT NULL)
-  )
+  CONSTRAINT staff_system_not_founder CHECK (NOT (is_system AND is_founder))
 );
+CREATE UNIQUE INDEX one_system_staff ON staff ((true)) WHERE is_system;
 
 -- Now that staff exists, wire the settings audit FKs.
 ALTER TABLE setting
@@ -1408,10 +1415,10 @@ CREATE TRIGGER trg_order_transition
 
 -- ---------------------------------------------------------------------
 -- 19. Row-Level Security (customer data isolation)
---     A customer can see only their own rows. Staff access is granted by
---     role at the application's connection role level. Wallet visibility
---     is limited to ceo + finance by granting SELECT on wallet views only
---     to those roles (see grants file). RLS shown for customer tables.
+--     A customer can see only their own rows (defense in depth; kept by
+--     spec 002 / Constitution v2 Principle II). Staff access is decided by
+--     application permissions (Spatie), not per-role database grants —
+--     wallet visibility included. RLS shown for customer tables.
 -- ---------------------------------------------------------------------
 ALTER TABLE customer            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listing             ENABLE ROW LEVEL SECURITY;
@@ -1422,8 +1429,9 @@ ALTER TABLE withdrawal          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE identity_document   ENABLE ROW LEVEL SECURITY;
 
 -- The app sets: SET LOCAL app.current_customer_id = '<uuid>' per request
--- for customer-facing connections. Staff connections use a separate role
--- that bypasses these policies (see grants), with their own guards.
+-- for customer-facing connections. How staff requests bypass these
+-- policies is defined by the customer-RLS activation feature (next after
+-- spec 002); it is not a per-staff-role grant.
 CREATE POLICY cust_self_customer ON customer
   USING (customer_id = current_setting('app.current_customer_id', true)::uuid);
 

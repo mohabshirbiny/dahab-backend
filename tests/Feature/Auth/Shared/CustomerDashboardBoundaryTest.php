@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Staff;
@@ -43,7 +43,7 @@ it('never grants a customer a dashboard permission through the gate', function (
 });
 
 it('does not reuse a staff identity for a customer with the same id', function () {
-    $staff = Staff::factory()->role(StaffRole::CEO)->create();
+    $staff = Staff::factory()->role(SeedRole::CEO)->create();
     $customer = Customer::factory()->create(['customer_id' => $staff->staff_id]);
     $token = app(IssueTokenFamilyAction::class)->forCustomer($customer)->accessToken;
 

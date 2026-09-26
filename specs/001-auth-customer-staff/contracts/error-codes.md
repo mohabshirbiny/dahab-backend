@@ -8,7 +8,7 @@ Canonical list of `code` values returned by the auth surface. The set is exhaust
 | `invalid_credentials` | 401 | Wrong phone/email/password OR the target account is disabled (staff.is_active=false) | Identical shape for "wrong password" and "disabled account" to prevent enumeration |
 | `unauthenticated` | 401 | Missing/expired/unknown token, OR a token of the other principal (a staff token on the Customer API, a customer token on the Dashboard API) | The guard (`auth:customer` / `auth:staff`) only resolves its own principal's tokens |
 | `account_suspended` | 403 | Sign-in succeeded but action requires `trade_allowed` | Response includes `suspended_reason` on the customer's own `/customer/auth/me`, but never on refused actions |
-| `account_frozen` | 403 | Staff sign-in refused due to open `account_freeze` row | |
+| `account_frozen` | 403 | Staff sign-in refused due to open `account_freeze` row; since spec 002 also any dashboard request from a staff member frozen after sign-in (`staff.standing`) | |
 | `account_locked` | 429 | The identity bucket of a login limiter (customer phone, staff email) is exhausted | `Retry-After` header set. Chosen by the limiter that tripped, not by the URL |
 | `permission_denied` | 403 | Staff request refused by permission matrix | |
 | `forbidden` | 403 | The token belongs to the right principal but lacks the ability the endpoint requires (a refresh token on an access endpoint, an access token on a refresh endpoint). Also the generic code for any other 403 that is not a permission denial | Body never says which ability is missing |
@@ -16,7 +16,7 @@ Canonical list of `code` values returned by the auth surface. The set is exhaust
 | `otp_invalid` | 401 | Wrong OTP code | Attempts counter increments; challenge voided at 5 wrong |
 | `otp_expired` | 401 | OTP TTL has elapsed | |
 | `mfa_required` | 200 (success envelope with `mfa_required=true`) | Staff sign-in pending TOTP | |
-| `mfa_enrollment_required` | 200 (success envelope with `mfa_enrollment_required=true`) | Founder/finance role has no `staff_mfa` row yet | |
+| `mfa_enrollment_required` | 200 (success envelope with `mfa_enrollment_required=true`) | A founder, or a staff member holding a role flagged `requires_mfa`, has no `staff_mfa` row yet (spec 002) | |
 | `mfa_invalid` | 401 | Wrong TOTP code | |
 | `token_invalid` | 401 | Password-reset or email-verification token unknown/consumed | |
 | `token_expired` | 401 | Password-reset or email-verification token past `expires_at` | |
@@ -24,3 +24,5 @@ Canonical list of `code` values returned by the auth surface. The set is exhaust
 | `too_many_requests` | 429 | Any other limiter tripped: customer registration, the per-IP bucket of a login limiter, OTP, password reset, refresh | `Retry-After` header set |
 | `not_found` | 404 | Dashboard resource lookups (customer id) | |
 | `server_error` | 500 | Unhandled exception; body omits detail unless `app.debug` |
+
+> **Spec 002 additions:** `verification_required`, `escalation_denied`, `wrong_branch`, `last_role_manager`, `role_in_use`, `reason_required`, and new triggers for `account_suspended` / `account_frozen` — see [`specs/002-dynamic-staff-authorization/contracts/error-codes.md`](../../002-dynamic-staff-authorization/contracts/error-codes.md). Customer sign-in no longer returns `account_pending_verification` / `account_rejected` / `account_suspended`: verification does not gate sign-in (spec 002 US3).

@@ -9,6 +9,9 @@ use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
+use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
+use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
+use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -101,11 +104,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::middleware('auth:staff')->group(function () {
                 Route::post('/refresh', [StaffAuthController::class, 'refresh'])
-                    ->middleware(['abilities:staff:refresh', 'throttle:auth.refresh'])
+                    ->middleware(['abilities:staff:refresh', 'staff.standing', 'throttle:auth.refresh'])
                     ->name('refresh');
 
                 Route::middleware('abilities:staff:access')->group(function () {
-                    Route::get('/me', [StaffAuthController::class, 'me'])->name('me');
+                    Route::get('/me', [StaffAuthController::class, 'me'])->middleware('staff.standing')->name('me');
+                    // No staff.standing: a frozen account must still be able to sign out.
                     Route::post('/logout', [StaffAuthController::class, 'logout'])->name('logout');
                     Route::post('/logout-all', [StaffAuthController::class, 'logoutAll'])->name('logout-all');
                 });
@@ -113,7 +117,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         // Dashboard "Users and Verification" page.
-        Route::middleware(['auth:staff', 'abilities:staff:access'])
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
             ->prefix('customers')->name('customers.')->group(function () {
                 Route::get('/', [DashboardCustomerController::class, 'index'])
                     ->middleware('staff.permission:customer.view')->name('index');
@@ -124,7 +128,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
 
         // Identity review.
-        Route::middleware(['auth:staff', 'abilities:staff:access'])
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
             ->prefix('identity-documents')->name('identity-documents.')->group(function () {
                 Route::get('/', [DashboardIdentityDocumentController::class, 'index'])
                     ->middleware('staff.permission:identity.view')->name('index');
@@ -140,6 +144,35 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/{document}/review', [DashboardIdentityDocumentController::class, 'review'])
                     ->whereUuid('document')
                     ->middleware('staff.permission:identity.review')->name('review');
+            });
+
+        // Access control: roles and their permissions (spec 002).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:roles.manage'])
+            ->group(function () {
+                Route::get('/permissions', [DashboardPermissionController::class, 'index'])->name('permissions.index');
+
+                Route::prefix('roles')->name('roles.')->group(function () {
+                    Route::get('/', [DashboardRoleController::class, 'index'])->name('index');
+                    Route::post('/', [DashboardRoleController::class, 'store'])->name('store');
+                    Route::get('/{role}', [DashboardRoleController::class, 'show'])->where('role', '[a-z][a-z0-9_]{2,49}')->name('show');
+                    Route::patch('/{role}', [DashboardRoleController::class, 'update'])->where('role', '[a-z][a-z0-9_]{2,49}')->name('update');
+                    Route::delete('/{role}', [DashboardRoleController::class, 'destroy'])->where('role', '[a-z][a-z0-9_]{2,49}')->name('destroy');
+                });
+            });
+
+        // Access control: staff members and their roles (spec 002).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('staff')->name('staff.')->group(function () {
+                Route::get('/', [DashboardStaffController::class, 'index'])
+                    ->middleware('staff.permission:staff.view')->name('index');
+
+                Route::get('/{staff}', [DashboardStaffController::class, 'show'])
+                    ->whereUuid('staff')
+                    ->middleware('staff.permission:staff.view')->name('show');
+
+                Route::put('/{staff}/roles', [DashboardStaffController::class, 'updateRoles'])
+                    ->whereUuid('staff')
+                    ->middleware('staff.permission:roles.manage')->name('roles.update');
             });
     });
 });

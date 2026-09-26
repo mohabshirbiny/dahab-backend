@@ -33,7 +33,9 @@ final class LoginStaffAction
     {
         $staff = Staff::query()->where('email', $email)->with(['password', 'mfa'])->first();
 
-        if ($staff === null || $staff->password === null) {
+        // The system actor (spec 002 FR-061) has no password row, but refuse it
+        // explicitly too: it must look exactly like an unknown account.
+        if ($staff === null || $staff->is_system || $staff->password === null) {
             // No actor to attribute to: the audit action falls back to the app log.
             $this->fail($ctx, $email, 'unknown_account');
         }
@@ -71,8 +73,9 @@ final class LoginStaffAction
     }
 
     /**
-     * MFA is mandatory for the founder/finance roles; any other role that has
-     * enrolled voluntarily is challenged too. A password reset that flags
+     * MFA is mandatory for founders and for anyone holding a role flagged
+     * `requires_mfa` (spec 002 FR-040); anyone who enrolled voluntarily is
+     * challenged too. A password reset that flags
      * `force_reenroll_mfa_at` invalidates an enrollment older than the flag.
      *
      * @return 'enroll'|'challenge'|null
@@ -87,7 +90,7 @@ final class LoginStaffAction
             return 'challenge';
         }
 
-        return $staff->role->isMfaRequired() ? 'enroll' : null;
+        return config('dahab-auth.mfa_enforced') && $staff->requiresMfa() ? 'enroll' : null;
     }
 
     private function beginChallenge(Staff $staff): array

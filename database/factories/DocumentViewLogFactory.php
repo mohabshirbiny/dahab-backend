@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\DocumentViewLog;
 use App\Models\IdentityDocument;
 use App\Models\Staff;
@@ -19,7 +19,7 @@ class DocumentViewLogFactory extends Factory
     {
         return [
             'document_id' => IdentityDocument::factory(),
-            'viewed_by' => Staff::factory()->role(StaffRole::VERIFICATION),
+            'viewed_by' => Staff::factory()->role(SeedRole::VERIFICATION),
             'viewed_at' => now(),
             'ip_address' => '127.0.0.1',
         ];

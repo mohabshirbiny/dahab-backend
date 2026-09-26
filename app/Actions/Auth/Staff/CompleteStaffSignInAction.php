@@ -36,7 +36,7 @@ final class CompleteStaffSignInAction
         $this->audit->execute(
             AuditEvent::STAFF_SIGN_IN,
             'success',
-            ['via' => $via, 'role' => $staff->role->value],
+            ['via' => $via, 'roles' => $staff->getRoleNames()->sort()->values()->all()],
             'staff',
             $staff->staff_id,
             $ctx->withStaff($staff->staff_id),

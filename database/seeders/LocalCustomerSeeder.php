@@ -7,7 +7,7 @@ use App\Enums\CustomerType;
 use App\Enums\Governorate;
 use App\Enums\IdentityDocumentKind;
 use App\Enums\IdentityDocumentStatus;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Enums\SuspendedReason;
 use App\Models\Customer;
 use App\Models\IdentityDocument;
@@ -46,7 +46,7 @@ class LocalCustomerSeeder extends Seeder
             return;
         }
 
-        $reviewer = Staff::query()->where('role', StaffRole::VERIFICATION->value)->first();
+        $reviewer = Staff::query()->where('email', SeedRole::VERIFICATION->value.'@dahab.test')->first();
 
         foreach (self::PEOPLE as $i => $person) {
             $status = $person['status'];

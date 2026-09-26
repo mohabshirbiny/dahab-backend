@@ -44,4 +44,37 @@ class DomainApiException extends RuntimeException
     {
         return new self('document_image_deleted', 410, 'The image of this document has been deleted.');
     }
+
+    /** Granting/removing a permission you do not hold, or editing your own role or assignment (spec 002 FR-025/FR-026). */
+    public static function escalationDenied(): self
+    {
+        return new self('escalation_denied', 403, 'You cannot grant or remove access you do not hold, or change your own access.');
+    }
+
+    /** The change would leave no active staff member able to manage roles (spec 002 FR-023). */
+    public static function lastRoleManager(): self
+    {
+        return new self('last_role_manager', 409, 'At least one active staff member must keep the permission to manage roles.');
+    }
+
+    public static function roleInUse(int $count): self
+    {
+        return new self('role_in_use', 409, "This role is held by {$count} staff member(s). Reassign them before deleting it.");
+    }
+
+    public static function reasonRequired(): self
+    {
+        return new self('reason_required', 422, 'A reason is required for this change.');
+    }
+
+    public static function wrongBranch(): self
+    {
+        return new self('wrong_branch', 403, 'This record belongs to another branch.');
+    }
+
+    /** An unverified (pending or rejected) customer calling a gated action (spec 002 FR-031). */
+    public static function verificationRequired(): self
+    {
+        return new self('verification_required', 403, 'Verify your identity before doing this.');
+    }
 }

@@ -297,10 +297,10 @@ CREATE TRIGGER trg_order_transition
 
 -- ---------------------------------------------------------------------
 -- 19. Row-Level Security (customer data isolation)
---     A customer can see only their own rows. Staff access is granted by
---     role at the application's connection role level. Wallet visibility
---     is limited to ceo + finance by granting SELECT on wallet views only
---     to those roles (see grants file). RLS shown for customer tables.
+--     A customer can see only their own rows (defense in depth; kept by
+--     spec 002 / Constitution v2 Principle II). Staff access is decided by
+--     application permissions (Spatie), not per-role database grants —
+--     wallet visibility included. RLS shown for customer tables.
 -- ---------------------------------------------------------------------
 ALTER TABLE customer            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listing             ENABLE ROW LEVEL SECURITY;
@@ -311,8 +311,9 @@ ALTER TABLE withdrawal          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE identity_document   ENABLE ROW LEVEL SECURITY;
 
 -- The app sets: SET LOCAL app.current_customer_id = '<uuid>' per request
--- for customer-facing connections. Staff connections use a separate role
--- that bypasses these policies (see grants), with their own guards.
+-- for customer-facing connections. How staff requests bypass these
+-- policies is defined by the customer-RLS activation feature (next after
+-- spec 002); it is not a per-staff-role grant.
 CREATE POLICY cust_self_customer ON customer
   USING (customer_id = current_setting('app.current_customer_id', true)::uuid);
 
@@ -345,10 +346,12 @@ CREATE POLICY cust_self_document ON identity_document
 -- Dashboard roles/permissions: spatie/laravel-permission's standard tables
 -- (guard_name = 'staff'). Replaces the earlier custom staff_permission
 -- table. Created by the package migration; the only customisation is that
--- model_id is UUID because staff.staff_id is UUID. Roles mirror staff_role;
--- permissions and the role -> permission map are seeded by
--- DashboardRolesAndPermissionsSeeder (adding one is an enum + seeder change,
--- never a runtime write). See docs/Technical Spec/dahab-dashboard-authorization.md.
+-- model_id is UUID because staff.staff_id is UUID.
+-- Changed by spec 002: roles, role -> permission and staff -> role are
+-- Dashboard-managed data. Permission codes are the code-defined catalogue
+-- (App\Enums\StaffPermission), synced additively by
+-- DashboardRolesAndPermissionsSeeder. See
+-- docs/Technical Spec/dahab-dashboard-authorization.md.
 -- =====================================================================
 
 CREATE TABLE permissions (
@@ -361,12 +364,17 @@ CREATE TABLE permissions (
 );
 
 CREATE TABLE roles (
-  id          BIGSERIAL PRIMARY KEY,
-  name        VARCHAR(255) NOT NULL,
-  guard_name  VARCHAR(255) NOT NULL,
-  created_at  TIMESTAMP(0),
-  updated_at  TIMESTAMP(0),
-  UNIQUE (name, guard_name)
+  id            BIGSERIAL PRIMARY KEY,
+  name          VARCHAR(255) NOT NULL,          -- machine name, immutable
+  guard_name    VARCHAR(255) NOT NULL,
+  display_name  VARCHAR(100) NOT NULL,          -- spec 002
+  description   TEXT,                           -- spec 002
+  requires_mfa  BOOLEAN NOT NULL DEFAULT FALSE, -- spec 002
+  created_at    TIMESTAMP(0),
+  updated_at    TIMESTAMP(0),
+  UNIQUE (name, guard_name),
+  CONSTRAINT roles_name_format CHECK (name ~ '^[a-z][a-z0-9_]{2,49}$'),
+  CONSTRAINT roles_guard_staff CHECK (guard_name = 'staff')
 );
 
 CREATE TABLE model_has_permissions (

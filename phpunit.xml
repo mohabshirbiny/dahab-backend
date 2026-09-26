@@ -36,7 +36,7 @@
         <env name="DB_SCHEMA" value="public"/>
         <env name="DB_URL" value=""/>
         <env name="DAHAB_AUTH_PASSWORD_CHECK_PWNED" value="false"/>
-        <env name="DAHAB_AUTH_MFA_REQUIRED_ROLES" value="ceo,coo,finance"/>
+        <env name="DAHAB_AUTH_MFA_ENFORCED" value="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

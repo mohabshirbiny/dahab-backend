@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\Staff;
 use App\Models\StaffPassword;
 use Illuminate\Database\Seeder;
@@ -27,17 +27,19 @@ class LocalStaffSeeder extends Seeder
 
         $password = (string) config('dahab-auth.local_seed_password');
 
-        foreach (StaffRole::cases() as $role) {
+        foreach (SeedRole::cases() as $role) {
             $staff = Staff::query()->updateOrCreate(
                 ['email' => "{$role->value}@dahab.test"],
                 [
-                    'role' => $role,
                     'full_name' => 'Local '.strtoupper($role->value),
                     'is_active' => true,
-                    // staff.igi_has_branch: an IGI account is always branch-bound.
-                    'branch_id' => $role === StaffRole::IGI_BRANCH ? 1 : null,
+                    // The local IGI account is bound to branch 1.
+                    'branch_id' => $role === SeedRole::IGI_BRANCH ? 1 : null,
                 ],
             );
+
+            // Founder status is never mass-assignable (spec 002 FR-043).
+            $staff->forceFill(['is_founder' => in_array($role, [SeedRole::CEO, SeedRole::COO], true)])->save();
 
             $staff->syncRoles([$role->value]);
 

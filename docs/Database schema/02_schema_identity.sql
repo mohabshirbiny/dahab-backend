@@ -8,25 +8,31 @@ SET search_path = dahab, public;
 -- 4. Staff (internal actors). Every privileged action references one.
 --    Roles map to the permission matrix in the admin-roles document.
 --    Founders (ceo/coo) are unrestricted and distinguished ONLY by the
---    audit log. Wallet access is limited to ceo + finance (enforced in
---    Part 4 via RLS + grants, not by a column here).
+--    audit log. Wallet access starts limited to ceo + finance as an
+--    application permission (spec 002: no per-staff-role DB grants).
 -- ---------------------------------------------------------------------
+-- Changed by spec 002: a staff member's roles live in Spatie's
+-- model_has_roles; `role` and `igi_has_branch` are removed. Founder status
+-- is a flag no endpoint writes; exactly one row is the non-login system
+-- actor used by scheduled jobs.
 CREATE TABLE staff (
   staff_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  role          staff_role NOT NULL,
   full_name     TEXT NOT NULL,
   email         CITEXT UNIQUE NOT NULL,
   phone         TEXT,
   is_active     BOOLEAN NOT NULL DEFAULT TRUE,
-  -- The IGI branch account is a single shared login by agreement; it is
-  -- tied to a branch so the log records the branch, not an individual.
+  -- Optional for anyone. Branch-scoped permissions only authorize records
+  -- of this branch (e.g. the shared IGI branch login, which logs the branch).
   branch_id     SMALLINT REFERENCES branch(branch_id),
+  -- Founders (seeded: ceo@ and coo@). Never changeable through the API.
+  is_founder    BOOLEAN NOT NULL DEFAULT FALSE,
+  -- The single "System" actor for scheduled jobs; cannot sign in.
+  is_system     BOOLEAN NOT NULL DEFAULT FALSE,
   created_by    UUID REFERENCES staff(staff_id),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT igi_has_branch CHECK (
-    (role = 'igi_branch') = (branch_id IS NOT NULL)
-  )
+  CONSTRAINT staff_system_not_founder CHECK (NOT (is_system AND is_founder))
 );
+CREATE UNIQUE INDEX one_system_staff ON staff ((true)) WHERE is_system;
 
 -- Now that staff exists, wire the settings audit FKs.
 ALTER TABLE setting
