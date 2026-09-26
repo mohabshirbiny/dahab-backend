@@ -7,6 +7,7 @@ use App\Enums\AuditEvent;
 use App\Models\Staff;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -35,6 +36,14 @@ final class DatabaseActorEvents
 
     public static function register(): void
     {
+        // Session settings live on one connection: a new or re-made connection
+        // gets the current frame, so a reconnect never drops the actor.
+        Event::listen(ConnectionEstablished::class, function (ConnectionEstablished $event) {
+            if ($event->connection->getName() === DB::getDefaultConnection()) {
+                DatabaseActor::reapply($event->connection);
+            }
+        });
+
         Event::listen(JobProcessing::class, function (JobProcessing $event) {
             $id = self::jobKey($event->job);
             if (isset(self::$open[$id])) {

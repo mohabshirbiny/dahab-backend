@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Closure;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -73,6 +74,17 @@ final class DatabaseActor
         }
     }
 
+    /**
+     * Re-publish the current frame on a newly opened connection. Session
+     * settings live on one connection, so after a reconnect (for example
+     * `migrate:fresh` purging its connection before seeding) the new one would
+     * otherwise run with no actor.
+     */
+    public static function reapply(?Connection $connection = null): void
+    {
+        self::apply(self::current(), $connection);
+    }
+
     public static function scope(): string
     {
         return self::current()['scope'];
@@ -104,13 +116,15 @@ final class DatabaseActor
     }
 
     /** @param  array{scope: string, customer: string, staff: string}  $frame */
-    private static function apply(array $frame): void
+    private static function apply(array $frame, ?Connection $connection = null): void
     {
-        if (DB::connection()->getDriverName() !== 'pgsql') {
+        $connection ??= DB::connection();
+
+        if ($connection->getDriverName() !== 'pgsql') {
             return;
         }
 
-        DB::select(
+        $connection->select(
             "SELECT set_config('app.rls_scope', ?, false), set_config('app.current_customer_id', ?, false), set_config('app.current_staff_id', ?, false)",
             [$frame['scope'], $frame['customer'], $frame['staff']],
         );
