@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\StaffRole;
 use Database\Factories\StaffFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -39,8 +39,12 @@ class Staff extends Authenticatable implements HasApiTokensContract
 
     public const UPDATED_AT = null;
 
+    /**
+     * `is_founder` and `is_system` are deliberately NOT fillable: founder
+     * status is never changeable through the API (spec 002 FR-043) and the
+     * system actor is created only by migration (FR-060).
+     */
     protected $fillable = [
-        'role',
         'full_name',
         'email',
         'phone',
@@ -52,8 +56,9 @@ class Staff extends Authenticatable implements HasApiTokensContract
     protected function casts(): array
     {
         return [
-            'role' => StaffRole::class,
             'is_active' => 'boolean',
+            'is_founder' => 'boolean',
+            'is_system' => 'boolean',
             'created_at' => 'datetime',
         ];
     }
@@ -82,5 +87,23 @@ class Staff extends Authenticatable implements HasApiTokensContract
     {
         return $this->hasOne(AccountFreeze::class, 'frozen_staff_id', 'staff_id')
             ->whereNull('unfrozen_at');
+    }
+
+    /** Every staff member except the system actor (spec 002 FR-061). */
+    public function scopeManageable(Builder $query): Builder
+    {
+        return $query->where('is_system', false);
+    }
+
+    /** Founders always; others when any of their roles requires MFA (spec 002 FR-040). */
+    public function requiresMfa(): bool
+    {
+        return $this->is_founder || $this->roles()->where('requires_mfa', true)->exists();
+    }
+
+    /** @return list<string> effective permission codes, sorted (union over roles, FR-022) */
+    public function effectivePermissionCodes(): array
+    {
+        return $this->getAllPermissions()->pluck('name')->sort()->values()->all();
     }
 }

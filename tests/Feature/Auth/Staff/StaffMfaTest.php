@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\AuditEvent;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AccountFreeze;
 use App\Models\AuditLog;
 use App\Models\Staff;
@@ -32,12 +32,12 @@ function wrongTotp(string $secret = MFA_SECRET): string
         && ! app(Google2FA::class)->verifyKey($secret, $c));
 }
 
-function enrolledStaff(StaffRole $role = StaffRole::CEO): Staff
+function enrolledStaff(SeedRole $role = SeedRole::CEO): Staff
 {
     return Staff::factory()->role($role)->withPassword(MFA_PASSWORD)->withMfa(MFA_SECRET, MFA_RECOVERY)->create();
 }
 
-function unenrolledStaff(StaffRole $role = StaffRole::CEO): Staff
+function unenrolledStaff(SeedRole $role = SeedRole::CEO): Staff
 {
     return Staff::factory()->role($role)->withPassword(MFA_PASSWORD)->create();
 }
@@ -61,7 +61,7 @@ function otpSecretFrom(string $otpauthUrl): string
 
 // --- login gate ------------------------------------------------------------
 
-it('holds back the session and starts enrollment for ceo, coo and finance without a TOTP', function (StaffRole $role) {
+it('holds back the session and starts enrollment for ceo, coo and finance without a TOTP', function (SeedRole $role) {
     $staff = unenrolledStaff($role);
 
     $data = beginEnrollment($this, $staff);
@@ -72,13 +72,13 @@ it('holds back the session and starts enrollment for ceo, coo and finance withou
         ->and($data)->not->toHaveKey('session');
     expect(DB::table('personal_access_tokens')->count())->toBe(0)
         ->and(StaffMfa::query()->count())->toBe(0);
-})->with([StaffRole::CEO, StaffRole::COO, StaffRole::FINANCE]);
+})->with([SeedRole::CEO, SeedRole::COO, SeedRole::FINANCE]);
 
-it('does not demand MFA from a role that does not require it and has not enrolled', function (StaffRole $role) {
+it('does not demand MFA from a role that does not require it and has not enrolled', function (SeedRole $role) {
     $staff = unenrolledStaff($role);
 
     mfaLogin($this, $staff)->assertOk()->assertJsonStructure(['data' => ['session' => ['access_token']]]);
-})->with([StaffRole::OPERATIONS, StaffRole::VERIFICATION, StaffRole::IGI_BRANCH]);
+})->with([SeedRole::OPERATIONS, SeedRole::VERIFICATION, SeedRole::IGI_BRANCH]);
 
 it('challenges an enrolled account instead of issuing a session', function () {
     $staff = enrolledStaff();
@@ -93,7 +93,7 @@ it('challenges an enrolled account instead of issuing a session', function () {
 });
 
 it('challenges a role that does not require MFA once the member enrolled voluntarily', function () {
-    mfaLogin($this, enrolledStaff(StaffRole::OPERATIONS))->assertOk()->assertJsonPath('data.mfa_required', true);
+    mfaLogin($this, enrolledStaff(SeedRole::OPERATIONS))->assertOk()->assertJsonPath('data.mfa_required', true);
 });
 
 it('demands re-enrollment when a reset flagged force_reenroll_mfa_at after the last enrollment', function () {
@@ -257,7 +257,7 @@ it('refuses an unknown or expired session_ref', function () {
 
 it('keeps enrollment and challenge sessions apart', function () {
     $enrollment = beginEnrollment($this, unenrolledStaff());
-    $challenge = mfaLogin($this, enrolledStaff(StaffRole::FINANCE))->json('data.session_ref');
+    $challenge = mfaLogin($this, enrolledStaff(SeedRole::FINANCE))->json('data.session_ref');
 
     $this->postJson('/api/v1/dashboard/auth/mfa/verify', ['session_ref' => $enrollment['session_ref'], 'code' => totp(otpSecretFrom($enrollment['otpauth_url']))])
         ->assertStatus(401);
@@ -272,10 +272,10 @@ it('refuses to finish a sign-in once the account was disabled or frozen after th
     if ($how === 'disabled') {
         $staff->update(['is_active' => false]);
     } else {
-        Staff::factory()->role(StaffRole::CEO)->frozen()->create(); // unrelated freeze must not matter
+        Staff::factory()->role(SeedRole::CEO)->frozen()->create(); // unrelated freeze must not matter
         AccountFreeze::query()->create([
             'frozen_staff_id' => $staff->staff_id,
-            'frozen_by' => Staff::factory()->role(StaffRole::COO)->create()->staff_id,
+            'frozen_by' => Staff::factory()->role(SeedRole::COO)->create()->staff_id,
             'frozen_at' => now(),
         ]);
     }
@@ -341,7 +341,7 @@ it('does not let a customer token or a staff token skip the MFA step by calling 
 });
 
 it('keeps the MFA limiter separate from the staff login limiter', function () {
-    $staff = unenrolledStaff(StaffRole::OPERATIONS);
+    $staff = unenrolledStaff(SeedRole::OPERATIONS);
     $max = config('dahab-auth.rate_limits.staff_mfa.per_session_max');
     $ref = (string) Str::uuid();
 

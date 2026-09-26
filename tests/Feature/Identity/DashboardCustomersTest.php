@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\Customer;
 use App\Models\IdentityDocument;
 use App\Models\Staff;
@@ -16,7 +16,7 @@ const CUSTOMERS_BASE = '/api/v1/dashboard/customers';
 
 beforeEach(function () {
     $this->seed(DashboardRolesAndPermissionsSeeder::class);
-    Sanctum::actingAs(Staff::factory()->role(StaffRole::VERIFICATION)->create(), ['staff:access'], 'staff');
+    Sanctum::actingAs(Staff::factory()->role(SeedRole::VERIFICATION)->create(), ['staff:access'], 'staff');
 });
 
 it('sends the customer type, defaulting to ordinary', function () {

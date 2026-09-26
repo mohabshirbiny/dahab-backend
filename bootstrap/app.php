@@ -3,14 +3,16 @@
 use App\Exceptions\AuthApiException;
 use App\Exceptions\DomainApiException;
 use App\Http\Middleware\EnforceStaffPermission;
+use App\Http\Middleware\EnsureCustomerStanding;
+use App\Http\Middleware\EnsureStaffStanding;
 use App\Http\Middleware\SetDatabaseActor;
 use App\Http\Middleware\SetRequestContext;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Exceptions\MissingAbilityException;
@@ -39,6 +41,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'staff.permission' => EnforceStaffPermission::class,
+            // Frozen/deactivated staff are stopped on every request (spec 002 FR-056).
+            'staff.standing' => EnsureStaffStanding::class,
+            // Customer verified gate, default-deny (spec 002 FR-030, App\Http\CustomerRouteAccess).
+            'customer.gate' => EnsureCustomerStanding::class,
             // Sanctum token abilities: `abilities:customer:access` (all listed)
             // and `ability:a,b` (any listed). Always placed after an `auth:<guard>`.
             'abilities' => CheckAbilities::class,

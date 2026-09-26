@@ -2,39 +2,31 @@
 
 namespace App\Actions\Auth\Customer;
 
-use App\Enums\AuthErrorCode;
 use App\Enums\CustomerStatus;
-use App\Exceptions\AuthApiException;
 use App\Models\Customer;
 
 /**
- * Lifecycle gate: only ACTIVE customers may open a session. A pending
- * applicant must wait for staff approval; a rejected customer must
- * re-register; a suspended customer gets the existing `account_suspended`
- * shape with its stored reason.
+ * Lifecycle gate at sign-in. Since spec 002 (product-owner decision
+ * 2026-09-26) verification does not gate authentication:
  *
- * Checked at password sign-in and again when a new-device OTP is verified,
- * because the status can change while a challenge is outstanding.
+ * - pending_verification / rejected customers sign in so they can see their
+ *   status and finish (or redo) verification — every other action is
+ *   refused by the `customer.gate` middleware with `verification_required`;
+ * - suspended customers sign in to read their own data and wind down
+ *   (Part 1 §2.2); trade actions are refused with `account_suspended`.
+ *
+ * Kept as the single place a future closed/banned status would be refused.
+ * Checked at password sign-in and again when a new-device OTP is verified.
  */
 final class AssertCustomerCanSignIn
 {
     public function execute(Customer $customer): void
     {
         match ($customer->status) {
-            CustomerStatus::ACTIVE => null,
-            CustomerStatus::PENDING_VERIFICATION => throw new AuthApiException(
-                AuthErrorCode::ACCOUNT_PENDING_VERIFICATION,
-                403,
-                'This account is waiting for verification.',
-            ),
-            CustomerStatus::REJECTED => throw new AuthApiException(
-                AuthErrorCode::ACCOUNT_REJECTED,
-                403,
-                'This account was rejected during verification.',
-            ),
-            CustomerStatus::SUSPENDED => throw AuthApiException::accountSuspended(
-                $customer->suspended_reason?->value,
-            ),
+            CustomerStatus::ACTIVE,
+            CustomerStatus::PENDING_VERIFICATION,
+            CustomerStatus::REJECTED,
+            CustomerStatus::SUSPENDED => null,
         };
     }
 }

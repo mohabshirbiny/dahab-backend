@@ -2,7 +2,7 @@
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Enums\AuditEvent;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\DocumentViewLog;
@@ -35,7 +35,7 @@ function callIdentityEndpoint($test, string $endpoint, ?string $documentId = nul
     };
 }
 
-function identityStaff(StaffRole $role, array $directPermissions = []): Staff
+function identityStaff(SeedRole $role, array $directPermissions = []): Staff
 {
     $staff = Staff::factory()->role($role)->create();
     foreach ($directPermissions as $permission) {
@@ -60,14 +60,14 @@ it('treats a customer token as unauthenticated on every identity-review endpoint
 })->with(IDENTITY_ENDPOINTS);
 
 it('refuses a staff refresh token with 403 forbidden on every identity-review endpoint', function (string $endpoint) {
-    $staff = Staff::factory()->role(StaffRole::VERIFICATION)->create();
+    $staff = Staff::factory()->role(SeedRole::VERIFICATION)->create();
     $token = app(IssueTokenFamilyAction::class)->forStaff($staff)->refreshToken;
 
     $this->bearer($token);
     callIdentityEndpoint($this, $endpoint)->assertStatus(403)->assertJsonPath('code', 'forbidden');
 })->with(IDENTITY_ENDPOINTS);
 
-it('refuses roles without the permission with 403 permission_denied and audits the denial', function (StaffRole $role, string $endpoint, string $permission) {
+it('refuses roles without the permission with 403 permission_denied and audits the denial', function (SeedRole $role, string $endpoint, string $permission) {
     $staff = identityStaff($role);
     $document = IdentityDocument::factory()->withImage()->create();
 
@@ -83,24 +83,24 @@ it('refuses roles without the permission with 403 permission_denied and audits t
     expect(DocumentViewLog::query()->count())->toBe(0)
         ->and($document->fresh()->status->value)->toBe('pending');
 })->with(
-    fn () => collect([StaffRole::COO, StaffRole::FINANCE, StaffRole::OPERATIONS, StaffRole::IGI_BRANCH])
+    fn () => collect([SeedRole::COO, SeedRole::FINANCE, SeedRole::OPERATIONS, SeedRole::IGI_BRANCH])
         ->crossJoin([['index', 'identity.view'], ['show', 'identity.view'], ['image', 'identity.view'], ['review', 'identity.review']])
         ->mapWithKeys(fn ($pair) => ["{$pair[0]->value} → {$pair[1][0]}" => [$pair[0], $pair[1][0], $pair[1][1]]])
         ->all()
 );
 
-it('lets the CEO and Verification roles through every endpoint', function (StaffRole $role, string $endpoint) {
+it('lets the CEO and Verification roles through every endpoint', function (SeedRole $role, string $endpoint) {
     identityStaff($role);
     $document = IdentityDocument::factory()->withImage(pngBytes())->create();
 
     callIdentityEndpoint($this, $endpoint, $document->document_id)->assertOk();
-})->with(fn () => collect([StaffRole::CEO, StaffRole::VERIFICATION])
+})->with(fn () => collect([SeedRole::CEO, SeedRole::VERIFICATION])
     ->crossJoin(IDENTITY_ENDPOINTS)
     ->mapWithKeys(fn ($pair) => ["{$pair[0]->value} → {$pair[1]}" => [$pair[0], $pair[1]]])
     ->all());
 
 it('lets a view-only staff member list, show and open documents but not decide', function () {
-    identityStaff(StaffRole::OPERATIONS, ['identity.view']);
+    identityStaff(SeedRole::OPERATIONS, ['identity.view']);
     $customer = Customer::factory()->pendingVerification()->create();
     $document = IdentityDocument::factory()->for($customer)->withImage(pngBytes())->create();
 
@@ -114,7 +114,7 @@ it('lets a view-only staff member list, show and open documents but not decide',
 });
 
 it('lets a review-only staff member decide but not list, show or open documents', function () {
-    identityStaff(StaffRole::OPERATIONS, ['identity.review']);
+    identityStaff(SeedRole::OPERATIONS, ['identity.review']);
     $document = IdentityDocument::factory()->withImage(pngBytes())->create();
 
     callIdentityEndpoint($this, 'index')->assertStatus(403);
@@ -126,7 +126,7 @@ it('lets a review-only staff member decide but not list, show or open documents'
 });
 
 it('does not reveal whether a document exists to someone who may not see it', function () {
-    identityStaff(StaffRole::OPERATIONS);
+    identityStaff(SeedRole::OPERATIONS);
     $existing = IdentityDocument::factory()->create();
 
     foreach (['show', 'image', 'review'] as $endpoint) {
@@ -139,7 +139,7 @@ it('does not reveal whether a document exists to someone who may not see it', fu
 });
 
 it('never accepts the customer-facing routes with a staff token or the reverse', function () {
-    $staff = Staff::factory()->role(StaffRole::VERIFICATION)->create();
+    $staff = Staff::factory()->role(SeedRole::VERIFICATION)->create();
     $token = app(IssueTokenFamilyAction::class)->forStaff($staff)->accessToken;
 
     $this->bearer($token)->postJson('/api/v1/customer/me/identity-documents', ['doc_kind' => 'passport', 'upload_token' => 'x'])

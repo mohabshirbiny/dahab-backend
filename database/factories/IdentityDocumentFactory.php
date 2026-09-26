@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\IdentityDocumentKind;
 use App\Enums\IdentityDocumentStatus;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\Customer;
 use App\Models\IdentityDocument;
 use App\Models\Staff;
@@ -68,7 +68,7 @@ class IdentityDocumentFactory extends Factory
     {
         return $this->state(fn () => [
             'status' => IdentityDocumentStatus::NEEDS_RESUBMISSION,
-            'reviewed_by' => Staff::factory()->role(StaffRole::VERIFICATION),
+            'reviewed_by' => Staff::factory()->role(SeedRole::VERIFICATION),
             'reviewed_at' => now(),
             'review_reasons' => $reasons,
             'review_note' => null,
@@ -90,7 +90,7 @@ class IdentityDocumentFactory extends Factory
     {
         return $this->state(fn () => [
             'status' => $status,
-            'reviewed_by' => Staff::factory()->role(StaffRole::VERIFICATION),
+            'reviewed_by' => Staff::factory()->role(SeedRole::VERIFICATION),
             'reviewed_at' => now(),
         ]);
     }

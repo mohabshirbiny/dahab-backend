@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\Customer;
 use App\Models\DocumentViewLog;
 use App\Models\IdentityDocument;
@@ -41,7 +41,7 @@ it('takes a customer from unverified to trade-allowed through upload, submission
         ->assertCreated()->assertJsonPath('data.status', 'pending')->json('data.document_id');
 
     // Staff: a real sign-in (Verification needs no MFA), then work the queue.
-    $reviewer = Staff::factory()->role(StaffRole::VERIFICATION)->withPassword('correct-horse-battery')->create();
+    $reviewer = Staff::factory()->role(SeedRole::VERIFICATION)->withPassword('correct-horse-battery')->create();
     $staffToken = $this->postJson('/api/v1/dashboard/auth/login', ['email' => $reviewer->email, 'password' => 'correct-horse-battery'])
         ->assertOk()->json('data.session.access_token');
 
@@ -67,7 +67,7 @@ it('takes a customer from unverified to trade-allowed through upload, submission
 it('lets a rejected customer resubmit and be approved on the second attempt', function () {
     $customer = Customer::factory()->pendingVerification()->create();
     $customerToken = app(IssueTokenFamilyAction::class)->forCustomer($customer)->accessToken;
-    $reviewer = Staff::factory()->role(StaffRole::CEO)->create();
+    $reviewer = Staff::factory()->role(SeedRole::CEO)->create();
     $staffToken = app(IssueTokenFamilyAction::class)->forStaff($reviewer)->accessToken;
 
     $submit = function (string $kind) use ($customerToken) {

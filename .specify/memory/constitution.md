@@ -1,20 +1,24 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (initial) → 1.0.0
-Modified principles: none (initial ratification)
-Added sections:
-  - Core Principles (I–V)
-  - Technology & Infrastructure Constraints
-  - Development Workflow & Quality Gates
-  - Governance
+Version change: 1.0.0 → 2.0.0 (MAJOR: Principle II redefined; Principle III contract list narrowed)
+Modified principles:
+  - II. "Least Privilege Enforced by the Engine, Not by Code" → "Customer Isolation by the Engine; Staff Authorization by Permission Data"
+    (customer row-level security kept; PostgreSQL role grants for staff / wallet visibility removed;
+    staff roles and role→permission mappings are data managed from the Dashboard)
+  - III. "Docs Are the Source of Truth" — `dahabctoblueprint.md` removed from the contract;
+    recorded product-owner decisions in a feature spec override the Technical Spec until docs/ is updated in the same PR
+Added sections: none
 Removed sections: none
 Templates status:
   ✅ .specify/templates/plan-template.md — no change required (references constitution by path)
   ✅ .specify/templates/spec-template.md — no change required
   ✅ .specify/templates/tasks-template.md — no change required
   ✅ .specify/templates/checklist-template.md — no change required
-Follow-up TODOs: none
+Follow-up TODOs:
+  - docs/Technical Spec/dahab-spec-part1-auth.md §3.1, §3.3, §4.4, §5.2 and
+    docs/Technical Spec/dahab-dashboard-authorization.md updated by specs/002-dynamic-staff-authorization
+Source: product-owner decisions 2026-09-26 (specs/002-dynamic-staff-authorization/spec.md)
 -->
 
 # Dahab Backend Constitution
@@ -33,16 +37,25 @@ Rationale: This is the invariant the audit log depends on and the reason the
 database schema pins the actor into `ledger_transaction` and `audit_log` via
 `CHECK` constraints. See `docs/Technical Spec/dahab-spec-part1-auth.md` §1.
 
-### II. Least Privilege Enforced by the Engine, Not by Code
+### II. Customer Isolation by the Engine; Staff Authorization by Permission Data
 
-Customer data isolation MUST be enforced by PostgreSQL row-level security;
-wallet visibility MUST be enforced by PostgreSQL role grants. Application
-code MAY assume RLS is on but MUST NOT rely on remembering a `WHERE` clause
-for tenancy or ownership. Any query that reads or writes another customer's
-row without an explicit, documented, and audited elevation is a defect.
+Customer data isolation MUST be enforced by PostgreSQL row-level security as
+defense in depth. Application code MAY assume RLS is on but MUST NOT rely on
+remembering a `WHERE` clause for customer tenancy or ownership. Any query
+that reads or writes another customer's row without an explicit, documented,
+and audited elevation is a defect.
 
-Rationale: The application will be edited by many people over its lifetime;
-a forgotten predicate is a matter of when, not if. The engine forgets nothing.
+Staff authorization MUST be enforced by the application from the permission
+tables: staff roles, the permissions each role holds, and which staff hold
+which roles are data, managed from the Dashboard. Permission codes are
+defined in code, one per protected action. Staff authorization MUST NOT
+depend on PostgreSQL roles or grants (including wallet visibility). Founder
+status MUST NOT be changeable from the Dashboard or API.
+
+Rationale: A forgotten predicate on customer data is a matter of when, not
+if, and the engine forgets nothing, so customer isolation stays in the
+database. Staff access must be adjustable by the business without schema or
+infrastructure changes, so it lives in permission data and is audited.
 
 ### III. Docs Are the Source of Truth (NON-NEGOTIABLE)
 
@@ -54,8 +67,11 @@ never in code alone.
 
 Rationale: Multiple contributors and future agents will read this repo; the
 only way to keep them aligned is to keep the specification and the code in
-lock-step. `dahabctoblueprint.md`, the technical spec parts, and the SQL
-schema files together define the contract.
+lock-step. The technical spec parts (`docs/Technical Spec/`) and the SQL
+schema files (`docs/Database schema/`) together define the contract.
+`docs/dahabctoblueprint.md` is background only and MUST NOT be used as a
+reference. A product-owner decision recorded in an accepted feature spec
+overrides the Technical Spec, and the PR implementing it MUST update `docs/`.
 
 ### IV. Foundation Before Modules
 
@@ -159,4 +175,4 @@ raise a blocking comment when it is not.
 and commit style — lives in `README.md` and in the `.specify/templates/`
 files. Those documents defer to this Constitution when they conflict.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-19
+**Version**: 2.0.0 | **Ratified**: 2026-09-19 | **Last Amended**: 2026-09-26

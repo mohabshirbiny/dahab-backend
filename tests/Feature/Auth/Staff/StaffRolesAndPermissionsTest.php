@@ -1,7 +1,7 @@
 <?php
 
+use App\Enums\SeedRole;
 use App\Enums\StaffPermission;
-use App\Enums\StaffRole;
 use App\Models\Staff;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +25,7 @@ it('runs staff on the dedicated staff guard', function () {
 
 it('seeds exactly the six fixed roles and only the spec permissions', function () {
     expect(Role::where('guard_name', 'staff')->pluck('name')->sort()->values()->all())
-        ->toBe(collect(StaffRole::cases())->map->value->sort()->values()->all())
+        ->toBe(collect(SeedRole::cases())->map->value->sort()->values()->all())
         ->and(Permission::where('guard_name', 'staff')->pluck('name')->all())
         ->toBe(collect(StaffPermission::cases())->map->value->all());
 });
@@ -39,22 +39,22 @@ it('is idempotent: reseeding leaves the same rows', function () {
     expect([Role::count(), Permission::count(), DB::table('role_has_permissions')->count()])->toBe($before);
 });
 
-it('gives customer.suspend to the founders and to no one else', function (StaffRole $role, bool $allowed) {
+it('gives customer.suspend to the founders and to no one else', function (SeedRole $role, bool $allowed) {
     $staff = Staff::factory()->role($role)->create();
 
     expect($staff->hasRole($role->value))->toBeTrue()
         ->and($staff->hasPermissionTo('customer.suspend'))->toBe($allowed)
         ->and($staff->can('customer.suspend'))->toBe($allowed);
 })->with([
-    'ceo' => [StaffRole::CEO, true],
-    'coo' => [StaffRole::COO, true],
-    'finance' => [StaffRole::FINANCE, false],
-    'operations' => [StaffRole::OPERATIONS, false],
-    'verification' => [StaffRole::VERIFICATION, false],
-    'igi_branch' => [StaffRole::IGI_BRANCH, false],
+    'ceo' => [SeedRole::CEO, true],
+    'coo' => [SeedRole::COO, true],
+    'finance' => [SeedRole::FINANCE, false],
+    'operations' => [SeedRole::OPERATIONS, false],
+    'verification' => [SeedRole::VERIFICATION, false],
+    'igi_branch' => [SeedRole::IGI_BRANCH, false],
 ]);
 
-it('gives identity.view and identity.review to the CEO and Verification roles and to no one else', function (StaffRole $role, bool $allowed) {
+it('gives identity.view and identity.review to the CEO and Verification roles and to no one else', function (SeedRole $role, bool $allowed) {
     $staff = Staff::factory()->role($role)->create();
 
     foreach (['identity.view', 'identity.review'] as $permission) {
@@ -62,12 +62,12 @@ it('gives identity.view and identity.review to the CEO and Verification roles an
             ->and($staff->can($permission))->toBe($allowed);
     }
 })->with([
-    'ceo' => [StaffRole::CEO, true],
-    'verification' => [StaffRole::VERIFICATION, true],
-    'coo' => [StaffRole::COO, false],
-    'finance' => [StaffRole::FINANCE, false],
-    'operations' => [StaffRole::OPERATIONS, false],
-    'igi_branch' => [StaffRole::IGI_BRANCH, false],
+    'ceo' => [SeedRole::CEO, true],
+    'verification' => [SeedRole::VERIFICATION, true],
+    'coo' => [SeedRole::COO, false],
+    'finance' => [SeedRole::FINANCE, false],
+    'operations' => [SeedRole::OPERATIONS, false],
+    'igi_branch' => [SeedRole::IGI_BRANCH, false],
 ]);
 
 it('keeps the identity permissions on the staff guard only', function () {
@@ -77,7 +77,7 @@ it('keeps the identity permissions on the staff guard only', function () {
 });
 
 it('assigns, syncs and removes roles through Spatie', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     expect($staff->hasRole('operations'))->toBeTrue()->and($staff->hasRole('ceo'))->toBeFalse();
 
     $staff->assignRole('coo');
@@ -92,7 +92,7 @@ it('assigns, syncs and removes roles through Spatie', function () {
 });
 
 it('grants and revokes direct permissions through Spatie', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     expect($staff->can('customer.suspend'))->toBeFalse();
 
     $staff->givePermissionTo('customer.suspend');
@@ -104,7 +104,7 @@ it('grants and revokes direct permissions through Spatie', function () {
 });
 
 it('fails closed on a permission that was never seeded', function () {
-    $staff = Staff::factory()->role(StaffRole::CEO)->create();
+    $staff = Staff::factory()->role(SeedRole::CEO)->create();
 
     expect($staff->can('wallet.view'))->toBeFalse();
 });

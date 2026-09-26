@@ -2,7 +2,7 @@
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Enums\AuditEvent;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Staff;
@@ -17,7 +17,7 @@ function staffSession(Staff $staff)
 }
 
 it('revokes the current access + refresh pair on logout', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     $session = staffSession($staff);
 
     $this->bearer($session->accessToken)->postJson('/api/v1/dashboard/auth/logout')->assertNoContent();
@@ -27,7 +27,7 @@ it('revokes the current access + refresh pair on logout', function () {
 });
 
 it('only revokes the presented family on logout', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     $laptop = staffSession($staff);
     $phone = staffSession($staff);
 
@@ -37,8 +37,8 @@ it('only revokes the presented family on logout', function () {
 });
 
 it('revokes every token of the staff member on logout-all and no one else\'s', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
-    $colleague = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
+    $colleague = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     $a = staffSession($staff);
     $b = staffSession($staff);
     $colleagueSession = staffSession($colleague);
@@ -52,7 +52,7 @@ it('revokes every token of the staff member on logout-all and no one else\'s', f
 });
 
 it('audits the revocation against the staff actor', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     $session = staffSession($staff);
 
     $this->bearer($session->accessToken)->postJson('/api/v1/dashboard/auth/logout-all')->assertNoContent();
@@ -73,7 +73,7 @@ it('treats a customer token as unauthenticated', function (string $path) {
 })->with(['logout' => '/api/v1/dashboard/auth/logout', 'logout-all' => '/api/v1/dashboard/auth/logout-all']);
 
 it('refuses a refresh token with 403 forbidden', function (string $path) {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
     $session = staffSession($staff);
 
     $this->bearer($session->refreshToken)->postJson($path)->assertStatus(403)->assertJsonPath('code', 'forbidden');

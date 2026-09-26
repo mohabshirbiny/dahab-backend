@@ -166,9 +166,8 @@ it('refuses a sign-in without X-Device-Id with invalid_credentials', function ()
     Notification::assertNothingSent();
 });
 
-it('still gates a pending applicant before any code is sent', function () {
+it('lets a pending applicant sign in from a new device (spec 002: verification does not gate sign-in)', function () {
     $this->customer->forceFill(['status' => CustomerStatus::PENDING_VERIFICATION, 'is_verified' => false])->save();
 
-    ndoLogin($this->device)->assertStatus(403)->assertJsonPath('code', 'account_pending_verification');
-    Notification::assertNothingSent();
+    ndoLogin($this->device)->assertOk()->assertJsonPath('data.otp_required', true);
 });

@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\AuditEvent;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Staff;
 use App\Models\StaffDeviceFingerprint;
@@ -20,7 +20,7 @@ function loginBody(Staff $staff, string $password = STAFF_PASSWORD): array
 }
 
 it('signs in a staff member with email and password and issues a session', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
 
     $response = $this->postJson(STAFF_LOGIN_URL, loginBody($staff))
         ->assertOk()
@@ -43,13 +43,13 @@ it('signs in a staff member with email and password and issues a session', funct
 });
 
 it('matches the email case-insensitively', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create(['email' => 'Ops.Person@dahab.test']);
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create(['email' => 'Ops.Person@dahab.test']);
 
     $this->postJson(STAFF_LOGIN_URL, ['email' => 'ops.person@DAHAB.test', 'password' => STAFF_PASSWORD])->assertOk();
 });
 
 it('records the device fingerprint on a successful sign-in', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
 
     $this->postJson(STAFF_LOGIN_URL, loginBody($staff), ['X-Device-Id' => 'staff-laptop-0000000000000000'])->assertOk();
 
@@ -57,7 +57,7 @@ it('records the device fingerprint on a successful sign-in', function () {
 });
 
 it('refuses a wrong password with invalid_credentials, audits it and issues nothing', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
 
     $this->postJson(STAFF_LOGIN_URL, loginBody($staff, 'not-the-password-1'))
         ->assertStatus(401)
@@ -71,7 +71,7 @@ it('refuses a wrong password with invalid_credentials, audits it and issues noth
 });
 
 it('answers an unknown email exactly like a wrong password', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
 
     $wrong = $this->postJson(STAFF_LOGIN_URL, loginBody($staff, 'not-the-password-1'));
     $unknown = $this->postJson(STAFF_LOGIN_URL, ['email' => 'nobody@dahab.test', 'password' => 'not-the-password-1']);
@@ -81,7 +81,7 @@ it('answers an unknown email exactly like a wrong password', function () {
 });
 
 it('refuses an inactive staff member with the same generic error and audits the reason', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->disabled()->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->disabled()->withPassword(STAFF_PASSWORD)->create();
 
     $inactive = $this->postJson(STAFF_LOGIN_URL, loginBody($staff));
     $wrong = $this->postJson(STAFF_LOGIN_URL, loginBody($staff, 'not-the-password-1'));
@@ -96,7 +96,7 @@ it('refuses an inactive staff member with the same generic error and audits the 
 });
 
 it('refuses a frozen staff member with account_frozen and issues nothing', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->frozen()->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->frozen()->withPassword(STAFF_PASSWORD)->create();
 
     $this->postJson(STAFF_LOGIN_URL, loginBody($staff))
         ->assertStatus(403)
@@ -109,7 +109,7 @@ it('refuses a frozen staff member with account_frozen and issues nothing', funct
 });
 
 it('does not reveal a frozen account to someone without the password', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->frozen()->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->frozen()->withPassword(STAFF_PASSWORD)->create();
 
     $this->postJson(STAFF_LOGIN_URL, loginBody($staff, 'not-the-password-1'))
         ->assertStatus(401)
@@ -117,7 +117,7 @@ it('does not reveal a frozen account to someone without the password', function 
 });
 
 it('lets a staff member whose freeze was lifted sign in again', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->frozen()->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->frozen()->withPassword(STAFF_PASSWORD)->create();
     $staff->activeFreeze()->update(['unfrozen_at' => now()]);
 
     $this->postJson(STAFF_LOGIN_URL, loginBody($staff))->assertOk();
@@ -134,7 +134,7 @@ it('validates the payload', function (array $body) {
 ]);
 
 it('locks the email out after five failures with account_locked', function () {
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->withPassword(STAFF_PASSWORD)->create();
 
     for ($i = 0; $i < config('dahab-auth.rate_limits.staff_login.per_identity_max'); $i++) {
         $this->postJson(STAFF_LOGIN_URL, loginBody($staff, 'not-the-password-1'))->assertStatus(401);

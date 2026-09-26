@@ -43,6 +43,8 @@ const OPENAPI_CUSTOMER_PATHS = [
     'get /customer/auth/me',
     'post /customer/auth/logout',
     'post /customer/auth/logout-all',
+    'post /customer/auth/otp/verify',
+    'post /customer/auth/otp/resend',
 ];
 
 const OPENAPI_DASHBOARD_PATHS = [
@@ -70,6 +72,19 @@ const OPENAPI_DASHBOARD_IDENTITY_PATHS = [
 const OPENAPI_DASHBOARD_CUSTOMER_PATHS = [
     'get /dashboard/customers',
     'get /dashboard/customers/{customer}',
+];
+
+// Spec 002: roles, permissions and staff role assignment.
+const OPENAPI_DASHBOARD_ACCESS_PATHS = [
+    'get /dashboard/permissions',
+    'get /dashboard/roles',
+    'post /dashboard/roles',
+    'get /dashboard/roles/{role}',
+    'patch /dashboard/roles/{role}',
+    'delete /dashboard/roles/{role}',
+    'get /dashboard/staff',
+    'get /dashboard/staff/{staff}',
+    'put /dashboard/staff/{staff}/roles',
 ];
 
 function documentedOperations(array $doc): array
@@ -101,6 +116,7 @@ it('documents exactly the customer and dashboard endpoints', function () {
         ...OPENAPI_CUSTOMER_IDENTITY_PATHS,
         ...OPENAPI_DASHBOARD_IDENTITY_PATHS,
         ...OPENAPI_DASHBOARD_CUSTOMER_PATHS,
+        ...OPENAPI_DASHBOARD_ACCESS_PATHS,
     ]);
 });
 
@@ -140,6 +156,8 @@ it('secures every operation with its own surface scheme and never the generic sa
         'get /customer/auth/me' => 'customerBearer',
         'post /customer/auth/logout' => 'customerBearer',
         'post /customer/auth/logout-all' => 'customerBearer',
+        'post /customer/auth/otp/verify' => null,
+        'post /customer/auth/otp/resend' => null,
         'post /dashboard/auth/login' => null,
         'post /dashboard/auth/mfa/verify' => null,
         'post /dashboard/auth/mfa/enroll' => null,
@@ -155,6 +173,7 @@ it('secures every operation with its own surface scheme and never the generic sa
         'post /dashboard/identity-documents/{document}/review' => 'dashboardBearer',
         'get /dashboard/customers' => 'dashboardBearer',
         'get /dashboard/customers/{customer}' => 'dashboardBearer',
+        ...array_fill_keys(OPENAPI_DASHBOARD_ACCESS_PATHS, 'dashboardBearer'),
     ];
 
     foreach ($expected as $key => $scheme) {
@@ -188,6 +207,9 @@ it('tags each surface separately', function () {
     foreach (OPENAPI_DASHBOARD_CUSTOMER_PATHS as $key) {
         expect($ops[$key]['tags'])->toBe(['Dashboard Customers']);
     }
+    foreach (OPENAPI_DASHBOARD_ACCESS_PATHS as $key) {
+        expect($ops[$key]['tags'])->toBe(['Dashboard Access Control']);
+    }
 });
 
 it('documents the request bodies and response schemas the endpoints use', function () {
@@ -201,6 +223,9 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'LoginStaffRequest', 'StaffMfaVerifyRequest', 'StaffMfaEnrollRequest', 'StaffMfaChallenge', 'StaffMfaEnrollmentPending',
         'CreateUploadRequest', 'SubmitIdentityDocumentRequest', 'IdentityDocument',
         'ReviewIdentityDocumentRequest', 'StaffIdentityDocument', 'StaffCustomerVerification',
+        'CustomerOtpChallenge', 'VerifyLoginOtpRequest', 'ResendLoginOtpRequest',
+        'DashboardPermission', 'DashboardRole', 'DashboardRoleRef', 'DashboardStaffMember',
+        'DashboardStoreRole', 'DashboardUpdateRole', 'DashboardDeleteRole', 'DashboardSetStaffRoles',
     ]);
 
     $ops = documentedOperations($doc);

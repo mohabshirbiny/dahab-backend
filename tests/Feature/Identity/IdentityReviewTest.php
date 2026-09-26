@@ -3,7 +3,7 @@
 use App\Enums\AuditEvent;
 use App\Enums\CustomerStatus;
 use App\Enums\IdentityDocumentStatus;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\DocumentViewLog;
@@ -29,7 +29,7 @@ beforeEach(function () {
     Notification::fake();
 });
 
-function reviewer(StaffRole $role = StaffRole::VERIFICATION): Staff
+function reviewer(SeedRole $role = SeedRole::VERIFICATION): Staff
 {
     $staff = Staff::factory()->role($role)->create();
     Sanctum::actingAs($staff, ['staff:access'], 'staff');
@@ -186,7 +186,7 @@ it('answers 404 not_found for an unknown document id', function () {
 });
 
 it('unauthorized staff cannot view or decide', function () {
-    Sanctum::actingAs(Staff::factory()->role(StaffRole::FINANCE)->create(), ['staff:access'], 'staff');
+    Sanctum::actingAs(Staff::factory()->role(SeedRole::FINANCE)->create(), ['staff:access'], 'staff');
     $document = pendingCustomerWithDoc();
 
     $this->getJson(REVIEW_BASE.'/'.$document->document_id)->assertStatus(403);

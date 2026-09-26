@@ -43,8 +43,10 @@ Primary authentication is **phone number + password, together, every sign-in.** 
 Authentication proves *who is signing in*. Verification proves *they may trade*. They are separate and must not be conflated:
 
 - **Browsing** needs no account at all. Public listing reads are served by a non-authenticated path (see §5.3).
-- **An account** can be created and signed into before verification. A customer may sign in, look around, save pieces, and top up a wallet while `customer.is_verified = false`.
-- **The first sale or purchase** requires `is_verified = true`. The gate fires at the moment of the first state-changing trade action (`POST` of a buy request, or submitting a listing for review), not at signup and not at browse. The prototype's copy is exact: *"Required before your first sale or purchase, not before you browse."*
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/spec.md`](../../specs/002-dynamic-staff-authorization/spec.md). Verification no longer gates sign-in, and the gate is default-deny.
+
+- **An account** can be created and signed into before verification. A **rejected** customer can also sign in: they stay authenticated but unverified and can re-submit identity documents for another review. While unverified (`pending_verification` or `rejected`), a customer may only: sign in/out and refresh the session, read their own profile (`/me`), upload identity documents and follow their status, and browse. **Wallet top-up requires verification.** Wishlist behavior is out of scope until the wishlist feature is implemented.
+- **Every other customer action** requires verification and is refused with `403 verification_required` (`customer.gate` middleware; the allow-list is `App\Http\CustomerRouteAccess::OPEN_ROUTES`, and a build test fails if a new customer route is neither gated nor allow-listed).
 
 Verification itself (ID/passport upload → Verification-role review → approve/reject) is an identity workflow detailed in Part 3. The auth layer only reads the resulting boolean and the suspension state:
 
@@ -54,7 +56,7 @@ trade_allowed(customer) :=
   AND customer.is_suspended = false
 ```
 
-A suspended customer (`is_suspended = true`) can sign in and read their own data (they need to see why, withdraw a remaining balance, and wind down open orders) but every trade action is refused with `403 account_suspended`. Suspension always carries a reason from a fixed list and a named actor (`suspended_by`, `suspended_reason`), enforced by `customer.suspended_needs_actor`.
+A suspended customer (`status = suspended`) can sign in and read their own data (they need to see why, withdraw a remaining balance, and wind down open orders) but every trade action is refused with `403 account_suspended`. Suspension always carries a reason from a fixed list and a named actor (`suspended_by`, `suspended_reason`), enforced by `customer.suspended_needs_actor`.
 
 ### 2.3 Session issuance and device recognition
 
@@ -75,17 +77,21 @@ A withdrawal request is **not** released on the strength of the session alone. B
 
 ## 3. Staff authentication and roles
 
-### 3.1 Roles are fixed; the actions they map to are data
+### 3.1 Roles and the actions they map to are data
 
-There are exactly six staff roles, fixed in the domain and modelled as an enum (`staff_role`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`. New roles are a schema change, deliberately — you do not invent a role in the admin panel. What each role *may do* is the permission matrix (§4), which is reference data the service reads, not a scatter of `if role == …` checks. In the application that matrix is enforced with Spatie roles and permissions on the `staff` guard — see [Dashboard authentication & authorization](./dahab-dashboard-authorization.md).
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/spec.md`](../../specs/002-dynamic-staff-authorization/spec.md).
 
-Every staff account uses its own credentials. **Shared logins are forbidden**, because a shared login makes the audit log meaningless — the whole point of the layer. There is exactly one sanctioned exception: the **IGI branch account**, shared by agreement, which logs the *branch* rather than the individual inspector. That exception is structural in the schema: `staff.igi_has_branch` forces `role = 'igi_branch'` if and only if a `branch_id` is attached, so an IGI account is always branch-bound and a non-IGI account can never be.
+Staff roles are Dashboard-managed data: role managers (`roles.manage`) create, edit and delete roles, choose each role's permissions from the code-defined catalogue, and assign roles to staff. `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch` are only the **initial seed**. A role manager can never grant or remove a permission they do not hold, edit a role they hold, or change their own roles (`403 escalation_denied`). What each role may do is enforced with Spatie roles and permissions on the `staff` guard — see [Dashboard authentication & authorization](./dahab-dashboard-authorization.md) — never with `if role == …` checks.
+
+Every staff account uses its own credentials. **Shared logins are forbidden**, because a shared login makes the audit log meaningless — the whole point of the layer. There is exactly one sanctioned exception: the **IGI branch account**, shared by agreement, which logs the *branch* rather than the individual inspector. Since spec 002 a branch is an optional attribute of any staff member (`staff.branch_id`); permissions marked branch-scoped only authorize records of that branch (`403 wrong_branch`). The former `igi_has_branch` CHECK tied to a role name is removed.
 
 ### 3.2 The two founders
 
-`ceo` and `coo` are two accounts with identical, unrestricted permissions — either can do anything, including creating accounts and assigning permissions. They are distinguished **only by the audit log**: every action records against the individual who performed it, and neither can act as the other. No action requires dual approval — a deliberate choice for a two-founder company, to be revisited if a third full-permission account is ever created.
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/spec.md`](../../specs/002-dynamic-staff-authorization/spec.md). Founder status is the staff flag `staff.is_founder` (seeded on the `ceo@`/`coo@` accounts), not a role. **It cannot be changed through any Dashboard or API action**, by anyone — only by the seeder or a controlled manual database operation. Founders always need MFA, whatever their roles.
 
-**The one deliberate asymmetry:** wallet access is limited to `ceo` + `finance`. The COO, with otherwise full permissions, does **not** see or move wallet balances. This is not enforced by a column or an `if` — it is a Postgres grant (§5.2). The COO's database role simply has no `SELECT` on the wallet views. This is the safest possible expression of the rule: even a bug in application code cannot show the COO a balance the engine won't return.
+The two founders are two accounts with, by default, identical, unrestricted permissions — either can do anything, including creating accounts and assigning permissions. They are distinguished **only by the audit log**: every action records against the individual who performed it, and neither can act as the other. No action requires dual approval — a deliberate choice for a two-founder company, to be revisited if a third full-permission account is ever created.
+
+**The one deliberate asymmetry:** wallet access starts limited to `ceo` + `finance`. The COO, with otherwise full permissions, does **not** see or move wallet balances by default. Since spec 002 this is an ordinary permission that the seed does not give to `coo` (editable from the Dashboard) — not a Postgres grant (§5.2).
 
 ### 3.3 Staff sessions
 
@@ -95,7 +101,7 @@ Staff authenticate with their own credentials and operate under:
 - **Failed sign-in:** 5 attempts, then a 30-minute lock (admin-roles §4).
 - **Every privileged action is logged** with actor, timestamp, device, IP, before/after JSON, and a reason where one is required (§6).
 
-Staff connections use a database role per staff role (`dahab_ceo`, `dahab_finance`, …). The application does not connect as a superuser and then filter; it connects as the role that already lacks the grants the role is not permitted. RLS on customer tables is *bypassed* for staff roles (staff must see across customers to do their job), but every other guard — wallet grants, append-only triggers, the karat CHECK, the balanced-ledger trigger — applies to staff exactly as to anyone, including founders. **No role, including the founders, can edit or delete the audit log or the ledger.**
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/spec.md`](../../specs/002-dynamic-staff-authorization/spec.md). There is **no database role per staff role**: staff authorization is enforced by the application from the permission tables (Constitution v2.0.0, Principle II). Customer row-level security (§5.1) stays in the database as defense in depth. Every other engine guard — append-only triggers, the karat CHECK, the balanced-ledger trigger — applies to staff exactly as to anyone, including founders. A frozen or deactivated staff member is stopped on their next request (`403 account_frozen` / `401 unauthenticated`), not only at sign-in. **No role, including the founders, can edit or delete the audit log or the ledger.**
 
 ### 3.4 IGI inspector — the narrowest role
 
@@ -107,9 +113,11 @@ The `igi_branch` account is external staff with the tightest permission set of a
 
 ---
 
-## 4. The permission matrix (authoritative, as data)
+## 4. The permission matrix (initial seed)
 
-This is the definitive list. **If an action is not listed here, it belongs to the founders only.** The service resolves every privileged endpoint against this table before executing (in the application: as Spatie permissions on the `staff` guard, seeded from this table; only the permissions the current spec needs are materialised — see [dahab-dashboard-authorization.md](./dahab-dashboard-authorization.md) §4). Values are transcribed exactly from the admin-roles permission matrix; the "CEO only" cells are the wallet-access narrowing and are enforced additionally by grant (§5.2), so even the COO's application code cannot perform them.
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/spec.md`](../../specs/002-dynamic-staff-authorization/spec.md). This table is the **initial seed** of role → permission, not a fixed rule: role managers edit it from the Dashboard.
+
+The service resolves every privileged endpoint against the staff member's effective permissions before executing (Spatie permissions on the `staff` guard; each module adds its permission codes, seeded from this table — see [dahab-dashboard-authorization.md](./dahab-dashboard-authorization.md) §4). Values are transcribed from the admin-roles permission matrix; the "CEO only" cells are the wallet-access narrowing, seeded as permissions not given to `coo`.
 
 ### 4.1 Listings and orders
 
@@ -182,16 +190,12 @@ Two important reads of this table:
 ```
 authorize(staff, action):
     if staff is frozen (account_freeze open on staff_id):      deny 403 account_frozen
-    if action is wallet-touching (the "CEO only"/Finance set):
-        # enforced twice: here AND by DB grant, defence in depth
-        require staff.role in wallet_roles(action)
-    else:
-        require staff.can(action)      # Spatie permission on the staff guard
+    require staff.can(action)          # Spatie permission on the staff guard (wallet actions included)
     if action requires a reason and none supplied:              deny 422 reason_required
     proceed; the action's own handler writes the audit_log row
 ```
 
-The double enforcement of wallet actions (matrix check *and* grant) is intentional: the matrix check gives a clean `403` with a useful message; the grant is the backstop that holds even if the matrix check is ever wrong.
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/spec.md`](../../specs/002-dynamic-staff-authorization/spec.md). Wallet actions are ordinary permissions; there is no grant backstop. The freeze check runs on every request (`staff.standing`).
 
 ---
 
@@ -210,14 +214,9 @@ and the policies restrict every row to the owning customer (buyer or seller for 
 - **`SET LOCAL`**, not `SET` — the binding lives for exactly one transaction and cannot leak to the next request on a pooled connection. This is a hard requirement of the connection-pooling model; a plain `SET` on a pooled connection is a cross-customer data leak.
 - The customer connection role **cannot** `SET app.current_customer_id` to an arbitrary value it chooses — the value comes from the authenticated session and is written by the framework's request-context middleware (§7), never from request input.
 
-### 5.2 Wallet visibility is a grant, not a check
+### 5.2 Wallet visibility is a permission
 
-Wallet balances are derived views (`customer_wallet`, `account_balance`, `solvency_check`) over the append-only ledger. Their visibility is controlled by **granting `SELECT` on those views only to the `dahab_ceo` and `dahab_finance` database roles.** The COO's role and every other staff role simply have no grant. Consequences:
-
-- The COO cannot see a balance because the query returns a permission error at the engine, before any application logic runs.
-- There is no application code path that can be tricked into showing a wallet to the wrong role, because the data never leaves Postgres for that role.
-
-This is why the spec insists wallet access "is a grant, not a column": a column can be read around; a missing grant cannot.
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/spec.md`](../../specs/002-dynamic-staff-authorization/spec.md). Wallet balances are derived views (`customer_wallet`, `account_balance`, `solvency_check`) over the append-only ledger. Staff visibility of them is a **permission** in the catalogue (added with the wallet module), seeded to `ceo` + `finance` and not to `coo`, and editable from the Dashboard. There are no per-staff-role database grants. Customer isolation of their own wallet rows stays row-level security (§5.1).
 
 ### 5.3 Public browsing does not leak seller identity
 

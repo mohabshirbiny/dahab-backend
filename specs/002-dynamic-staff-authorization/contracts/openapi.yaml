@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: Dahab Dashboard Access Control API
+  version: 1.0.0
+  description: |
+    Planning contract for spec 002 (dynamic staff authorization). The running
+    contract is generated from `#[OA\…]` attributes (`composer swagger:generate`);
+    on disagreement, code wins.
+
+    All operations use the Dashboard API: guard `auth:staff`, ability `staff:access`,
+    security scheme `dashboardBearer`. Error envelope: `{ message, code, errors? }`.
+
+    Rules that apply to every mutating operation here:
+    - `403 escalation_denied`: the actor tried to add/remove a permission they do not
+      hold, edit a role they hold, change their own roles, or assign/remove a role
+      containing a permission they do not hold.
+    - `409 last_role_manager`: the change would leave no active, non-system staff
+      member holding `roles.manage`.
+    - `422 reason_required`: `reason` missing where required.
+    - The system actor never appears; addressing it returns `404 not_found`.
+servers:
+  - url: /api/v1
+components:
+  securitySchemes:
+    dashboardBearer:
+      type: http
+      scheme: bearer
+      description: Staff access token (ability `staff:access`).
+  schemas:
+    ApiError:
+      type: object
+      required: [message, code]
+      properties:
+        message: { type: string }
+        code: { type: string }
+        errors: { type: object, additionalProperties: { type: array, items: { type: string } } }
+    Permission:
+      type: object
+      required: [code, label, group, branch_scoped]
+      properties:
+        code: { type: string, example: identity.review }
+        label: { type: string, example: Approve or reject identity documents }
+        group: { type: string, example: Identity }
+        branch_scoped: { type: boolean }
+    Role:
+      type: object
+      required: [name, display_name, requires_mfa, permissions, staff_count, created_at, updated_at]
+      properties:
+        name: { type: string, pattern: '^[a-z][a-z0-9_]{2,49}$', example: customer_support }
+        display_name: { type: string, maxLength: 100, example: Customer support }
+        description: { type: string, nullable: true, maxLength: 500 }
+        requires_mfa: { type: boolean }
+        permissions: { type: array, items: { type: string }, description: Permission codes, sorted }
+        staff_count: { type: integer, description: Active and inactive non-system staff holding the role }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    RoleRef:
+      type: object
+      required: [name, display_name]
+      properties:
+        name: { type: string }
+        display_name: { type: string }
+    StaffMember:
+      type: object
+      required: [id, full_name, email, is_active, is_founder, roles, permissions]
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        is_active: { type: boolean }
+        is_founder: { type: boolean, description: Read-only. Never writable through the API. }
+        branch_id: { type: integer, nullable: true }
+        roles: { type: array, items: { $ref: '#/components/schemas/RoleRef' } }
+        permissions: { type: array, items: { type: string }, description: Effective permissions (union of roles) }
+        mfa_enrolled: { type: boolean }
+    StaffProfile:
+      description: |
+        `/dashboard/auth/me` and sign-in `staff` object. Changes in this feature:
+        `role` deprecated (string|null, first role name alphabetically; was a closed enum);
+        new `roles_detail` and `is_founder`. `roles` stays string[].
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        role: { type: string, nullable: true, deprecated: true }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        is_active: { type: boolean }
+        is_founder: { type: boolean }
+        branch_id: { type: integer, nullable: true }
+        roles: { type: array, items: { type: string } }
+        roles_detail: { type: array, items: { $ref: '#/components/schemas/RoleRef' } }
+        permissions: { type: array, items: { type: string } }
+        mfa_enrolled: { type: boolean }
+        created_at: { type: string, format: date-time }
+    Reason:
+      type: string
+      minLength: 5
+      maxLength: 500
+  responses:
+    Unauthenticated: { description: unauthenticated, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    Forbidden: { description: 'permission_denied | escalation_denied | forbidden', content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    NotFound: { description: not_found, content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    Conflict: { description: 'last_role_manager | role_in_use', content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+    Unprocessable: { description: 'validation_failed | reason_required', content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } } }
+security:
+  - dashboardBearer: []
+paths:
+  /dashboard/permissions:
+    get:
+      operationId: dashboardListPermissions
+      tags: [Dashboard Access Control]
+      summary: The permission catalogue (code-defined, read-only)
+      description: Requires `roles.manage`.
+      responses:
+        '200':
+          description: All permissions, ordered by group then code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Permission' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /dashboard/roles:
+    get:
+      operationId: dashboardListRoles
+      tags: [Dashboard Access Control]
+      summary: List roles with permissions and holder counts
+      description: Requires `roles.manage`. Not paginated (roles are few; hard cap 200).
+      responses:
+        '200':
+          description: Roles ordered by display_name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Role' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: dashboardCreateRole
+      tags: [Dashboard Access Control]
+      summary: Create a role
+      description: Requires `roles.manage`. Every permission must be held by the actor. Audited `authz.role.created`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, display_name, permissions]
+              properties:
+                name: { type: string, pattern: '^[a-z][a-z0-9_]{2,49}$', description: Unique, immutable }
+                display_name: { type: string, maxLength: 100 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                requires_mfa: { type: boolean, default: false }
+                permissions: { type: array, items: { type: string }, description: 'Catalogue codes; may be empty' }
+                reason: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Role' } } } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+  /dashboard/roles/{role}:
+    parameters:
+      - { name: role, in: path, required: true, schema: { type: string }, description: Role machine name }
+    get:
+      operationId: dashboardShowRole
+      tags: [Dashboard Access Control]
+      summary: Show one role
+      description: Requires `roles.manage`.
+      responses:
+        '200': { description: Role, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Role' } } } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: dashboardUpdateRole
+      tags: [Dashboard Access Control]
+      summary: Edit a role (display name, description, MFA flag, permission set)
+      description: |
+        Requires `roles.manage`. The actor must not hold this role. `permissions`, when
+        present, replaces the whole set; every added/removed code must be held by the actor.
+        `reason` is required when `permissions` or `requires_mfa` changes.
+        Audited per changed aspect (`authz.role.updated` / `permissions_changed` / `mfa_changed`).
+        Takes effect on each holder's next request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                display_name: { type: string, maxLength: 100 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                requires_mfa: { type: boolean }
+                permissions: { type: array, items: { type: string } }
+                reason: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '200': { description: Updated role, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/Role' } } } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+    delete:
+      operationId: dashboardDeleteRole
+      tags: [Dashboard Access Control]
+      summary: Delete a role no staff member holds
+      description: Requires `roles.manage`. Actor must not hold the role. Audited `authz.role.deleted`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+  /dashboard/staff:
+    get:
+      operationId: dashboardListStaff
+      tags: [Dashboard Access Control]
+      summary: List staff members (system actor excluded)
+      description: Requires `staff.view`.
+      parameters:
+        - { name: role, in: query, required: false, schema: { type: string }, description: Only staff holding this role }
+        - { name: per_page, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 25 } }
+      responses:
+        '200':
+          description: Paginated staff ordered by full_name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/StaffMember' } }
+                  meta: { type: object }
+                  links: { type: object }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /dashboard/staff/{staff}:
+    parameters:
+      - { name: staff, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: dashboardShowStaff
+      tags: [Dashboard Access Control]
+      summary: Show one staff member
+      description: Requires `staff.view`.
+      responses:
+        '200': { description: Staff member, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/StaffMember' } } } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /dashboard/staff/{staff}/roles:
+    parameters:
+      - { name: staff, in: path, required: true, schema: { type: string, format: uuid } }
+    put:
+      operationId: dashboardSetStaffRoles
+      tags: [Dashboard Access Control]
+      summary: Replace the roles a staff member holds
+      description: |
+        Requires `roles.manage`. Not allowed on yourself. Every permission of every role
+        added or removed must be held by the actor. Founder status is unaffected.
+        Audited `authz.staff.roles_changed`. Takes effect on the target's next request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roles, reason]
+              properties:
+                roles: { type: array, items: { type: string }, description: Role machine names; may be empty }
+                reason: { $ref: '#/components/schemas/Reason' }
+      responses:
+        '200': { description: Updated staff member, content: { application/json: { schema: { type: object, properties: { data: { $ref: '#/components/schemas/StaffMember' } } } } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
