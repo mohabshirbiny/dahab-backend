@@ -14,7 +14,7 @@
 
 **Authentication.** Every protected route carries the session (Part 1 §2.3, §3.3). The server re-reads the live actor row inside the request transaction (Part 1 §7 step 2); token claims are routing hints only. Public browse routes (§2 below) are the only unauthenticated ones.
 
-**Authorization.** Staff endpoints declare `permission:` referencing the matrix (Part 1 §4). Customer trade endpoints declare `gate:` (`trade_allowed`, `verified`, or `none`). The service resolves both before executing (Part 1 §4.4, §7 step 4). Wallet-touching staff actions are enforced twice — matrix check and Postgres grant — per Part 1 §5.2.
+**Authorization.** Staff endpoints declare `permission:` — a code from the permission catalogue; which roles hold it is Dashboard-managed data seeded from Part 1 §4. Customer endpoints declare `gate:` (`trade_allowed`, `verified`, or `none`). Since spec 002 the customer gate is **default-deny**: `none` is only for the allow-list in Part 1 §2.2 (sign-in/session, own profile, identity verification incl. re-submission by a rejected customer, browse; wishlist is out of scope until its feature is implemented); `verified` refuses unverified customers with `403 verification_required`; `trade_allowed` also refuses suspended ones (`403 account_suspended`). The service resolves both before executing (Part 1 §4.4, §7 step 4). There is no Postgres-grant enforcement of staff actions (Part 1 §5.2, spec 002).
 
 **Idempotency.** Every state-creating or money-moving `POST`/`PATCH` **requires** an `Idempotency-Key` header (a client-generated UUID). The server persists the key with the request fingerprint and the response; a replay of the same key returns the original response and never re-executes. This is mandatory, not optional — Part 1 §7 step 5 explains why (a retried "send buy request" must not hold two deposits). Endpoints below are marked `idempotent: required` or `idempotent: n/a` (safe reads).
 
@@ -384,19 +384,19 @@ IGI confirms the physical handover at the counter against the collection code an
 
 ## 8. Wallet (customer)
 
-Wallet **balances** for the customer are their own (RLS-scoped) read. This is distinct from staff wallet access, which is CEO+Finance only and enforced by grant (Part 1 §5.2). A customer always sees their own two figures.
+Wallet **balances** for the customer are their own (RLS-scoped) read. This is distinct from staff wallet access, which is a permission seeded to CEO+Finance (Part 1 §5.2). A verified customer always sees their own two figures.
 
 ### `GET /me/wallet`
-- **gate:** none (signed in; RLS to own rows) · **idempotent:** n/a
+- **gate:** `verified` (spec 002; RLS to own rows) · **idempotent:** n/a
 - **200:** `{ "available": "…", "held": "…" }` — read from `customer_wallet` (derived from the ledger; never a stored balance).
 
 ### `GET /me/wallet/transactions`
 Customer's own ledger history (their postings, human-labelled by `event_kind`).
-- **gate:** none (signed in) · **idempotent:** n/a · keyset paginated.
+- **gate:** `verified` (spec 002) · **idempotent:** n/a · keyset paginated.
 
 ### `POST /me/wallet/topup`
 Adds funds (`event_kind = topup`): `bank +amount`, buyer `cust_available +amount` (balanced). Payment-gateway integration detail is Part 4; this endpoint records the resulting ledger movement on confirmed settlement.
-- **gate:** none (signed in) · **idempotent:** required · **audited:** no
+- **gate:** `trade_allowed` (spec 002: top-up requires verification) · **idempotent:** required · **audited:** no
 
 ### Payout accounts & withdrawals
 Money leaves only to an account in the customer's own name; a payout-account change pauses withdrawals for the setting window (48h) and the email second-check gates every withdrawal (Part 1 §2.4; schema §12).
@@ -425,9 +425,9 @@ Holder cancels before release (`requested/under_review → cancelled`); the held
 
 ---
 
-## 9. Admin — money (CEO + Finance only)
+## 9. Admin — money (CEO + Finance by default)
 
-Every endpoint here is wallet-touching: the matrix marks them CEO/Finance (Part 1 §4.2) **and** the Postgres grant makes the wallet views/writes unreachable to any other role (Part 1 §5.2). The COO, though a founder, cannot call these — a `wallet_access_denied` (403) from a COO session is a bug or a probe (Part 1 §9).
+Every endpoint here is wallet-touching: the seed gives these permissions to CEO/Finance only (Part 1 §4.2), and role managers may change that from the Dashboard (spec 002). There is no Postgres grant behind them (Part 1 §5.2). By default the COO, though a founder, lacks them and gets `403 permission_denied`.
 
 ### `GET /admin/withdrawals?state=requested,under_review`
 The review queue. · **permission:** *View a wallet* / *Release a withdrawal* (CEO/Finance) · **idempotent:** n/a
@@ -523,8 +523,23 @@ Approve/reject an ID (`verification` or founders). **Viewing the document image 
 Verify a payout account's name against the ID (`active`).
 - **permission:** *Verify a payout bank account* (CEO/Finance/Verification) · **audited:** yes · **idempotent:** required
 
+### Access control — roles, permissions, staff roles (built by spec 002)
+> **Changed by spec 002** (product-owner decision 2026-09-26) — see [`specs/002-dynamic-staff-authorization/`](../../specs/002-dynamic-staff-authorization/). Roles and their permissions are Dashboard-managed data. Implemented under `/api/v1/dashboard/*` (contract: `specs/002-dynamic-staff-authorization/contracts/openapi.yaml`):
+
+| Endpoint | Permission | Notes |
+|---|---|---|
+| `GET /dashboard/permissions` | `roles.manage` | The code-defined catalogue (read-only) |
+| `GET /dashboard/roles` · `GET /dashboard/roles/{role}` | `roles.manage` | With permissions and holder counts |
+| `POST /dashboard/roles` | `roles.manage` | Only permissions the actor holds |
+| `PATCH /dashboard/roles/{role}` | `roles.manage` | Not a role the actor holds; `reason` required for permission/MFA changes |
+| `DELETE /dashboard/roles/{role}` | `roles.manage` | `409 role_in_use` while held; `reason` required |
+| `GET /dashboard/staff` · `GET /dashboard/staff/{staff}` | `staff.view` | System actor never listed |
+| `PUT /dashboard/staff/{staff}/roles` | `roles.manage` | Not on yourself; `reason` required; founder status untouched |
+
+Refusals: `403 escalation_denied`, `409 last_role_manager`, `409 role_in_use`, `422 reason_required`. Every change is audited.
+
 ### `POST /admin/staff` · `PATCH /admin/staff/{id}` · founder security
-Create staff, change permissions (both founders); the IGI account is branch-bound (`igi_has_branch` CHECK). Founder device-approval and freeze/unfreeze endpoints implement Part 1 §8:
+Create / disable / enable staff accounts is a later feature (spec 002 FR-080); permissions are changed through the access-control endpoints above. A branch is optional for any staff member (the former `igi_has_branch` CHECK is removed). Founder status is never changeable through the API. Founder device-approval and freeze/unfreeze endpoints implement Part 1 §8:
 - `POST /admin/founder/device-approvals/{id}/approve` — the *other* founder approves a held new-device sign-in (`approver_is_not_self`).
 - `POST /admin/founder/freeze` / `/unfreeze` — either founder freezes the other instantly (`no_self_freeze`); unfreeze needs **both** confirmations (`unfreeze_confirm_1/2`).
 
@@ -540,7 +555,7 @@ Publish a new legal version (`legal_document`); a material change forces re-acce
 
 ## 11. Background jobs (not endpoints, but part of the API surface's contract)
 
-These are scheduled workers that drive deadline-based transitions. They are listed here because they produce the same audited, ledgered effects as endpoints and must obey the same one-transaction rule. Each runs as a system actor recorded in the audit log.
+These are scheduled workers that drive deadline-based transitions. They are listed here because they produce the same audited, ledgered effects as endpoints and must obey the same one-transaction rule. Each runs as the system actor (the single `staff` row with `is_system = true`, `App\Support\SystemActor`, spec 002) recorded in the audit log.
 
 - **Seller-reply deadline sweep.** Requests past `seller_reply_deadline` while still `queued` → `released_expired`, deposit refunded. (Per request; FIFO integrity preserved.)
 - **Reach-branch deadline sweep.** Orders past `reach_branch_deadline` in `awaiting_delivery` → `cancelled_seller` path (or a distinct no-deliver cancellation), buyer refunded; counts toward seller suspension.

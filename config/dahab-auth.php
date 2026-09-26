@@ -102,20 +102,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Role classifications
+    | Staff MFA requirement
     |--------------------------------------------------------------------------
-    | mfa_required — roles that MUST enroll TOTP; MFA challenges gate login
-    | founders     — roles that force MFA re-enrollment on password reset
+    | Who must use MFA is data, not config (spec 002 FR-040): founders
+    | (staff.is_founder) always, plus anyone holding a role flagged
+    | `requires_mfa`. This switch only exists so local development can turn
+    | the requirement off; it is forced on in production. Accounts that
+    | enrolled voluntarily are always challenged.
     */
 
-    // Comma-separated in DAHAB_AUTH_MFA_REQUIRED_ROLES. Leave it unset outside local
-    // development; an empty value disables the requirement (accounts that enrolled
-    // voluntarily are still challenged).
-    'mfa_required_roles' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env('DAHAB_AUTH_MFA_REQUIRED_ROLES', 'ceo,coo,finance')),
-    ))),
-    'founder_roles' => ['ceo', 'coo'],
+    'mfa_enforced' => (bool) env('DAHAB_AUTH_MFA_ENFORCED', true) || env('APP_ENV') === 'production',
 
     /*
     |--------------------------------------------------------------------------

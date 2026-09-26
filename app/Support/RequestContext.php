@@ -56,6 +56,24 @@ final class RequestContext
         );
     }
 
+    /**
+     * Context for scheduled jobs and other background work: attributed to the
+     * system actor (spec 002 FR-062), so audit and ledger actor rules hold.
+     * A job binds it (`app()->instance(RequestContext::class, …)`) or passes
+     * it to each Action before changing state.
+     */
+    public static function forSystem(): self
+    {
+        return new self(
+            customerId: null,
+            staffId: SystemActor::id(),
+            ip: '127.0.0.1',
+            userAgent: 'system',
+            deviceId: null,
+            deviceFingerprintHash: null,
+        );
+    }
+
     /** The same request metadata, attributed to a staff actor (e.g. once a sign-in resolves the row). */
     public function withStaff(string $staffId): self
     {

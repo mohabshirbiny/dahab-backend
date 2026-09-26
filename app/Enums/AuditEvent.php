@@ -35,4 +35,11 @@ enum AuditEvent: string
     case TOKEN_ROTATED = 'auth.token.rotated';
     case TOKEN_FAMILY_REVOKED = 'auth.token.family_revoked';
     case TOKEN_LOGOUT_ALL = 'auth.token.logout_all';
+    case ROLE_CREATED = 'authz.role.created';
+    case ROLE_UPDATED = 'authz.role.updated';
+    case ROLE_PERMISSIONS_CHANGED = 'authz.role.permissions_changed';
+    case ROLE_MFA_CHANGED = 'authz.role.mfa_changed';
+    case ROLE_DELETED = 'authz.role.deleted';
+    case STAFF_ROLES_CHANGED = 'authz.staff.roles_changed';
+    case ESCALATION_DENIED = 'authz.escalation_denied';
 }

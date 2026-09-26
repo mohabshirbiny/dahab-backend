@@ -2,7 +2,7 @@
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Enums\AuditEvent;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Staff;
@@ -33,7 +33,7 @@ function abilityFixture(string $kind): array
         return [$issue->forCustomer($customer), '/api/v1/customer/auth/me', '/api/v1/customer/auth/refresh', $customer];
     }
 
-    $staff = Staff::factory()->role(StaffRole::OPERATIONS)->create();
+    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
 
     return [$issue->forStaff($staff), '/api/v1/dashboard/auth/me', '/api/v1/dashboard/auth/refresh', $staff];
 }

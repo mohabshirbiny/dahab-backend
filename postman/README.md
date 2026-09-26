@@ -5,10 +5,11 @@ into folders by API surface, then by domain: `Dashboard` (Auth, Identity, ...), 
 (Auth, Identity, ...) and `Health`, the same way the routes are grouped.
 `Dahab-Backend.local.postman_environment.json` provides `base_url`, `device_id`,
 `access_token`, `refresh_token`, `staff_access_token`, `staff_refresh_token`,
-`staff_mfa_session_ref`, `upload_token` and `document_id` variables for local use against
-`APP_URL` (default `http://localhost`). The last three are filled in by test scripts:
-`staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_token` by **Upload ID Image**,
-`document_id` by **Submit Identity Document** / **List Identity Documents**.
+`staff_mfa_session_ref`, `upload_token`, `document_id`, `role_name` and `staff_id` variables
+for local use against `APP_URL` (default `http://localhost`). The last five are filled in by
+test scripts: `staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_token` by
+**Upload ID Image**, `document_id` by **Submit Identity Document** / **List Identity
+Documents**, `role_name` by **Create Role**, `staff_id` by **List Staff**.
 
 There are two API surfaces with **separate tokens**:
 
@@ -21,12 +22,18 @@ A token of the other principal is rejected with `401`. An access token on a refr
 endpoint, or a refresh token on an access endpoint, is rejected with `403 forbidden`.
 Dashboard requests set their own Bearer variable. Get a staff session with **Dashboard →
 Auth → Staff Login** (local accounts `<role>@dahab.test`, password `seeded-password-1`, after
-`php artisan db:seed`). `ceo`/`coo`/`finance` need MFA: Staff Login answers `mfa_required`
-or `mfa_enrollment_required` and saves a `session_ref`; finish with **Staff MFA Verify** or
+`php artisan db:seed`). Founders (`ceo@`, `coo@`) and anyone holding a role flagged
+`requires_mfa` (`finance` in the seed) need MFA: Staff Login answers `mfa_required` or
+`mfa_enrollment_required` and saves a `session_ref`; finish with **Staff MFA Verify** or
 **Staff MFA Enroll** (a 6-digit TOTP from an authenticator app).
 
 The identity flow spans both surfaces: **Customer → Identity** (upload → submit) as a customer,
 then **Dashboard → Identity** (list → view image → approve/reject) as `verification` or `ceo`.
+
+**Dashboard → Access Control** (spec 002) manages roles and who holds them, as `ceo` or `coo`:
+List Permissions → Create Role (saves `role_name`) → List Staff (saves `staff_id`) → Set Staff
+Roles. Permission and role-assignment changes need a `reason`, and nobody can change their own
+access.
 
 ## Import
 
@@ -39,8 +46,10 @@ then **Dashboard → Identity** (list → view image → approve/reject) as `ver
    answers `otp_required` and saves `challenge_id`; finish with **Customer Login — Verify
    OTP** (SMS code; `123456` in the local environment) from the same device, which trusts
    the device and stores the tokens. **Customer Login — Resend OTP** sends a new code.
-   Registration does not trust a device and issues no session — a new customer must be
-   approved by staff (Dashboard → Identity → Review — Verify) before they can log in.
+   Registration does not trust a device and issues no session. A customer can log in before
+   staff approve them (Dashboard → Identity → Review — Verify), but until then only sign-in,
+   their profile and identity-document requests work; everything else answers
+   `403 verification_required` (spec 002).
 4. **Customer Refresh** / **Staff Refresh** send the refresh token and store the new pair.
 
 ## Keeping it updated

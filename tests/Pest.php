@@ -4,6 +4,7 @@ use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Http\Resources\Customer\CustomerResource;
 use App\Models\Customer;
 use App\Models\CustomerTrustedDevice;
+use App\Models\Staff;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -76,4 +77,10 @@ function pngBytes(): string
     imagepng(imagecreatetruecolor(4, 4));
 
     return (string) ob_get_clean();
+}
+
+/** A fresh staff access token (spec 002 authorization tests). */
+function staffAccessToken(Staff $staff): string
+{
+    return app(IssueTokenFamilyAction::class)->forStaff($staff)->accessToken;
 }

@@ -95,6 +95,16 @@
             "key": "challenge_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "role_name",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "staff_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -103,7 +113,7 @@
             "item": [
                 {
                     "name": "Auth",
-                    "description": "Dashboard API. Uses staff tokens only (staff_access_token / staff_refresh_token); a customer token is rejected with 401. Sign in with Staff Login (local accounts <role>@dahab.test after `php artisan db:seed`, password seeded-password-1). ceo/coo/finance never get a session from Staff Login: it answers mfa_required (enrolled) or mfa_enrollment_required (first time) with a session_ref, saved to staff_mfa_session_ref \u2014 finish with Staff MFA Verify or Staff MFA Enroll.",
+                    "description": "Dashboard API. Uses staff tokens only (staff_access_token / staff_refresh_token); a customer token is rejected with 401. Sign in with Staff Login (local accounts <role>@dahab.test after `php artisan db:seed`, password seeded-password-1). Founders and staff holding a role flagged requires_mfa (ceo/coo/finance in the seed) never get a session from Staff Login: it answers mfa_required (enrolled) or mfa_enrollment_required (first time) with a session_ref, saved to staff_mfa_session_ref \u2014 finish with Staff MFA Verify or Staff MFA Enroll.",
                     "item": [
                         {
                             "name": "Staff Login",
@@ -779,8 +789,398 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Access Control",
+                    "description": "Dashboard API \u2014 roles, their permissions, and staff role assignment (spec 002). Uses staff_access_token. Roles and permissions need roles.manage; the staff list needs staff.view (ceo and coo hold both in the seed). Refusals: 403 escalation_denied (no self-escalation), 409 role_in_use / last_role_manager, 422 reason_required. Frozen staff get 403 account_frozen on every request.",
+                    "item": [
+                        {
+                            "name": "List Permissions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/permissions",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "permissions"
+                                    ]
+                                },
+                                "description": "The code-defined permission catalogue (code, label, group, branch_scoped), ordered by group then code. Read-only: roles hold these codes. Requires roles.manage."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Roles",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/roles",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "roles"
+                                    ]
+                                },
+                                "description": "Every role with its permissions and staff_count (system actor excluded), ordered by display_name. Requires roles.manage."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Role",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/roles",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "roles"
+                                    ]
+                                },
+                                "description": "Create a role. name: ^[a-z][a-z0-9_]{2,49}$, unique, immutable. display_name max 100, description max 500, requires_mfa boolean, permissions: catalogue codes the actor holds (403 escalation_denied otherwise), reason optional (max 500). Saves role_name. Audited (authz.role.created). Requires roles.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"customer_support\",\n    \"display_name\": \"Customer support\",\n    \"description\": \"Answers customer questions\",\n    \"requires_mfa\": false,\n    \"permissions\": [\n        \"customer.view\"\n    ]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('role_name', pm.response.json().data.name);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Show Role",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/roles/{{role_name}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "roles",
+                                        "{{role_name}}"
+                                    ]
+                                },
+                                "description": "One role by machine name. 404 not_found if unknown. Requires roles.manage."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Role",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/roles/{{role_name}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "roles",
+                                        "{{role_name}}"
+                                    ]
+                                },
+                                "description": "Edit display_name, description, requires_mfa and/or permissions (replaces the whole set). You cannot edit a role you hold, and every added/removed code must be one you hold (403 escalation_denied). reason (min 5, max 500) is required when permissions or requires_mfa change (422 reason_required). name is ignored. Applies on each holder's next request. Requires roles.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"display_name\": \"Customer support\",\n    \"permissions\": [\n        \"customer.view\"\n    ],\n    \"reason\": \"Support agents need the customer list\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Delete Role",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/roles/{{role_name}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "roles",
+                                        "{{role_name}}"
+                                    ]
+                                },
+                                "description": "Delete a role nobody holds (409 role_in_use otherwise) and that you do not hold. reason required (422 reason_required). Audited (authz.role.deleted). Requires roles.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"Support queue merged into operations\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Staff",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff?per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "Staff members (system actor never listed) with roles, effective permissions, read-only is_founder and branch. Filters: role (a role name), per_page 1-50 (default 25). Saves staff_id from the first row. Requires staff.view."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const rows = pm.response.json().data || [];",
+                                            "if (rows.length) {",
+                                            "    pm.collectionVariables.set('staff_id', rows[0].id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Show Staff Member",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff/{{staff_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff",
+                                        "{{staff_id}}"
+                                    ]
+                                },
+                                "description": "One staff member. 404 for an unknown id or the system actor. Requires staff.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Set Staff Roles",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff/{{staff_id}}/roles",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff",
+                                        "{{staff_id}}",
+                                        "roles"
+                                    ]
+                                },
+                                "description": "Replace the roles a staff member holds (may be empty). Not on yourself; every permission of every role you add or remove must be one you hold (403 escalation_denied). reason required (422 reason_required). Founder status is never changed. Applies on their next request. Audited (authz.staff.roles_changed). Requires roles.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"roles\": [\n        \"operations\",\n        \"customer_support\"\n    ],\n    \"reason\": \"Covering the support queue\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
                 }
-            ]
+            ],
+            "description": ""
         },
         {
             "name": "Customer",

@@ -1,7 +1,7 @@
 <?php
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
-use App\Enums\StaffRole;
+use App\Enums\SeedRole;
 use App\Models\Customer;
 use App\Models\Staff;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
@@ -53,7 +53,7 @@ it('rejects a customer token on the dashboard: 401, for access and refresh token
 })->with(DASHBOARD_ENDPOINTS);
 
 it('rejects a staff token on the customer API: 401, for access and refresh tokens alike', function (string $method, string $path) {
-    $session = app(IssueTokenFamilyAction::class)->forStaff(Staff::factory()->role(StaffRole::CEO)->create());
+    $session = app(IssueTokenFamilyAction::class)->forStaff(Staff::factory()->role(SeedRole::CEO)->create());
 
     foreach ([$session->accessToken, $session->refreshToken] as $token) {
         $this->bearer($token)->json($method, $path)
@@ -66,7 +66,7 @@ it('rejects a staff token on the customer API: 401, for access and refresh token
 })->with(CUSTOMER_ENDPOINTS);
 
 it('does not confuse a staff and a customer that share the same id', function () {
-    $staff = Staff::factory()->role(StaffRole::CEO)->create();
+    $staff = Staff::factory()->role(SeedRole::CEO)->create();
     $customer = Customer::factory()->create(['customer_id' => $staff->staff_id]);
     $issue = app(IssueTokenFamilyAction::class);
 
@@ -108,6 +108,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
         'api/v1/customer/auth/register/submit',
         'api/v1/customer/auth/register/complete',
         'api/v1/customer/auth/login',
+        // New-device sign-in: credentialed by the challenge_id from login, not a token.
+        'api/v1/customer/auth/otp/verify',
+        'api/v1/customer/auth/otp/resend',
         'api/v1/dashboard/auth/login',
         'api/v1/dashboard/auth/mfa/verify',
         'api/v1/dashboard/auth/mfa/enroll',
@@ -142,8 +145,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
     }
 
     // customer: refresh, me, logout, logout-all, me/uploads, me/identity-documents (6)
-    // dashboard: refresh, me, logout, logout-all, identity-documents index/show/image/review (8), customers index/show (2)
-    expect($checked)->toBe(16);
+    // dashboard: refresh, me, logout, logout-all, identity-documents index/show/image/review (8), customers index/show (2),
+    //            permissions index, roles index/store/show/update/destroy, staff index/show/roles (9, spec 002)
+    expect($checked)->toBe(25);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

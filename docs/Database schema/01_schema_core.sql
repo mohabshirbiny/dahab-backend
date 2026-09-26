@@ -151,9 +151,10 @@ CREATE TYPE ledger_event_kind AS ENUM (
   'reversal'               -- correcting reversal of a prior event
 );
 
-CREATE TYPE staff_role AS ENUM (
-  'ceo', 'coo', 'finance', 'operations', 'verification', 'igi_branch'
-);
+-- Changed by spec 002 (product-owner decision 2026-09-26): staff roles are
+-- Dashboard-managed data (Spatie `roles`), not a Postgres enum. The former
+-- `staff_role` enum is removed; the six original roles are only the initial
+-- seed. See docs/Technical Spec/dahab-dashboard-authorization.md §3.
 
 -- ---------------------------------------------------------------------
 -- 2. Reference data (operator-editable; the "data not code" rule)
