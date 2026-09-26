@@ -203,16 +203,24 @@ authorize(staff, action):
 
 ### 5.1 Customer row-level security
 
-RLS is enabled on `customer`, `listing`, `buy_request`, `order`, `payout_account`, `withdrawal`, and `identity_document`. Customer-facing connections set, per request, inside the transaction:
+> **Implemented by spec 003** (2026-09-26) — see [`specs/003-customer-rls-isolation/`](../../specs/003-customer-rls-isolation/). The binding model below replaces the earlier `SET LOCAL` wording.
 
-```sql
-SET LOCAL app.current_customer_id = '<uuid-from-session>';
-```
+RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the application connects as the table owner) on every customer-owned table. Today those are `customer`, `customer_password`, `customer_trusted_device`, `identity_document` and customer rows of `one_time_token`. `listing`, `buy_request`, `order`, `payout_account`, `withdrawal` and the wallet accounts join when their modules land. In a customer context, `audit_log` accepts only inserts where the customer is the actor and returns nothing on read, and `document_view_log` is closed. Each policy is `dahab_rls_elevated() OR <owner> = dahab_current_customer_id()`: buyer or seller for orders, the owner for everything else. **With no actor bound, customer tables return nothing and accept no writes (fail closed).**
 
-and the policies restrict every row to the owning customer (buyer or seller for orders; owner for everything else). Two properties matter:
+**Binding.** `App\Support\DatabaseActor` publishes `app.rls_scope`, `app.current_customer_id` and `app.current_staff_id` for one **unit of work**: a request (`SetDatabaseActor` middleware), a queued job, or a `migrate`/`db:seed` run. Each unit pushes a frame and pops it in `finally`, restoring the previous values, so the binding never survives its unit on a reused connection. It is session-level rather than `SET LOCAL` because several paths deliberately write an audit row and then refuse; a request-wide transaction would roll those rows back (spec 003 research R2). **This assumes no transaction-mode connection pooler** (PgBouncer `pool_mode=transaction`) between the app and PostgreSQL; with one, the binding would have to become per-transaction.
 
-- **`SET LOCAL`**, not `SET` — the binding lives for exactly one transaction and cannot leak to the next request on a pooled connection. This is a hard requirement of the connection-pooling model; a plain `SET` on a pooled connection is a cross-customer data leak.
-- The customer connection role **cannot** `SET app.current_customer_id` to an arbitrary value it chooses — the value comes from the authenticated session and is written by the framework's request-context middleware (§7), never from request input.
+**Scopes.**
+
+| Scope | Sees | Used by |
+|---|---|---|
+| `customer` | own rows only | any customer-authenticated request |
+| `staff` | all customers | any staff-authenticated request (staff permissions still decide what they may do) |
+| `bootstrap` | all customers | unauthenticated auth routes (`db.elevate:bootstrap`: customer register/login/OTP, staff login/MFA) and loading a token's owner during authentication |
+| `system` | all customers | queued jobs, as the system actor; each job writes an `rls.system_elevation` audit row |
+| `maintenance` | all customers | CLI `migrate*` / `db:seed` (audited `rls.maintenance_elevation`) and test fixtures |
+| none | nothing | everything else |
+
+The customer id comes only from the authenticated session, written by the framework (§7), never from request input. The application's database role must be neither superuser nor `BYPASSRLS`; a test enforces this, and another test fails the build if a table with a customer owner column lacks forced RLS and a policy.
 
 ### 5.2 Wallet visibility is a permission
 

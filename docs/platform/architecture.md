@@ -26,7 +26,8 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
 
 - **Stack**: Laravel 12, PHP 8.3+ (^8.2 in composer), PostgreSQL 16, Redis 7 (cache/session/queue),
   Sanctum (tokens), Spatie Laravel Permission (staff), Horizon, Notifications, l5-swagger, google2fa (TOTP),
-  Pest 3. Docker Compose (app · nginx · postgres · redis · horizon) or Laragon natively. Tests use in-memory SQLite.
+  Pest 3. Docker Compose (app · nginx · postgres · redis · horizon) or Laragon natively. Tests run on PostgreSQL
+  (row-level security and CHECK constraints cannot be tested on SQLite), as the non-superuser `dahab` role.
 - **Layout**
   - `routes/api.php` — every route, `/api/v1` group, split into Customer and Dashboard surfaces.
   - `app/Http/Controllers/Api/V1/{Customer,Dashboard}/…` — thin controllers carrying `#[OA\…]` attributes.
@@ -35,16 +36,25 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
   - `app/Actions/{Auth,Dashboard,Identity}/…` — single-purpose business operations (the business logic).
   - `app/Enums/…` — statuses, error codes, permissions, roles, token abilities.
   - `app/Exceptions/{AuthApiException,DomainApiException}` → rendered in `bootstrap/app.php`.
-  - `app/Http/Middleware/` — `EnforceStaffPermission`, `SetRequestContext` (device/IP context),
-    `SetDatabaseActor` (named actor on every state change — Constitution I).
+  - `app/Http/Middleware/` — `EnforceStaffPermission` (`staff.permission`), `EnsureStaffStanding`
+    (`staff.standing`), `EnsureCustomerStanding` (`customer.gate`), `SetRequestContext` (device/IP context),
+    `SetDatabaseActor` (binds the database actor per request — Constitution I/II), `ElevateDatabaseScope`
+    (`db.elevate:bootstrap` on unauthenticated auth routes).
   - `config/dahab-auth.php`, `config/dahab-identity.php`, `config/sms.php` — domain configuration.
 - **Domain models today**: `Customer`, `CustomerPassword`, `CustomerTrustedDevice`, `IdentityDocument`,
   `DocumentViewLog`, `OneTimeToken`, `AccountFreeze`, `AuditLog`, `Staff`, `StaffPassword`, `StaffMfa`,
   `StaffDeviceFingerprint`, `FounderDeviceApproval`.
 - **Implemented modules**: customer auth (registration, login, device OTP, token rotation), identity
   documents (upload, submit, staff review with audited image views), dashboard customer listing/detail,
-  staff auth (login, MFA/TOTP). Marketplace modules (items, orders, wallet, payments, …) are **not built yet**;
+  staff auth (login, MFA/TOTP), Dashboard-managed staff roles and permissions and the customer verified
+  gate (spec 002), and customer data isolation by PostgreSQL row-level security (spec 003). Marketplace modules (items, orders, wallet, payments, …) are **not built yet**;
   their design is in `docs/`.
+- **Customer data isolation (spec 003)**: every customer-owned table has **forced** row-level security.
+  `App\Support\DatabaseActor` binds the scope (`customer` · `staff` · `bootstrap` · `system` · `maintenance`)
+  per request, queued job or CLI migrate/seed, and restores it afterwards; no scope sees no customer rows.
+  **A new table with a customer owner column must enable + force RLS and add its policy in the same
+  migration** (pattern in `docs/Database schema/05_schema_security.sql` §19); `CustomerTableIsolationTest`
+  fails the build otherwise. Details: `docs/Technical Spec/dahab-spec-part1-auth.md` §5.1.
 - **Governance**: `.specify/memory/constitution.md` (named actor, least privilege in the engine, docs as
   source of truth, versioning), Spec Kit specs in `specs/`, product/tech specs in `docs/`
   (`Technical Spec/dahab-spec-part{1,2,3}-*.md`, `dahab-dashboard-authorization.md`, DB design docs).

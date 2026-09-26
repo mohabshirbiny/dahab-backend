@@ -2,35 +2,42 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\DatabaseActor;
 use App\Support\RequestContext;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Publishes the current actor to a Postgres session variable so RLS
- * policies can read `dahab_current_customer_id()` / `dahab_current_staff_id()`.
+ * Binds the request's actor for PostgreSQL row-level security (spec 003).
  *
- * Uses `SET` (session-scoped) rather than `SET LOCAL` because we do not
- * wrap the whole request in a transaction here. Downstream Actions that
- * open transactions inherit the session variable; when the connection is
- * released back to the pool at end of request Laravel calls
- * `DiscardAll`-ish cleanup between requests.
+ * Runs after authentication (route middleware priority puts `auth:*` first).
+ * A customer principal binds the `customer` scope — the database then only
+ * returns that customer's rows; a staff principal binds the `staff` scope
+ * (Clarification Q1: staff see all customers, their permissions decide what
+ * they may do); an anonymous request binds nothing, so customer tables are
+ * closed to it unless a route declares `db.elevate:bootstrap`.
+ *
+ * The frame is popped in `finally`, so the identity never outlives the
+ * request on a reused connection (FR-010).
  */
 final class SetDatabaseActor
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
         /** @var RequestContext|null $ctx */
         $ctx = $request->attributes->get('context');
 
-        if ($ctx !== null) {
-            DB::statement(
-                "SELECT set_config('app.current_customer_id', ?, false), set_config('app.current_staff_id', ?, false)",
-                [$ctx->customerId ?? '', $ctx->staffId ?? '']
-            );
-        }
+        match (true) {
+            $ctx?->customerId !== null => DatabaseActor::push('customer', customerId: $ctx->customerId),
+            $ctx?->staffId !== null => DatabaseActor::push('staff', staffId: $ctx->staffId),
+            default => DatabaseActor::push(''),
+        };
 
-        return $next($request);
+        try {
+            return $next($request);
+        } finally {
+            DatabaseActor::pop();
+        }
     }
 }
