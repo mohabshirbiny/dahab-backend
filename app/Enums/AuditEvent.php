@@ -42,4 +42,6 @@ enum AuditEvent: string
     case ROLE_DELETED = 'authz.role.deleted';
     case STAFF_ROLES_CHANGED = 'authz.staff.roles_changed';
     case ESCALATION_DENIED = 'authz.escalation_denied';
+    case RLS_SYSTEM_ELEVATION = 'rls.system_elevation';
+    case RLS_MAINTENANCE_ELEVATION = 'rls.maintenance_elevation';
 }

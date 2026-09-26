@@ -30,7 +30,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             // Six-step registration (docs Part 2 §§1–6). Only `submit` writes to
             // the database; steps 1–5 hold state in an encrypted cache entry
             // keyed by an opaque `registration_ref`.
-            Route::prefix('register')->name('register.')->group(function () {
+            // No actor exists yet on these routes: they read/create customer rows
+            // under an explicit row-level-security bootstrap elevation (spec 003).
+            Route::middleware('db.elevate:bootstrap')->prefix('register')->name('register.')->group(function () {
                 Route::post('/start', [CustomerRegistrationController::class, 'start'])
                     ->middleware('throttle:auth.customer.register')->name('start');
 
@@ -57,12 +59,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
 
             Route::post('/login', [CustomerAuthController::class, 'login'])
-                ->middleware('throttle:auth.customer.login')->name('login');
+                ->middleware(['throttle:auth.customer.login', 'db.elevate:bootstrap'])->name('login');
 
             // New-device sign-in (Part 1 §2.3): login answers `otp_required`
             // with a challenge_id; these release it. Code guessing is capped
             // per challenge by the limiter and by the challenge itself.
-            Route::prefix('otp')->name('otp.')->group(function () {
+            Route::middleware('db.elevate:bootstrap')->prefix('otp')->name('otp.')->group(function () {
                 Route::post('/verify', [CustomerLoginOtpController::class, 'verify'])
                     ->middleware('throttle:auth.otp.verify')->name('verify');
                 Route::post('/resend', [CustomerLoginOtpController::class, 'resend'])
@@ -94,10 +96,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     // ─── Dashboard/Staff surface ─────────────────────────────────────────
     Route::prefix('dashboard')->name('dashboard.')->group(function () {
         Route::prefix('auth')->name('auth.')->group(function () {
+            // No actor is bound yet, but sign-in writes staff-attributed audit rows
+            // (RLS-protected): explicit bootstrap elevation, as for customer auth (spec 003).
             Route::post('/login', [StaffAuthController::class, 'login'])
-                ->middleware('throttle:auth.staff.login')->name('login');
+                ->middleware(['throttle:auth.staff.login', 'db.elevate:bootstrap'])->name('login');
 
-            Route::middleware('throttle:auth.staff.mfa')->prefix('mfa')->name('mfa.')->group(function () {
+            Route::middleware(['throttle:auth.staff.mfa', 'db.elevate:bootstrap'])->prefix('mfa')->name('mfa.')->group(function () {
                 Route::post('/verify', [StaffMfaController::class, 'verify'])->name('verify');
                 Route::post('/enroll', [StaffMfaController::class, 'enroll'])->name('enroll');
             });

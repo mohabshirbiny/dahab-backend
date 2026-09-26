@@ -1415,44 +1415,69 @@ CREATE TRIGGER trg_order_transition
 
 -- ---------------------------------------------------------------------
 -- 19. Row-Level Security (customer data isolation)
---     A customer can see only their own rows (defense in depth; kept by
---     spec 002 / Constitution v2 Principle II). Staff access is decided by
---     application permissions (Spatie), not per-role database grants —
---     wallet visibility included. RLS shown for customer tables.
+--     Implemented by spec 003 (specs/003-customer-rls-isolation), migration
+--     2026_09_26_000040_enable_customer_row_level_security.
+--
+--     A customer can see and change only their own rows — enforced by the
+--     engine, forced even for the application's owning role (defense in
+--     depth; Constitution v2 Principle II). Staff access is decided by
+--     application permissions (Spatie), not per-role database grants.
+--
+--     The actor is bound per unit of work (request / queued job / CLI
+--     migrate or seed) by App\Support\DatabaseActor as session settings:
+--       app.rls_scope          '' | customer | staff | bootstrap | system | maintenance
+--       app.current_customer_id, app.current_staff_id
+--     and restored when the unit ends. No scope => customer tables are
+--     empty and read-only (fail closed). See Part 1 §5.1.
 -- ---------------------------------------------------------------------
-ALTER TABLE customer            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE listing             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE buy_request         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "order"             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payout_account      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE withdrawal          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE identity_document   ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION dahab_rls_scope() RETURNS text AS $$
+  SELECT COALESCE(current_setting('app.rls_scope', true), '');
+$$ LANGUAGE sql STABLE;
 
--- The app sets: SET LOCAL app.current_customer_id = '<uuid>' per request
--- for customer-facing connections. How staff requests bypass these
--- policies is defined by the customer-RLS activation feature (next after
--- spec 002); it is not a per-staff-role grant.
-CREATE POLICY cust_self_customer ON customer
-  USING (customer_id = current_setting('app.current_customer_id', true)::uuid);
+CREATE OR REPLACE FUNCTION dahab_rls_elevated() RETURNS boolean AS $$
+  SELECT dahab_rls_scope() IN ('staff', 'system', 'bootstrap', 'maintenance');
+$$ LANGUAGE sql STABLE;
+-- dahab_current_customer_id() / dahab_current_staff_id(): migration 2026_09_19_003010.
 
-CREATE POLICY cust_self_listing ON listing
-  USING (seller_id = current_setting('app.current_customer_id', true)::uuid);
+-- Tables that exist today ---------------------------------------------
+ALTER TABLE customer                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer                FORCE  ROW LEVEL SECURITY;
+CREATE POLICY customer_isolation ON customer FOR ALL
+  USING      (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+  WITH CHECK (dahab_rls_elevated() OR customer_id = dahab_current_customer_id());
 
-CREATE POLICY cust_self_request ON buy_request
-  USING (buyer_id = current_setting('app.current_customer_id', true)::uuid);
+-- Same shape (ENABLE + FORCE + FOR ALL USING/WITH CHECK on customer_id):
+--   customer_password, customer_trusted_device, identity_document
+-- and on actor_customer_id:
+--   one_time_token   (staff-actor tokens are never visible to a customer)
 
-CREATE POLICY cust_self_order ON "order"
-  USING (seller_id = current_setting('app.current_customer_id', true)::uuid
-      OR buyer_id  = current_setting('app.current_customer_id', true)::uuid);
+ALTER TABLE audit_log               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_log               FORCE  ROW LEVEL SECURITY;
+CREATE POLICY audit_log_read  ON audit_log FOR SELECT USING (dahab_rls_elevated());
+CREATE POLICY audit_log_write ON audit_log FOR INSERT WITH CHECK (
+  dahab_rls_elevated()
+  OR (actor_customer_id = dahab_current_customer_id() AND actor_staff_id IS NULL)
+);   -- UPDATE/DELETE: no policy (and the append-only trigger blocks them anyway)
 
-CREATE POLICY cust_self_payout ON payout_account
-  USING (customer_id = current_setting('app.current_customer_id', true)::uuid);
+ALTER TABLE document_view_log       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE document_view_log       FORCE  ROW LEVEL SECURITY;
+CREATE POLICY document_view_log_staff ON document_view_log FOR ALL
+  USING (dahab_rls_elevated()) WITH CHECK (dahab_rls_elevated());
 
-CREATE POLICY cust_self_withdrawal ON withdrawal
-  USING (customer_id = current_setting('app.current_customer_id', true)::uuid);
-
-CREATE POLICY cust_self_document ON identity_document
-  USING (customer_id = current_setting('app.current_customer_id', true)::uuid);
+-- Pattern for tables added by later modules ---------------------------
+-- In the SAME migration that creates the table: ENABLE + FORCE RLS and
+--   CREATE POLICY <table>_isolation ON <table> FOR ALL
+--     USING      (dahab_rls_elevated() OR <owner predicate>)
+--     WITH CHECK (dahab_rls_elevated() OR <owner predicate>);
+-- Owner predicates planned:
+--   listing         seller_id = dahab_current_customer_id()
+--   buy_request     buyer_id  = dahab_current_customer_id()
+--   "order"         seller_id = dahab_current_customer_id() OR buyer_id = dahab_current_customer_id()
+--   payout_account  customer_id = dahab_current_customer_id()
+--   withdrawal      customer_id = dahab_current_customer_id()
+-- CustomerTableIsolationTest fails the build for any table with a
+-- customer_id / actor_customer_id / buyer_id / seller_id column that lacks
+-- forced RLS and a policy.
 
 -- NOTE: a public marketplace read of LIVE listings is served by a
 -- dedicated view (or a separate policy) that exposes only non-owner-

@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Exceptions\AuthApiException;
+use App\Models\PersonalAccessToken;
 use App\Notifications\Channels\SmsChannel;
 use App\Services\Sms\HttpSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\Sms\SmsSender;
+use App\Support\DatabaseActorEvents;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\ChannelManager;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,11 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiters();
         $this->configurePasswordPolicy();
         $this->registerSmsNotificationChannel();
+
+        // Row-level security (spec 003): token owners load under a bootstrap
+        // elevation; queued jobs and migrate/seed run under audited elevations.
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        DatabaseActorEvents::register();
     }
 
     /**
