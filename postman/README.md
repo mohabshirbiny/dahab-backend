@@ -5,7 +5,8 @@ into folders by API surface, then by domain: `Dashboard` (Auth, Identity, ...), 
 (Auth, Identity, ...) and `Health`, the same way the routes are grouped.
 `Dahab-Backend.local.postman_environment.json` provides `base_url`, `device_id`,
 `access_token`, `refresh_token`, `staff_access_token`, `staff_refresh_token`,
-`staff_mfa_session_ref`, `upload_token`, `document_id`, `role_name` and `staff_id` variables
+`staff_mfa_session_ref`, `upload_token`, `document_id`, `role_name`, `staff_id`, `karat_code`,
+`branch_id` and `closure_id` variables
 for local use against `APP_URL` (default `http://localhost`). The last five are filled in by
 test scripts: `staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_token` by
 **Upload ID Image**, `document_id` by **Submit Identity Document** / **List Identity
@@ -33,7 +34,13 @@ then **Dashboard → Identity** (list → view image → approve/reject) as `ver
 **Dashboard → Access Control** (spec 002) manages roles and who holds them, as `ceo` or `coo`:
 List Permissions → Create Role (saves `role_name`) → List Staff (saves `staff_id`) → Set Staff
 Roles. Permission and role-assignment changes need a `reason`, and nobody can change their own
-access.
+access. **Set Staff Branch** assigns a staff member to a branch (uses `branch_id`).
+
+**Dashboard → Reference Data** (spec 004) manages karats, branches with their weekly hours, and
+closures/public holidays. View as `ceo`, `coo`, `finance` or `operations`; toggle karats as
+`finance`; add karats as `coo`; manage branches and closures as `coo` or `operations`.
+Add Karat saves `karat_code`, Add Branch / List Branches save `branch_id`, Add Closure saves
+`closure_id`.
 
 ## Import
 

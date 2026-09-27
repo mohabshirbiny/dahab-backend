@@ -89,7 +89,8 @@ it('requires a reason to change permissions or the MFA flag', function () {
     $this->bearer($this->token)->patchJson('/api/v1/dashboard/roles/operations', ['requires_mfa' => true])
         ->assertUnprocessable()->assertJsonPath('code', 'reason_required');
 
-    expect(StaffRoleModel::findByName('operations', 'staff')->permissions)->toBeEmpty();
+    expect(StaffRoleModel::findByName('operations', 'staff')->hasPermissionTo('customer.view'))->toBeFalse()
+        ->and(StaffRoleModel::findByName('operations', 'staff')->requires_mfa)->toBeFalse();
 });
 
 it('changes permissions with a reason and audits what was added and removed', function () {

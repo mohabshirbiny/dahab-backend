@@ -33,16 +33,17 @@ it('authenticates a staff token on the dashboard and returns roles and permissio
         ->assertJsonPath('data.email', 'boss@dahab.test')
         ->assertJsonPath('data.role', 'ceo')
         ->assertJsonPath('data.roles', ['ceo'])
-        ->assertJsonPath('data.permissions', ['customer.suspend', 'customer.view', 'identity.review', 'identity.view', 'roles.manage', 'staff.view'])
+        ->assertJsonPath('data.permissions', ['branches.manage', 'customer.suspend', 'customer.view', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'reference.view', 'roles.manage', 'staff.view'])
         ->assertJsonMissingPath('data.password_hash');
 });
 
 it('lists no permissions for a role that has none', function () {
-    $staff = Staff::factory()->role(SeedRole::OPERATIONS)->create();
+    // igi_branch holds nothing in the seed (spec 004 gave operations the reference-data codes).
+    $staff = Staff::factory()->role(SeedRole::IGI_BRANCH)->create();
 
     $this->withToken(staffBearer($staff))->getJson('/api/v1/dashboard/auth/me')
         ->assertOk()
-        ->assertJsonPath('data.roles', ['operations'])
+        ->assertJsonPath('data.roles', ['igi_branch'])
         ->assertJsonPath('data.permissions', []);
 });
 

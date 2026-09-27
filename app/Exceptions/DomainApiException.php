@@ -72,6 +72,16 @@ class DomainApiException extends RuntimeException
         return new self('wrong_branch', 403, 'This record belongs to another branch.');
     }
 
+    public static function closureExists(): self
+    {
+        return new self('closure_exists', 409, 'This date is already closed for that branch or for all branches.');
+    }
+
+    public static function closureInPast(): self
+    {
+        return new self('closure_in_past', 409, 'Past closures cannot be removed: deadlines were already counted with them.');
+    }
+
     /** An unverified (pending or rejected) customer calling a gated action (spec 002 FR-031). */
     public static function verificationRequired(): self
     {

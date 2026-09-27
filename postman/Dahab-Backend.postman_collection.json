@@ -1176,6 +1176,475 @@
                                 }
                             },
                             "response": []
+                        },
+                        {
+                            "name": "Set Staff Branch",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff/{{staff_id}}/branch",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff",
+                                        "{{staff_id}}",
+                                        "branch"
+                                    ]
+                                },
+                                "description": "Sets (an enabled branch) or clears (null) the branch a staff member works at. Not on yourself (403 escalation_denied); reason required (422 reason_required). Applies on their next request. Audited (authz.staff.branch_changed). Requires roles.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"branch_id\": {{branch_id}},\n    \"reason\": \"Assigned to the Heliopolis branch\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Reference Data",
+                    "description": "Dashboard API \u2014 karats, inspection branches, weekly hours and closures (spec 004). Uses staff_access_token. Viewing needs reference.view (ceo, coo, finance, operations in the seed); karat on/off needs karats.toggle (finance), adding a karat karats.create (coo), branch and closure changes branches.manage (coo, operations). Refusals: 409 closure_exists / closure_in_past, 422 validation_failed. Every change is audited.",
+                    "item": [
+                        {
+                            "name": "List Karats",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/karats",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "karats"
+                                    ]
+                                },
+                                "description": "Every karat in display order, enabled or not. Requires reference.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Add Karat",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('karat_code', pm.response.json().data.code);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/karats",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "karats"
+                                    ]
+                                },
+                                "description": "Adds a karat, which starts off. code 1..24 (unique), purity in (0, 1] with at most 5 decimals, optional sort_order (default last). Code and purity never change afterwards. Requires karats.create.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"code\": 14,\n    \"purity\": \"0.585\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Toggle Karat",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/karats/{{karat_code}}/toggle",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "karats",
+                                        "{{karat_code}}",
+                                        "toggle"
+                                    ]
+                                },
+                                "description": "Turns a karat on or off at once. Audited when it changes (reference.karat.toggled). 404 for an unknown code. Requires karats.toggle.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"enabled\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Branches",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const rows = pm.response.json().data || [];",
+                                            "if (rows.length) {",
+                                            "    pm.collectionVariables.set('branch_id', rows[0].id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/branches",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "branches"
+                                    ]
+                                },
+                                "description": "Branches with their weekly hours (dow 0 = Sunday \u2026 6 = Saturday), enabled or not. Requires reference.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Add Branch",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('branch_id', pm.response.json().data.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/branches",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "branches"
+                                    ]
+                                },
+                                "description": "Adds a branch with its whole week. Several intervals per day are allowed (split day); they must not overlap (422 hours.N). timezone is an IANA name, default Africa/Cairo. Requires branches.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"name_ar\": \"\u0641\u0631\u0639 \u0645\u0635\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629\",\n    \"address_en\": \"12 Baghdad St, Heliopolis\",\n    \"address_ar\": \"12 \u0634\u0627\u0631\u0639 \u0628\u063a\u062f\u0627\u062f\u060c \u0645\u0635\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629\",\n    \"timezone\": \"Africa/Cairo\",\n    \"hours\": [\n        {\n            \"dow\": 0,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"18:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"14:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"16:00\",\n            \"closes_at\": \"20:00\"\n        }\n    ]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Branch",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/branches/{{branch_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "branches",
+                                        "{{branch_id}}"
+                                    ]
+                                },
+                                "description": "Edits any field. hours, when sent, replaces the whole week. Disable with is_enabled false; branches are never deleted. Requires branches.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"hours\": [\n        {\n            \"dow\": 6,\n            \"opens_at\": \"11:00\",\n            \"closes_at\": \"19:00\"\n        }\n    ]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Closures",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/branch-closures",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "branch-closures"
+                                    ]
+                                },
+                                "description": "Closures and public holidays, date ascending. branch_id null = every branch. Requires reference.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Add Closure",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('closure_id', pm.response.json().data.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/branch-closures",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "branch-closures"
+                                    ]
+                                },
+                                "description": "Closes one branch (branch_id) or every branch (branch_id null) for a whole day, today or later. 409 closure_exists for the same date and scope. Requires branches.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"branch_id\": null,\n    \"closure_date\": \"2027-01-07\",\n    \"reason_en\": \"Coptic Christmas\",\n    \"reason_ar\": \"\u0639\u064a\u062f \u0627\u0644\u0645\u064a\u0644\u0627\u062f\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Remove Closure",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/branch-closures/{{closure_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "branch-closures",
+                                        "{{closure_id}}"
+                                    ]
+                                },
+                                "description": "Removes a future closure (204). One dated today or earlier is kept: 409 closure_in_past. Requires branches.manage."
+                            },
+                            "response": []
                         }
                     ]
                 }

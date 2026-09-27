@@ -490,6 +490,24 @@ Enter a manual gold price / correction (when Evolve is unavailable — Part 4).
 ### `POST /admin/karats/{code}/toggle`
 Turn a karat on/off (a row toggle on `karat.is_enabled`, not a release — locked "data not code").
 - **permission:** *Turn a karat on or off* (CEO/Finance) · **audited:** yes · **idempotent:** required
+- **As built** (spec 004): `POST /api/v1/dashboard/karats/{code}/toggle` `{enabled}` (`karats.toggle`) — see "Reference data" below.
+
+### Reference data — karats, branches, hours, closures (built by spec 004)
+> See [`specs/004-reference-data/`](../../specs/004-reference-data/) and [`docs/features/reference-data.md`](../features/reference-data.md). Implemented under `/api/v1/dashboard/*`; permissions are catalogue codes seeded onto the dynamic roles (ceo gets all):
+
+| Endpoint | Permission (seed roles) | Notes |
+|---|---|---|
+| `GET /dashboard/karats` | `reference.view` (coo, finance, operations) | Display order |
+| `POST /dashboard/karats` `{code 1..24, purity (0,1] ≤5 dp, sort_order?}` | `karats.create` (coo) | Starts off; code and purity immutable (no update route) |
+| `POST /dashboard/karats/{code}/toggle` `{enabled}` | `karats.toggle` (finance) | Audited only when it changes |
+| `GET /dashboard/branches` | `reference.view` | With the weekly hours (`dow` 0 = Sunday) |
+| `POST /dashboard/branches` · `PATCH /dashboard/branches/{branch}` | `branches.manage` (coo, operations) | `hours` replaces the whole week; split days allowed, overlaps → 422 `hours.N`; branches are disabled, never deleted |
+| `GET /dashboard/branch-closures` | `reference.view` | `branch_id` null = every branch |
+| `POST /dashboard/branch-closures` | `branches.manage` | Today or later; duplicate → `409 closure_exists` |
+| `DELETE /dashboard/branch-closures/{closure}` | `branches.manage` | Future only; today or earlier → `409 closure_in_past` |
+| `PUT /dashboard/staff/{staff}/branch` `{branch_id\|null, reason}` | `roles.manage` | Enabled branch only; not on yourself (`403 escalation_denied`); `422 reason_required` |
+
+Every change is audited (`reference.*`, `authz.staff.branch_changed`). Piece types are seeded only; they have no endpoint yet. The working-hours deadline resolver (Part 3 §1) is `App\Support\WorkingHours\WorkingHoursResolver`.
 
 ### `POST /admin/category-controls`
 Set a category stop/pause (`stop_new_listings` | `pause_category` | `stop_everything`); anything with a locked price is left alone (schema §14).

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\SeedRole;
+use App\Models\Branch;
 use App\Models\Staff;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,8 +26,8 @@ it('lists staff with their roles, founder flag and permissions, ordered by name,
 
     $response->assertJsonPath('data.0.is_founder', true)
         ->assertJsonPath('data.0.roles', [['name' => 'coo', 'display_name' => 'COO']])
-        ->assertJsonPath('data.0.permissions', ['customer.suspend', 'roles.manage', 'staff.view'])
-        ->assertJsonPath('data.1.branch_id', 1)
+        ->assertJsonPath('data.0.permissions', ['branches.manage', 'customer.suspend', 'karats.create', 'reference.view', 'roles.manage', 'staff.view'])
+        ->assertJsonPath('data.1.branch_id', Branch::query()->value('branch_id'))
         ->assertJsonPath('meta.per_page', 25);
 
     expect(array_keys($response->json('data.0')))->toBe(['id', 'full_name', 'email', 'phone', 'is_active', 'is_founder', 'branch_id', 'roles', 'permissions', 'mfa_enrolled']);

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Authorization\ListStaffAction;
+use App\Actions\Authorization\SetStaffBranchAction;
 use App\Actions\Authorization\SetStaffRolesAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Authorization\ListStaffRequest;
+use App\Http\Requests\Dashboard\Authorization\SetStaffBranchRequest;
 use App\Http\Requests\Dashboard\Authorization\SetStaffRolesRequest;
 use App\Http\Resources\Staff\StaffMemberResource;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -90,6 +92,33 @@ class StaffController extends Controller
     public function updateRoles(SetStaffRolesRequest $request, string $staff, SetStaffRolesAction $set): StaffMemberResource
     {
         $set->handle($request->user('staff'), $this->staff->find($staff), $request->validated('roles'), $request->validated('reason'));
+
+        return StaffMemberResource::make($this->staff->find($staff));
+    }
+
+    #[OA\Put(
+        path: '/dashboard/staff/{staff}/branch',
+        operationId: 'dashboardSetStaffBranch',
+        summary: 'Set or clear the branch a staff member works at',
+        description: 'Not allowed on yourself. The branch must be enabled; null clears it. A reason is required. Audited (authz.staff.branch_changed). Takes effect on the target\'s next request. Requires roles.manage.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Access Control'],
+        parameters: [new OA\Parameter(name: 'staff', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DashboardSetStaffBranch')),
+        responses: [
+            new OA\Response(response: 200, description: 'Updated staff member', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', ref: '#/components/schemas/DashboardStaffMember'),
+            ])),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 403, description: 'permission_denied | escalation_denied | account_frozen', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed | reason_required', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function updateBranch(SetStaffBranchRequest $request, string $staff, SetStaffBranchAction $set): StaffMemberResource
+    {
+        $branchId = $request->validated('branch_id');
+        $set->handle($request->user('staff'), $this->staff->find($staff), $branchId === null ? null : (int) $branchId, $request->validated('reason'));
 
         return StaffMemberResource::make($this->staff->find($staff));
     }

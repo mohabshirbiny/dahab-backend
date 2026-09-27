@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\SeedRole;
 use App\Models\AccountFreeze;
+use App\Models\Branch;
 use App\Models\Staff;
 use App\Models\StaffMfa;
 use App\Models\StaffPassword;
@@ -61,7 +62,9 @@ class StaffFactory extends Factory
         $state = ['roles' => array_values($names)];
 
         if (in_array(SeedRole::IGI_BRANCH->value, $names, true)) {
-            $state['branch_id'] = 1;
+            // A real branch (staff.branch_id references branch, spec 004).
+            $state['branch_id'] = fn () => Branch::query()->orderBy('branch_id')->value('branch_id')
+                ?? Branch::factory()->create()->branch_id;
         }
 
         return $this->state(fn () => $state);

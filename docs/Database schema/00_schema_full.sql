@@ -195,7 +195,8 @@ CREATE TABLE karat (
   purity_ratio NUMERIC(6,5) NOT NULL,         -- 0.750, 0.833, 0.875, 0.916, 0.999
   is_enabled   BOOLEAN NOT NULL DEFAULT TRUE,
   sort_order   SMALLINT NOT NULL,
-  CONSTRAINT karat_purity_range CHECK (purity_ratio > 0 AND purity_ratio <= 1)
+  CONSTRAINT karat_purity_range CHECK (purity_ratio > 0 AND purity_ratio <= 1),
+  CONSTRAINT karat_code_range CHECK (karat_code BETWEEN 1 AND 24)   -- spec 004
 );
 
 CREATE TABLE piece_type (
@@ -206,7 +207,10 @@ CREATE TABLE piece_type (
   typical_min_g  NUMERIC(10,3),
   typical_max_g  NUMERIC(10,3),
   is_enabled     BOOLEAN NOT NULL DEFAULT TRUE,
-  UNIQUE (category, name_en)
+  UNIQUE (category, name_en),
+  CONSTRAINT piece_type_weight_order CHECK (                         -- spec 004
+    typical_min_g IS NULL OR typical_max_g IS NULL OR typical_min_g <= typical_max_g
+  )
 );
 
 -- Inspection branches. Working hours + holidays drive every deadline.
@@ -243,6 +247,38 @@ CREATE TABLE branch_closure (
   reason_ar   TEXT,
   UNIQUE (branch_id, closure_date)
 );
+
+-- Seed (spec 004): karats in every environment. 20K and 22K start off;
+-- turning one on is a row toggle from the Dashboard, not a release.
+INSERT INTO karat (karat_code, purity_ratio, is_enabled, sort_order) VALUES
+  (24, 0.99900, TRUE,  1),
+  (22, 0.91600, FALSE, 2),
+  (21, 0.87500, TRUE,  3),
+  (20, 0.83300, FALSE, 4),
+  (18, 0.75000, TRUE,  5);
+
+-- Seed (spec 004): piece types, from the Customer App's sell flow.
+INSERT INTO piece_type (category, name_en, name_ar, typical_min_g, typical_max_g) VALUES
+  ('gold', 'Ring', 'خاتم', 3, 5),
+  ('gold', 'Earrings', 'حلق', 3, 6),
+  ('gold', 'Chain', 'سلسلة', 8, 15),
+  ('gold', 'Bangle', 'غويشة', 15, 30),
+  ('gold', 'Pendant', 'دلاية', NULL, NULL),
+  ('gold', 'Other', 'أخرى', NULL, NULL),
+  ('diamond', 'Ring', 'خاتم', NULL, NULL),
+  ('diamond', 'Earrings', 'حلق', NULL, NULL),
+  ('diamond', 'Pendant', 'دلاية', NULL, NULL),
+  ('diamond', 'Bridal set', 'طقم عروسة', NULL, NULL),
+  ('diamond', 'Bracelet', 'أسورة', NULL, NULL),
+  ('diamond', 'Other', 'أخرى', NULL, NULL),
+  ('gold_with_diamond', 'Ring', 'خاتم', NULL, NULL),
+  ('gold_with_diamond', 'Earrings', 'حلق', NULL, NULL),
+  ('gold_with_diamond', 'Pendant', 'دلاية', NULL, NULL),
+  ('gold_with_diamond', 'Bridal set', 'طقم عروسة', NULL, NULL),
+  ('gold_with_diamond', 'Bracelet', 'أسورة', NULL, NULL),
+  ('gold_with_diamond', 'Other', 'أخرى', NULL, NULL);
+-- Branches, their hours and holidays are real operating data entered from
+-- the Dashboard (spec 004); no production seed.
 
 -- ---------------------------------------------------------------------
 -- 3. Settings (single source of truth for every tunable number)

@@ -44,15 +44,21 @@ final class RoleEscalationGuard
         }
     }
 
+    /** No staff member changes their own access (roles, branch). */
+    public function assertNotSelf(Staff $actor, Staff $target, string $attempt): void
+    {
+        if ($actor->is($target)) {
+            $this->deny($actor, $attempt, [], 'staff', $target->staff_id);
+        }
+    }
+
     /**
      * @param  list<string>  $addedRoleNames
      * @param  list<string>  $removedRoleNames
      */
     public function assertCanAssign(Staff $actor, Staff $target, array $addedRoleNames, array $removedRoleNames): void
     {
-        if ($actor->is($target)) {
-            $this->deny($actor, 'change_own_roles', [], 'staff', $target->staff_id);
-        }
+        $this->assertNotSelf($actor, $target, 'change_own_roles');
 
         $touched = array_unique([...$addedRoleNames, ...$removedRoleNames]);
         if ($touched === []) {

@@ -44,4 +44,12 @@ enum AuditEvent: string
     case ESCALATION_DENIED = 'authz.escalation_denied';
     case RLS_SYSTEM_ELEVATION = 'rls.system_elevation';
     case RLS_MAINTENANCE_ELEVATION = 'rls.maintenance_elevation';
+    case KARAT_CREATED = 'reference.karat.created';
+    case KARAT_TOGGLED = 'reference.karat.toggled';
+    case BRANCH_CREATED = 'reference.branch.created';
+    case BRANCH_UPDATED = 'reference.branch.updated';
+    case BRANCH_HOURS_REPLACED = 'reference.branch.hours_replaced';
+    case CLOSURE_ADDED = 'reference.closure.added';
+    case CLOSURE_REMOVED = 'reference.closure.removed';
+    case STAFF_BRANCH_CHANGED = 'authz.staff.branch_changed';
 }
