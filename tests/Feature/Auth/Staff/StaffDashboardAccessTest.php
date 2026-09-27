@@ -33,7 +33,7 @@ it('authenticates a staff token on the dashboard and returns roles and permissio
         ->assertJsonPath('data.email', 'boss@dahab.test')
         ->assertJsonPath('data.role', 'ceo')
         ->assertJsonPath('data.roles', ['ceo'])
-        ->assertJsonPath('data.permissions', ['branches.manage', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'])
+        ->assertJsonPath('data.permissions', ['audit.view_all', 'audit.view_own', 'branches.manage', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'])
         ->assertJsonMissingPath('data.password_hash');
 });
 

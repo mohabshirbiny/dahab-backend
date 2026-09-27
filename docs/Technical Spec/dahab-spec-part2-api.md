@@ -554,6 +554,18 @@ Approve/reject an ID (`verification` or founders). **Viewing the document image 
   - `POST /api/v1/dashboard/identity-documents/{id}/review`, body `{ decision: "approved"|"rejected", reason }` — `reason` required for `rejected` (422 otherwise; kept in `audit_log.reason`, the schema has no column on the document). `pending → approved|rejected` exactly once (`409 illegal_document_transition` after that). Approval sets `customer.is_verified`; rejection leaves the customer unchanged. Document, customer and audit row commit together. `identity.review`.
   - The document id is matched as a UUID in the route and loaded inside the Action (no route-model binding), so a caller without the permission gets `403` for existing and missing ids alike.
 
+### Audit log viewer (built by spec 006)
+> See [`specs/006-audit-log/`](../../specs/006-audit-log/) and [`docs/features/audit-log.md`](../features/audit-log.md). Part 1 §4.3 "View the audit log": CEO everything; COO, Finance, Operations, Verification own actions; IGI none — as catalogue codes `audit.view_all` (ceo) and `audit.view_own` (coo, finance, operations, verification).
+
+| Endpoint | Notes |
+|---|---|
+| `GET /dashboard/audit-log` | Newest first, keyset pages (`cursor`), filters `from`/`to` (Cairo dates, default last 7 days), `category` (absent = everything but sign-ins and sessions), `actor` (staff id or `system`), `action`, `entity_type`, `entity_id`; `meta.total` |
+| `GET /dashboard/audit-log/{entry}` | Full before/after, reason, IP, device fingerprint; `404` when not visible to the caller |
+| `GET /dashboard/audit-log/export` | CSV (UTF-8, BOM) of every match, capped at 50,000 (`X-Export-Truncated`); each export is recorded as `audit.log.exported` |
+| `GET /dashboard/audit-log/categories` | The 8 categories and whether "Everything" includes each |
+
+Without `audit.view_all`, every read is limited to the caller's own actions. Customers appear by `display_ref`; personal fields never appear in the summaries.
+
 ### `POST /admin/payout-accounts/{id}/verify`
 Verify a payout account's name against the ID (`active`).
 - **permission:** *Verify a payout bank account* (CEO/Finance/Verification) · **audited:** yes · **idempotent:** required

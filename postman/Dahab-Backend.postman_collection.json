@@ -2132,6 +2132,251 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Audit Log",
+                    "description": "Dashboard API \u2014 the audit log (spec 006). Uses staff_access_token. audit.view_all (ceo) sees everything; audit.view_own (coo, finance, operations, verification) sees only the caller's own actions. \"Everything\" (no category) leaves out sign-ins and sessions. Pages use a cursor: pass meta.next_cursor. Each export is itself recorded.",
+                    "item": [
+                        {
+                            "name": "List Audit Log",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const rows = pm.response.json().data || [];",
+                                            "if (rows.length) {",
+                                            "    pm.collectionVariables.set('audit_entry_id', rows[0].id);",
+                                            "}",
+                                            "const next = (pm.response.json().meta || {}).next_cursor;",
+                                            "pm.collectionVariables.set('audit_cursor', next || '');"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/audit-log?per_page=50",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "audit-log"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "50"
+                                        }
+                                    ]
+                                },
+                                "description": "Newest first, last 7 days by default. Filters: from, to (Cairo dates), category, actor (staff id or system), action, entity_type, entity_id; cursor, per_page \u2264 100."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Audit Log \u2014 Next Page",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/audit-log?per_page=50&cursor={{audit_cursor}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "audit-log"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "50"
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": "{{audit_cursor}}"
+                                        }
+                                    ]
+                                },
+                                "description": "The next page after List Audit Log."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Audit Log \u2014 Pricing",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/audit-log?category=pricing",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "audit-log"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "category",
+                                            "value": "pricing"
+                                        }
+                                    ]
+                                },
+                                "description": "Only the Pricing category."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Audit Categories",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/audit-log/categories",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "audit-log",
+                                        "categories"
+                                    ]
+                                },
+                                "description": "The 8 categories and whether Everything includes each."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show Audit Entry",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/audit-log/{{audit_entry_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "audit-log",
+                                        "{{audit_entry_id}}"
+                                    ]
+                                },
+                                "description": "One entry with the full before/after, reason, IP and device fingerprint. 404 when not visible to you."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export Audit Log (CSV)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/audit-log/export?category=pricing",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "audit-log",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "category",
+                                            "value": "pricing"
+                                        }
+                                    ]
+                                },
+                                "description": "CSV (UTF-8 with BOM) of every matching entry, capped at 50,000 (X-Export-Truncated). Recorded as audit.log.exported."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""

@@ -58,7 +58,7 @@ it('validates the role body', function (array $body, string $field) {
 
 it('shows one role and 404s an unknown one', function () {
     $this->bearer($this->token)->getJson('/api/v1/dashboard/roles/verification')
-        ->assertOk()->assertJsonPath('data.permissions', ['customer.view', 'identity.review', 'identity.view']);
+        ->assertOk()->assertJsonPath('data.permissions', ['audit.view_own', 'customer.view', 'identity.review', 'identity.view']);
 
     $this->bearer($this->token)->getJson('/api/v1/dashboard/roles/nobody_has_this')
         ->assertNotFound()->assertJsonPath('code', 'not_found');
@@ -101,9 +101,9 @@ it('changes permissions with a reason and audits what was added and removed', fu
 
     $audit = AuditLog::query()->where('action', 'authz.role.permissions_changed')->sole();
     expect($audit->reason)->toBe('Verification now handles suspensions')
-        ->and($audit->before_json['permissions'])->toBe(['customer.view', 'identity.review', 'identity.view'])
+        ->and($audit->before_json['permissions'])->toBe(['audit.view_own', 'customer.view', 'identity.review', 'identity.view'])
         ->and($audit->after_json['added'])->toBe(['customer.suspend'])
-        ->and($audit->after_json['removed'])->toBe(['identity.review', 'identity.view']);
+        ->and($audit->after_json['removed'])->toBe(['audit.view_own', 'identity.review', 'identity.view']);
 });
 
 it('changes the MFA flag with a reason and audits it', function () {

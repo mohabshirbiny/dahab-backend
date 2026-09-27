@@ -28,11 +28,11 @@ it('seeds today\'s access map plus the new access-control permissions for both f
     $this->seed([DashboardRolesAndPermissionsSeeder::class, LocalStaffSeeder::class]);
 
     $expected = [
-        'ceo' => ['branches.manage', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
-        'coo' => ['branches.manage', 'customer.suspend', 'karats.create', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
-        'finance' => ['gold_price.confirm', 'gold_price.enter', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view'],
-        'operations' => ['branches.manage', 'pricing.view', 'reference.view'],
-        'verification' => ['customer.view', 'identity.review', 'identity.view'],
+        'ceo' => ['audit.view_all', 'audit.view_own', 'branches.manage', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
+        'coo' => ['audit.view_own', 'branches.manage', 'customer.suspend', 'karats.create', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
+        'finance' => ['audit.view_own', 'gold_price.confirm', 'gold_price.enter', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view'],
+        'operations' => ['audit.view_own', 'branches.manage', 'pricing.view', 'reference.view'],
+        'verification' => ['audit.view_own', 'customer.view', 'identity.review', 'identity.view'],
         'igi_branch' => [],
     ];
 
@@ -56,7 +56,7 @@ it('never overwrites role permissions edited from the Dashboard when reseeding',
     $this->seed(DashboardRolesAndPermissionsSeeder::class);
 
     expect($verification->fresh()->permissions->pluck('name')->sort()->values()->all())
-        ->toBe(['customer.view', 'identity.view']);
+        ->toBe(['audit.view_own', 'customer.view', 'identity.view']);
 });
 
 it('gives a code new to the catalogue to ceo and its seed roles, and removes retired codes', function () {

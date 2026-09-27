@@ -1306,6 +1306,9 @@ CREATE TABLE audit_log (
 CREATE INDEX idx_audit_entity ON audit_log(entity_type, entity_id);
 CREATE INDEX idx_audit_actor ON audit_log(actor_staff_id);
 CREATE INDEX idx_audit_created ON audit_log(created_at);
+-- (spec 006) The audit log viewer lists newest first and pages by
+-- (created_at, audit_id); this index serves both.
+CREATE INDEX idx_audit_created_id ON audit_log(created_at DESC, audit_id DESC);
 
 -- Append-only: no updates or deletes, ever.
 CREATE TRIGGER audit_no_update BEFORE UPDATE OR DELETE ON audit_log

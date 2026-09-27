@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
+use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBranchClosureController;
@@ -222,6 +223,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/price-adjustments/history', [DashboardKaratAdjustmentController::class, 'history'])
                 ->middleware('staff.permission:pricing.view')->name('price-adjustments.history');
         });
+
+        // The audit log viewer (spec 006): everything, or your own actions only.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:audit.view_all|audit.view_own'])
+            ->prefix('audit-log')->name('audit-log.')->group(function () {
+                Route::get('/', [DashboardAuditLogController::class, 'index'])->name('index');
+                Route::get('/categories', [DashboardAuditLogController::class, 'categories'])->name('categories');
+                Route::get('/export', [DashboardAuditLogController::class, 'export'])->name('export');
+                Route::get('/{entry}', [DashboardAuditLogController::class, 'show'])->whereNumber('entry')->name('show');
+            });
 
         // Reference data: karats, branches, weekly hours and closures (spec 004).
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {

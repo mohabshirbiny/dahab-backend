@@ -57,6 +57,12 @@ enum StaffPermission: string
     /** Confirm a manual gold price above the deviation threshold (spec 005 Clarifications). */
     case GOLD_PRICE_CONFIRM = 'gold_price.confirm';
 
+    /** See the whole audit log (Part 1 §4.3 "View the audit log": CEO). */
+    case AUDIT_VIEW_ALL = 'audit.view_all';
+
+    /** See your own actions in the audit log (Part 1 §4.3: COO, Finance, Operations, Verification). */
+    case AUDIT_VIEW_OWN = 'audit.view_own';
+
     public function label(): string
     {
         return match ($this) {
@@ -75,6 +81,8 @@ enum StaffPermission: string
             self::SETTINGS_MANAGE => 'Change deadlines, deposits and thresholds',
             self::GOLD_PRICE_ENTER => 'Enter a gold price manually',
             self::GOLD_PRICE_CONFIRM => 'Confirm a manual gold price',
+            self::AUDIT_VIEW_ALL => 'View the whole audit log',
+            self::AUDIT_VIEW_OWN => 'View your own actions in the audit log',
         };
     }
 
@@ -87,6 +95,7 @@ enum StaffPermission: string
             self::REFERENCE_VIEW, self::KARATS_TOGGLE, self::KARATS_CREATE, self::BRANCHES_MANAGE => 'Reference data',
             self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
+            self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
         };
     }
 
@@ -129,6 +138,9 @@ enum StaffPermission: string
             self::GOLD_PRICE_ENTER,
             self::GOLD_PRICE_CONFIRM => [SeedRole::FINANCE->value],
             self::SETTINGS_MANAGE => [SeedRole::COO->value],
+            // Spec 006 (Part 1 §4.3): the CEO sees everything; the others their own actions.
+            self::AUDIT_VIEW_ALL => [],
+            self::AUDIT_VIEW_OWN => [SeedRole::COO->value, SeedRole::FINANCE->value, SeedRole::OPERATIONS->value, SeedRole::VERIFICATION->value],
         };
     }
 }

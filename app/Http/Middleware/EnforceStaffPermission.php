@@ -32,7 +32,8 @@ final class EnforceStaffPermission
             throw new AuthenticationException;
         }
 
-        if ($user instanceof Staff && $user->can($permission)) {
+        // `a|b` accepts any of the listed codes (spec 006: audit.view_all|audit.view_own).
+        if ($user instanceof Staff && collect(explode('|', $permission))->contains(fn (string $code) => $user->can($code))) {
             return $next($request);
         }
 
