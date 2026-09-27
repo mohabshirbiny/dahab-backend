@@ -52,4 +52,8 @@ enum AuditEvent: string
     case CLOSURE_ADDED = 'reference.closure.added';
     case CLOSURE_REMOVED = 'reference.closure.removed';
     case STAFF_BRANCH_CHANGED = 'authz.staff.branch_changed';
+    case SETTING_CHANGED = 'pricing.setting.changed';
+    case ADJUSTMENT_CHANGED = 'pricing.adjustment.changed';
+    case MANUAL_PRICE_ENTERED = 'pricing.manual_price.entered';
+    case MANUAL_PRICE_CONFIRMED = 'pricing.manual_price.confirmed';
 }

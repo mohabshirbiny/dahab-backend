@@ -1647,6 +1647,491 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Pricing",
+                    "description": "Dashboard API \u2014 gold prices, per-karat adjustments and settings (spec 005). Uses staff_access_token. Viewing needs pricing.view (ceo, coo, finance, operations in the seed). Rates, VAT, adjustments and price rules need pricing.rates.manage (finance); deadlines and deposits need settings.manage (coo); a manual price needs gold_price.enter and is accepted only while the price feed is down or not configured; confirming one needs gold_price.confirm (finance) and, while manualprice.confirmer_must_differ is on, another person. Money is a 4-dp string. No provider credential belongs in Postman: the feed is configured in the Backend's .env only.",
+                    "item": [
+                        {
+                            "name": "Current Gold Prices",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const pending = (pm.response.json().data || {}).pending;",
+                                            "if (pending) {",
+                                            "    pm.collectionVariables.set('manual_price_id', pending.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/gold-prices/current",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "gold-prices",
+                                        "current"
+                                    ]
+                                },
+                                "description": "The current price, feed state (healthy / down / not_configured), any pending manual price, and every karat's market bid/ask, sellers get, buyers pay, difference and adjustments. Requires pricing.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Gold Price History",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/gold-prices?per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "gold-prices"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "Prices that took effect, newest first. Requires pricing.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Preview Prices",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/gold-prices/preview",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "gold-prices",
+                                        "preview"
+                                    ]
+                                },
+                                "description": "Every karat's prices for a 24K bid/ask, a change_pct from the current pair, or the current price, optionally with trial adjustments per karat code. Writes nothing. Requires pricing.view.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"bid_24k\": \"7944\",\n    \"ask_24k\": \"7990\",\n    \"adjustments\": {\n        \"21\": {\n            \"buy\": {\n                \"kind\": \"percent\",\n                \"value\": \"-1.5\"\n            }\n        }\n    }\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Enter Manual Price",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201 || pm.response.code === 202) {",
+                                            "    pm.collectionVariables.set('manual_price_id', pm.response.json().data.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/gold-prices/manual",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "gold-prices",
+                                        "manual"
+                                    ]
+                                },
+                                "description": "Both 24K prices (or change_pct) with a reason, only while the feed is down. 201 = effective at once; 202 + code manual_price_confirm_required = pending above manualprice.confirm_deviation_pct. 409 price_feed_healthy while the feed works. Requires gold_price.enter.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"bid_24k\": \"7944\",\n    \"ask_24k\": \"7990\",\n    \"reason\": \"Feed down since 11:00, price taken by phone\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Confirm Manual Price",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/gold-prices/manual/{{manual_price_id}}/confirm",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "gold-prices",
+                                        "manual",
+                                        "{{manual_price_id}}",
+                                        "confirm"
+                                    ]
+                                },
+                                "description": "Confirms the latest pending manual price within its window. 403 confirmer_must_differ for the person who entered it (when the setting is on); 409 manual_price_not_pending when superseded, lapsed or overtaken. Requires gold_price.confirm."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Karat Adjustments",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/karats/21/adjustments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "karats",
+                                        "21",
+                                        "adjustments"
+                                    ]
+                                },
+                                "description": "Replaces 21K's buy-side (sellers get) and sell-side (buyers pay) adjustments: kind fixed (EGP per gram) or percent. 422 price_inverted when buyers would pay less than sellers get. Reason required. Requires pricing.rates.manage.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"buy\": {\n        \"kind\": \"fixed\",\n        \"value\": \"-15\"\n    },\n    \"sell\": {\n        \"kind\": \"fixed\",\n        \"value\": \"15\"\n    },\n    \"reason\": \"Align with the market this week\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Adjustment History",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/price-adjustments/history?karat=21",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "price-adjustments",
+                                        "history"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "karat",
+                                            "value": "21"
+                                        }
+                                    ]
+                                },
+                                "description": "Adjustment changes, newest first. Requires pricing.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Settings",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/settings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "settings"
+                                    ]
+                                },
+                                "description": "Every setting with group (rates / operations), type, unit, range and last change. Requires pricing.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Setting \u2014 Rate",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/settings/commission.gold_pct",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "settings",
+                                        "commission.gold_pct"
+                                    ]
+                                },
+                                "description": "A rates key: needs pricing.rates.manage. value is a decimal string (\u2264 4 dp) or a boolean for flags. Reason required. Kept in history and audited.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"value\": \"20\",\n    \"reason\": \"Back to the standard rate\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Setting \u2014 Operations",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/settings/deadline.seller_reply_hours",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "settings",
+                                        "deadline.seller_reply_hours"
+                                    ]
+                                },
+                                "description": "An operations key: needs settings.manage. Whole numbers where the key says integer.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"value\": \"48\",\n    \"reason\": \"Standard reply window\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Setting History",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/settings/history?key=commission.gold_pct",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "settings",
+                                        "history"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "key",
+                                            "value": "commission.gold_pct"
+                                        }
+                                    ]
+                                },
+                                "description": "Setting changes, newest first, optionally for one key. Requires pricing.view."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""

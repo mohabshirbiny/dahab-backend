@@ -481,11 +481,28 @@ Close the day: snapshot bank balance, customer liability, Dahab wallet, and the 
 Change any tunable (deposit %, deadlines, caps, pause window…). Writes `setting` + `setting_history` (append-only history) — never hardcoded (locked rule).
 - **permission:** varies by key. Commission/spread keys (`commission.*`, `spread*`) → **founders + Finance** (resolved decision this session; blueprint governs over the roles matrix). Other operational keys → per matrix. · **audited:** yes · **reason:** required · **idempotent:** required
 - **Special case:** a manual gold price whose deviation exceeds `manualprice.confirm_deviation_pct` requires a second confirm (setting; matrix "set the gold price correction").
+- **As built** (spec 005): `GET /api/v1/dashboard/settings` · `PATCH /api/v1/dashboard/settings/{key}` `{value, reason}` · `GET /api/v1/dashboard/settings/history`. Keys are a code-defined catalogue; rates keys (commission, VAT, manual-price rules, feed staleness, compensation and first-sale caps) need `pricing.rates.manage`, operations keys (deposit, deadlines, windows, tolerances, thresholds) need `settings.manage`. The two `price_correction.*` settings became per-karat adjustments — see "Pricing" below.
 
 ### `POST /admin/gold-price/manual`
 Enter a manual gold price / correction (when Evolve is unavailable — Part 4).
 - **permission:** *Enter a gold price manually* / *Set the correction* (CEO/Finance) · **audited:** yes · **reason:** required · **idempotent:** required
 - Deviation above the setting → `manual_price_confirm_required` (409) until a `confirm=true` second call.
+- **Changed by spec 005** (product-owner decisions 2026-09-27): the price is the 24K **bid and ask**; the confirmation is a separate request by a holder of `gold_price.confirm` (and, while `manualprice.confirmer_must_differ` is on, another person); a request that needs it is **recorded** and answered `202` with `code: manual_price_confirm_required` (not 409). See "Pricing" below.
+
+### Pricing — gold prices, adjustments (built by spec 005)
+> See [`specs/005-pricing/`](../../specs/005-pricing/) and [`docs/features/pricing.md`](../features/pricing.md). Implemented under `/api/v1/dashboard/*`:
+
+| Endpoint | Permission (seed roles, + ceo) | Notes |
+|---|---|---|
+| `GET /dashboard/gold-prices/current` | `pricing.view` (coo, finance, operations) | Current price, feed state, pending manual price, every karat's market bid/ask, sellers get, buyers pay |
+| `GET /dashboard/gold-prices` | `pricing.view` | History, newest first |
+| `POST /dashboard/gold-prices/preview` | `pricing.view` | Bid/ask, change %, or current, with optional trial adjustments; writes nothing |
+| `POST /dashboard/gold-prices/manual` `{bid_24k, ask_24k}` or `{change_pct}`, `reason` | `gold_price.enter` (finance) | Only while the feed is down (`409 price_feed_healthy`); `201` effective or `202` pending |
+| `POST /dashboard/gold-prices/manual/{id}/confirm` | `gold_price.confirm` (finance) | `403 confirmer_must_differ`, `409 manual_price_not_pending` |
+| `PUT /dashboard/karats/{code}/adjustments` `{buy, sell: {kind, value}, reason}` | `pricing.rates.manage` (finance) | `422 price_inverted` |
+| `GET /dashboard/price-adjustments/history` | `pricing.view` | |
+
+The feed itself is a scheduled command (`pricing:pull-feed`, every minute), not an endpoint — Part 4 §1.
 
 ### `POST /admin/karats/{code}/toggle`
 Turn a karat on/off (a row toggle on `karat.is_enabled`, not a release — locked "data not code").

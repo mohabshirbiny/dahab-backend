@@ -42,6 +42,21 @@ enum StaffPermission: string
     /** Add or edit an inspection branch, its hours and closures (Part 1 §4.3). */
     case BRANCHES_MANAGE = 'branches.manage';
 
+    /** See gold prices, adjustments and settings (spec 005). */
+    case PRICING_VIEW = 'pricing.view';
+
+    /** Change commission, VAT, per-karat adjustments and the price rules (Part 1 §4.2 "Change commission or spread rates", "Set the gold price correction"). */
+    case PRICING_RATES_MANAGE = 'pricing.rates.manage';
+
+    /** Change deadlines, deposits and thresholds — not in the Part 1 matrix, so founders (spec 005). */
+    case SETTINGS_MANAGE = 'settings.manage';
+
+    /** Enter a gold price by hand while the feed is down (Part 1 §4.2 "Enter a gold price manually"). */
+    case GOLD_PRICE_ENTER = 'gold_price.enter';
+
+    /** Confirm a manual gold price above the deviation threshold (spec 005 Clarifications). */
+    case GOLD_PRICE_CONFIRM = 'gold_price.confirm';
+
     public function label(): string
     {
         return match ($this) {
@@ -55,6 +70,11 @@ enum StaffPermission: string
             self::KARATS_TOGGLE => 'Turn a karat on or off',
             self::KARATS_CREATE => 'Add a karat',
             self::BRANCHES_MANAGE => 'Add or edit branches, their hours and holidays',
+            self::PRICING_VIEW => 'View gold prices, adjustments and settings',
+            self::PRICING_RATES_MANAGE => 'Change commission, VAT, price adjustments and price rules',
+            self::SETTINGS_MANAGE => 'Change deadlines, deposits and thresholds',
+            self::GOLD_PRICE_ENTER => 'Enter a gold price manually',
+            self::GOLD_PRICE_CONFIRM => 'Confirm a manual gold price',
         };
     }
 
@@ -65,6 +85,8 @@ enum StaffPermission: string
             self::IDENTITY_VIEW, self::IDENTITY_REVIEW => 'Identity',
             self::STAFF_VIEW, self::ROLES_MANAGE => 'Access control',
             self::REFERENCE_VIEW, self::KARATS_TOGGLE, self::KARATS_CREATE, self::BRANCHES_MANAGE => 'Reference data',
+            self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
+            self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
         };
     }
 
@@ -101,6 +123,12 @@ enum StaffPermission: string
             self::KARATS_TOGGLE => [SeedRole::FINANCE->value],
             self::KARATS_CREATE => [SeedRole::COO->value],
             self::BRANCHES_MANAGE => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
+            // Spec 005: money-adjacent codes skip the COO (Part 1 §4.2).
+            self::PRICING_VIEW => [SeedRole::COO->value, SeedRole::FINANCE->value, SeedRole::OPERATIONS->value],
+            self::PRICING_RATES_MANAGE,
+            self::GOLD_PRICE_ENTER,
+            self::GOLD_PRICE_CONFIRM => [SeedRole::FINANCE->value],
+            self::SETTINGS_MANAGE => [SeedRole::COO->value],
         };
     }
 }

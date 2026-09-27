@@ -58,41 +58,51 @@ An admin extension writes `order_deadline_extension` (`which ∈ reach_branch|ba
 
 ## 2. Pricing: the four inputs and the two sides
 
-Every figure a customer sees is built from four inputs, none typed by hand (blueprint §3): the **gold rate** (Evolve, Part 4), the **per-gram price correction** (two settings, buy and sell side), **weight and karat** (seller-stated, IGI-confirmed before settlement), and the **making charge** (seller's, for gold). This section defines how those become the two prices — what the buyer pays and what the seller receives — and the spread between them.
+> **Changed by spec 005** (product-owner decision 2026-09-27) — see [`specs/005-pricing/spec.md`](../../specs/005-pricing/spec.md). The price provider returns **two** 24K prices, a bid and an ask, not one rate `R`; the two single `price_correction.*` settings became **per-karat, per-side adjustments** (fixed EGP per gram, or a percentage). The rules below are the amended ones; commission, VAT and the "never from the gold value" rule (§2.5, §2.6) are unchanged.
+
+Every figure a customer sees is built from four inputs, none typed by hand (blueprint §3): the **gold price** (the provider's feed, Part 4 — or a manual price while the feed is down), the **per-karat adjustments** (buy and sell side), **weight and karat** (seller-stated, IGI-confirmed before settlement), and the **making charge** (seller's, for gold). This section defines how those become the two prices — what the buyer pays and what the seller receives — and the spread between them.
 
 ### 2.1 Purity
 
 `karat.purity_ratio` is the fraction of pure gold (`0.750` for 18K, `0.875` for 21K, `0.999` for 24K, etc.). Gold value always uses purity; a karat code never appears as a bare number in a price.
 
-### 2.2 The two corrected rates (gold)
+### 2.2 The market prices per karat (gold)
 
-From the live gold rate `R` (EGP per gram of pure gold, from Evolve or a manual price):
+The current `gold_price` row holds the provider's **24K bid** (what the market pays for gold) and **24K ask** (what it sells gold for), in EGP per gram of 24K. For a karat `k` with purity `p`:
 
-- **Sell-side rate** (what the buyer pays on): `R_sell = R + price_correction.sell_side`
-- **Buy-side rate** (what the seller receives on): `R_buy = R + price_correction.buy_side`
+- `market_bid(k) = bid_24k × p ÷ 0.999`
+- `market_ask(k) = ask_24k × p ÷ 0.999`
+- `mid(k) = (market_bid(k) + market_ask(k)) ÷ 2`
 
-`price_correction.buy_side` is typically negative and `price_correction.sell_side` typically positive (schema seed: `-15` and `+15`), so `R_buy ≤ R ≤ R_sell`. Both are EGP-per-gram corrections, the same for everyone (blueprint §3, "the correction is the same for everyone").
+Each is kept at 4 dp (half-up). For 24K itself (`p = 0.999`) the market prices are the provider's figures.
 
-### 2.3 The two prices (gold)
+### 2.3 The two published prices and the spread (gold)
 
-For weight `W` grams (stated at listing, **IGI-confirmed at settlement** — see §3.4) and purity `p`:
+Each karat has a **buy-side** and a **sell-side adjustment** (`karat_price_adjustment`), each `fixed` (EGP per gram of that karat, added) or `percent` (× `1 + value/100`):
 
-- **Buyer total (sell side):** `buyer_total = R_sell × W × p + making_charge_per_g × W`
-- **Seller gross (buy side):** `seller_gross = R_buy × W × p + making_charge_per_g × W`
-- **Spread (Dahab):** `spread = (R_sell − R_buy) × W × p = (sell_side − buy_side corrections) × W × p`
+- **Sellers get** (what the seller receives per gram): `sellers_get(k) = adjust(market_bid(k), buy-side)`
+- **Buyers pay** (what the buyer pays per gram): `buyers_pay(k) = adjust(market_ask(k), sell-side)`
 
-The spread is the **rate difference on the gold value only**. The making charge is identical on both sides (the seller set it; the buyer pays exactly it), so it cancels out of the spread and Dahab earns nothing on it via the spread — Dahab's earning on the making charge is the **commission** (§2.5), a different line.
+A karat whose `buyers_pay < sellers_get`, or with any price ≤ 0, is **inverted** and cannot be quoted.
 
-> **The gold value is never touched by commission.** The seller receives the full `R_buy × W × p` gold value. Commission is taken from the making charge (and from stone value on diamonds), never from the metal (locked rule, everywhere). The spread is a rate-difference margin on the gold, not a deduction from the seller's gold value — the seller was always quoted `R_buy`, and receives exactly `R_buy × W × p`.
+For weight `W` grams (stated at listing, **IGI-confirmed at settlement** — see §3.4):
+
+- **Buyer total (sell side):** `buyer_total = round4(buyers_pay(k) × W + making_charge_per_g × W)`
+- **Seller gross (buy side):** `seller_gross = round4(sellers_get(k) × W + making_charge_per_g × W)`
+- **Spread (Dahab):** `spread = buyer_total − seller_gross` — the price difference on the gold only, derived by subtraction so any rounding residue lands here (§3.5).
+
+The making charge is identical on both sides (the seller set it; the buyer pays exactly it), so it cancels out of the spread and Dahab earns nothing on it via the spread — Dahab's earning on the making charge is the **commission** (§2.5), a different line.
+
+> **The gold value is never touched by commission.** The seller receives the full `sellers_get(k) × W` gold value. Commission is taken from the making charge (and from stone value on diamonds), never from the metal (locked rule, everywhere). The spread is a price-difference margin on the gold, not a deduction from the seller's gold value — the seller was always quoted `sellers_get`, and receives exactly it.
 
 ### 2.4 Diamond and gold-with-diamond: no spread
 
-For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed asking price** (`listing.asking_price`); the buyer pays it; there is **no buy/sell rate split and no spread** (locked decision #5; blueprint §5). Pricing:
+For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed asking price** (`listing.asking_price`); the buyer pays it; there is **no buy/sell split and no spread** (locked decision #5; blueprint §5). Pricing:
 
 - **Diamond (pure):** `buyer_total = seller's asking_price`. The whole asking price is "value above gold" (there is no gold). Commission is `commission.stone_pct` of it. `seller_gross = asking_price`; commission is taken from it per §2.5; no spread.
-- **Gold-with-diamond:** `buyer_total = asking_price` (seller sets the whole-piece price). The **gold value** within it (`R × W × p`, at the **plain** rate — no buy/sell correction, since there is no spread on these) is protected: commission applies only to the **value above the gold** (`asking_price − gold_value`), per §2.5. No spread.
+- **Gold-with-diamond:** `buyer_total = asking_price` (seller sets the whole-piece price). The **gold value** within it (`mid(k) × W`, the midpoint of the **unadjusted** market bid and ask — no adjustment, since there is no spread on these) is protected: commission applies only to the **value above the gold** (`asking_price − gold_value`, floored at 0), per §2.5. No spread.
 
-> Why no spread on stones: gold has a public price and a buyer at any hour; a diamond is worth what a specific buyer pays and may sit for months (blueprint §5). The spread mechanism assumes a liquid, rate-driven value; stones do not have one. Dahab's earning on stones is commission on the value above gold, only.
+> Why no spread on stones: gold has a public price and a buyer at any hour; a diamond is worth what a specific buyer pays and may sit for months (blueprint §5). The spread mechanism assumes a liquid, market-driven value; stones do not have one. Dahab's earning on stones is commission on the value above gold, only.
 
 ### 2.5 Commission and VAT
 
@@ -107,7 +117,7 @@ For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed aski
 seller_proceeds = seller_gross − commission − vat
 ```
 
-For gold, `seller_gross = R_buy × W × p + making_charge × W`. For stones, `seller_gross = asking_price`. In both, commission + VAT come out of the seller's gross (the seller recovers the making charge / sets the stone price; Dahab's cut is from that value the seller recovers, never from the gold). The buyer pays `buyer_total`; the difference `buyer_total − seller_proceeds` is exactly `commission + vat + spread` — which is what Dahab keeps, split across `dahab_commission`, `vat_payable`, `dahab_spread`.
+For gold, `seller_gross = sellers_get(k) × W + making_charge × W`. For stones, `seller_gross = asking_price`. In both, commission + VAT come out of the seller's gross (the seller recovers the making charge / sets the stone price; Dahab's cut is from that value the seller recovers, never from the gold). The buyer pays `buyer_total`; the difference `buyer_total − seller_proceeds` is exactly `commission + vat + spread` — which is what Dahab keeps, split across `dahab_commission`, `vat_payable`, `dahab_spread`.
 
 ---
 
@@ -124,6 +134,9 @@ At `POST /orders/{id}/pay-balance`, with the order in `awaiting_balance` and an 
 The full price transits `escrow` **inside the one transaction**: it enters from the buyer (balance from `cust_available`, deposit from `cust_held`) and is distributed out to the seller and the `dahab_*` accounts in the same balanced set. Net escrow movement is zero within the transaction. Escrow stays on the path (not bypassed) because it is the single clean source for a later refund in the paid-but-uncollected case and for any post-payment dispute reversal (Part 2 §7 note; §10.3 here).
 
 ### 3.3 Worked example — gold, clean pass
+
+> **Restated for spec 005.** With the amended §2, these figures come from `bid_24k = ask_24k = 5,994` (= 6,000 per gram of pure gold × 0.999) and 21K adjustments of −13.125 (buy side) and +13.125 (sell side), fixed — the old ±15 "per gram of pure gold" is ±15 × purity per gram of the karat. Then `sellers_get(21K) = 5,236.875`, `buyers_pay(21K) = 5,263.125`, and every figure below is unchanged. The implementation's tests reproduce this example and §3.4 to the piastre.
+
 
 A 21K ring. Seller stated **10.000 g**; IGI confirms **10.000 g** (no difference). Gold rate `R = 6,000`. Corrections: `sell_side = +15`, `buy_side = −15`. Making charge `300`/g. Purity `p = 0.875`. Commission `20%`, VAT `14%`, minimum `200`.
 

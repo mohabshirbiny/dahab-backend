@@ -293,7 +293,7 @@ CREATE TABLE setting (
   value_bool    BOOLEAN,
   unit          TEXT,                          -- 'hours','percent','egp','working_hours'
   description   TEXT NOT NULL,
-  updated_by    UUID,                          -- FK added in Part 4 (staff)
+  updated_by    UUID,                          -- FK to staff in 02_schema_identity.sql (spec 005)
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -306,7 +306,8 @@ CREATE TABLE setting_history (
   new_text      TEXT,
   old_bool      BOOLEAN,
   new_bool      BOOLEAN,
-  changed_by    UUID NOT NULL,
+  changed_by    UUID NOT NULL,                 -- FK to staff in 02_schema_identity.sql (spec 005)
+  reason        TEXT NOT NULL,                 -- (spec 005) why, shown with the change
   changed_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -328,8 +329,9 @@ INSERT INTO setting (setting_key, value_numeric, unit, description) VALUES
   -- that price does not move with the market, so there is NO spread on them
   -- — Dahab's margin on those is the stone commission (commission.stone_pct)
   -- only. These two corrections therefore feed gold pricing exclusively.
-  ('price_correction.buy_side',        -15,    'egp',           'Correction per gram applied to the gold rate for the price the SELLER receives (buy side, typically negative)'),
-  ('price_correction.sell_side',       15,     'egp',           'Correction per gram applied to the gold rate for the price the BUYER pays (sell side, typically positive)'),
+  -- (spec 005) The two price_correction.* settings (-15 / +15 EGP per
+  -- gram) became karat_price_adjustment (§3b): per karat and per side,
+  -- fixed or percent, seeded with the same values.
   ('vat.pct',                          14,     'percent',       'VAT, applied to commission only'),
   ('deposit.buyer_pct',                20,     'percent',       'Buyer deposit held on a buy request'),
   ('deposit.seller_forfeit_share_pct', 50,     'percent',       'Share of a forfeited deposit paid to the seller'),
@@ -347,10 +349,116 @@ INSERT INTO setting (setting_key, value_numeric, unit, description) VALUES
   ('flag.pattern_txn_threshold',       5,      'count',         'Transactions before a pattern is flagged for review'),
   ('compensation.cap_per_payment_egp', 2000,   'egp',           'Compensation cap per payment (Finance)'),
   ('compensation.cap_per_day_egp',     5000,   'egp',           'Compensation cap per day (Finance)'),
-  ('manualprice.confirm_deviation_pct',10,     'percent',       'Manual gold price above this deviation needs a second confirm');
+  ('manualprice.confirm_deviation_pct',10,     'percent',       'Manual gold price above this deviation needs a second confirm'),
+  ('manualprice.pending_expiry_hours', 24,     'hours',         'A manual price waiting for confirmation lapses after N hours (spec 005)'),
+  ('pricefeed.stale_after_minutes',    5,      'minutes',       'The price feed counts as down after N minutes without a good reading (spec 005)');
+INSERT INTO setting (setting_key, value_bool, unit, description) VALUES
+  ('manualprice.confirmer_must_differ', TRUE,  'bool',          'The person who confirms a manual price must differ from the one who entered it (spec 005)');
 -- NOTE: karat tolerance is intentionally NOT a number. Any karat
 -- mismatch cancels the sale; that rule is enforced in code + a CHECK on
 -- inspection settlement (Part 3), not a tunable threshold.
+
+-- ---------------------------------------------------------------------
+-- 3b. Gold prices and per-karat adjustments (spec 005, 2026-09-27)
+--     The price provider returns the 24K BID (what the market pays) and
+--     ASK (what it sells for) per gram. Every other karat follows by
+--     purity: price x purity / 0.999. Each karat then has a buy-side
+--     adjustment (-> what sellers get) and a sell-side adjustment
+--     (-> what buyers pay), each a fixed EGP amount per gram or a
+--     percentage. These replace the two price_correction.* settings.
+--     Staff FKs are added in 02_schema_identity.sql (staff comes later).
+-- ---------------------------------------------------------------------
+
+-- A manual price request: entered while the feed is down; above
+-- manualprice.confirm_deviation_pct it waits for a confirmation by a
+-- holder of the confirm permission (and, when
+-- manualprice.confirmer_must_differ is on, by a different person).
+-- Only the status moves forward (pending -> effective|superseded|lapsed).
+CREATE TABLE manual_gold_price (
+  manual_gold_price_id   BIGSERIAL PRIMARY KEY,
+  bid_24k                NUMERIC(18,4) NOT NULL,
+  ask_24k                NUMERIC(18,4) NOT NULL,
+  previous_gold_price_id BIGINT,                       -- FK below
+  deviation_pct          NUMERIC(8,4),                 -- NULL when there was no price before
+  requires_confirmation  BOOLEAN NOT NULL,
+  reason                 TEXT NOT NULL,
+  entered_by             UUID NOT NULL,                -- FK staff (02)
+  status                 TEXT NOT NULL CHECK (status IN ('pending','effective','superseded','lapsed')),
+  confirmed_by           UUID,                         -- FK staff (02)
+  confirmed_at           TIMESTAMPTZ,
+  expires_at             TIMESTAMPTZ,                  -- pending only
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT manual_gold_price_positive CHECK (bid_24k > 0 AND ask_24k >= bid_24k),
+  CONSTRAINT manual_gold_price_confirmed CHECK ((confirmed_by IS NULL) = (confirmed_at IS NULL))
+);
+-- At most one request waits for confirmation at a time.
+CREATE UNIQUE INDEX manual_gold_price_one_pending ON manual_gold_price ((true)) WHERE status = 'pending';
+
+-- Append-only: one row per price that took effect (feed or manual).
+-- The current price is the latest by effective_at. Never updated or deleted.
+CREATE TABLE gold_price (
+  gold_price_id        BIGSERIAL PRIMARY KEY,
+  source               TEXT NOT NULL CHECK (source IN ('feed','manual')),
+  bid_24k              NUMERIC(18,4) NOT NULL,
+  ask_24k              NUMERIC(18,4) NOT NULL,
+  manual_gold_price_id BIGINT REFERENCES manual_gold_price(manual_gold_price_id),
+  recorded_by          UUID NOT NULL,                  -- FK staff (02): the system actor for the feed
+  effective_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT gold_price_positive CHECK (bid_24k > 0 AND ask_24k >= bid_24k),
+  CONSTRAINT gold_price_manual_link CHECK (source <> 'manual' OR manual_gold_price_id IS NOT NULL)
+);
+CREATE INDEX gold_price_current ON gold_price (effective_at DESC, gold_price_id DESC);
+ALTER TABLE manual_gold_price
+  ADD CONSTRAINT manual_gold_price_previous FOREIGN KEY (previous_gold_price_id) REFERENCES gold_price(gold_price_id);
+
+-- Per karat, per side. side 'buy' = what sellers get (applied to the bid);
+-- 'sell' = what buyers pay (applied to the ask). kind 'fixed' = EGP per
+-- gram of that karat; 'percent' = x (1 + value/100).
+CREATE TABLE karat_price_adjustment (
+  karat_code  SMALLINT NOT NULL REFERENCES karat(karat_code),
+  side        TEXT NOT NULL CHECK (side IN ('buy','sell')),
+  kind        TEXT NOT NULL CHECK (kind IN ('fixed','percent')),
+  value       NUMERIC(18,4) NOT NULL,
+  updated_by  UUID,                                    -- FK staff (02); NULL for the seed
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (karat_code, side),
+  CONSTRAINT karat_price_adjustment_percent CHECK (kind <> 'percent' OR value > -100)
+);
+
+-- Append-only history of adjustment changes.
+CREATE TABLE karat_price_adjustment_history (
+  history_id  BIGSERIAL PRIMARY KEY,
+  karat_code  SMALLINT NOT NULL REFERENCES karat(karat_code),
+  side        TEXT NOT NULL CHECK (side IN ('buy','sell')),
+  old_kind    TEXT NOT NULL,
+  old_value   NUMERIC(18,4) NOT NULL,
+  new_kind    TEXT NOT NULL,
+  new_value   NUMERIC(18,4) NOT NULL,
+  changed_by  UUID NOT NULL,                           -- FK staff (02)
+  reason      TEXT NOT NULL,
+  changed_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Seed: the schema's former price corrections, for every karat.
+-- A karat added later starts with fixed 0 on both sides.
+INSERT INTO karat_price_adjustment (karat_code, side, kind, value)
+SELECT karat_code, 'buy',  'fixed', -15 FROM karat
+UNION ALL
+SELECT karat_code, 'sell', 'fixed',  15 FROM karat;
+
+-- The price feed's health: one row, written every minute. The feed is
+-- "down" when not configured or when last_success_at is older than
+-- pricefeed.stale_after_minutes; manual prices are accepted only then.
+CREATE TABLE price_feed_status (
+  provider         TEXT PRIMARY KEY,
+  last_success_at  TIMESTAMPTZ,
+  last_failure_at  TIMESTAMPTZ,
+  last_error       TEXT
+);
+
+-- gold_price, setting_history and karat_price_adjustment_history refuse
+-- UPDATE and DELETE with a trigger (same pattern as audit_log).
 
 
 -- #####################################################################
@@ -391,6 +499,19 @@ CREATE TABLE staff (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT staff_system_not_founder CHECK (NOT (is_system AND is_founder))
 );
+
+-- ---------------------------------------------------------------------
+-- Staff foreign keys for the settings and pricing tables of
+-- 01_schema_core.sql §3 / §3b (spec 005). Added here because staff is
+-- created after the core tables.
+-- ---------------------------------------------------------------------
+ALTER TABLE setting                        ADD FOREIGN KEY (updated_by)   REFERENCES staff(staff_id);
+ALTER TABLE setting_history                ADD FOREIGN KEY (changed_by)   REFERENCES staff(staff_id);
+ALTER TABLE manual_gold_price              ADD FOREIGN KEY (entered_by)   REFERENCES staff(staff_id);
+ALTER TABLE manual_gold_price              ADD FOREIGN KEY (confirmed_by) REFERENCES staff(staff_id);
+ALTER TABLE gold_price                     ADD FOREIGN KEY (recorded_by)  REFERENCES staff(staff_id);
+ALTER TABLE karat_price_adjustment         ADD FOREIGN KEY (updated_by)   REFERENCES staff(staff_id);
+ALTER TABLE karat_price_adjustment_history ADD FOREIGN KEY (changed_by)   REFERENCES staff(staff_id);
 CREATE UNIQUE INDEX one_system_staff ON staff ((true)) WHERE is_system;
 
 -- Now that staff exists, wire the settings audit FKs.

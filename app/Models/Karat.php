@@ -6,6 +6,7 @@ use Database\Factories\KaratFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A karat sellers can choose (schema §2, spec 004). Code and purity are
@@ -42,6 +43,12 @@ class Karat extends Model
             'is_enabled' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    /** Its buy-side and sell-side price adjustments (spec 005). */
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(KaratPriceAdjustment::class, 'karat_code', 'karat_code');
     }
 
     public function scopeOrdered(Builder $query): Builder

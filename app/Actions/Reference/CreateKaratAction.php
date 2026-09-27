@@ -5,6 +5,7 @@ namespace App\Actions\Reference;
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
 use App\Models\Karat;
+use App\Models\KaratPriceAdjustment;
 use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 
@@ -27,6 +28,9 @@ final class CreateKaratAction
                 'is_enabled' => false,
                 'sort_order' => $data['sort_order'] ?? ((int) Karat::query()->max('sort_order')) + 1,
             ])->refresh();
+
+            // Spec 005: a new karat starts with zero price adjustments; Finance sets them before turning it on.
+            KaratPriceAdjustment::seedZero($karat->karat_code);
 
             $this->audit->execute(
                 AuditEvent::KARAT_CREATED,

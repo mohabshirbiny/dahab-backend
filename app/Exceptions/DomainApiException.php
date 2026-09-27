@@ -87,4 +87,31 @@ class DomainApiException extends RuntimeException
     {
         return new self('verification_required', 403, 'Verify your identity before doing this.');
     }
+
+    /** No gold price has ever been recorded (spec 005). */
+    public static function noGoldPrice(): self
+    {
+        return new self('no_gold_price', 409, 'No gold price is set yet.');
+    }
+
+    /** A karat's buyers-pay price would fall below its sellers-get price, or a price would be zero or less. */
+    public static function priceInverted(int $karatCode): self
+    {
+        return new self('price_inverted', 422, "The {$karatCode}K prices would be inverted: buyers would pay less than sellers get, or a price would be zero or less.");
+    }
+
+    public static function priceFeedHealthy(): self
+    {
+        return new self('price_feed_healthy', 409, 'A manual price is only accepted while the price feed is down.');
+    }
+
+    public static function manualPriceNotPending(): self
+    {
+        return new self('manual_price_not_pending', 409, 'This manual price is no longer waiting for confirmation.');
+    }
+
+    public static function confirmerMustDiffer(): self
+    {
+        return new self('confirmer_must_differ', 403, 'Someone other than the person who entered this price must confirm it.');
+    }
 }

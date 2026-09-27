@@ -6,7 +6,7 @@ into folders by API surface, then by domain: `Dashboard` (Auth, Identity, ...), 
 `Dahab-Backend.local.postman_environment.json` provides `base_url`, `device_id`,
 `access_token`, `refresh_token`, `staff_access_token`, `staff_refresh_token`,
 `staff_mfa_session_ref`, `upload_token`, `document_id`, `role_name`, `staff_id`, `karat_code`,
-`branch_id` and `closure_id` variables
+`branch_id`, `closure_id` and `manual_price_id` variables
 for local use against `APP_URL` (default `http://localhost`). The last five are filled in by
 test scripts: `staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_token` by
 **Upload ID Image**, `document_id` by **Submit Identity Document** / **List Identity
@@ -41,6 +41,11 @@ closures/public holidays. View as `ceo`, `coo`, `finance` or `operations`; toggl
 `finance`; add karats as `coo`; manage branches and closures as `coo` or `operations`.
 Add Karat saves `karat_code`, Add Branch / List Branches save `branch_id`, Add Closure saves
 `closure_id`.
+
+**Dashboard → Pricing** (spec 005) shows and changes gold prices, per-karat adjustments and settings. View as `ceo`,
+`coo`, `finance` or `operations`; rates, adjustments and manual prices need `finance` or `ceo` (MFA). Enter Manual
+Price and Current Gold Prices save `manual_price_id`. A manual price is refused while the price feed is healthy; the
+feed's credentials live only in the Backend's `.env` and never in Postman.
 
 ## Import
 

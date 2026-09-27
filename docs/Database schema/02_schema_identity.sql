@@ -32,6 +32,19 @@ CREATE TABLE staff (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT staff_system_not_founder CHECK (NOT (is_system AND is_founder))
 );
+
+-- ---------------------------------------------------------------------
+-- Staff foreign keys for the settings and pricing tables of
+-- 01_schema_core.sql §3 / §3b (spec 005). Added here because staff is
+-- created after the core tables.
+-- ---------------------------------------------------------------------
+ALTER TABLE setting                        ADD FOREIGN KEY (updated_by)   REFERENCES staff(staff_id);
+ALTER TABLE setting_history                ADD FOREIGN KEY (changed_by)   REFERENCES staff(staff_id);
+ALTER TABLE manual_gold_price              ADD FOREIGN KEY (entered_by)   REFERENCES staff(staff_id);
+ALTER TABLE manual_gold_price              ADD FOREIGN KEY (confirmed_by) REFERENCES staff(staff_id);
+ALTER TABLE gold_price                     ADD FOREIGN KEY (recorded_by)  REFERENCES staff(staff_id);
+ALTER TABLE karat_price_adjustment         ADD FOREIGN KEY (updated_by)   REFERENCES staff(staff_id);
+ALTER TABLE karat_price_adjustment_history ADD FOREIGN KEY (changed_by)   REFERENCES staff(staff_id);
 CREATE UNIQUE INDEX one_system_staff ON staff ((true)) WHERE is_system;
 
 -- Now that staff exists, wire the settings audit FKs.
