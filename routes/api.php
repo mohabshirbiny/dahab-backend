@@ -10,10 +10,13 @@ use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBranchClosureController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
+use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPriceController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
+use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
+use App\Http\Controllers\Api\V1\Dashboard\SettingController as DashboardSettingController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -185,6 +188,40 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->whereUuid('staff')
                     ->middleware('staff.permission:roles.manage')->name('branch.update');
             });
+
+        // Pricing: gold prices, per-karat adjustments and settings (spec 005).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('gold-prices')->name('gold-prices.')->group(function () {
+                Route::get('/', [DashboardGoldPriceController::class, 'index'])
+                    ->middleware('staff.permission:pricing.view')->name('index');
+                Route::get('/current', [DashboardGoldPriceController::class, 'current'])
+                    ->middleware('staff.permission:pricing.view')->name('current');
+                Route::post('/preview', [DashboardGoldPriceController::class, 'preview'])
+                    ->middleware('staff.permission:pricing.view')->name('preview');
+                Route::post('/manual', [DashboardGoldPriceController::class, 'manual'])
+                    ->middleware('staff.permission:gold_price.enter')->name('manual');
+                Route::post('/manual/{manualPrice}/confirm', [DashboardGoldPriceController::class, 'confirm'])
+                    ->whereNumber('manualPrice')
+                    ->middleware('staff.permission:gold_price.confirm')->name('manual.confirm');
+            });
+
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {
+            Route::prefix('settings')->name('settings.')->group(function () {
+                Route::get('/', [DashboardSettingController::class, 'index'])
+                    ->middleware('staff.permission:pricing.view')->name('index');
+                Route::get('/history', [DashboardSettingController::class, 'history'])
+                    ->middleware('staff.permission:pricing.view')->name('history');
+                // The permission depends on the key's group: checked in the controller.
+                Route::patch('/{key}', [DashboardSettingController::class, 'update'])
+                    ->where('key', '[a-z_]+(\\.[a-z_]+)+')->name('update');
+            });
+
+            Route::put('/karats/{code}/adjustments', [DashboardKaratAdjustmentController::class, 'update'])
+                ->whereNumber('code')
+                ->middleware('staff.permission:pricing.rates.manage')->name('karats.adjustments.update');
+            Route::get('/price-adjustments/history', [DashboardKaratAdjustmentController::class, 'history'])
+                ->middleware('staff.permission:pricing.view')->name('price-adjustments.history');
+        });
 
         // Reference data: karats, branches, weekly hours and closures (spec 004).
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {

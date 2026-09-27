@@ -28,10 +28,10 @@ it('seeds today\'s access map plus the new access-control permissions for both f
     $this->seed([DashboardRolesAndPermissionsSeeder::class, LocalStaffSeeder::class]);
 
     $expected = [
-        'ceo' => ['branches.manage', 'customer.suspend', 'customer.view', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'reference.view', 'roles.manage', 'staff.view'],
-        'coo' => ['branches.manage', 'customer.suspend', 'karats.create', 'reference.view', 'roles.manage', 'staff.view'],
-        'finance' => ['karats.toggle', 'reference.view'],
-        'operations' => ['branches.manage', 'reference.view'],
+        'ceo' => ['branches.manage', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
+        'coo' => ['branches.manage', 'customer.suspend', 'karats.create', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
+        'finance' => ['gold_price.confirm', 'gold_price.enter', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view'],
+        'operations' => ['branches.manage', 'pricing.view', 'reference.view'],
         'verification' => ['customer.view', 'identity.review', 'identity.view'],
         'igi_branch' => [],
     ];

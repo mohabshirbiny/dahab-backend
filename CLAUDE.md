@@ -200,9 +200,13 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `/dashboard/staff*`) and the customer verified gate (spec 002); customer data isolation by forced
   PostgreSQL row-level security (spec 003); reference data — karats, branches with weekly hours, closures,
   staff branch assignment, and the working-hours deadline resolver (spec 004, `/dashboard/karats`,
-  `/dashboard/branches`, `/dashboard/branch-closures`, `/dashboard/staff/{staff}/branch`). Nothing else yet.
-- Dashboard: staff auth, customers/identity, staff and roles, Karats, and Branches and hours are live; Overview
-  and other sections are mock.
+  `/dashboard/branches`, `/dashboard/branch-closures`, `/dashboard/staff/{staff}/branch`); pricing — settings with
+  history, the gold price record fed every minute by the provider (`pricing:pull-feed`, credentials in `.env` only)
+  or entered by hand while the feed is down, per-karat buy/sell adjustments, and the Part 3 §2 price calculator
+  (spec 005, `/dashboard/settings*`, `/dashboard/gold-prices*`, `/dashboard/karats/{code}/adjustments`). The app and
+  the PostgreSQL session run on Cairo time (`APP_TIMEZONE=Africa/Cairo`). Nothing else yet.
+- Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing and
+  Commission rates are live; Overview and other sections are mock.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   catalog, orders, wallet, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed

@@ -100,6 +100,19 @@ const OPENAPI_DASHBOARD_REFERENCE_PATHS = [
     'delete /dashboard/branch-closures/{closure}',
 ];
 
+const OPENAPI_DASHBOARD_PRICING_PATHS = [
+    'get /dashboard/settings',
+    'patch /dashboard/settings/{key}',
+    'get /dashboard/settings/history',
+    'get /dashboard/gold-prices',
+    'get /dashboard/gold-prices/current',
+    'post /dashboard/gold-prices/preview',
+    'post /dashboard/gold-prices/manual',
+    'post /dashboard/gold-prices/manual/{manualPrice}/confirm',
+    'put /dashboard/karats/{code}/adjustments',
+    'get /dashboard/price-adjustments/history',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -131,6 +144,7 @@ it('documents exactly the customer and dashboard endpoints', function () {
         ...OPENAPI_DASHBOARD_CUSTOMER_PATHS,
         ...OPENAPI_DASHBOARD_ACCESS_PATHS,
         ...OPENAPI_DASHBOARD_REFERENCE_PATHS,
+        ...OPENAPI_DASHBOARD_PRICING_PATHS,
     ]);
 });
 
@@ -189,6 +203,7 @@ it('secures every operation with its own surface scheme and never the generic sa
         'get /dashboard/customers/{customer}' => 'dashboardBearer',
         ...array_fill_keys(OPENAPI_DASHBOARD_ACCESS_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_REFERENCE_PATHS, 'dashboardBearer'),
+        ...array_fill_keys(OPENAPI_DASHBOARD_PRICING_PATHS, 'dashboardBearer'),
     ];
 
     foreach ($expected as $key => $scheme) {
@@ -229,6 +244,10 @@ it('tags each surface separately', function () {
     foreach (OPENAPI_DASHBOARD_REFERENCE_PATHS as $key) {
         expect($ops[$key]['tags'])->toBe(['Dashboard Reference Data']);
     }
+
+    foreach (OPENAPI_DASHBOARD_PRICING_PATHS as $key) {
+        expect($ops[$key]['tags'])->toBe(['Dashboard Pricing']);
+    }
 });
 
 it('documents the request bodies and response schemas the endpoints use', function () {
@@ -247,6 +266,9 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'DashboardStoreRole', 'DashboardUpdateRole', 'DashboardDeleteRole', 'DashboardSetStaffRoles',
         'DashboardSetStaffBranch', 'DashboardKarat', 'DashboardStoreKarat', 'DashboardBranch', 'DashboardBranchHour',
         'DashboardStoreBranch', 'DashboardUpdateBranch', 'DashboardBranchClosure', 'DashboardStoreBranchClosure',
+        'DashboardStaffRef', 'DashboardManualPrice', 'DashboardEnterManualPrice', 'DashboardGoldPrice', 'DashboardKaratPrice',
+        'DashboardAdjustment', 'DashboardUpdateKaratAdjustments', 'DashboardPreviewPrices', 'DashboardSetting',
+        'DashboardSettingChange', 'DashboardUpdateSetting', 'DashboardAdjustmentChange',
     ]);
 
     $ops = documentedOperations($doc);

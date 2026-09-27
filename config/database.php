@@ -97,6 +97,11 @@ return [
             'prefix_indexes' => true,
             'search_path' => env('DB_SCHEMA', 'public'),
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // The session reads and writes TIMESTAMPTZ in the application's
+            // timezone (Africa/Cairo). Eloquent sends datetimes without an
+            // offset, so a session in another timezone would shift every
+            // stored instant. Keep it equal to APP_TIMEZONE.
+            'timezone' => env('APP_TIMEZONE', 'Africa/Cairo'),
         ],
 
         'sqlsrv' => [

@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    // The gold price provider (spec 005, Technical Spec Part 4 §1).
+    // Credentials come from the environment only; empty = not configured.
+    'gold_feed' => [
+        'base_url' => env('GOLD_FEED_BASE_URL'),
+        'username' => env('GOLD_FEED_USERNAME'),
+        'password' => env('GOLD_FEED_PASSWORD'),
+        'timeout' => (int) env('GOLD_FEED_TIMEOUT', 10),
+    ],
+
 ];

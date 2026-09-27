@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\GoldPriceFeed;
 use App\Exceptions\AuthApiException;
 use App\Models\PersonalAccessToken;
 use App\Notifications\Channels\SmsChannel;
+use App\Services\PriceFeed\ProviderGoldPriceFeed;
 use App\Services\Sms\HttpSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\Sms\SmsSender;
@@ -23,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->registerSmsSender();
+        // The gold price provider (spec 005, Part 4 §1); tests fake its HTTP.
+        $this->app->bind(GoldPriceFeed::class, ProviderGoldPriceFeed::class);
     }
 
     public function boot(): void
