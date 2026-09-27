@@ -191,15 +191,18 @@ Missing:         anything not found, stated exactly (endpoint / field / permissi
 Action needed:   Backend → … · Dashboard → … · Customer App → …
 ```
 
-## Current state (verified 2026-09-26 — re-verify before relying on it)
+## Current state (verified 2026-09-27 — re-verify before relying on it)
 
 - Backend implements: health, customer registration (6 steps) / login / new-device OTP / refresh / me /
   logout, customer uploads + identity-document submission; staff login + MFA / refresh / me / logout;
   dashboard customers list/show and identity-document list/show/image/review; Dashboard-managed staff
   roles/permissions and staff role assignment (`/dashboard/permissions`, `/dashboard/roles*`,
   `/dashboard/staff*`) and the customer verified gate (spec 002); customer data isolation by forced
-  PostgreSQL row-level security (spec 003). Nothing else yet.
-- Dashboard: staff auth + customers/identity screens are live; Overview and other sections are mock.
+  PostgreSQL row-level security (spec 003); reference data — karats, branches with weekly hours, closures,
+  staff branch assignment, and the working-hours deadline resolver (spec 004, `/dashboard/karats`,
+  `/dashboard/branches`, `/dashboard/branch-closures`, `/dashboard/staff/{staff}/branch`). Nothing else yet.
+- Dashboard: staff auth, customers/identity, staff and roles, Karats, and Branches and hours are live; Overview
+  and other sections are mock.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   catalog, orders, wallet, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed

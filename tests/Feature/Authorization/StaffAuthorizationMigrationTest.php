@@ -28,10 +28,10 @@ it('seeds today\'s access map plus the new access-control permissions for both f
     $this->seed([DashboardRolesAndPermissionsSeeder::class, LocalStaffSeeder::class]);
 
     $expected = [
-        'ceo' => ['customer.suspend', 'customer.view', 'identity.review', 'identity.view', 'roles.manage', 'staff.view'],
-        'coo' => ['customer.suspend', 'roles.manage', 'staff.view'],
-        'finance' => [],
-        'operations' => [],
+        'ceo' => ['branches.manage', 'customer.suspend', 'customer.view', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'reference.view', 'roles.manage', 'staff.view'],
+        'coo' => ['branches.manage', 'customer.suspend', 'karats.create', 'reference.view', 'roles.manage', 'staff.view'],
+        'finance' => ['karats.toggle', 'reference.view'],
+        'operations' => ['branches.manage', 'reference.view'],
         'verification' => ['customer.view', 'identity.review', 'identity.view'],
         'igi_branch' => [],
     ];

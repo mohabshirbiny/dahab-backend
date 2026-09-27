@@ -30,6 +30,18 @@ enum StaffPermission: string
     /** Manage roles, their permissions, and staff role assignment (spec 002 FR-003). */
     case ROLES_MANAGE = 'roles.manage';
 
+    /** See the Karats and Branches screens (spec 004). */
+    case REFERENCE_VIEW = 'reference.view';
+
+    /** Turn a karat on or off (Part 2 §10 "Turn a karat on or off"). */
+    case KARATS_TOGGLE = 'karats.toggle';
+
+    /** Add a karat — not in the Part 1 matrix, so founders only (spec 004). */
+    case KARATS_CREATE = 'karats.create';
+
+    /** Add or edit an inspection branch, its hours and closures (Part 1 §4.3). */
+    case BRANCHES_MANAGE = 'branches.manage';
+
     public function label(): string
     {
         return match ($this) {
@@ -39,6 +51,10 @@ enum StaffPermission: string
             self::IDENTITY_REVIEW => 'Approve or reject identity documents',
             self::STAFF_VIEW => 'View staff members and their roles',
             self::ROLES_MANAGE => 'Manage roles, their permissions, and staff role assignment',
+            self::REFERENCE_VIEW => 'View karats and branches',
+            self::KARATS_TOGGLE => 'Turn a karat on or off',
+            self::KARATS_CREATE => 'Add a karat',
+            self::BRANCHES_MANAGE => 'Add or edit branches, their hours and holidays',
         };
     }
 
@@ -48,6 +64,7 @@ enum StaffPermission: string
             self::CUSTOMER_VIEW, self::CUSTOMER_SUSPEND => 'Customers',
             self::IDENTITY_VIEW, self::IDENTITY_REVIEW => 'Identity',
             self::STAFF_VIEW, self::ROLES_MANAGE => 'Access control',
+            self::REFERENCE_VIEW, self::KARATS_TOGGLE, self::KARATS_CREATE, self::BRANCHES_MANAGE => 'Reference data',
         };
     }
 
@@ -79,6 +96,11 @@ enum StaffPermission: string
             // Both founders may change permissions (docs part1 §4.3 corrected reading).
             self::STAFF_VIEW,
             self::ROLES_MANAGE => [SeedRole::COO->value],
+            // Spec 004 (Part 1 §4 matrix; not listed there = founders).
+            self::REFERENCE_VIEW => [SeedRole::COO->value, SeedRole::FINANCE->value, SeedRole::OPERATIONS->value],
+            self::KARATS_TOGGLE => [SeedRole::FINANCE->value],
+            self::KARATS_CREATE => [SeedRole::COO->value],
+            self::BRANCHES_MANAGE => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
         };
     }
 }

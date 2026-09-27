@@ -18,6 +18,9 @@ class DatabaseSeeder extends Seeder
         // Dashboard roles/permissions are reference data: seeded in every environment.
         $this->call(DashboardRolesAndPermissionsSeeder::class);
 
+        // Sample branches and holidays (spec 004); refuses to run outside local/testing.
+        $this->call(LocalReferenceSeeder::class);
+
         // One account per role; refuses to run outside local/testing.
         $this->call(LocalStaffSeeder::class);
 

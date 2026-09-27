@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\SeedRole;
+use App\Models\Branch;
 use App\Models\Staff;
 use App\Models\StaffPassword;
 use Illuminate\Database\Seeder;
@@ -24,6 +25,8 @@ class LocalStaffSeeder extends Seeder
         }
 
         $this->call(DashboardRolesAndPermissionsSeeder::class);
+        // The IGI account is bound to a sample branch (spec 004).
+        $this->call(LocalReferenceSeeder::class);
 
         $password = (string) config('dahab-auth.local_seed_password');
 
@@ -34,7 +37,8 @@ class LocalStaffSeeder extends Seeder
                     'full_name' => 'Local '.strtoupper($role->value),
                     'is_active' => true,
                     // The local IGI account is bound to branch 1.
-                    'branch_id' => $role === SeedRole::IGI_BRANCH ? 1 : null,
+                    // The first sample branch from LocalReferenceSeeder (spec 004).
+                    'branch_id' => $role === SeedRole::IGI_BRANCH ? Branch::query()->orderBy('branch_id')->value('branch_id') : null,
                 ],
             );
 

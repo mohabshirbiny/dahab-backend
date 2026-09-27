@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\SeedRole;
+use App\Models\Branch;
 use App\Models\Staff;
 use Database\Seeders\LocalStaffSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,12 +16,15 @@ it('creates one account per role with its Spatie role, idempotently', function (
 
     expect(Staff::query()->manageable()->count())->toBe(count(SeedRole::cases()));
 
+    // Sequences survive the test rollback, so compare with the seeded branch rather than 1.
+    $firstBranch = Branch::query()->orderBy('branch_id')->value('branch_id');
+
     foreach (SeedRole::cases() as $role) {
         $staff = Staff::where('email', "{$role->value}@dahab.test")->sole();
 
         expect($staff->getRoleNames()->all())->toBe([$role->value])
             ->and($staff->is_founder)->toBe(in_array($role, [SeedRole::CEO, SeedRole::COO], true))
-            ->and($staff->branch_id)->toBe($role === SeedRole::IGI_BRANCH ? 1 : null);
+            ->and($staff->branch_id)->toBe($role === SeedRole::IGI_BRANCH ? $firstBranch : null);
     }
 
     expect(Staff::where('email', 'ceo@dahab.test')->sole()->can('customer.suspend'))->toBeTrue()

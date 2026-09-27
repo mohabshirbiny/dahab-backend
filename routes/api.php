@@ -7,8 +7,11 @@ use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerI
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
+use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBranchClosureController;
+use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
+use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
@@ -177,6 +180,43 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::put('/{staff}/roles', [DashboardStaffController::class, 'updateRoles'])
                     ->whereUuid('staff')
                     ->middleware('staff.permission:roles.manage')->name('roles.update');
+
+                Route::put('/{staff}/branch', [DashboardStaffController::class, 'updateBranch'])
+                    ->whereUuid('staff')
+                    ->middleware('staff.permission:roles.manage')->name('branch.update');
             });
+
+        // Reference data: karats, branches, weekly hours and closures (spec 004).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {
+            Route::prefix('karats')->name('karats.')->group(function () {
+                Route::get('/', [DashboardKaratController::class, 'index'])
+                    ->middleware('staff.permission:reference.view')->name('index');
+                Route::post('/', [DashboardKaratController::class, 'store'])
+                    ->middleware('staff.permission:karats.create')->name('store');
+                Route::post('/{code}/toggle', [DashboardKaratController::class, 'toggle'])
+                    ->whereNumber('code')
+                    ->middleware('staff.permission:karats.toggle')->name('toggle');
+            });
+
+            Route::prefix('branches')->name('branches.')->group(function () {
+                Route::get('/', [DashboardBranchController::class, 'index'])
+                    ->middleware('staff.permission:reference.view')->name('index');
+                Route::post('/', [DashboardBranchController::class, 'store'])
+                    ->middleware('staff.permission:branches.manage')->name('store');
+                Route::patch('/{branch}', [DashboardBranchController::class, 'update'])
+                    ->whereNumber('branch')
+                    ->middleware('staff.permission:branches.manage')->name('update');
+            });
+
+            Route::prefix('branch-closures')->name('branch-closures.')->group(function () {
+                Route::get('/', [DashboardBranchClosureController::class, 'index'])
+                    ->middleware('staff.permission:reference.view')->name('index');
+                Route::post('/', [DashboardBranchClosureController::class, 'store'])
+                    ->middleware('staff.permission:branches.manage')->name('store');
+                Route::delete('/{closure}', [DashboardBranchClosureController::class, 'destroy'])
+                    ->whereNumber('closure')
+                    ->middleware('staff.permission:branches.manage')->name('destroy');
+            });
+        });
     });
 });

@@ -34,7 +34,7 @@ it('stops a manager from adding a permission they do not hold', function () {
     expectEscalationDenied($this->bearer(staffAccessToken($this->coo))
         ->patchJson('/api/v1/dashboard/roles/operations', ['permissions' => ['customer.view'], 'reason' => 'Trying to escalate']));
 
-    expect(StaffRoleModel::findByName('operations', 'staff')->permissions)->toBeEmpty();
+    expect(StaffRoleModel::findByName('operations', 'staff')->hasPermissionTo('customer.view'))->toBeFalse();
 });
 
 it('stops a manager from removing a permission they do not hold', function () {
