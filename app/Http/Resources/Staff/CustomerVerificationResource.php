@@ -55,16 +55,22 @@ class CustomerVerificationResource extends JsonResource
             'status' => $c->status->value,
             'suspended_reason' => $c->suspended_reason?->value,
             'submitted_at' => optional($c->created_at)->toIso8601String(),
-            'latest_document' => $latest instanceof IdentityDocument ? [
-                'document_id' => $latest->document_id,
-                'doc_kind' => $latest->doc_kind->value,
-                'status' => $latest->status->value,
-                'has_back' => $latest->back_ref !== null,
-                'review_reasons' => $latest->review_reasons,
-                'review_note' => $latest->review_note,
-                'created_at' => $latest->created_at->toIso8601String(),
-                'reviewed_at' => $latest->reviewed_at?->toIso8601String(),
-            ] : null,
+            'latest_document' => $latest instanceof IdentityDocument ? $this->document($latest) : null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    protected function document(IdentityDocument $d): array
+    {
+        return [
+            'document_id' => $d->document_id,
+            'doc_kind' => $d->doc_kind->value,
+            'status' => $d->status->value,
+            'has_back' => $d->back_ref !== null,
+            'review_reasons' => $d->review_reasons,
+            'review_note' => $d->review_note,
+            'created_at' => $d->created_at->toIso8601String(),
+            'reviewed_at' => $d->reviewed_at?->toIso8601String(),
         ];
     }
 }

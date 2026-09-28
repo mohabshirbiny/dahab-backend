@@ -191,7 +191,7 @@ Missing:         anything not found, stated exactly (endpoint / field / permissi
 Action needed:   Backend → … · Dashboard → … · Customer App → …
 ```
 
-## Current state (verified 2026-09-27 — re-verify before relying on it)
+## Current state (verified 2026-09-28 — re-verify before relying on it)
 
 - Backend implements: health, customer registration (6 steps) / login / new-device OTP / refresh / me /
   logout, customer uploads + identity-document submission; staff login + MFA / refresh / me / logout;
@@ -205,11 +205,16 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   or entered by hand while the feed is down, per-karat buy/sell adjustments, and the Part 3 §2 price calculator
   (spec 005, `/dashboard/settings*`, `/dashboard/gold-prices*`, `/dashboard/karats/{code}/adjustments`). The app and
   the PostgreSQL session run on Cairo time (`APP_TIMEZONE=Africa/Cairo`); the audit log viewer — list, details and
-  CSV export, everything or own actions only (spec 006, `/dashboard/audit-log*`). Nothing else yet.
+  CSV export, everything or own actions only (spec 006, `/dashboard/audit-log*`); the Customer file — the file with every
+  document and the suspension, search by reference/phone, suspend/reinstate (seven reasons, back to the interrupted state),
+  History and open sessions/devices (spec 007, `/dashboard/customers/{id}/suspend|reinstate|activity|sessions`), and the
+  shared `Idempotency-Key` layer (`idempotent` middleware, `idempotency_key` table; used by suspend/reinstate so far).
+  Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
-  Commission rates and Audit log are live; Overview and other sections are mock.
+  Commission rates, Audit log and Customer file (with suspend/reinstate) are live; Overview and other sections are mock.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
-  catalog, orders, wallet, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`).
+  a suspended customer sees a notice with the plain reason (spec 007); catalog, orders, wallet, notifications, etc.
+  run on mock repositories (`lib/services/mock_repositories.dart`).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed
   with `--dart-define` only when building a deploy version.
 

@@ -7,10 +7,14 @@ namespace App\Enums;
  * account. `is_verified` and `is_suspended` are kept as legacy/derived flags
  * that any transition through this enum keeps consistent (docs Part 1 §4.2).
  *
- * Transitions (all through the identity Actions):
- *   pending_verification → active | rejected
- *   active               → suspended
- *   suspended            → active
+ * Transitions:
+ *   pending_verification → active | rejected         (identity review)
+ *   any other state      → suspended                  (Customer::suspend(), spec 007)
+ *   suspended            → the state it interrupted   (Customer::reinstate())
+ *
+ * While suspended, `is_verified` describes the interrupted state (true only
+ * when it was `active`), so the SUSPENDED entry in legacyFlags() is not used
+ * by suspend(); `customer_status_flags_consistent` allows either value.
  *
  * A `needs_resubmission` document keeps the customer at `pending_verification`.
  */

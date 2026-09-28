@@ -77,7 +77,8 @@ it('signs in an unverified, rejected or suspended customer with password (spec 0
         'status' => $status,
         'is_verified' => $status === 'suspended',
         'is_suspended' => $status === 'suspended',
-        'suspended_reason' => $status === 'suspended' ? 'policy_violation' : null,
+        'suspended_reason' => $status === 'suspended' ? 'off_platform_dealing' : null,
+        'status_before_suspension' => $status === 'suspended' ? 'active' : null,
         'suspended_by' => $status === 'suspended' ? Staff::factory()->create()->staff_id : null,
         'suspended_at' => $status === 'suspended' ? now() : null,
     ]);

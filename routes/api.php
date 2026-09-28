@@ -136,6 +136,24 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/{customer}', [DashboardCustomerController::class, 'show'])
                     ->whereUuid('customer')
                     ->middleware('staff.permission:customer.view')->name('show');
+
+                // Customer file: suspend / reinstate (spec 007). `idempotent` runs last.
+                Route::post('/{customer}/suspend', [DashboardCustomerController::class, 'suspend'])
+                    ->whereUuid('customer')
+                    ->middleware(['staff.permission:customer.suspend', 'idempotent'])->name('suspend');
+
+                Route::post('/{customer}/reinstate', [DashboardCustomerController::class, 'reinstate'])
+                    ->whereUuid('customer')
+                    ->middleware(['staff.permission:customer.suspend', 'idempotent'])->name('reinstate');
+
+                // Customer file: History (also needs an audit permission, checked in the Action) and sessions.
+                Route::get('/{customer}/activity', [DashboardCustomerController::class, 'activity'])
+                    ->whereUuid('customer')
+                    ->middleware('staff.permission:customer.view')->name('activity');
+
+                Route::get('/{customer}/sessions', [DashboardCustomerController::class, 'sessions'])
+                    ->whereUuid('customer')
+                    ->middleware('staff.permission:customer.view')->name('sessions');
             });
 
         // Identity review.

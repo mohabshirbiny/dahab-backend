@@ -6,6 +6,7 @@ use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
 use App\Models\Customer;
 use App\Models\Staff;
+use App\Support\CustomerFileLoader;
 use App\Support\RequestContext;
 
 /**
@@ -15,13 +16,14 @@ use App\Support\RequestContext;
  */
 final class ShowCustomerVerificationDetailsAction
 {
-    public function __construct(private readonly RecordAuditLogAction $audit) {}
+    public function __construct(
+        private readonly RecordAuditLogAction $audit,
+        private readonly CustomerFileLoader $file,
+    ) {}
 
     public function handle(Staff $actor, string $customerId, RequestContext $ctx): Customer
     {
-        $customer = Customer::query()
-            ->with(['identityDocuments' => fn ($q) => $q->orderByDesc('created_at')])
-            ->findOrFail($customerId);
+        $customer = $this->file->load($customerId);
 
         $this->audit->execute(
             AuditEvent::CUSTOMER_VERIFICATION_DETAILS_VIEWED,

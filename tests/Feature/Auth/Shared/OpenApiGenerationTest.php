@@ -72,6 +72,11 @@ const OPENAPI_DASHBOARD_IDENTITY_PATHS = [
 const OPENAPI_DASHBOARD_CUSTOMER_PATHS = [
     'get /dashboard/customers',
     'get /dashboard/customers/{customer}',
+    // Spec 007: the Customer file.
+    'post /dashboard/customers/{customer}/suspend',
+    'post /dashboard/customers/{customer}/reinstate',
+    'get /dashboard/customers/{customer}/activity',
+    'get /dashboard/customers/{customer}/sessions',
 ];
 
 // Spec 002: roles, permissions and staff role assignment.
@@ -209,6 +214,10 @@ it('secures every operation with its own surface scheme and never the generic sa
         'post /dashboard/identity-documents/{document}/review' => 'dashboardBearer',
         'get /dashboard/customers' => 'dashboardBearer',
         'get /dashboard/customers/{customer}' => 'dashboardBearer',
+        'post /dashboard/customers/{customer}/suspend' => 'dashboardBearer',
+        'post /dashboard/customers/{customer}/reinstate' => 'dashboardBearer',
+        'get /dashboard/customers/{customer}/activity' => 'dashboardBearer',
+        'get /dashboard/customers/{customer}/sessions' => 'dashboardBearer',
         ...array_fill_keys(OPENAPI_DASHBOARD_ACCESS_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_REFERENCE_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_PRICING_PATHS, 'dashboardBearer'),
@@ -283,6 +292,8 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'DashboardAdjustment', 'DashboardUpdateKaratAdjustments', 'DashboardPreviewPrices', 'DashboardSetting',
         'DashboardSettingChange', 'DashboardUpdateSetting', 'DashboardAdjustmentChange',
         'DashboardAuditEntry', 'DashboardAuditEntryDetail',
+        'StaffCustomerFile', 'StaffCustomerFileDocument', 'StaffCustomerSuspension',
+        'DashboardSuspendCustomer', 'DashboardReinstateCustomer', 'StaffCustomerSession', 'StaffCustomerDevice',
     ]);
 
     $ops = documentedOperations($doc);

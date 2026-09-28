@@ -34,10 +34,45 @@ CREATE INDEX idx_audit_created ON audit_log(created_at);
 -- (spec 006) The audit log viewer lists newest first and pages by
 -- (created_at, audit_id); this index serves both.
 CREATE INDEX idx_audit_created_id ON audit_log(created_at DESC, audit_id DESC);
+-- (spec 007) A customer file's History lists what the customer did, newest first.
+CREATE INDEX idx_audit_actor_customer ON audit_log(actor_customer_id, created_at DESC)
+  WHERE actor_customer_id IS NOT NULL;
 
 -- Append-only: no updates or deletes, ever.
 CREATE TRIGGER audit_no_update BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION block_mutation();
+
+-- (spec 007) Server-side idempotency store (Part 2 "Idempotency"). A
+-- state-creating POST carries an Idempotency-Key; the first request runs and
+-- its response (< 500) is kept for 24 h; a replay of the same key returns
+-- it without running again. The same key with a DIFFERENT request_hash is a
+-- client bug (422), never the cached response of the other request. Keys are
+-- scoped per actor and endpoint. Rows are operational, not audit: they move
+-- in_flight -> completed | failed and are pruned after expires_at.
+-- Forced RLS: a customer context sees only its own keys.
+CREATE TABLE idempotency_key (
+  id                BIGSERIAL PRIMARY KEY,
+  idem_key          UUID NOT NULL,
+  actor_kind        TEXT NOT NULL CHECK (actor_kind IN ('customer','staff')),
+  actor_customer_id UUID REFERENCES customer(customer_id),
+  actor_staff_id    UUID REFERENCES staff(staff_id),
+  endpoint          TEXT NOT NULL,               -- route name
+  request_hash      CHAR(64) NOT NULL,           -- SHA-256 of canonical body + route params
+  state             TEXT NOT NULL DEFAULT 'in_flight'
+                      CHECK (state IN ('in_flight','completed','failed')),
+  response_status   SMALLINT,
+  response_body     TEXT,                        -- the exact bytes, replayed as sent (JSONB would reorder keys)
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at      TIMESTAMPTZ,
+  expires_at        TIMESTAMPTZ NOT NULL,
+  CONSTRAINT idempotency_has_actor CHECK (
+       (actor_kind = 'customer' AND actor_customer_id IS NOT NULL AND actor_staff_id IS NULL)
+    OR (actor_kind = 'staff'    AND actor_staff_id IS NOT NULL    AND actor_customer_id IS NULL)
+  )
+);
+CREATE UNIQUE INDEX uq_idempotency_key ON idempotency_key
+  (actor_kind, COALESCE(actor_customer_id, actor_staff_id), endpoint, idem_key);
+CREATE INDEX idx_idempotency_expires ON idempotency_key(expires_at);
 
 -- Document-view logging: every view of an identity document is recorded,
 -- including views that lead to no decision.

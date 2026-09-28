@@ -566,6 +566,24 @@ CREATE TABLE customer (
   )
 );
 
+-- (spec 007) Suspension details. `status` (pending_verification | active |
+-- rejected | suspended) is the lifecycle column added by migration
+-- 2026_09_20_000010. A suspension remembers the state it interrupted and
+-- reinstating returns to exactly that state; the staff note is never shown
+-- to the customer. Reasons are the fixed list of Part 1 §4.3.
+ALTER TABLE customer
+  ADD COLUMN suspended_note TEXT,
+  ADD COLUMN status_before_suspension TEXT
+    CHECK (status_before_suspension IN ('pending_verification','active','rejected')),
+  ADD CONSTRAINT customer_suspension_state CHECK (
+    (status = 'suspended') = (status_before_suspension IS NOT NULL)
+  ),
+  ADD CONSTRAINT customer_suspended_reason_check CHECK (
+    suspended_reason IS NULL OR suspended_reason IN (
+      'piece_misrepresented','off_platform_dealing','repeated_disputes',
+      'reported_by_users','identity_unconfirmed','customer_request','other')
+  );
+
 -- Identity documents. Photos are encrypted at rest (application-side or
 -- pgcrypto); this table holds references + verification metadata, not raw
 -- images in a normal column. Every VIEW of a document is logged (Part 4).
@@ -1309,6 +1327,9 @@ CREATE INDEX idx_audit_created ON audit_log(created_at);
 -- (spec 006) The audit log viewer lists newest first and pages by
 -- (created_at, audit_id); this index serves both.
 CREATE INDEX idx_audit_created_id ON audit_log(created_at DESC, audit_id DESC);
+-- (spec 007) A customer file's History lists what the customer did, newest first.
+CREATE INDEX idx_audit_actor_customer ON audit_log(actor_customer_id, created_at DESC)
+  WHERE actor_customer_id IS NOT NULL;
 
 -- Append-only: no updates or deletes, ever.
 CREATE TRIGGER audit_no_update BEFORE UPDATE OR DELETE ON audit_log
@@ -1325,6 +1346,38 @@ CREATE TABLE document_view_log (
 );
 CREATE TRIGGER docview_no_update BEFORE UPDATE OR DELETE ON document_view_log
   FOR EACH ROW EXECUTE FUNCTION block_mutation();
+
+-- (spec 007) Server-side idempotency store (Part 2 "Idempotency"). A
+-- state-creating POST carries an Idempotency-Key; the first request runs and
+-- its response (< 500) is kept for 24 h; a replay of the same key returns
+-- it without running again. The same key with a DIFFERENT request_hash is a
+-- client bug (422), never the cached response of the other request. Keys are
+-- scoped per actor and endpoint. Rows are operational, not audit: they move
+-- in_flight -> completed | failed and are pruned after expires_at.
+-- Forced RLS: a customer context sees only its own keys.
+CREATE TABLE idempotency_key (
+  id                BIGSERIAL PRIMARY KEY,
+  idem_key          UUID NOT NULL,
+  actor_kind        TEXT NOT NULL CHECK (actor_kind IN ('customer','staff')),
+  actor_customer_id UUID REFERENCES customer(customer_id),
+  actor_staff_id    UUID REFERENCES staff(staff_id),
+  endpoint          TEXT NOT NULL,               -- route name
+  request_hash      CHAR(64) NOT NULL,           -- SHA-256 of canonical body + route params
+  state             TEXT NOT NULL DEFAULT 'in_flight'
+                      CHECK (state IN ('in_flight','completed','failed')),
+  response_status   SMALLINT,
+  response_body     TEXT,                        -- the exact bytes, replayed as sent (JSONB would reorder keys)
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at      TIMESTAMPTZ,
+  expires_at        TIMESTAMPTZ NOT NULL,
+  CONSTRAINT idempotency_has_actor CHECK (
+       (actor_kind = 'customer' AND actor_customer_id IS NOT NULL AND actor_staff_id IS NULL)
+    OR (actor_kind = 'staff'    AND actor_staff_id IS NOT NULL    AND actor_customer_id IS NULL)
+  )
+);
+CREATE UNIQUE INDEX uq_idempotency_key ON idempotency_key
+  (actor_kind, COALESCE(actor_customer_id, actor_staff_id), endpoint, idem_key);
+CREATE INDEX idx_idempotency_expires ON idempotency_key(expires_at);
 
 -- ---------------------------------------------------------------------
 -- 14. Category stops / pauses (operating controls)

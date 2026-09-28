@@ -26,8 +26,9 @@ it('runs staff on the dedicated staff guard', function () {
 it('seeds exactly the six fixed roles and only the spec permissions', function () {
     expect(Role::where('guard_name', 'staff')->pluck('name')->sort()->values()->all())
         ->toBe(collect(SeedRole::cases())->map->value->sort()->values()->all())
-        ->and(Permission::where('guard_name', 'staff')->pluck('name')->all())
-        ->toBe(collect(StaffPermission::cases())->map->value->all());
+        // Sorted on both sides: the query has no ORDER BY, so row order is not defined.
+        ->and(Permission::where('guard_name', 'staff')->pluck('name')->sort()->values()->all())
+        ->toBe(collect(StaffPermission::cases())->map->value->sort()->values()->all());
 });
 
 it('is idempotent: reseeding leaves the same rows', function () {

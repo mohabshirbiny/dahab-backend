@@ -18,6 +18,15 @@
 
 **Idempotency.** Every state-creating or money-moving `POST`/`PATCH` **requires** an `Idempotency-Key` header (a client-generated UUID). The server persists the key with the request fingerprint and the response; a replay of the same key returns the original response and never re-executes. This is mandatory, not optional — Part 1 §7 step 5 explains why (a retried "send buy request" must not hold two deposits). Endpoints below are marked `idempotent: required` or `idempotent: n/a` (safe reads).
 
+> **As built (feature `007-customer-file`).** The layer exists: the `idempotent` route middleware (`App\Http\Middleware\EnforceIdempotency`) and the `idempotency_key` table.
+> - **Scope** — keys are scoped per actor and route.
+> - **Replay** — a response below 500 is stored as sent for 24 h and replayed with `Idempotent-Replayed: true`.
+> - **Refusals** — `400 idempotency_key_required` (missing or not a UUID), `422 idempotency_key_mismatch` (the same key with a different request), `409 idempotency_in_progress` (still running; a claim older than 60 s is taken over).
+> - **Retry after a failure** — a 5xx lets a retry run again.
+> - **Adoption** — so far it guards `POST /dashboard/customers/{id}/suspend` and `/reinstate` only. Adding it to the earlier state-creating POSTs is a follow-up.
+>
+> Contract: `docs/platform/api-contract.md` "Idempotency".
+
 **Audit.** Endpoints that write to the audit log declare `audited: yes` and `reason: required|optional|none` (Part 1 §6). The handler writes the `audit_log` row *inside the same transaction* as its main effect.
 
 **The one-transaction rule.** Any endpoint that moves money writes its `ledger_transaction` + balanced `ledger_posting` set, its audit row, and its state change in a single database transaction (Part 1 §7). The deferred constraints (`trg_txn_balanced`, `trg_customer_nonneg`) fire at commit; a partial success is impossible. Where an endpoint below lists "ledger postings", those postings are written by the money service as one balanced set — never ad hoc.
@@ -543,6 +552,24 @@ Manage first-sale / market-maker codes (`promo_code`). · **permission:** *Manag
 ### `POST /admin/customers/{id}/suspend` · `/reinstate`
 - **permission:** *Suspend / reinstate a user account* — **both founders** (open-questions §3 governs: COO has full permissions except wallets; suspension is not a wallet action). · **audited:** yes · **reason:** required · **idempotent:** required
 - Sets `is_suspended` + `suspended_by` + `suspended_reason` (the `suspended_needs_actor` CHECK enforces the reason + actor).
+- **As built (feature `007-customer-file`, [`specs/007-customer-file/`](../../specs/007-customer-file/), [`docs/features/customer-file.md`](../features/customer-file.md)).** Every route below is under `/api/v1/dashboard/customers`.
+  - `POST /{id}/suspend`, body `{ reason, note }`:
+    - `reason` is one of the seven codes (Part 1 §4.3 amendment); `note` is 1–1000 characters.
+    - Needs `customer.suspend` and an `Idempotency-Key`. Any state may be suspended.
+    - Refused with `409 customer_already_suspended` when already suspended.
+    - Writes one `auth.customer.suspended` audit entry: before/after `{status, suspended_reason}`, with the note as `reason`.
+  - `POST /{id}/reinstate`, body `{ note }`:
+    - Returns the customer to `status_before_suspension` and clears the suspension details.
+    - Refused with `409 customer_not_suspended` when not suspended.
+    - Writes one `auth.customer.unsuspended` audit entry.
+  - Both answer `200` with the Customer file (the `StaffCustomerFile` schema, as returned by `GET /{id}`).
+- **The rest of the Customer file (spec 007):**
+  - `GET /{id}` — extended with `documents[]`, `suspension`, `preferred_lang` and `joined_at`. Still one `auth.customer.verification_details_viewed` audit entry per call.
+  - `GET /?q=` — an exact match on the display reference or the E.164 phone, in any state.
+  - `GET /{id}/activity` — History:
+    - audit entries by or about the customer (including their identity documents), without `auth.token.rotated`, keyset-paginated;
+    - needs `customer.view` plus `audit.view_all` or `audit.view_own` (own actions only).
+  - `GET /{id}/sessions` — every trusted device (a 12-character `device_ref`) and the **open** sessions, one per token family. Sign-out deletes a session's tokens, so ended ones appear in History instead. Needs `customer.view`.
 
 ### `POST /admin/identity-documents/{id}/review`
 Approve/reject an ID (`verification` or founders). **Viewing the document image writes a `document_view_log` row in the same transaction as the read** (Part 1 §5.4) — a view that cannot be logged must fail.

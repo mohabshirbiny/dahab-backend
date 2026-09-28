@@ -58,6 +58,13 @@ trade_allowed(customer) :=
 
 A suspended customer (`status = suspended`) can sign in and read their own data (they need to see why, withdraw a remaining balance, and wind down open orders) but every trade action is refused with `403 account_suspended`. Suspension always carries a reason from a fixed list and a named actor (`suspended_by`, `suspended_reason`), enforced by `customer.suspended_needs_actor`.
 
+> **Amended by feature `007-customer-file` (2026-09-28).**
+> - **Reasons** — the fixed list is the Dashboard design's seven, checked by `customer_suspended_reason_check`: `piece_misrepresented`, `off_platform_dealing`, `repeated_disputes`, `reported_by_users`, `identity_unconfirmed`, `customer_request`, `other`. They replace the earlier five codes, which no record used.
+> - **Note** — every suspension and reinstatement carries a staff note: `suspended_note` on the row while suspended, and `audit_log.reason` for good. The customer is never shown the note, only the reason code.
+> - **Any state** — a customer who is waiting for verification, verified or rejected may be suspended. `status_before_suspension` keeps the interrupted state (`customer_suspension_state`: set exactly while `status = 'suspended'`), and reinstating returns to exactly that state. While suspended, `is_verified` describes the interrupted state.
+> - **Identity review while suspended** — approving or rejecting a document never lifts a suspension. It changes the state a reinstatement returns to (`active` / `rejected`).
+> - **Sessions** — suspension does not end the customer's sessions.
+
 ### 2.3 Session issuance and device recognition
 
 On a successful phone + password check:

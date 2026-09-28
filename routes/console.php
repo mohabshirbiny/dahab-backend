@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // The gold price feed (spec 005, Technical Spec Part 4 §1). Needs
 // `php artisan schedule:run` every minute in every environment.
 Schedule::command('pricing:pull-feed')->everyMinute()->withoutOverlapping();
+
+// Expired Idempotency-Key records (spec 007 research R2; kept 24 h).
+Schedule::command('idempotency:prune')->hourly()->withoutOverlapping();

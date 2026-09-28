@@ -67,13 +67,20 @@ class CustomerFactory extends Factory
         ]);
     }
 
-    public function suspended(SuspendedReason $reason = SuspendedReason::POLICY_VIOLATION, ?string $byStaffId = null): static
-    {
+    /** Suspended by a staff member (the DB requires one), interrupting `$before`. */
+    public function suspended(
+        SuspendedReason $reason = SuspendedReason::OFF_PLATFORM_DEALING,
+        ?string $byStaffId = null,
+        CustomerStatus $before = CustomerStatus::ACTIVE,
+        ?string $note = null,
+    ): static {
         return $this->state(fn () => [
             'status' => CustomerStatus::SUSPENDED->value,
-            'is_verified' => true,
+            'status_before_suspension' => $before->value,
+            'is_verified' => $before === CustomerStatus::ACTIVE,
             'is_suspended' => true,
             'suspended_reason' => $reason,
+            'suspended_note' => $note,
             'suspended_by' => $byStaffId,
             'suspended_at' => now(),
         ]);
