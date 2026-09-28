@@ -56,4 +56,87 @@ enum AuditEvent: string
     case ADJUSTMENT_CHANGED = 'pricing.adjustment.changed';
     case MANUAL_PRICE_ENTERED = 'pricing.manual_price.entered';
     case MANUAL_PRICE_CONFIRMED = 'pricing.manual_price.confirmed';
+    case AUDIT_LOG_EXPORTED = 'audit.log.exported';
+
+    /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
+    public function label(): string
+    {
+        return match ($this) {
+            self::CUSTOMER_SIGN_IN => 'Customer signed in',
+            self::CUSTOMER_SIGN_IN_FAILED => 'Customer sign-in failed',
+            self::CUSTOMER_REGISTERED => 'Customer registered',
+            self::CUSTOMER_OTP_SENT => 'Verification code sent to a customer',
+            self::CUSTOMER_OTP_VERIFIED => 'Customer verification code accepted',
+            self::CUSTOMER_OTP_FAILED => 'Customer verification code refused',
+            self::CUSTOMER_PASSWORD_RESET_REQUESTED => 'Customer asked to reset the password',
+            self::CUSTOMER_PASSWORD_RESET_COMPLETED => 'Customer reset the password',
+            self::CUSTOMER_EMAIL_VERIFIED => 'Customer email verified',
+            self::CUSTOMER_SUSPENDED => 'Account suspended',
+            self::CUSTOMER_UNSUSPENDED => 'Account reinstated',
+            self::STAFF_SIGN_IN => 'Staff signed in',
+            self::STAFF_SIGN_IN_FAILED => 'Staff sign-in failed',
+            self::STAFF_MFA_ENROLLED => 'Authenticator app set up',
+            self::STAFF_MFA_VERIFIED => 'Two-step code accepted',
+            self::STAFF_MFA_FAILED => 'Two-step code refused',
+            self::STAFF_PASSWORD_RESET_COMPLETED => 'Staff password reset',
+            self::STAFF_PERMISSION_DENIED => 'Action refused: no permission',
+            self::IDENTITY_DOCUMENT_SUBMITTED => 'Identity document submitted',
+            self::IDENTITY_DOCUMENT_VIEWED => 'Identity document viewed',
+            self::IDENTITY_DOCUMENT_APPROVED => 'Identity document approved',
+            self::IDENTITY_DOCUMENT_REJECTED => 'Identity document rejected',
+            self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED => 'New identity document requested',
+            self::IDENTITY_DOCUMENT_RESUBMITTED => 'Identity document sent again',
+            self::CUSTOMER_REGISTRATION_SUBMITTED => 'Registration submitted',
+            self::CUSTOMER_VERIFICATION_APPROVED => 'Customer verified',
+            self::CUSTOMER_VERIFICATION_REJECTED => 'Customer verification rejected',
+            self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => 'Customer file opened for verification',
+            self::TOKEN_ROTATED => 'Session refreshed',
+            self::TOKEN_FAMILY_REVOKED => 'Session ended (reuse detected)',
+            self::TOKEN_LOGOUT_ALL => 'Signed out everywhere',
+            self::ROLE_CREATED => 'Role created',
+            self::ROLE_UPDATED => 'Role renamed or described',
+            self::ROLE_PERMISSIONS_CHANGED => 'Role permissions changed',
+            self::ROLE_MFA_CHANGED => 'Role two-step requirement changed',
+            self::ROLE_DELETED => 'Role deleted',
+            self::STAFF_ROLES_CHANGED => "Staff member's roles changed",
+            self::ESCALATION_DENIED => 'Access change refused (escalation)',
+            self::RLS_SYSTEM_ELEVATION => 'System job ran with full data access',
+            self::RLS_MAINTENANCE_ELEVATION => 'Maintenance command ran',
+            self::KARAT_CREATED => 'Karat added',
+            self::KARAT_TOGGLED => 'Karat turned on or off',
+            self::BRANCH_CREATED => 'Branch added',
+            self::BRANCH_UPDATED => 'Branch edited',
+            self::BRANCH_HOURS_REPLACED => 'Branch hours changed',
+            self::CLOSURE_ADDED => 'Holiday or closure added',
+            self::CLOSURE_REMOVED => 'Holiday or closure removed',
+            self::STAFF_BRANCH_CHANGED => "Staff member's branch changed",
+            self::SETTING_CHANGED => 'Setting changed',
+            self::ADJUSTMENT_CHANGED => 'Karat price adjustment changed',
+            self::MANUAL_PRICE_ENTERED => 'Manual gold price entered',
+            self::MANUAL_PRICE_CONFIRMED => 'Manual gold price confirmed',
+            self::AUDIT_LOG_EXPORTED => 'Audit log exported',
+        };
+    }
+
+    /** The viewer's category (spec 006). No default arm: a new case must get a category. */
+    public function category(): AuditCategory
+    {
+        return match ($this) {
+            self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
+            self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED => AuditCategory::ACCOUNTS,
+            self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
+            self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED => AuditCategory::SYSTEM,
+            self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
+            self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,
+        };
+    }
+
+    /** @return list<string> the stored action codes of one category */
+    public static function codesIn(AuditCategory $category): array
+    {
+        return array_values(array_map(
+            fn (self $e) => $e->value,
+            array_filter(self::cases(), fn (self $e) => $e->category() === $category),
+        ));
+    }
 }

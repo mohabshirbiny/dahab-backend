@@ -113,6 +113,13 @@ const OPENAPI_DASHBOARD_PRICING_PATHS = [
     'get /dashboard/price-adjustments/history',
 ];
 
+const OPENAPI_DASHBOARD_AUDIT_PATHS = [
+    'get /dashboard/audit-log',
+    'get /dashboard/audit-log/categories',
+    'get /dashboard/audit-log/export',
+    'get /dashboard/audit-log/{entry}',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -145,6 +152,7 @@ it('documents exactly the customer and dashboard endpoints', function () {
         ...OPENAPI_DASHBOARD_ACCESS_PATHS,
         ...OPENAPI_DASHBOARD_REFERENCE_PATHS,
         ...OPENAPI_DASHBOARD_PRICING_PATHS,
+        ...OPENAPI_DASHBOARD_AUDIT_PATHS,
     ]);
 });
 
@@ -204,6 +212,7 @@ it('secures every operation with its own surface scheme and never the generic sa
         ...array_fill_keys(OPENAPI_DASHBOARD_ACCESS_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_REFERENCE_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_PRICING_PATHS, 'dashboardBearer'),
+        ...array_fill_keys(OPENAPI_DASHBOARD_AUDIT_PATHS, 'dashboardBearer'),
     ];
 
     foreach ($expected as $key => $scheme) {
@@ -248,6 +257,10 @@ it('tags each surface separately', function () {
     foreach (OPENAPI_DASHBOARD_PRICING_PATHS as $key) {
         expect($ops[$key]['tags'])->toBe(['Dashboard Pricing']);
     }
+
+    foreach (OPENAPI_DASHBOARD_AUDIT_PATHS as $key) {
+        expect($ops[$key]['tags'])->toBe(['Dashboard Audit']);
+    }
 });
 
 it('documents the request bodies and response schemas the endpoints use', function () {
@@ -269,6 +282,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'DashboardStaffRef', 'DashboardManualPrice', 'DashboardEnterManualPrice', 'DashboardGoldPrice', 'DashboardKaratPrice',
         'DashboardAdjustment', 'DashboardUpdateKaratAdjustments', 'DashboardPreviewPrices', 'DashboardSetting',
         'DashboardSettingChange', 'DashboardUpdateSetting', 'DashboardAdjustmentChange',
+        'DashboardAuditEntry', 'DashboardAuditEntryDetail',
     ]);
 
     $ops = documentedOperations($doc);

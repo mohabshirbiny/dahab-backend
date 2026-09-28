@@ -6,7 +6,7 @@ into folders by API surface, then by domain: `Dashboard` (Auth, Identity, ...), 
 `Dahab-Backend.local.postman_environment.json` provides `base_url`, `device_id`,
 `access_token`, `refresh_token`, `staff_access_token`, `staff_refresh_token`,
 `staff_mfa_session_ref`, `upload_token`, `document_id`, `role_name`, `staff_id`, `karat_code`,
-`branch_id`, `closure_id` and `manual_price_id` variables
+`branch_id`, `closure_id`, `manual_price_id`, `audit_entry_id` and `audit_cursor` variables
 for local use against `APP_URL` (default `http://localhost`). The last five are filled in by
 test scripts: `staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_token` by
 **Upload ID Image**, `document_id` by **Submit Identity Document** / **List Identity
@@ -46,6 +46,9 @@ Add Karat saves `karat_code`, Add Branch / List Branches save `branch_id`, Add C
 `coo`, `finance` or `operations`; rates, adjustments and manual prices need `finance` or `ceo` (MFA). Enter Manual
 Price and Current Gold Prices save `manual_price_id`. A manual price is refused while the price feed is healthy; the
 feed's credentials live only in the Backend's `.env` and never in Postman.
+
+**Dashboard → Audit Log** (spec 006) lists, opens and exports the audit log: everything as `ceo`, own actions only as
+`coo`, `finance`, `operations` or `verification`. List Audit Log saves `audit_entry_id` and `audit_cursor` (the next page).
 
 ## Import
 

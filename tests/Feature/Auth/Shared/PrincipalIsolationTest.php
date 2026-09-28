@@ -148,8 +148,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
     // dashboard: refresh, me, logout, logout-all, identity-documents index/show/image/review (8), customers index/show (2),
     //            permissions index, roles index/store/show/update/destroy, staff index/show/roles (9, spec 002),
     //            staff branch, karats index/store/toggle, branches index/store/update, branch-closures index/store/destroy (10, spec 004),
-    //            settings index/update/history, gold-prices index/current/preview/manual/confirm, karat adjustments, adjustment history (10, spec 005)
-    expect($checked)->toBe(45);
+    //            settings index/update/history, gold-prices index/current/preview/manual/confirm, karat adjustments, adjustment history (10, spec 005),
+    //            audit-log index/categories/export/show (4, spec 006)
+    expect($checked)->toBe(49);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {
