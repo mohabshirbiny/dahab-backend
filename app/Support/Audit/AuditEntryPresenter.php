@@ -147,6 +147,7 @@ final class AuditEntryPresenter
             AuditEvent::CUSTOMER_REGISTRATION_SUBMITTED, AuditEvent::IDENTITY_DOCUMENT_SUBMITTED,
             AuditEvent::IDENTITY_DOCUMENT_RESUBMITTED => [null, self::words($after['doc_kind'] ?? null)],
             AuditEvent::CUSTOMER_VERIFICATION_DETAILS_VIEWED => [null, self::words($after['status'] ?? null)],
+            AuditEvent::LEDGER_STATEMENT_VIEWED, AuditEvent::LEDGER_STATEMENT_EXPORTED => [null, trim(self::words($after['view'] ?? null).' · '.($after['from'] ?? '').' to '.($after['to'] ?? ''), ' ·')],
             AuditEvent::CUSTOMER_VERIFICATION_APPROVED, AuditEvent::CUSTOMER_VERIFICATION_REJECTED,
             AuditEvent::IDENTITY_DOCUMENT_APPROVED, AuditEvent::IDENTITY_DOCUMENT_REJECTED,
             AuditEvent::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED => [

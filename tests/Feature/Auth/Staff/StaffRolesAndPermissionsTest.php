@@ -107,5 +107,6 @@ it('grants and revokes direct permissions through Spatie', function () {
 it('fails closed on a permission that was never seeded', function () {
     $staff = Staff::factory()->role(SeedRole::CEO)->create();
 
-    expect($staff->can('wallet.view'))->toBeFalse();
+    // A code no module has added yet (withdrawals come later).
+    expect($staff->can('withdrawal.release'))->toBeFalse();
 });

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
+use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermi
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
 use App\Http\Controllers\Api\V1\Dashboard\SettingController as DashboardSettingController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
+use App\Http\Controllers\Api\V1\Dashboard\WalletController as DashboardWalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -97,6 +99,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::post('/identity-documents', [CustomerIdentityDocumentController::class, 'store'])
                 ->name('identity-documents.store');
+
+            // Spec 008: the customer's own wallet (verified; a suspended customer may read).
+            Route::middleware('customer.gate:verified')->prefix('wallet')->name('wallet.')->group(function () {
+                Route::get('/', [CustomerWalletController::class, 'show'])->name('show');
+                Route::get('/transactions', [CustomerWalletController::class, 'transactions'])->name('transactions');
+            });
         });
     });
 
@@ -240,6 +248,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->middleware('staff.permission:pricing.rates.manage')->name('karats.adjustments.update');
             Route::get('/price-adjustments/history', [DashboardKaratAdjustmentController::class, 'history'])
                 ->middleware('staff.permission:pricing.view')->name('price-adjustments.history');
+        });
+
+        // Wallets (spec 008): reads only; CEO and Finance by default, never the COO.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:wallet.view'])->group(function () {
+            Route::get('/wallets/overview', [DashboardWalletController::class, 'overview'])->name('wallets.overview');
+            Route::get('/customers/{customer}/wallet', [DashboardWalletController::class, 'customerWallet'])
+                ->whereUuid('customer')->name('customers.wallet');
+            Route::get('/wallet-statement', [DashboardWalletController::class, 'statement'])->name('wallet-statement.show');
+            Route::get('/wallet-statement/export', [DashboardWalletController::class, 'export'])->name('wallet-statement.export');
         });
 
         // The audit log viewer (spec 006): everything, or your own actions only.

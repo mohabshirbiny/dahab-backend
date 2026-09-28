@@ -39,6 +39,16 @@
 --     - external_equity: capital in / profit out / rent / bank charges
 --   The sum of ALL postings across ALL accounts is always zero, so the
 --   whole system is self-checking.
+--
+-- SIGN OF THE BANK ACCOUNT (spec 008, research R15)
+--   Signed amounts summing to zero are a true double entry: a negative
+--   posting is a debit, a positive posting a credit. `bank` is the only
+--   asset account, so its ledger balance is the NEGATIVE of the cash it
+--   represents. Money arriving: bank -X, customer +X. Money leaving
+--   (withdrawal release): customer hold -X, bank +X. Cash in the bank =
+--   -SUM(bank postings); every screen shows the cash (positive).
+--   Customer, dahab_*, vat_payable and external_equity balances are
+--   shown as they are.
 -- =====================================================================
 SET search_path = dahab, public;
 
@@ -97,9 +107,16 @@ CREATE TABLE ledger_posting (
   CONSTRAINT posting_nonzero CHECK (amount <> 0)
 );
 
-CREATE INDEX idx_posting_account ON ledger_posting(account_id);
+-- Changed by spec 008: the account index covers amount and txn so balances
+-- and histories are index-only reads (research R8).
+CREATE INDEX idx_posting_account ON ledger_posting(account_id, posting_id) INCLUDE (amount, ledger_txn_id);
 CREATE INDEX idx_posting_txn     ON ledger_posting(ledger_txn_id);
 CREATE INDEX idx_ledger_txn_order ON ledger_transaction(order_id);
+-- Added by spec 008: statement periods (R8), and an entry is reversed at
+-- most once (FR-010).
+CREATE INDEX idx_ledger_txn_created ON ledger_transaction(created_at);
+CREATE UNIQUE INDEX one_reversal_per_txn ON ledger_transaction(reverses_txn_id)
+  WHERE reverses_txn_id IS NOT NULL;
 
 -- ---------------------------------------------------------------------
 -- APPEND-ONLY ENFORCEMENT
@@ -123,16 +140,26 @@ CREATE TRIGGER ledger_txn_no_update BEFORE UPDATE OR DELETE ON ledger_transactio
 --   Implemented as a DEFERRED constraint trigger so all postings of a
 --   transaction can be inserted before the check fires at COMMIT.
 -- ---------------------------------------------------------------------
+-- Changed by spec 008:
+--   * The check reads under the transaction-local 'ledger' RLS scope and
+--     restores the caller's scope: it fires at COMMIT, when a customer
+--     scope would otherwise hide the internal accounts' lines and report
+--     a false imbalance (research R3).
+--   * Stable SQLSTATE DH002 so the application can recognise it (R6).
 CREATE OR REPLACE FUNCTION assert_txn_balanced() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
   imbalance NUMERIC(18,4);
+  prev_scope TEXT := COALESCE(current_setting('app.rls_scope', true), '');
 BEGIN
+  PERFORM set_config('app.rls_scope', 'ledger', true);
   SELECT COALESCE(SUM(amount),0) INTO imbalance
   FROM ledger_posting WHERE ledger_txn_id = NEW.ledger_txn_id;
+  PERFORM set_config('app.rls_scope', prev_scope, true);
 
   IF imbalance <> 0 THEN
-    RAISE EXCEPTION 'ledger_transaction % is unbalanced by %', NEW.ledger_txn_id, imbalance;
+    RAISE EXCEPTION 'ledger_transaction % is unbalanced by %', NEW.ledger_txn_id, imbalance
+      USING ERRCODE = 'DH002';
   END IF;
   RETURN NULL;
 END $$;
@@ -166,14 +193,18 @@ CREATE VIEW customer_wallet AS
 -- The blueprint's headline safety figure:
 --   bank balance minus what is owed to customers (available + held).
 --   If this is ever negative, customer money is short.
+--   Changed by spec 008 (research R15): bank_balance is the CASH in the
+--   bank, i.e. the negation of the bank account's ledger balance (see
+--   SIGN OF THE BANK ACCOUNT above). The earlier form used the raw sum
+--   and reported -cash - owed.
 CREATE VIEW solvency_check AS
   SELECT
-    (SELECT COALESCE(SUM(amount),0) FROM ledger_posting p
+    -(SELECT COALESCE(SUM(amount),0) FROM ledger_posting p
        JOIN account a ON a.account_id=p.account_id WHERE a.kind='bank') AS bank_balance,
     (SELECT COALESCE(SUM(amount),0) FROM ledger_posting p
        JOIN account a ON a.account_id=p.account_id
        WHERE a.kind IN ('cust_available','cust_held')) AS owed_to_customers,
-    (SELECT COALESCE(SUM(amount),0) FROM ledger_posting p
+    -(SELECT COALESCE(SUM(amount),0) FROM ledger_posting p
        JOIN account a ON a.account_id=p.account_id WHERE a.kind='bank')
     -
     (SELECT COALESCE(SUM(amount),0) FROM ledger_posting p
@@ -191,19 +222,31 @@ CREATE VIEW ledger_global_zero AS
 --   the derived balance, inside the same transaction.
 --   NOTE: internal accounts (escrow, bank, equity) may be any sign.
 -- ---------------------------------------------------------------------
+-- Changed by spec 008: reads under the 'ledger' scope like the balance
+-- check, and raises SQLSTATE DH001 (mapped to 409 insufficient_funds).
+-- Concurrency: this deferred check alone cannot stop two concurrent
+-- transactions from each spending the same balance (each sees only its
+-- own uncommitted lines). The money service therefore locks the touched
+-- customer account rows FOR UPDATE, in account_id order, before posting
+-- (research R5). This trigger is the backstop.
 CREATE OR REPLACE FUNCTION assert_customer_account_nonneg() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
   k account_kind;
   bal NUMERIC(18,4);
+  prev_scope TEXT := COALESCE(current_setting('app.rls_scope', true), '');
 BEGIN
+  PERFORM set_config('app.rls_scope', 'ledger', true);
   SELECT kind INTO k FROM account WHERE account_id = NEW.account_id;
   IF k IN ('cust_available','cust_held') THEN
     SELECT COALESCE(SUM(amount),0) INTO bal
     FROM ledger_posting WHERE account_id = NEW.account_id;
-    IF bal < 0 THEN
-      RAISE EXCEPTION 'customer account % would go negative (%.4f)', NEW.account_id, bal;
-    END IF;
+  END IF;
+  PERFORM set_config('app.rls_scope', prev_scope, true);
+
+  IF k IN ('cust_available','cust_held') AND bal < 0 THEN
+    RAISE EXCEPTION 'customer account % would go negative (%)', NEW.account_id, bal
+      USING ERRCODE = 'DH001';
   END IF;
   RETURN NULL;
 END $$;
@@ -219,6 +262,35 @@ CREATE CONSTRAINT TRIGGER trg_customer_nonneg
 --   ledger_transaction and its postings atomically.
 --   Illustrative signature; real impl in the service layer or as a
 --   SECURITY DEFINER function with tight grants.
+--   Built by spec 008 as App\Actions\Ledger\PostLedgerEntryAction (and
+--   ReverseLedgerEntryAction): validates the set, locks the customer
+--   accounts, and writes inside the caller's transaction under the
+--   'ledger' RLS scope.
 -- ---------------------------------------------------------------------
+-- ---------------------------------------------------------------------
+-- ACCOUNT PROVISIONING (added by spec 008, research R4)
+--   Every customer gets both accounts in the same transaction that
+--   creates the customer, whatever creates it (registration, seeders,
+--   factories). Existing customers are backfilled by the migration with
+--   the same INSERT ... ON CONFLICT DO NOTHING. The internal singletons
+--   are seeded once.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION create_customer_accounts() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO account (kind, customer_id)
+  VALUES ('cust_available', NEW.customer_id), ('cust_held', NEW.customer_id)
+  ON CONFLICT (customer_id, kind) DO NOTHING;
+  RETURN NULL;
+END $$;
+
+CREATE TRIGGER trg_customer_accounts AFTER INSERT ON customer
+  FOR EACH ROW EXECUTE FUNCTION create_customer_accounts();
+
+INSERT INTO account (kind)
+SELECT k::account_kind FROM unnest(ARRAY['escrow','dahab_commission','dahab_spread',
+  'vat_payable','bank','external_equity']) AS k
+ON CONFLICT DO NOTHING;
+
 COMMENT ON TABLE ledger_posting IS
   'Append-only. Postings are written only via the money service in balanced sets; direct UPDATE/DELETE is blocked by trigger.';

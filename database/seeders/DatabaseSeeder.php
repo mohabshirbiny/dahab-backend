@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
         // Customers in every Users and Verification tab; same local/testing guard.
         $this->call(LocalCustomerSeeder::class);
 
+        // Demo wallet movements through the money service (spec 008); same guard.
+        $this->call(LocalLedgerSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

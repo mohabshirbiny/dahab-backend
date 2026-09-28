@@ -12,6 +12,12 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
+    <!-- Spec 008 SC-004: the 1M-line ledger benchmark is opt-in; run it with the perf group. -->
+    <groups>
+        <exclude>
+            <group>perf</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>

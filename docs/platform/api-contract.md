@@ -63,8 +63,9 @@ deliberately not enabled.
 - **Customer**: a customer can act only on its own resources (`/customer/me/*`).
 - **Staff**: permission-based via Spatie Permission, enforced per route by the
   `staff.permission:<code>` middleware (`EnforceStaffPermission`), which returns **403 `permission_denied`**
-  and audit-logs the denial. Current permissions (`app/Enums/StaffPermission.php`):
-  `customer.view`, `customer.suspend`, `identity.view`, `identity.review`.
+  and audit-logs the denial. The permission catalogue is `app/Enums/StaffPermission.php` (customers, identity,
+  access control, reference data, pricing, audit, and — since spec 008 — `wallet.view`, seeded to `ceo` and
+  `finance`, never `coo`: wallet-touching codes skip the COO by default).
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -100,6 +101,11 @@ deliberately not enabled.
 
 `App\Support\ApiResponse::ok()` builds `{ data, meta? }`; Laravel API Resources build the same envelope.
 
+**Money** is always a decimal **string** with 4 places (`"56760.0000"`, EGP), never a JSON number, to keep the
+`NUMERIC(18,4)` precision the ledger depends on. Clients format it for display and never compute with it (spec 008).
+Ledger event kinds are sent as stable codes (`topup`, `deposit_hold`, …); the Dashboard also gets a staff `label`, the
+Customer App localises the code itself.
+
 ## Pagination
 
 - Laravel length-aware pagination through `Resource::collection($paginator)`:
@@ -107,6 +113,10 @@ deliberately not enabled.
   `links` has `first`, `last`, `prev`, `next`.
 - Query params: `page`, `per_page` (integer 1–50, default 25). Current paginated endpoints:
   `GET /dashboard/customers`, `GET /dashboard/identity-documents`.
+- **Keyset (cursor) pages** for append-only or fast-growing lists: `meta` has `per_page` and `next_cursor`
+  (opaque; `null` on the last page), the client passes `cursor=<next_cursor>`; a malformed cursor is `422`.
+  Used by the audit log and customer History (specs 006/007) and the wallet history and Wallet statement (spec 008).
+  A cursor only positions the page — every figure is recomputed server-side.
 - Filters are optional query params validated by the list FormRequest (e.g. `status` as an enum).
 - The Dashboard types this as `ApiPageMeta` in `src/types/api.ts`.
 
@@ -133,7 +143,9 @@ machine-readable value clients must switch on**; `message` is human text and may
   `registration_*`, …).
 - Domain codes: `app/Exceptions/DomainApiException.php` (`document_already_pending` 409,
   `illegal_document_transition` 409, `unsupported_doc_kind` 422, `upload_token_invalid` 422,
-  `customer_already_suspended` 409, `customer_not_suspended` 409, the `idempotency_*` codes below, …).
+  `customer_already_suspended` 409, `customer_not_suspended` 409, the `idempotency_*` codes below,
+  `insufficient_funds` 409 and `ledger_already_reversed` 409 from the money service (spec 008; no endpoint moves money
+  yet), …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients

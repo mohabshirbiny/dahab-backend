@@ -11,6 +11,7 @@ use App\Notifications\CustomerRegistrationSubmittedNotification;
 use App\Services\CustomerRegistrationSessionStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
@@ -184,4 +185,16 @@ it('refuses submit when phone was taken while the registration was in flight', f
         ->assertJsonPath('code', 'validation_failed');
 
     expect(Customer::query()->where('phone', $phone)->count())->toBe(1);
+});
+
+it('gives a registered customer an available and a held account at zero (spec 008 FR-002)', function () {
+    [$ref, $phone] = walkThroughSteps();
+
+    $this->postJson('/api/v1/customer/auth/register/submit', ['registration_ref' => $ref])->assertStatus(202);
+
+    $customer = Customer::query()->where('phone', $phone)->sole();
+    $accounts = DB::table('account')->where('customer_id', $customer->customer_id)->orderBy('kind')->pluck('kind')->all();
+    $wallet = DB::selectOne('SELECT available::numeric(18,4)::text AS a, held::numeric(18,4)::text AS h FROM customer_wallet WHERE customer_id = ?', [$customer->customer_id]);
+
+    expect($accounts)->toBe(['cust_available', 'cust_held'])->and([$wallet->a, $wallet->h])->toBe(['0.0000', '0.0000']);
 });

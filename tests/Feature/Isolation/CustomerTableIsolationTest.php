@@ -34,3 +34,10 @@ it('reports a new customer table added without isolation', function () {
 
     expect(unprotectedCustomerTables())->toBe(['zz_wishlist_probe']);
 });
+
+it('protects ledger_posting, which is customer-owned through its account (spec 008)', function () {
+    $row = DB::selectOne("SELECT relrowsecurity AND relforcerowsecurity AS forced FROM pg_class WHERE relname = 'ledger_posting' AND relkind = 'r'");
+
+    expect($row?->forced)->toBeTrue()
+        ->and(DB::table('pg_policies')->where('tablename', 'ledger_posting')->count())->toBeGreaterThan(0);
+});

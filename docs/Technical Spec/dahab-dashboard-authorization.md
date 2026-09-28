@@ -78,12 +78,13 @@ The permission **catalogue** is code: `App\Enums\StaffPermission`, one code per 
 
 | Permission | Meaning | Seed roles | Source |
 |---|---|---|---|
-| `customer.view` | List customers and open verification details | `ceo`, `verification` | Part 2 §10 |
+| `customer.view` | List customers and open verification details | `ceo`, `verification`, `finance` | Part 2 §10; `finance` added by spec 008 (it finds the customer whose wallet it reads) |
 | `customer.suspend` | Suspend or reinstate a customer account | `ceo`, `coo` | Part 1 §4.3 (corrected reading: both founders); spec FR-S-011 |
 | `identity.view` | List identity documents and open a document's image (each image open writes `document_view_log`) | `ceo`, `verification` | Part 1 §4 matrix "Approve an ID or passport", §5.4 |
 | `identity.review` | Approve or reject an identity document | `ceo`, `verification` | Part 1 §4 matrix "Approve an ID or passport"; Part 2 §10 |
 | `staff.view` | List staff members and their roles | `ceo`, `coo` | spec 002 FR-020 |
 | `roles.manage` | Manage roles, their permissions and staff role assignment | `ceo`, `coo` | spec 002 FR-003; Part 1 §4.3 "Change a staff member's permissions" (both founders) |
+| `wallet.view` | See wallet balances, statements and the safety figure | `ceo`, `finance` (never `coo`) | Part 1 §4.2 "View a wallet balance", "Open a wallet statement"; spec 008 |
 
 "Seed roles" is only the starting state. `ceo` is seeded with every code, and every code added in a later release is given to `ceo` (and its other seed roles) when it first appears. Wallet visibility (Part 1 §3.2, §5.2) will be ordinary permissions not seeded to `coo`; there are **no Postgres grants per staff role** (Constitution v2.0.0, Principle II).
 

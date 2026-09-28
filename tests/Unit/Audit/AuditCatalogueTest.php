@@ -24,6 +24,7 @@ it('lists the codes of a category', function () {
     expect(AuditEvent::codesIn(AuditCategory::PRICING))->toBe([
         'pricing.setting.changed', 'pricing.adjustment.changed', 'pricing.manual_price.entered', 'pricing.manual_price.confirmed',
     ])
-        ->and(AuditEvent::codesIn(AuditCategory::MONEY))->toBe([])
+        // Spec 008: the first money events are the wallet statement reads.
+        ->and(AuditEvent::codesIn(AuditCategory::MONEY))->toBe(['ledger.statement.viewed', 'ledger.statement.exported'])
         ->and(AuditEvent::AUDIT_LOG_EXPORTED->category())->toBe(AuditCategory::SYSTEM);
 });

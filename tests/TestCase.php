@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Models\Account;
 use App\Support\DatabaseActor;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
@@ -20,6 +21,7 @@ abstract class TestCase extends BaseTestCase
 
         DatabaseActor::reset();
         DatabaseActor::push('maintenance');
+        Account::flushInternalCache();
     }
 
     protected function tearDown(): void

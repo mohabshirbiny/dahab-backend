@@ -50,6 +50,12 @@ feed's credentials live only in the Backend's `.env` and never in Postman.
 **Dashboard → Audit Log** (spec 006) lists, opens and exports the audit log: everything as `ceo`, own actions only as
 `coo`, `finance`, `operations` or `verification`. List Audit Log saves `audit_entry_id` and `audit_cursor` (the next page).
 
+**Wallets** (spec 008) are read-only. **Customer → Wallet** shows a verified customer their own available, held and
+history. **Dashboard → Wallets** shows the overview (customer wallets, the bank's cash, the safety figure and a system
+total that must be 0), one customer's wallet (uses `customer_id`), and the Wallet statement in three views (one
+customer, all customers, the Dahab wallet) with CSV export. It needs `wallet.view`: `ceo` or `finance`, not `coo`.
+Nothing in this feature moves money, so wallets read 0 until the first money-moving feature (Wallet Top-up) lands.
+
 ## Import
 
 1. Postman → Import → select both `.json` files in this folder.

@@ -125,6 +125,19 @@ const OPENAPI_DASHBOARD_AUDIT_PATHS = [
     'get /dashboard/audit-log/{entry}',
 ];
 
+// Spec 008: wallet reads.
+const OPENAPI_CUSTOMER_WALLET_PATHS = [
+    'get /customer/me/wallet',
+    'get /customer/me/wallet/transactions',
+];
+
+const OPENAPI_DASHBOARD_WALLET_PATHS = [
+    'get /dashboard/wallets/overview',
+    'get /dashboard/customers/{customer}/wallet',
+    'get /dashboard/wallet-statement',
+    'get /dashboard/wallet-statement/export',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -158,6 +171,8 @@ it('documents exactly the customer and dashboard endpoints', function () {
         ...OPENAPI_DASHBOARD_REFERENCE_PATHS,
         ...OPENAPI_DASHBOARD_PRICING_PATHS,
         ...OPENAPI_DASHBOARD_AUDIT_PATHS,
+        ...OPENAPI_CUSTOMER_WALLET_PATHS,
+        ...OPENAPI_DASHBOARD_WALLET_PATHS,
     ]);
 });
 
@@ -222,6 +237,8 @@ it('secures every operation with its own surface scheme and never the generic sa
         ...array_fill_keys(OPENAPI_DASHBOARD_REFERENCE_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_PRICING_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_AUDIT_PATHS, 'dashboardBearer'),
+        ...array_fill_keys(OPENAPI_CUSTOMER_WALLET_PATHS, 'customerBearer'),
+        ...array_fill_keys(OPENAPI_DASHBOARD_WALLET_PATHS, 'dashboardBearer'),
     ];
 
     foreach ($expected as $key => $scheme) {
@@ -270,6 +287,14 @@ it('tags each surface separately', function () {
     foreach (OPENAPI_DASHBOARD_AUDIT_PATHS as $key) {
         expect($ops[$key]['tags'])->toBe(['Dashboard Audit']);
     }
+
+    foreach (OPENAPI_CUSTOMER_WALLET_PATHS as $key) {
+        expect($ops[$key]['tags'])->toBe(['Customer Wallet']);
+    }
+
+    foreach (OPENAPI_DASHBOARD_WALLET_PATHS as $key) {
+        expect($ops[$key]['tags'])->toBe(['Dashboard Wallets']);
+    }
 });
 
 it('documents the request bodies and response schemas the endpoints use', function () {
@@ -294,6 +319,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'DashboardAuditEntry', 'DashboardAuditEntryDetail',
         'StaffCustomerFile', 'StaffCustomerFileDocument', 'StaffCustomerSuspension',
         'DashboardSuspendCustomer', 'DashboardReinstateCustomer', 'StaffCustomerSession', 'StaffCustomerDevice',
+        'CustomerWallet', 'CustomerWalletMovement',
     ]);
 
     $ops = documentedOperations($doc);
