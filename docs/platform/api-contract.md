@@ -132,11 +132,32 @@ machine-readable value clients must switch on**; `message` is human text and may
   `account_rejected`, `permission_denied`, `otp_invalid`, `otp_expired`, `mfa_invalid`, `refresh_invalid`,
   `registration_*`, …).
 - Domain codes: `app/Exceptions/DomainApiException.php` (`document_already_pending` 409,
-  `illegal_document_transition` 409, `unsupported_doc_kind` 422, `upload_token_invalid` 422, …).
+  `illegal_document_transition` 409, `unsupported_doc_kind` 422, `upload_token_invalid` 422,
+  `customer_already_suspended` 409, `customer_not_suspended` 409, the `idempotency_*` codes below, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
   should tolerate unknown keys.
+
+## Idempotency
+
+Added by feature 007 (`App\Http\Middleware\EnforceIdempotency`, route alias `idempotent`, table
+`idempotency_key`). A route marked `idempotent: required` in `#[OA]` / Part 2 needs an
+`Idempotency-Key` header: a client-generated UUID, one per user action.
+
+| Situation | Result |
+|---|---|
+| Header missing, or not a UUID | `400 idempotency_key_required` |
+| First use of the key | The request runs; a response < 500 is stored as sent, for 24 h |
+| Same key, same request, finished | The stored status and body, with `Idempotent-Replayed: true`; nothing runs again |
+| Same key, different body or target | `422 idempotency_key_mismatch` (never the other request's response) |
+| Same key, still running (< 60 s) | `409 idempotency_in_progress` |
+| Earlier attempt ended in 5xx | The request runs again |
+
+Keys are scoped per actor (customer or staff) and per route. Clients reuse the key only when **retrying
+the same submission**, and use a new key when the input changes (Dashboard: `composables/useIdempotencyKey.ts`).
+
+In use on: `POST /dashboard/customers/{id}/suspend`, `POST /dashboard/customers/{id}/reinstate`.
 
 ## Status codes in use
 

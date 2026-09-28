@@ -99,6 +99,24 @@ CREATE TABLE customer (
   )
 );
 
+-- (spec 007) Suspension details. `status` (pending_verification | active |
+-- rejected | suspended) is the lifecycle column added by migration
+-- 2026_09_20_000010. A suspension remembers the state it interrupted and
+-- reinstating returns to exactly that state; the staff note is never shown
+-- to the customer. Reasons are the fixed list of Part 1 §4.3.
+ALTER TABLE customer
+  ADD COLUMN suspended_note TEXT,
+  ADD COLUMN status_before_suspension TEXT
+    CHECK (status_before_suspension IN ('pending_verification','active','rejected')),
+  ADD CONSTRAINT customer_suspension_state CHECK (
+    (status = 'suspended') = (status_before_suspension IS NOT NULL)
+  ),
+  ADD CONSTRAINT customer_suspended_reason_check CHECK (
+    suspended_reason IS NULL OR suspended_reason IN (
+      'piece_misrepresented','off_platform_dealing','repeated_disputes',
+      'reported_by_users','identity_unconfirmed','customer_request','other')
+  );
+
 -- Identity documents. Photos are encrypted at rest (application-side or
 -- pgcrypto); this table holds references + verification metadata, not raw
 -- images in a normal column. Every VIEW of a document is logged (Part 4).
