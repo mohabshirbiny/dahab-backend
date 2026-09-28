@@ -364,7 +364,7 @@ ALTER TABLE customer                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer                FORCE  ROW LEVEL SECURITY;
 CREATE POLICY customer_isolation ON customer FOR ALL
   USING      (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
-  WITH CHECK (dahab_rls_elevated() OR customer_id = dahab_current_customer_id());
+  WITH CHECK (dahab_rls_elevated() OR customer_id = (SELECT dahab_current_customer_id()));
 
 -- Same shape (ENABLE + FORCE + FOR ALL USING/WITH CHECK on customer_id):
 --   customer_password, customer_trusted_device, identity_document
@@ -383,6 +383,53 @@ ALTER TABLE document_view_log       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE document_view_log       FORCE  ROW LEVEL SECURITY;
 CREATE POLICY document_view_log_staff ON document_view_log FOR ALL
   USING (dahab_rls_elevated()) WITH CHECK (dahab_rls_elevated());
+
+-- Ledger (added by spec 008, research R3) ------------------------------
+-- The scope checks are wrapped in scalar subqueries so PostgreSQL runs
+-- them once per query (InitPlan) instead of once per row: the Wallet
+-- statement sums hundreds of thousands of lines (SC-004).
+-- The 'ledger' scope is NOT in dahab_rls_elevated(): it sees and inserts
+-- ledger rows only, and nothing on other customer tables. The money
+-- service (PostLedgerEntryAction) pushes it for its reads, locks and
+-- inserts; the deferred ledger triggers set it transaction-locally.
+-- Customers read their own accounts and lines; nobody writes directly
+-- from a customer scope. The only UPDATE policies are lock-only (the
+-- ledger scope may SELECT ... FOR UPDATE; WITH CHECK (false) refuses any
+-- actual update); there are no DELETE policies, and the append-only
+-- triggers block both anyway.
+ALTER TABLE account            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE account            FORCE  ROW LEVEL SECURITY;
+CREATE POLICY account_read ON account FOR SELECT USING (
+  (SELECT dahab_rls_elevated()) OR (SELECT dahab_rls_scope()) = 'ledger'
+  OR customer_id = (SELECT dahab_current_customer_id()));
+CREATE POLICY account_write ON account FOR INSERT WITH CHECK (
+  (SELECT dahab_rls_elevated()) OR (SELECT dahab_rls_scope()) = 'ledger');
+-- SELECT ... FOR UPDATE only sees rows that pass an UPDATE policy.
+-- This one lets the money service lock rows; WITH CHECK (false)
+-- still refuses every actual UPDATE (research R5).
+CREATE POLICY account_lock ON account FOR UPDATE
+  USING ((SELECT dahab_rls_scope()) = 'ledger') WITH CHECK (false);
+
+ALTER TABLE ledger_posting     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ledger_posting     FORCE  ROW LEVEL SECURITY;
+CREATE POLICY ledger_posting_read ON ledger_posting FOR SELECT USING (
+  (SELECT dahab_rls_elevated()) OR (SELECT dahab_rls_scope()) = 'ledger'
+  OR EXISTS (SELECT 1 FROM account a WHERE a.account_id = ledger_posting.account_id
+             AND a.customer_id = (SELECT dahab_current_customer_id())));
+CREATE POLICY ledger_posting_write ON ledger_posting FOR INSERT WITH CHECK (
+  (SELECT dahab_rls_elevated()) OR (SELECT dahab_rls_scope()) = 'ledger');
+
+ALTER TABLE ledger_transaction ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ledger_transaction FORCE  ROW LEVEL SECURITY;
+CREATE POLICY ledger_transaction_read ON ledger_transaction FOR SELECT USING (
+  (SELECT dahab_rls_elevated()) OR (SELECT dahab_rls_scope()) = 'ledger'
+  OR EXISTS (SELECT 1 FROM ledger_posting p JOIN account a ON a.account_id = p.account_id
+             WHERE p.ledger_txn_id = ledger_transaction.ledger_txn_id
+               AND a.customer_id = (SELECT dahab_current_customer_id())));
+CREATE POLICY ledger_transaction_write ON ledger_transaction FOR INSERT WITH CHECK (
+  (SELECT dahab_rls_elevated()) OR (SELECT dahab_rls_scope()) = 'ledger');
+CREATE POLICY ledger_transaction_lock ON ledger_transaction FOR UPDATE
+  USING ((SELECT dahab_rls_scope()) = 'ledger') WITH CHECK (false);
 
 -- Pattern for tables added by later modules ---------------------------
 -- In the SAME migration that creates the table: ENABLE + FORCE RLS and

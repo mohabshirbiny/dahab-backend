@@ -55,7 +55,7 @@ Creates an unverified customer. Registration does **not** verify identity or per
 - **Body:** `{ "phone": "+2010…", "password": "…", "preferred_lang": "ar"|"en" }`
 - **201:** `{ "customer_id", "display_ref", "is_verified": false }`
 - **Errors:** `phone_taken` (409), `weak_password` (422), `invalid_phone` (422).
-- **Notes:** password hashed Argon2id (Part 1 §2.1); never echoed. A `cust_available` and a `cust_held` account row are created for the customer here (the ledger needs both to exist before any hold).
+- **Notes:** password hashed Argon2id (Part 1 §2.1); never echoed. A `cust_available` and a `cust_held` account row are created for the customer here (the ledger needs both to exist before any hold). **Built by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)): an AFTER INSERT trigger on `customer` creates both in the same transaction, whatever creates the customer; existing customers were backfilled.
 
 - **As built (feature `002-registration-lifecycle`).** Registration is now **three steps**, and the single-step `POST /customer/auth/register` no longer exists:
   1. `POST /customer/auth/register/start` — body `{ phone, password, email?, full_name?, preferred_lang }`. Validates everything, holds it in an encrypted cache entry, sends a phone OTP. `202 { data: { registration_ref, status: "otp_sent", otp_channel: "sms", otp_expires_at, expires_at } }`. **Creates no customer and no draft row.**
@@ -395,6 +395,8 @@ IGI confirms the physical handover at the counter against the collection code an
 
 Wallet **balances** for the customer are their own (RLS-scoped) read. This is distinct from staff wallet access, which is a permission seeded to CEO+Finance (Part 1 §5.2). A verified customer always sees their own two figures.
 
+> **Built by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)). As-built paths are under the customer surface: `GET /customer/me/wallet` → `{ available, held, total, currency }` and `GET /customer/me/wallet/transactions` (one row per ledger entry touching the customer: `kind`, `created_at`, `available_change`, `held_change`, `available_after`, `held_after`, `reference`; newest first, keyset `cursor`). The running balance is **available**: a hold is money out of available, a release money in, with held shown beside it. `POST /me/wallet/topup` is **not built** — it is the next feature (Wallet Top-up: transfer notice → Finance match).
+
 ### `GET /me/wallet`
 - **gate:** `verified` (spec 002; RLS to own rows) · **idempotent:** n/a
 - **200:** `{ "available": "…", "held": "…" }` — read from `customer_wallet` (derived from the ledger; never a stored balance).
@@ -404,7 +406,7 @@ Customer's own ledger history (their postings, human-labelled by `event_kind`).
 - **gate:** `verified` (spec 002) · **idempotent:** n/a · keyset paginated.
 
 ### `POST /me/wallet/topup`
-Adds funds (`event_kind = topup`): `bank +amount`, buyer `cust_available +amount` (balanced). Payment-gateway integration detail is Part 4; this endpoint records the resulting ledger movement on confirmed settlement.
+Adds funds (`event_kind = topup`): `bank −amount`, buyer `cust_available +amount` (balanced — **changed by spec 008**, research R15: the lines sum to zero, so money arriving is a negative posting on `bank`; the bank's cash is `−SUM(bank)`). Payment-gateway integration detail is Part 4; this endpoint records the resulting ledger movement on confirmed settlement.
 - **gate:** `trade_allowed` (spec 002: top-up requires verification) · **idempotent:** required · **audited:** no
 
 ### Payout accounts & withdrawals
@@ -438,6 +440,8 @@ Holder cancels before release (`requested/under_review → cancelled`); the held
 
 Every endpoint here is wallet-touching: the seed gives these permissions to CEO/Finance only (Part 1 §4.2), and role managers may change that from the Dashboard (spec 002). There is no Postgres grant behind them (Part 1 §5.2). By default the COO, though a founder, lacks them and gets `403 permission_denied`.
 
+> **Wallet reads built by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)), permission `wallet.view`: `GET /dashboard/wallets/overview` (available, held, total owed, bank cash, headroom, system total), `GET /dashboard/customers/{customer}/wallet`, `GET /dashboard/wallet-statement` (`view=customer|customers|dahab`, `from`, `to`, `grain=each|day|month`, keyset `cursor`; the one-customer view is audited as `ledger.statement.viewed`) and `GET /dashboard/wallet-statement/export` (CSV, audited as `ledger.statement.exported`). No endpoint in spec 008 moves money.
+
 ### `GET /admin/withdrawals?state=requested,under_review`
 The review queue. · **permission:** *View a wallet* / *Release a withdrawal* (CEO/Finance) · **idempotent:** n/a
 
@@ -448,7 +452,7 @@ Claim for review (`requested → under_review`). · **permission:** CEO/Finance 
 Approve and send to bank (`under_review → released`). **Every withdrawal is released by a person** (schema §12).
 - **permission:** *Release a withdrawal* — **CEO or Finance** (resolved decision: both may release; Finance is no longer review-only for this action). The COO, though a founder, cannot — it is a wallet-touching action (Part 1 §5.2 grant). Every release is still a person's named action, audited.
 - **audited:** yes · **reason:** optional · **idempotent:** required
-- **Ledger** (`event_kind = withdrawal`): customer hold **−amount**, `bank` **−amount** (money leaves the bank); balanced against the pending-hold account opened at request. Records `release_txn_id`, `released_at`, `reviewed_by`.
+- **Ledger** (`event_kind = withdrawal`): customer hold **−amount**, `bank` **+amount** (money leaves the bank — **changed by spec 008**, research R15: the lines sum to zero; the bank's cash is `−SUM(bank)`); balanced against the pending-hold account opened at request. Records `release_txn_id`, `released_at`, `reviewed_by`.
 - **Errors:** `withdrawals_paused` (409, re-checked at release), `illegal_withdrawal_transition` (409).
 
 ### `POST /admin/withdrawals/{id}/reject`
