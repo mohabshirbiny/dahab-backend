@@ -3,6 +3,7 @@
 use App\Exceptions\AuthApiException;
 use App\Exceptions\DomainApiException;
 use App\Http\Middleware\ElevateDatabaseScope;
+use App\Http\Middleware\EnforceIdempotency;
 use App\Http\Middleware\EnforceStaffPermission;
 use App\Http\Middleware\EnsureCustomerStanding;
 use App\Http\Middleware\EnsureStaffStanding;
@@ -48,6 +49,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer.gate' => EnsureCustomerStanding::class,
             // Row-level-security bootstrap for unauthenticated customer auth routes (spec 003).
             'db.elevate' => ElevateDatabaseScope::class,
+            // Idempotency-Key on state-creating POSTs (spec 007 research R2). List it last on a route.
+            'idempotent' => EnforceIdempotency::class,
             // Sanctum token abilities: `abilities:customer:access` (all listed)
             // and `ability:a,b` (any listed). Always placed after an `auth:<guard>`.
             'abilities' => CheckAbilities::class,

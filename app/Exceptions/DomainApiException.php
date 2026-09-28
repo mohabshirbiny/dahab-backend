@@ -114,4 +114,32 @@ class DomainApiException extends RuntimeException
     {
         return new self('confirmer_must_differ', 403, 'Someone other than the person who entered this price must confirm it.');
     }
+
+    /** Idempotency-Key missing or not a UUID on a route that requires one (spec 007 research R2). */
+    public static function idempotencyKeyRequired(): self
+    {
+        return new self('idempotency_key_required', 400, 'An Idempotency-Key header (a UUID) is required.');
+    }
+
+    /** The key was already used for a different request — never replay another request's response. */
+    public static function idempotencyKeyMismatch(): self
+    {
+        return new self('idempotency_key_mismatch', 422, 'This Idempotency-Key was already used for a different request.');
+    }
+
+    /** Reinstate first: a suspended customer is not suspended again (spec 007 FR-008). */
+    public static function customerAlreadySuspended(): self
+    {
+        return new self('customer_already_suspended', 409, 'This customer is already suspended.');
+    }
+
+    public static function customerNotSuspended(): self
+    {
+        return new self('customer_not_suspended', 409, 'This customer is not suspended.');
+    }
+
+    public static function idempotencyInProgress(): self
+    {
+        return new self('idempotency_in_progress', 409, 'A request with this Idempotency-Key is still being processed.');
+    }
 }
