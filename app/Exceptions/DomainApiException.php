@@ -142,4 +142,16 @@ class DomainApiException extends RuntimeException
     {
         return new self('idempotency_in_progress', 409, 'A request with this Idempotency-Key is still being processed.');
     }
+
+    /** A ledger entry would take a customer account below zero (spec 008 FR-007; Part 2 §4, §8). */
+    public static function insufficientFunds(): self
+    {
+        return new self('insufficient_funds', 409, 'There is not enough money in the wallet for this.');
+    }
+
+    /** A ledger entry is reversed at most once (spec 008 FR-010). */
+    public static function ledgerAlreadyReversed(): self
+    {
+        return new self('ledger_already_reversed', 409, 'This ledger entry has already been reversed.');
+    }
 }

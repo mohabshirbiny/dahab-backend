@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureStaffStanding;
 use App\Http\Middleware\SetDatabaseActor;
 use App\Http\Middleware\SetRequestContext;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -90,6 +91,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ], $e->extra);
 
             return response()->json($payload, $e->statusCode, $e->headers);
+        });
+
+        // Spec 008 research R6: the deferred non-negative trigger (SQLSTATE
+        // DH001) is the backstop behind PostLedgerEntryAction's own check.
+        $exceptions->map(function (QueryException $e) {
+            return ($e->errorInfo[0] ?? null) === 'DH001' ? DomainApiException::insufficientFunds() : $e;
         });
 
         $exceptions->render(function (DomainApiException $e, Request $request) {

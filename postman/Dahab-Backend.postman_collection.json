@@ -2614,6 +2614,288 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Wallets",
+                    "description": "Spec 008. Read-only wallet figures for staff holding wallet.view (seeded to ceo and finance; not coo). Nothing here moves money. Money is a decimal string with 4 places; the bank is shown as cash.",
+                    "item": [
+                        {
+                            "name": "Wallet Overview",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/wallets/overview",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "wallets",
+                                        "overview"
+                                    ]
+                                },
+                                "description": "Customer wallets (available, held, total_owed), the bank's cash, the safety figure (headroom = bank − total_owed) and system_total, which must be 0.0000."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Wallet",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/wallet",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "wallet"
+                                    ]
+                                },
+                                "description": "One customer's available, held and total (the customer file panel). Not audited."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Wallet Statement — One Customer",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/wallet-statement?view=customer&customer_id={{customer_id}}&from=2026-09-01&to=2026-09-30&grain=each&per_page=50",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "wallet-statement"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "view",
+                                            "value": "customer"
+                                        },
+                                        {
+                                            "key": "customer_id",
+                                            "value": "{{customer_id}}"
+                                        },
+                                        {
+                                            "key": "from",
+                                            "value": "2026-09-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-09-30"
+                                        },
+                                        {
+                                            "key": "grain",
+                                            "value": "each"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "50"
+                                        }
+                                    ]
+                                },
+                                "description": "Running balance on available: a hold is an out (held_after beside it). opening + in − out = closing. The first page is audited (ledger.statement.viewed). grain: each | day | month; cursor = meta.next_cursor."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Wallet Statement — All Customers",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/wallet-statement?view=customers&from=2026-09-01&to=2026-09-30&grain=day",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "wallet-statement"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "view",
+                                            "value": "customers"
+                                        },
+                                        {
+                                            "key": "from",
+                                            "value": "2026-09-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-09-30"
+                                        },
+                                        {
+                                            "key": "grain",
+                                            "value": "day"
+                                        }
+                                    ]
+                                },
+                                "description": "Running balance on the total owed (available + held); a hold moves nothing (moved_to_held shows it). Not audited."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Wallet Statement — Dahab",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/wallet-statement?view=dahab&from=2026-09-01&to=2026-09-30&grain=month",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "wallet-statement"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "view",
+                                            "value": "dahab"
+                                        },
+                                        {
+                                            "key": "from",
+                                            "value": "2026-09-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-09-30"
+                                        },
+                                        {
+                                            "key": "grain",
+                                            "value": "month"
+                                        }
+                                    ]
+                                },
+                                "description": "Dahab's earnings: commission + spread; vat_payable in the summary. Not audited."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export Wallet Statement",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/wallet-statement/export?view=customer&customer_id={{customer_id}}&from=2026-09-01&to=2026-09-30",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "wallet-statement",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "view",
+                                            "value": "customer"
+                                        },
+                                        {
+                                            "key": "customer_id",
+                                            "value": "{{customer_id}}"
+                                        },
+                                        {
+                                            "key": "from",
+                                            "value": "2026-09-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-09-30"
+                                        }
+                                    ]
+                                },
+                                "description": "CSV (UTF-8 with a BOM), capped at 50,000 rows (X-Export-Truncated). Every export is audited (ledger.statement.exported)."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""
@@ -3330,6 +3612,75 @@
                                     }
                                 }
                             ],
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Wallet",
+                    "description": "Spec 008. The customer's own wallet (verified customers; a suspended customer may still read). Inherits the collection's customer Bearer.",
+                    "item": [
+                        {
+                            "name": "My Wallet",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet"
+                                    ]
+                                },
+                                "description": "Available, held and total (EGP, 4-place strings), derived from the ledger. 403 verification_required for pending or rejected customers."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "My Wallet Transactions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet/transactions?per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet",
+                                        "transactions"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "One row per ledger entry, newest first: kind, available_change, held_change, available_after, held_after, reference. A hold is money out of available. Page with cursor = meta.next_cursor."
+                            },
                             "response": []
                         }
                     ]

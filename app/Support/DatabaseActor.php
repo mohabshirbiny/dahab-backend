@@ -23,10 +23,12 @@ use InvalidArgumentException;
  *  - bootstrap:   auth routes and token-owner loading, before an actor exists
  *  - system:      queued jobs, as the system actor (audited)
  *  - maintenance: migrations, seeders, tests (audited outside tests)
+ *  - ledger:      the money service only (spec 008): sees and inserts ledger
+ *                 rows, and nothing else — not an elevation
  */
 final class DatabaseActor
 {
-    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance'];
+    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger'];
 
     public const ELEVATED = ['staff', 'bootstrap', 'system', 'maintenance'];
 
@@ -69,6 +71,32 @@ final class DatabaseActor
 
         try {
             return $work();
+        } finally {
+            self::pop();
+        }
+    }
+
+    /**
+     * Run `$work` in the `ledger` scope (spec 008 research R3), keeping the
+     * current customer / staff ids. The ledger tables accept reads and inserts
+     * from it; every other customer table sees it as an unelevated scope with
+     * no customer, i.e. nothing. Only the money service uses it.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public static function ledger(Closure $work): mixed
+    {
+        $frame = self::current();
+        self::push('ledger', $frame['customer'] ?: null, $frame['staff'] ?: null);
+
+        try {
+            // Inside a transaction the work runs in a savepoint: a failed
+            // statement is rolled back to it before the pop below, which would
+            // otherwise hit an aborted transaction and hide the real error.
+            return DB::transactionLevel() > 0 ? DB::transaction($work) : $work();
         } finally {
             self::pop();
         }

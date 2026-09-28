@@ -63,6 +63,9 @@ enum StaffPermission: string
     /** See your own actions in the audit log (Part 1 §4.3: COO, Finance, Operations, Verification). */
     case AUDIT_VIEW_OWN = 'audit.view_own';
 
+    /** See wallet balances, statements and the safety figure (Part 1 §4.2 "View a wallet balance", "Open a wallet statement"; spec 008). */
+    case WALLET_VIEW = 'wallet.view';
+
     public function label(): string
     {
         return match ($this) {
@@ -83,6 +86,7 @@ enum StaffPermission: string
             self::GOLD_PRICE_CONFIRM => 'Confirm a manual gold price',
             self::AUDIT_VIEW_ALL => 'View the whole audit log',
             self::AUDIT_VIEW_OWN => 'View your own actions in the audit log',
+            self::WALLET_VIEW => 'View wallets and statements',
         };
     }
 
@@ -96,6 +100,7 @@ enum StaffPermission: string
             self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
+            self::WALLET_VIEW => 'Money',
         };
     }
 
@@ -122,8 +127,11 @@ enum StaffPermission: string
             // Both founders may suspend/reinstate (docs part1 §4.3, corrected reading).
             self::CUSTOMER_SUSPEND => [SeedRole::COO->value],
             self::IDENTITY_VIEW,
-            self::IDENTITY_REVIEW,
-            self::CUSTOMER_VIEW => [SeedRole::VERIFICATION->value],
+            self::IDENTITY_REVIEW => [SeedRole::VERIFICATION->value],
+            // Finance too (spec 008, 2026-09-28): it finds the customer whose wallet
+            // it reads or whose transfer it matches. Seed only: existing installs
+            // add it to Finance from Staff and permissions → Roles.
+            self::CUSTOMER_VIEW => [SeedRole::VERIFICATION->value, SeedRole::FINANCE->value],
             // Both founders may change permissions (docs part1 §4.3 corrected reading).
             self::STAFF_VIEW,
             self::ROLES_MANAGE => [SeedRole::COO->value],
@@ -141,6 +149,8 @@ enum StaffPermission: string
             // Spec 006 (Part 1 §4.3): the CEO sees everything; the others their own actions.
             self::AUDIT_VIEW_ALL => [],
             self::AUDIT_VIEW_OWN => [SeedRole::COO->value, SeedRole::FINANCE->value, SeedRole::OPERATIONS->value, SeedRole::VERIFICATION->value],
+            // Spec 008: wallet-touching, so never the COO (Part 1 §4.2).
+            self::WALLET_VIEW => [SeedRole::FINANCE->value],
         };
     }
 }

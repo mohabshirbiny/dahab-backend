@@ -86,6 +86,12 @@ class Customer extends Authenticatable implements HasApiTokensContract
         return $this->hasOne(CustomerPassword::class, 'customer_id', 'customer_id');
     }
 
+    /** The customer's two wallet accounts, available and held (spec 008). */
+    public function accounts(): HasMany
+    {
+        return $this->hasMany(Account::class, 'customer_id', 'customer_id');
+    }
+
     public function identityDocuments(): HasMany
     {
         return $this->hasMany(IdentityDocument::class, 'customer_id', 'customer_id');

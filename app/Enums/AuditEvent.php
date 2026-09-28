@@ -57,6 +57,8 @@ enum AuditEvent: string
     case MANUAL_PRICE_ENTERED = 'pricing.manual_price.entered';
     case MANUAL_PRICE_CONFIRMED = 'pricing.manual_price.confirmed';
     case AUDIT_LOG_EXPORTED = 'audit.log.exported';
+    case LEDGER_STATEMENT_VIEWED = 'ledger.statement.viewed';
+    case LEDGER_STATEMENT_EXPORTED = 'ledger.statement.exported';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -115,6 +117,8 @@ enum AuditEvent: string
             self::MANUAL_PRICE_ENTERED => 'Manual gold price entered',
             self::MANUAL_PRICE_CONFIRMED => 'Manual gold price confirmed',
             self::AUDIT_LOG_EXPORTED => 'Audit log exported',
+            self::LEDGER_STATEMENT_VIEWED => 'Wallet statement opened',
+            self::LEDGER_STATEMENT_EXPORTED => 'Wallet statement exported',
         };
     }
 
@@ -128,6 +132,7 @@ enum AuditEvent: string
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED => AuditCategory::SYSTEM,
             self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
             self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,
+            self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED => AuditCategory::MONEY,
         };
     }
 
