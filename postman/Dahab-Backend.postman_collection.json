@@ -756,6 +756,45 @@
                             "response": []
                         },
                         {
+                            "name": "Find Customer (reference or phone)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers?q={{customer_display_ref}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "q",
+                                            "value": "{{customer_display_ref}}",
+                                            "description": "Display reference or E.164 phone, exact match; spaces ignored"
+                                        }
+                                    ]
+                                },
+                                "description": "Customer file search (spec 007): exact match on display_ref or the E.164 phone, across every status (status is ignored when q is set). q: 1-32 characters. Requires customer.view."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Customer Details",
                             "request": {
                                 "method": "GET",
@@ -784,7 +823,205 @@
                                         "{{customer_id}}"
                                     ]
                                 },
-                                "description": "Detail view: customer + every identity document (newest first). Audited (auth.customer.verification_details_viewed). Requires customer.view."
+                                "description": "Customer file (spec 007): profile, preferred_lang, joined_at, every identity document (newest first, with reviewed_by), and suspension {reason, note, status_before, suspended_at, suspended_by} or null. latest_document equals documents[0]. Audited: one auth.customer.verification_details_viewed entry per call. Requires customer.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Suspend Customer",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"off_platform_dealing\",\n    \"note\": \"Asked a buyer to pay outside the app.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/suspend",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "suspend"
+                                    ]
+                                },
+                                "description": "Spec 007. reason: piece_misrepresented | off_platform_dealing | repeated_disputes | reported_by_users | identity_unconfirmed | customer_request | other. note: required, 1-1000 characters, staff-only. Any state may be suspended; the state it interrupts is restored on reinstate. 200 = the customer file. 409 customer_already_suspended. Requires customer.suspend and an Idempotency-Key. Audited (auth.customer.suspended)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Reinstate Customer",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"note\": \"Cleared after review.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/reinstate",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "reinstate"
+                                    ]
+                                },
+                                "description": "Spec 007. note: required, 1-1000 characters. Returns the customer to the state the suspension interrupted. 200 = the customer file. 409 customer_not_suspended. Requires customer.suspend and an Idempotency-Key. Audited (auth.customer.unsuspended)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Activity (History)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/activity?per_page=20&cursor=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "activity"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": "",
+                                            "disabled": true,
+                                            "description": "meta.next_cursor of the previous page"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 007. Audit entries where the customer acted or is the subject (including their identity documents), newest first, keyset-paginated; auth.token.rotated left out. Same entry shape as the Audit log. Requires customer.view and audit.view_all or audit.view_own (own actions only). Not audited."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Sessions and Devices",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/sessions?per_page=20&page=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "sessions"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 007. Every trusted device (device_ref = a short prefix of the fingerprint hash) and the sessions still open (one per token family; meta applies to sessions). Sign-out deletes a session, so ended sessions are in Customer Activity instead. Requires customer.view. Not audited."
                             },
                             "response": []
                         }

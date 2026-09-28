@@ -15,10 +15,13 @@ use Illuminate\Pagination\LengthAwarePaginator;
 final class ListCustomersForVerificationAction
 {
     /** @return LengthAwarePaginator<int, Customer> */
-    public function handle(CustomerStatus $status, int $perPage): LengthAwarePaginator
+    public function handle(CustomerStatus $status, int $perPage, ?string $search = null): LengthAwarePaginator
     {
         return Customer::query()
-            ->where('status', $status->value)
+            // A search finds one customer in any state (spec 007, Customer file); exact match only.
+            ->when($search !== null,
+                fn ($q) => $q->where(fn ($m) => $m->where('display_ref', $search)->orWhere('phone', $search)),
+                fn ($q) => $q->where('status', $status->value))
             ->with(['identityDocuments' => function ($q) {
                 $q->orderByDesc('created_at')->limit(1);
             }])

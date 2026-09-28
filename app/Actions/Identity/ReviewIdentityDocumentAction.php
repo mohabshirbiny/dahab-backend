@@ -25,6 +25,9 @@ use Illuminate\Support\Facades\DB;
  *   request_resubmission→ document = needs_resubmission,  customer stays pending_verification
  *   reject              → document = rejected,            customer = rejected
  *
+ * A suspended customer stays suspended; the decision sets the state a
+ * reinstatement returns to (spec 007 research R6).
+ *
  * A verify or reject on a document that is not currently `pending` or
  * `needs_resubmission` is refused with `illegal_document_transition`. All
  * three branches share one transaction with the audit row; notifications
@@ -109,16 +112,29 @@ final class ReviewIdentityDocumentAction
 
     private function activate(Customer $customer): void
     {
-        if ($customer->status !== CustomerStatus::ACTIVE) {
-            $customer->transitionTo(CustomerStatus::ACTIVE);
-            $customer->save();
-        }
+        $this->settle($customer, CustomerStatus::ACTIVE);
     }
 
     private function reject(Customer $customer): void
     {
-        if ($customer->status !== CustomerStatus::REJECTED) {
-            $customer->transitionTo(CustomerStatus::REJECTED);
+        $this->settle($customer, CustomerStatus::REJECTED);
+    }
+
+    /**
+     * A review never lifts a suspension: for a suspended customer it changes
+     * the state a reinstatement returns to (spec 007 research R6).
+     */
+    private function settle(Customer $customer, CustomerStatus $state): void
+    {
+        if ($customer->status === CustomerStatus::SUSPENDED) {
+            $customer->setStateBehindSuspension($state);
+            $customer->save();
+
+            return;
+        }
+
+        if ($customer->status !== $state) {
+            $customer->transitionTo($state);
             $customer->save();
         }
     }
