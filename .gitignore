@@ -33,3 +33,6 @@ Thumbs.db
 .claude/local/
 
 
+
+# Log viewer assets (dev only): republish with `php artisan log-viewer:publish`
+/public/vendor/log-viewer
