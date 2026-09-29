@@ -193,6 +193,8 @@ it('refuses deleting a customer who has ledger lines', function () {
 });
 
 it('rolls back without leaving a ledger object behind', function () {
+    // Top-ups (spec 009) reference the ledger, so they roll back first.
+    Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_02_000010_create_topups.php', '--force' => true]);
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_01_000010_create_ledger.php', '--force' => true]);
 
     $left = DB::selectOne("

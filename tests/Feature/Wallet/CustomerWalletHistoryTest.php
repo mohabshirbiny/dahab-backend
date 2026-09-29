@@ -4,6 +4,7 @@ use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Enums\LedgerEventKind;
 use App\Models\Customer;
 use App\Models\Staff;
+use App\Models\TopUp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\Ledger;
 
@@ -99,4 +100,16 @@ it('refuses customers who are not verified', function () {
 
     $this->bearer(historyToken($pending))->getJson('/api/v1/customer/me/wallet/transactions')
         ->assertForbidden()->assertJsonPath('code', 'verification_required');
+});
+
+it('shows a credited top-up with its number as the reference (spec 009 R12)', function () {
+    $topUp = TopUp::factory()->credited()->create(['customer_id' => $this->customer->customer_id]);
+    Ledger::hold($this->customer, '100');
+
+    $this->bearer($this->token)->getJson('/api/v1/customer/me/wallet/transactions')
+        ->assertOk()
+        ->assertJsonPath('data.0.kind', 'deposit_hold')
+        ->assertJsonPath('data.0.reference', null)
+        ->assertJsonPath('data.1.kind', 'topup')
+        ->assertJsonPath('data.1.reference', 'TOP-'.$topUp->topup_no);
 });

@@ -101,7 +101,8 @@ it('serialises two holds on one wallet so the balance never goes negative', func
         DatabaseActor::reapply();
         // Ledger rows have no DELETE policy (by design), so wipe them and put
         // the internal singletons back the way the migration seeds them.
-        DB::statement('TRUNCATE ledger_posting, ledger_transaction, account');
+        // topup references ledger_transaction since spec 009 (empty here).
+        DB::statement('TRUNCATE topup, ledger_posting, ledger_transaction, account');
         DB::table('customer')->where('customer_id', $customer->customer_id)->delete();
         (require base_path('database/migrations/2026_10_01_000010_create_ledger.php'))->provision();
         Account::flushInternalCache();
