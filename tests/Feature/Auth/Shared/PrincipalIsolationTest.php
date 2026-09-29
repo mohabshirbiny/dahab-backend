@@ -152,7 +152,10 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            audit-log index/categories/export/show (4, spec 006),
     //            customers suspend/reinstate/activity/sessions (4, spec 007),
     //            wallets overview, customer wallet, wallet-statement + export (4, spec 008)
-    expect($checked)->toBe(59);
+    // spec 009:  customer topup-methods, topups index/store, topups cancel (4);
+    //            dashboard topups index/store/export/show/receipt/match/hold/unhold/reject (9),
+    //            receiving-accounts index/store/update (3)
+    expect($checked)->toBe(75);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

@@ -59,6 +59,14 @@ enum AuditEvent: string
     case AUDIT_LOG_EXPORTED = 'audit.log.exported';
     case LEDGER_STATEMENT_VIEWED = 'ledger.statement.viewed';
     case LEDGER_STATEMENT_EXPORTED = 'ledger.statement.exported';
+    case TOPUP_MATCHED = 'topup.matched';
+    case TOPUP_CREDITED_BY_HAND = 'topup.credited_by_hand';
+    case TOPUP_HELD = 'topup.held';
+    case TOPUP_UNHELD = 'topup.unheld';
+    case TOPUP_REJECTED = 'topup.rejected';
+    case TOPUP_LIST_EXPORTED = 'topup.list_exported';
+    case RECEIVING_ACCOUNT_CREATED = 'receiving_account.created';
+    case RECEIVING_ACCOUNT_UPDATED = 'receiving_account.updated';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -119,6 +127,14 @@ enum AuditEvent: string
             self::AUDIT_LOG_EXPORTED => 'Audit log exported',
             self::LEDGER_STATEMENT_VIEWED => 'Wallet statement opened',
             self::LEDGER_STATEMENT_EXPORTED => 'Wallet statement exported',
+            self::TOPUP_MATCHED => 'Incoming transfer matched and credited',
+            self::TOPUP_CREDITED_BY_HAND => 'Incoming transfer credited by hand',
+            self::TOPUP_HELD => 'Incoming transfer put on hold',
+            self::TOPUP_UNHELD => 'Incoming transfer taken off hold',
+            self::TOPUP_REJECTED => 'Transfer notice rejected',
+            self::TOPUP_LIST_EXPORTED => 'Incoming transfers exported',
+            self::RECEIVING_ACCOUNT_CREATED => 'Receiving account added',
+            self::RECEIVING_ACCOUNT_UPDATED => 'Receiving account changed',
         };
     }
 
@@ -132,7 +148,10 @@ enum AuditEvent: string
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED => AuditCategory::SYSTEM,
             self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
             self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,
-            self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED => AuditCategory::MONEY,
+            self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED,
+            self::TOPUP_MATCHED, self::TOPUP_CREDITED_BY_HAND, self::TOPUP_HELD, self::TOPUP_UNHELD,
+            self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
+            self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,
         };
     }
 

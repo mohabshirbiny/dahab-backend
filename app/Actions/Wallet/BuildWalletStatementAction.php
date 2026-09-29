@@ -155,11 +155,13 @@ final class BuildWalletStatementAction
                    pr.t_held::numeric(18,4)::text AS t_held,
                    s.staff_id, s.full_name AS staff_name, s.is_system,
                    ac.full_name AS actor_customer_name,
-                   wc.display_ref AS wallet_ref
+                   wc.display_ref AS wallet_ref,
+                   'TOP-' || tu.topup_no AS topup_ref
             FROM period pr
             LEFT JOIN staff s ON s.staff_id = pr.staff_id
             LEFT JOIN customer ac ON ac.customer_id = pr.actor_customer_id
             LEFT JOIN customer wc ON wc.customer_id = pr.wallet_customer::uuid
+            LEFT JOIN topup tu ON tu.ledger_txn_id = pr.ledger_txn_id
             WHERE (?::bigint IS NULL OR pr.seq > ?::bigint)
             ORDER BY pr.seq
             LIMIT {$limit}
@@ -191,8 +193,8 @@ final class BuildWalletStatementAction
             'created_at' => Carbon::parse($r->created_at)->setTimezone(self::TZ)->toIso8601String(),
             'kind' => $kind->value,
             'label' => $kind->staffLabel(),
-            // Filled when orders and listings exist (their display references).
-            'reference' => null,
+            // A top-up's number (spec 009 R12); orders and listings fill theirs when they exist.
+            'reference' => $r->topup_ref,
             'memo' => $r->memo,
             'by_hand' => $actor['type'] === 'staff',
             'actor' => $actor,

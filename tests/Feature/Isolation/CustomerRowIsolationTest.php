@@ -5,6 +5,7 @@ use App\Models\CustomerPassword;
 use App\Models\CustomerTrustedDevice;
 use App\Models\IdentityDocument;
 use App\Models\Staff;
+use App\Models\TopUp;
 use App\Support\DatabaseActor;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,6 +24,7 @@ const ISOLATED_TABLES = [
     'customer_trusted_device' => 'customer_id',
     'identity_document' => 'customer_id',
     'one_time_token' => 'actor_customer_id',
+    'topup' => 'customer_id', // spec 009
 ];
 
 function customerWithRows(): Customer
@@ -35,6 +37,7 @@ function customerWithRows(): Customer
         'token_hash' => Str::random(64), 'purpose' => 'email_verification',
         'actor_customer_id' => $c->customer_id, 'expires_at' => now()->addHour(),
     ]);
+    TopUp::factory()->create(['customer_id' => $c->customer_id]);
 
     return $c;
 }

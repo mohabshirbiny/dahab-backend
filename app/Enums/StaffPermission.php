@@ -66,6 +66,12 @@ enum StaffPermission: string
     /** See wallet balances, statements and the safety figure (Part 1 §4.2 "View a wallet balance", "Open a wallet statement"; spec 008). */
     case WALLET_VIEW = 'wallet.view';
 
+    /** Incoming transfers: list, receipt, match, hold, reject and credit by hand (Part 1 §4.2 "Match an incoming transfer"; spec 009). */
+    case TOPUP_MATCH = 'topup.match';
+
+    /** Add, edit and deactivate Dahab's receiving accounts (spec 009). */
+    case TOPUP_ACCOUNTS_MANAGE = 'topup.accounts.manage';
+
     public function label(): string
     {
         return match ($this) {
@@ -87,6 +93,8 @@ enum StaffPermission: string
             self::AUDIT_VIEW_ALL => 'View the whole audit log',
             self::AUDIT_VIEW_OWN => 'View your own actions in the audit log',
             self::WALLET_VIEW => 'View wallets and statements',
+            self::TOPUP_MATCH => 'Match an incoming transfer',
+            self::TOPUP_ACCOUNTS_MANAGE => "Manage Dahab's receiving accounts",
         };
     }
 
@@ -100,7 +108,7 @@ enum StaffPermission: string
             self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
-            self::WALLET_VIEW => 'Money',
+            self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE => 'Money',
         };
     }
 
@@ -151,6 +159,9 @@ enum StaffPermission: string
             self::AUDIT_VIEW_OWN => [SeedRole::COO->value, SeedRole::FINANCE->value, SeedRole::OPERATIONS->value, SeedRole::VERIFICATION->value],
             // Spec 008: wallet-touching, so never the COO (Part 1 §4.2).
             self::WALLET_VIEW => [SeedRole::FINANCE->value],
+            // Spec 009: wallet-touching, so never the COO (Part 1 §4.2).
+            self::TOPUP_MATCH,
+            self::TOPUP_ACCOUNTS_MANAGE => [SeedRole::FINANCE->value],
         };
     }
 }

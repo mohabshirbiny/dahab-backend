@@ -30,6 +30,9 @@ class DatabaseSeeder extends Seeder
         // Demo wallet movements through the money service (spec 008); same guard.
         $this->call(LocalLedgerSeeder::class);
 
+        // Fake receiving accounts for top-ups (spec 009); same guard. Real ones come from the Dashboard.
+        $this->call(ReceivingAccountSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

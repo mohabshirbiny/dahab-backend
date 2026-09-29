@@ -150,6 +150,7 @@ Note the two founder columns differ only where wallet access is involved. For li
 |---|---|---|---|---|---|---|
 | Release a withdrawal | ✓ | — | ✓ | — | — | — |
 | Match an incoming transfer | CEO only | — | ✓ | — | — | — |
+| Manage Dahab's receiving accounts | CEO only | — | ✓ | — | — | — |
 | View a wallet balance | CEO only | — | ✓ | — | — | — |
 | Open a wallet statement | CEO only | — | ✓ | — | — | — |
 | Pay compensation to a wallet | ✓ | — | Up to cap | — | — | — |
@@ -169,6 +170,8 @@ Note the two founder columns differ only where wallet access is involved. For li
 | Close the day | CEO only | — | ✓ | — | — | — |
 
 Two important reads of this table:
+
+> **Changed by spec 009** ([`specs/009-wallet-topup/spec.md`](../../specs/009-wallet-topup/spec.md)): permission codes `topup.match` (*Match an incoming transfer* — the Incoming transfers list, receipt, match, hold, reject and credit by hand) and `topup.accounts.manage` (*Manage Dahab's receiving accounts*, a new row). Both are seeded to CEO and Finance, never the COO, and are editable from the Dashboard (spec 002).
 
 - **The COO is excluded from every wallet-touching action even though the COO is a founder.** The COO cannot view a balance, adjust a wallet, match a transfer, record a bank movement, or close the day (the "CEO only" rows), and cannot release a withdrawal either (that row is CEO + Finance — both may release, but not the COO). This is the wallet-access narrowing made concrete, and §5.2 enforces it by grant so it cannot be bypassed in code.
 - **"Change commission or spread rates" is CEO + Finance (RESOLVED — was OI-1.4).** The earlier conflict — the admin-roles matrix reading founders-only versus the blueprint settings table reading "Founders and CFO" — is resolved in favour of **CEO + Finance**: the COO is excluded because it is a money-adjacent action (consistent with the wallet narrowing), and Finance is included per the settings table. The admin-roles matrix and blueprint are updated to match. **Withdrawal release is likewise CEO + Finance** (resolved; was OI-2.3).

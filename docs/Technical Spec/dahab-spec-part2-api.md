@@ -395,7 +395,7 @@ IGI confirms the physical handover at the counter against the collection code an
 
 Wallet **balances** for the customer are their own (RLS-scoped) read. This is distinct from staff wallet access, which is a permission seeded to CEO+Finance (Part 1 §5.2). A verified customer always sees their own two figures.
 
-> **Built by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)). As-built paths are under the customer surface: `GET /customer/me/wallet` → `{ available, held, total, currency }` and `GET /customer/me/wallet/transactions` (one row per ledger entry touching the customer: `kind`, `created_at`, `available_change`, `held_change`, `available_after`, `held_after`, `reference`; newest first, keyset `cursor`). The running balance is **available**: a hold is money out of available, a release money in, with held shown beside it. `POST /me/wallet/topup` is **not built** — it is the next feature (Wallet Top-up: transfer notice → Finance match).
+> **Built by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)). As-built paths are under the customer surface: `GET /customer/me/wallet` → `{ available, held, total, currency }` and `GET /customer/me/wallet/transactions` (one row per ledger entry touching the customer: `kind`, `created_at`, `available_change`, `held_change`, `available_after`, `held_after`, `reference`; newest first, keyset `cursor`). The running balance is **available**: a hold is money out of available, a release money in, with held shown beside it. `POST /me/wallet/topup` was built by spec 009 as the endpoints below.
 
 ### `GET /me/wallet`
 - **gate:** `verified` (spec 002; RLS to own rows) · **idempotent:** n/a
@@ -405,9 +405,15 @@ Wallet **balances** for the customer are their own (RLS-scoped) read. This is di
 Customer's own ledger history (their postings, human-labelled by `event_kind`).
 - **gate:** `verified` (spec 002) · **idempotent:** n/a · keyset paginated.
 
-### `POST /me/wallet/topup`
-Adds funds (`event_kind = topup`): `bank −amount`, buyer `cust_available +amount` (balanced — **changed by spec 008**, research R15: the lines sum to zero, so money arriving is a negative posting on `bank`; the bank's cash is `−SUM(bank)`). Payment-gateway integration detail is Part 4; this endpoint records the resulting ledger movement on confirmed settlement.
-- **gate:** `trade_allowed` (spec 002: top-up requires verification) · **idempotent:** required · **audited:** no
+### Top-up (built by spec 009)
+> **Changed by spec 009** ([`specs/009-wallet-topup/spec.md`](../../specs/009-wallet-topup/spec.md), contract [`contracts/topup-api.md`](../../specs/009-wallet-topup/contracts/topup-api.md)). Top-up is a **manual transfer**, never a payment gateway. The customer files a notice and moves no money; staff credit it after seeing the money arrive (§9). The ledger legs are unchanged: `event_kind = topup`, `bank −amount`, customer `cust_available +amount` (spec 008 R15: the bank's cash is `−SUM(bank)`).
+
+- `GET /customer/me/wallet/topup-methods` — the active receiving accounts grouped by method, with display-only daily limit and provider-fee text, plus the customer's reference `DAHAB-<display_ref>`. **gate:** `trade_allowed`.
+- `POST /customer/me/uploads` with `purpose = topup_receipt` — an optional receipt (JPEG/PNG/WebP/PDF), encrypted on the private uploads disk. **gate:** `trade_allowed` for this purpose.
+- `POST /customer/me/wallet/topups` — `{ amount, receiving_account_id, receipt_upload_token? }` → a `pending` notice. **gate:** `trade_allowed` · **idempotent:** required · **audited:** no · throttled.
+- `GET /customer/me/wallet/topups` — the customer's own notices (RLS). **gate:** `verified` (a suspended customer may read). Each open notice carries `expected_amount`: the claim minus the provider fee its account showed **when the notice was filed** (snapshot `topup.notice_fee_percent`; a later fee change never moves it), half-up to piastres, display only.
+- `POST /customer/me/wallet/topups/{topup}/cancel` — `pending → cancelled`. **gate:** `verified` (a suspended customer may cancel) · **idempotent:** required.
+- A suspended customer cannot read the receiving details, upload a receipt or submit a notice (`account_suspended`).
 
 ### Payout accounts & withdrawals
 Money leaves only to an account in the customer's own name; a payout-account change pauses withdrawals for the setting window (48h) and the email second-check gates every withdrawal (Part 1 §2.4; schema §12).
@@ -458,8 +464,21 @@ Approve and send to bank (`under_review → released`). **Every withdrawal is re
 ### `POST /admin/withdrawals/{id}/reject`
 `under_review → rejected`; the held funds return to the customer's available. · **reason:** required · **audited:** yes
 
-### `POST /admin/transfers/match`
-Match an incoming bank transfer to a customer top-up (`event_kind = topup`). · **permission:** *Match an incoming transfer* (CEO/Finance) · **audited:** yes · **idempotent:** required
+### Incoming transfers (built by spec 009 — was `POST /admin/transfers/match`)
+> **Changed by spec 009** ([`specs/009-wallet-topup/spec.md`](../../specs/009-wallet-topup/spec.md)). **Permission:** `topup.match` (*Match an incoming transfer*, CEO/Finance) unless noted. Every POST is **idempotent** (Idempotency-Key) and **audited**.
+
+- `GET /dashboard/topups` (filters: status — default pending and on hold — Cairo dates, and search by reference with or without `DAHAB-`, phone or name) · `GET /dashboard/topups/export` (CSV, audited) · `GET /dashboard/topups/{topup}` · `GET /dashboard/topups/{topup}/receipt`.
+- Staff top-ups carry the same `expected_amount` plus `notice_fee_percent` (the snapshot); `notice_account.provider_fee_percent` is the account's current fee.
+- `POST /dashboard/topups/{topup}/match` — `{ amount, receiving_account_id, note?, arrival_reference? }`. Credits **what actually arrived** in one transaction (row lock → `topup` ledger entry → `credited` with the unique ledger id → audit), then SMS/email after commit. A note is required when the amount differs from the claim; a notice is credited at most once.
+- `POST /dashboard/topups/{topup}/hold` (note) · `/unhold` · `/reject` (`money_not_received | duplicate_notice | sender_not_accepted | other` + note; the customer is told the reason, never the note).
+- `POST /dashboard/topups` — **credit by hand** (money with no notice): `{ customer_id, amount, receiving_account_id, note, arrival_reference? }`.
+- **Suspended-customer credit rule:**
+  - verified and active → match and credit by hand allowed;
+  - verified and suspended (suspended from active) → match and credit by hand allowed **only** as staff-side reconciliation of money that has already arrived: `arrival_reference` (the provider's transaction reference for the arrival) is required (otherwise 422), and the audit row records the customer's status; the same idempotency, ledger and audit rules apply;
+  - awaiting verification, rejected, or suspended from those → credit by hand refused with `verification_required`;
+  - the customer side is unchanged: a suspended customer cannot read receiving details, upload a receipt or submit a notice, but may list and cancel their own pending notices.
+- `GET /dashboard/receiving-accounts` (`topup.match` or `topup.accounts.manage`) · `POST /dashboard/receiving-accounts` and `PATCH /dashboard/receiving-accounts/{account}` (`topup.accounts.manage`, audited; accounts are deactivated, never deleted; the method never changes).
+- **Errors:** `illegal_topup_transition` (409), `verification_required` (403), validation (422).
 
 ### `POST /admin/compensation`
 Pay goodwill/dispute compensation into a wallet (`event_kind = compensation`).

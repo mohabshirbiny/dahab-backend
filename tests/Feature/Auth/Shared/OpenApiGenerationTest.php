@@ -138,6 +138,29 @@ const OPENAPI_DASHBOARD_WALLET_PATHS = [
     'get /dashboard/wallet-statement/export',
 ];
 
+// Spec 009: wallet top-up.
+const OPENAPI_CUSTOMER_TOPUP_PATHS = [
+    'get /customer/me/wallet/topup-methods',
+    'get /customer/me/wallet/topups',
+    'post /customer/me/wallet/topups',
+    'post /customer/me/wallet/topups/{topup}/cancel',
+];
+
+const OPENAPI_DASHBOARD_TOPUP_PATHS = [
+    'get /dashboard/topups',
+    'post /dashboard/topups',
+    'get /dashboard/topups/export',
+    'get /dashboard/topups/{topup}',
+    'get /dashboard/topups/{topup}/receipt',
+    'post /dashboard/topups/{topup}/match',
+    'post /dashboard/topups/{topup}/hold',
+    'post /dashboard/topups/{topup}/unhold',
+    'post /dashboard/topups/{topup}/reject',
+    'get /dashboard/receiving-accounts',
+    'post /dashboard/receiving-accounts',
+    'patch /dashboard/receiving-accounts/{account}',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -173,6 +196,8 @@ it('documents exactly the customer and dashboard endpoints', function () {
         ...OPENAPI_DASHBOARD_AUDIT_PATHS,
         ...OPENAPI_CUSTOMER_WALLET_PATHS,
         ...OPENAPI_DASHBOARD_WALLET_PATHS,
+        ...OPENAPI_CUSTOMER_TOPUP_PATHS,
+        ...OPENAPI_DASHBOARD_TOPUP_PATHS,
     ]);
 });
 
@@ -239,6 +264,8 @@ it('secures every operation with its own surface scheme and never the generic sa
         ...array_fill_keys(OPENAPI_DASHBOARD_AUDIT_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_CUSTOMER_WALLET_PATHS, 'customerBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_WALLET_PATHS, 'dashboardBearer'),
+        ...array_fill_keys(OPENAPI_CUSTOMER_TOPUP_PATHS, 'customerBearer'),
+        ...array_fill_keys(OPENAPI_DASHBOARD_TOPUP_PATHS, 'dashboardBearer'),
     ];
 
     foreach ($expected as $key => $scheme) {
@@ -295,6 +322,14 @@ it('tags each surface separately', function () {
     foreach (OPENAPI_DASHBOARD_WALLET_PATHS as $key) {
         expect($ops[$key]['tags'])->toBe(['Dashboard Wallets']);
     }
+
+    foreach (OPENAPI_CUSTOMER_TOPUP_PATHS as $key) {
+        expect($ops[$key]['tags'])->toBe(['Customer Wallet']);
+    }
+
+    foreach (OPENAPI_DASHBOARD_TOPUP_PATHS as $key) {
+        expect($ops[$key]['tags'])->toBe(['Dashboard Top-ups']);
+    }
 });
 
 it('documents the request bodies and response schemas the endpoints use', function () {
@@ -320,6 +355,9 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffCustomerFile', 'StaffCustomerFileDocument', 'StaffCustomerSuspension',
         'DashboardSuspendCustomer', 'DashboardReinstateCustomer', 'StaffCustomerSession', 'StaffCustomerDevice',
         'CustomerWallet', 'CustomerWalletMovement',
+        'CustomerTopUp', 'CustomerReceivingAccount', 'SubmitTopUpNoticeRequest',
+        'StaffTopUp', 'StaffReceivingAccount', 'DashboardMatchTopUp', 'DashboardHoldTopUp', 'DashboardRejectTopUp',
+        'DashboardCreditTopUpByHand', 'DashboardStoreReceivingAccount', 'DashboardUpdateReceivingAccount',
     ]);
 
     $ops = documentedOperations($doc);

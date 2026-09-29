@@ -191,7 +191,7 @@ Missing:         anything not found, stated exactly (endpoint / field / permissi
 Action needed:   Backend → … · Dashboard → … · Customer App → …
 ```
 
-## Current state (verified 2026-09-28 — re-verify before relying on it)
+## Current state (verified 2026-09-29 — re-verify before relying on it)
 
 - Backend implements: health, customer registration (6 steps) / login / new-device OTP / refresh / me /
   logout, customer uploads + identity-document submission; staff login + MFA / refresh / me / logout;
@@ -208,21 +208,27 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   CSV export, everything or own actions only (spec 006, `/dashboard/audit-log*`); the Customer file — the file with every
   document and the suspension, search by reference/phone, suspend/reinstate (seven reasons, back to the interrupted state),
   History and open sessions/devices (spec 007, `/dashboard/customers/{id}/suspend|reinstate|activity|sessions`), and the
-  shared `Idempotency-Key` layer (`idempotent` middleware, `idempotency_key` table; used by suspend/reinstate so far);
+  shared `Idempotency-Key` layer (`idempotent` middleware, `idempotency_key` table; on suspend/reinstate and every top-up POST);
   the ledger core (spec 008) — the double-entry EGP ledger of `03_schema_ledger.sql` (accounts per customer created by a
   trigger on `customer`, the six Dahab internal accounts, append-only balanced entries, forced RLS with a write-only
-  `ledger` scope), the money service `PostLedgerEntryAction` / `ReverseLedgerEntryAction` (no endpoint moves money
-  yet), the customer's wallet and history (`/customer/me/wallet*`) and, behind `wallet.view`, the overview, customer
+  `ledger` scope), the money service `PostLedgerEntryAction` / `ReverseLedgerEntryAction`, the customer's wallet and history (`/customer/me/wallet*`) and, behind `wallet.view`, the overview, customer
   wallet and Wallet statement with export (`/dashboard/wallets/overview`, `/dashboard/customers/{id}/wallet`,
-  `/dashboard/wallet-statement*`). Signs: lines sum to zero, so money in is `bank −X`; the bank's cash is `−SUM(bank)`.
-  Nothing else yet.
+  `/dashboard/wallet-statement*`). Signs: lines sum to zero, so money in is `bank −X`; the bank's cash is `−SUM(bank)`;
+  wallet top-up (spec 009) — a manual transfer, never a gateway: Dahab's receiving accounts (`receiving_account`,
+  `/dashboard/receiving-accounts*`, `topup.accounts.manage`), the customer's methods + reference `DAHAB-<display_ref>`,
+  receipt upload (`purpose=topup_receipt`), notices, list and cancel (`/customer/me/wallet/topup-methods|topups*`, trade
+  gate to add money; a suspended customer may list/cancel), and Incoming transfers — match (credits what arrived),
+  hold/unhold, reject, credit by hand, receipt, export (`/dashboard/topups*`, `topup.match`) — the first endpoints that
+  move money (`topup` entries; a suspended customer is credited only with `arrival_reference`). Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
-  (spec 008), the rest of the Overview and other sections are mock.
+  (spec 008); Incoming transfers and Controls → Receiving accounts are live (spec 009); the rest of the Overview and
+  other sections are mock.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
-  (spec 008, `ApiWalletRepository`); catalog, orders, top-up methods, invoices, withdrawals, notifications, etc.
+  (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); catalog, orders, invoices,
+  withdrawals, notifications, etc.
   run on mock repositories (`lib/services/mock_repositories.dart`).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed
   with `--dart-define` only when building a deploy version.

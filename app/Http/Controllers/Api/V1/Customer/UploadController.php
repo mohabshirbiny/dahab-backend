@@ -17,7 +17,7 @@ class UploadController extends Controller
         path: '/customer/me/uploads',
         operationId: 'customerCreateUpload',
         summary: 'Upload a private image and receive a single-use upload token',
-        description: 'The image is encrypted and stored on a private disk that has no URL. Reference it once, by its `upload_token`, from the endpoint that consumes it (for purpose `identity`: `POST /customer/me/identity-documents`). An unclaimed upload expires after `expires_in` seconds.',
+        description: 'The file is encrypted and stored on a private disk that has no URL. Reference it once, by its `upload_token`, from the endpoint that consumes it (purpose `identity`: `POST /customer/me/identity-documents`; purpose `topup_receipt`, spec 009: `POST /customer/me/wallet/topups`, verified non-suspended customers only). An unclaimed upload expires after `expires_in` seconds.',
         security: [['customerBearer' => []]],
         tags: ['Customer Identity'],
         requestBody: new OA\RequestBody(required: true, content: new OA\MediaType(mediaType: 'multipart/form-data', schema: new OA\Schema(ref: '#/components/schemas/CreateUploadRequest'))),

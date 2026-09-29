@@ -124,6 +124,11 @@ class AppServiceProvider extends ServiceProvider
             return $this->limit((int) config('dahab-identity.uploads_per_minute'), 60, 'customer-uploads:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
         });
 
+        // Spec 009: transfer notices per customer (research R15).
+        RateLimiter::for('customer.topups', function (Request $request) {
+            return $this->limit((int) config('dahab-wallet.topups_per_minute'), 60, 'customer-topups:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         $mfa = config('dahab-auth.rate_limits.staff_mfa');
         RateLimiter::for('auth.staff.mfa', function (Request $request) use ($mfa) {
             return [

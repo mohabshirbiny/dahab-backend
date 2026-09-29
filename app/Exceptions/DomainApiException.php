@@ -154,4 +154,14 @@ class DomainApiException extends RuntimeException
     {
         return new self('ledger_already_reversed', 409, 'This ledger entry has already been reversed.');
     }
+
+    /**
+     * A top-up status move outside the state machine, or a lost race: the
+     * notice was already credited, rejected or cancelled (spec 009 FR-025;
+     * the guard trigger's SQLSTATE DH003 maps here too).
+     */
+    public static function illegalTopUpTransition(): self
+    {
+        return new self('illegal_topup_transition', 409, 'This transfer has already been closed or cannot move to that state.');
+    }
 }

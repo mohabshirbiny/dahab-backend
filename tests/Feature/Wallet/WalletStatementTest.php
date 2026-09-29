@@ -8,9 +8,11 @@ use App\Models\Account;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Staff;
+use App\Models\TopUp;
 use App\Support\SystemActor;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\Support\Ledger;
 
 uses(RefreshDatabase::class);
@@ -195,4 +197,24 @@ it('audits the first page of a one-customer statement only', function () {
         ->and($audits[0]->entity_id)->toBe($this->mona->customer_id)
         ->and($audits[0]->actor_staff_id)->toBe($this->finance->staff_id)
         ->and($audits[0]->after_json)->toMatchArray(['view' => 'customer', 'from' => '2026-08-01', 'to' => '2026-08-31']);
+});
+
+it('shows a credited top-up with its number, method and how it was matched (spec 009 FR-021)', function () {
+    $this->seed(DashboardRolesAndPermissionsSeeder::class);
+    $finance = Staff::factory()->role(SeedRole::FINANCE)->create();
+    $customer = Customer::factory()->verified()->create();
+    $matched = TopUp::factory()->create(['customer_id' => $customer->customer_id]);
+    app('auth')->forgetGuards();
+    $this->withToken(staffAccessToken($finance))
+        ->postJson("/api/v1/dashboard/topups/{$matched->topup_id}/match", ['amount' => '20000', 'receiving_account_id' => $matched->notice_account_id], ['Idempotency-Key' => (string) Str::uuid()])
+        ->assertOk();
+
+    $today = now('Africa/Cairo')->toDateString();
+    $res = statement($this, $finance, ['view' => 'customer', 'customer_id' => $customer->customer_id, 'from' => $today, 'to' => $today, 'grain' => 'each'])->assertOk();
+
+    $row = $res->json('data.rows.0');
+    expect($row['kind'])->toBe('topup')
+        ->and($row['reference'])->toBe('TOP-'.$matched->topup_no)
+        ->and($row['memo'])->toBe("Top-up TOP-{$matched->topup_no} · InstaPay · matched from notice {$matched->reference}")
+        ->and($row['in'])->toBe('20000.0000');
 });

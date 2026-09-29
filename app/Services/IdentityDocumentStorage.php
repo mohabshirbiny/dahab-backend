@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * The private object store for identity images. The disk is never public and
+ * The private object store for customer uploads: identity images and, since
+ * spec 009, top-up receipts (images or PDF). The disk is never public and
  * has no URL; bytes are encrypted application-side before they touch it
  * (docs/Database schema/02_schema_identity.sql: "photos are encrypted at
  * rest"), so a leaked bucket or backup holds only ciphertext. The returned
@@ -22,6 +23,19 @@ final class IdentityDocumentStorage
     public function store(string $customerId, UploadedFile $file): string
     {
         $ref = 'identity/'.$customerId.'/'.Str::uuid().'.enc';
+
+        $this->putAt($ref, (string) $file->get());
+
+        return $ref;
+    }
+
+    /**
+     * Encrypt and store an upload for a customer under another prefix (spec 009:
+     * `topup-receipts`); returns the object key.
+     */
+    public function storeAt(string $prefix, string $customerId, UploadedFile $file): string
+    {
+        $ref = $prefix.'/'.$customerId.'/'.Str::uuid().'.enc';
 
         $this->putAt($ref, (string) $file->get());
 
@@ -56,7 +70,7 @@ final class IdentityDocumentStorage
         Storage::disk(self::DISK)->put($ref, Crypt::encryptString($bytes));
     }
 
-    /** Decrypted image bytes. Throws if the object is missing or cannot be decrypted. */
+    /** Decrypted bytes. Throws if the object is missing or cannot be decrypted. */
     public function read(string $ref): string
     {
         return Crypt::decryptString(Storage::disk(self::DISK)->get($ref));

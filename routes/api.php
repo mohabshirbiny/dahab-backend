@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Customer\Auth\CustomerAuthController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
+use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
@@ -17,9 +18,11 @@ use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as Dashboar
 use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
+use App\Http\Controllers\Api\V1\Dashboard\ReceivingAccountController as DashboardReceivingAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
 use App\Http\Controllers\Api\V1\Dashboard\SettingController as DashboardSettingController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
+use App\Http\Controllers\Api\V1\Dashboard\TopUpController as DashboardTopUpController;
 use App\Http\Controllers\Api\V1\Dashboard\WalletController as DashboardWalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -104,6 +107,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware('customer.gate:verified')->prefix('wallet')->name('wallet.')->group(function () {
                 Route::get('/', [CustomerWalletController::class, 'show'])->name('show');
                 Route::get('/transactions', [CustomerWalletController::class, 'transactions'])->name('transactions');
+
+                // Spec 009: a suspended customer may read and cancel their own notices.
+                Route::get('/topups', [CustomerTopUpController::class, 'index'])->name('topups.index');
+                Route::post('/topups/{topup}/cancel', [CustomerTopUpController::class, 'cancel'])
+                    ->whereUuid('topup')->middleware('idempotent')->name('topups.cancel');
+            });
+
+            // Spec 009: receiving details and new notices need a verified, non-suspended
+            // customer (trade gate, Part 1 §2.2). `idempotent` runs last.
+            Route::middleware('customer.gate:trade')->prefix('wallet')->name('wallet.')->group(function () {
+                Route::get('/topup-methods', [CustomerTopUpController::class, 'methods'])->name('topup-methods');
+                Route::post('/topups', [CustomerTopUpController::class, 'store'])
+                    ->middleware(['throttle:customer.topups', 'idempotent'])->name('topups.store');
             });
         });
     });
@@ -258,6 +274,32 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/wallet-statement', [DashboardWalletController::class, 'statement'])->name('wallet-statement.show');
             Route::get('/wallet-statement/export', [DashboardWalletController::class, 'export'])->name('wallet-statement.export');
         });
+
+        // Incoming transfers (spec 009): CEO and Finance by default, never the COO.
+        // Every POST is idempotent (`idempotent` runs last); match and credit by hand move money.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:topup.match'])
+            ->prefix('topups')->name('topups.')->group(function () {
+                Route::get('/', [DashboardTopUpController::class, 'index'])->name('index');
+                Route::post('/', [DashboardTopUpController::class, 'store'])->middleware('idempotent')->name('store');
+                Route::get('/export', [DashboardTopUpController::class, 'export'])->name('export');
+                Route::get('/{topup}', [DashboardTopUpController::class, 'show'])->whereUuid('topup')->name('show');
+                Route::get('/{topup}/receipt', [DashboardTopUpController::class, 'receipt'])->whereUuid('topup')->name('receipt');
+                foreach (['match', 'hold', 'unhold', 'reject'] as $action) {
+                    Route::post("/{topup}/{$action}", [DashboardTopUpController::class, $action])
+                        ->whereUuid('topup')->middleware('idempotent')->name($action);
+                }
+            });
+
+        // Dahab's receiving accounts (spec 009 US4): read with either top-up code, change with topup.accounts.manage.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('receiving-accounts')->name('receiving-accounts.')->group(function () {
+                Route::get('/', [DashboardReceivingAccountController::class, 'index'])
+                    ->middleware('staff.permission:topup.match|topup.accounts.manage')->name('index');
+                Route::post('/', [DashboardReceivingAccountController::class, 'store'])
+                    ->middleware('staff.permission:topup.accounts.manage')->name('store');
+                Route::patch('/{account}', [DashboardReceivingAccountController::class, 'update'])
+                    ->whereNumber('account')->middleware('staff.permission:topup.accounts.manage')->name('update');
+            });
 
         // The audit log viewer (spec 006): everything, or your own actions only.
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:audit.view_all|audit.view_own'])

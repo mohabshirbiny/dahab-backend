@@ -56,6 +56,14 @@ total that must be 0), one customer's wallet (uses `customer_id`), and the Walle
 customer, all customers, the Dahab wallet) with CSV export. It needs `wallet.view`: `ceo` or `finance`, not `coo`.
 Nothing in this feature moves money, so wallets read 0 until the first money-moving feature (Wallet Top-up) lands.
 
+**Wallet Top-up** (spec 009) is a manual transfer. As a verified customer: **Customer → Wallet → Top-up Methods**
+(saves `receiving_account_id`) → optionally **Upload Top-up Receipt** (saves `receipt_upload_token`) → **Submit
+Top-up Notice** (saves `topup_id`; drop the `receipt_upload_token` line if you have none). Then, as `finance` or `ceo`,
+**Dashboard → Incoming Transfers**: list (saves `topup_id`), view the receipt, then **Match Transfer** (credits what
+arrived), **Hold** / **Unhold**, **Reject**, or **Credit Transfer By Hand** (uses `customer_id`). A suspended customer
+needs `arrival_reference`. Every top-up POST sends a fresh `Idempotency-Key`. **Receiving accounts** are managed in
+the same folder (`topup.accounts.manage`). The COO gets 403 everywhere here.
+
 ## Import
 
 1. Postman → Import → select both `.json` files in this folder.
