@@ -95,8 +95,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Spec 008 research R6: the deferred non-negative trigger (SQLSTATE
         // DH001) is the backstop behind PostLedgerEntryAction's own check.
+        // Spec 009: the top-up guard trigger (SQLSTATE DH003) freezes final
+        // states; reaching it means a lost race or an illegal move.
         $exceptions->map(function (QueryException $e) {
-            return ($e->errorInfo[0] ?? null) === 'DH001' ? DomainApiException::insufficientFunds() : $e;
+            return match ($e->errorInfo[0] ?? null) {
+                'DH001' => DomainApiException::insufficientFunds(),
+                'DH003' => DomainApiException::illegalTopUpTransition(),
+                default => $e,
+            };
         });
 
         $exceptions->render(function (DomainApiException $e, Request $request) {

@@ -49,9 +49,11 @@ final class ListCustomerWalletHistoryAction
                    pg.available_change::numeric(18,4)::text AS available_change,
                    pg.held_change::numeric(18,4)::text      AS held_change,
                    pg.available_after::numeric(18,4)::text  AS available_after,
-                   pg.held_after::numeric(18,4)::text       AS held_after
+                   pg.held_after::numeric(18,4)::text       AS held_after,
+                   'TOP-' || tu.topup_no                    AS topup_ref
             FROM page pg
             JOIN ledger_transaction t ON t.ledger_txn_id = pg.ledger_txn_id
+            LEFT JOIN topup tu ON tu.ledger_txn_id = pg.ledger_txn_id
             ORDER BY pg.seq DESC
         ", [$customerId, $cursor?->seq, $cursor?->seq, $perPage + 1]);
 
@@ -68,8 +70,8 @@ final class ListCustomerWalletHistoryAction
                 'held_change' => $r->held_change,
                 'available_after' => $r->available_after,
                 'held_after' => $r->held_after,
-                // Filled when orders and listings exist (their display references).
-                'reference' => null,
+                // A top-up's number (spec 009 R12); orders and listings fill theirs when they exist.
+                'reference' => $r->topup_ref,
             ], $rows),
             'next_cursor' => $hasMore && $last !== null ? (new HistoryCursor((int) $last->seq))->encode() : null,
         ];

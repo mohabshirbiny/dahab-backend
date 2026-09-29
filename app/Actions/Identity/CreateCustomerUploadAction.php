@@ -20,8 +20,11 @@ final class CreateCustomerUploadAction
      */
     public function handle(Customer $actor, UploadPurpose $purpose, UploadedFile $file): array
     {
-        $ref = $this->storage->store($actor->customer_id, $file);
+        $ref = match ($purpose) {
+            UploadPurpose::IDENTITY => $this->storage->store($actor->customer_id, $file),
+            UploadPurpose::TOPUP_RECEIPT => $this->storage->storeAt('topup-receipts', $actor->customer_id, $file),
+        };
 
-        return $this->tokens->issue($actor->customer_id, $purpose, $ref);
+        return $this->tokens->issue($actor->customer_id, $purpose, $ref, $file->getMimeType());
     }
 }

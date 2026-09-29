@@ -92,6 +92,12 @@ class Customer extends Authenticatable implements HasApiTokensContract
         return $this->hasMany(Account::class, 'customer_id', 'customer_id');
     }
 
+    /** Transfer notices and hand credits (spec 009). */
+    public function topUps(): HasMany
+    {
+        return $this->hasMany(TopUp::class, 'customer_id', 'customer_id');
+    }
+
     public function identityDocuments(): HasMany
     {
         return $this->hasMany(IdentityDocument::class, 'customer_id', 'customer_id');

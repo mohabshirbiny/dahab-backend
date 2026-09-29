@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 final class UploadTokenStore
 {
     /** @return array{token: string, expires_in: int} */
-    public function issue(string $customerId, UploadPurpose $purpose, string $storageRef): array
+    public function issue(string $customerId, UploadPurpose $purpose, string $storageRef, ?string $mime = null): array
     {
         $token = Str::random(48);
         $ttl = (int) config('dahab-identity.upload_token_ttl_seconds');
@@ -23,6 +23,7 @@ final class UploadTokenStore
             'customer_id' => $customerId,
             'purpose' => $purpose->value,
             'storage_ref' => $storageRef,
+            'mime' => $mime,
         ], now()->addSeconds($ttl));
 
         return ['token' => $token, 'expires_in' => $ttl];
@@ -38,6 +39,19 @@ final class UploadTokenStore
         }
 
         return $entry['storage_ref'];
+    }
+
+    /**
+     * The storage ref and content type behind a token, under the same rules as
+     * resolve() (spec 009: a receipt is streamed back with its type).
+     *
+     * @return array{storage_ref: string, mime: string|null}|null
+     */
+    public function resolveEntry(string $token, string $customerId, UploadPurpose $purpose): ?array
+    {
+        $ref = $this->resolve($token, $customerId, $purpose);
+
+        return $ref === null ? null : ['storage_ref' => $ref, 'mime' => Cache::get($this->key($token))['mime'] ?? null];
     }
 
     public function forget(string $token): void

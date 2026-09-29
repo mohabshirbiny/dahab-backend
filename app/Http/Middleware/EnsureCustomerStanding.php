@@ -39,6 +39,17 @@ final class EnsureCustomerStanding
             throw new AuthenticationException;
         }
 
+        self::assert($customer, $level);
+
+        return $next($request);
+    }
+
+    /**
+     * The same check outside a route middleware (spec 009: the `topup_receipt`
+     * upload purpose on the otherwise open `/me/uploads` route).
+     */
+    public static function assert(Customer $customer, string $level): void
+    {
         $status = Customer::query()->whereKey($customer->getKey())->value('status');
         $status = $status instanceof CustomerStatus ? $status : CustomerStatus::from((string) $status);
 
@@ -47,7 +58,5 @@ final class EnsureCustomerStanding
             CustomerStatus::SUSPENDED => $level === 'trade' ? throw AuthApiException::accountSuspended() : null,
             CustomerStatus::PENDING_VERIFICATION, CustomerStatus::REJECTED => throw DomainApiException::verificationRequired(),
         };
-
-        return $next($request);
     }
 }

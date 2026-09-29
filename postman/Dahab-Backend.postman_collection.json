@@ -105,6 +105,21 @@
             "key": "staff_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "topup_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "receiving_account_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "receipt_upload_token",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -2896,6 +2911,599 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Incoming Transfers",
+                    "item": [
+                        {
+                            "name": "List Incoming Transfers",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups?status=pending,on_hold",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending,on_hold"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 009. Notices and hand credits, newest first. status comma list (default pending,on_hold); from/to Cairo dates (default last 30 days); q = reference (with or without DAHAB-), phone or name; meta.totals. Requires topup.match (CEO, Finance; never COO). Saves the first topup_id."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('topup_id', Array.isArray(d) ? (d[0] ? d[0].id : '') : d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Export Incoming Transfers",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups/export?status=pending,on_hold",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending,on_hold"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 009. CSV (UTF-8 with BOM) with the list's filters; capped at 50,000 rows. Audited (topup.list_exported). Requires topup.match."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show Incoming Transfer",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups/{{topup_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups",
+                                        "{{topup_id}}"
+                                    ]
+                                },
+                                "description": "Spec 009. One transfer with the customer, accounts, notes, who acted and allowed_actions. Requires topup.match."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "View Transfer Receipt",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups/{{topup_id}}/receipt",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups",
+                                        "{{topup_id}}",
+                                        "receipt"
+                                    ]
+                                },
+                                "description": "Spec 009. The decrypted image or PDF (Cache-Control: no-store). 404 when there is no receipt. Requires topup.match."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Match Transfer",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups/{{topup_id}}/match",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups",
+                                        "{{topup_id}}",
+                                        "match"
+                                    ]
+                                },
+                                "description": "Spec 009. Credit what actually arrived: one topup ledger entry (bank \u2212amount, customer available +amount), the notice credited once, audited (topup.matched), SMS/email after commit. note required when the amount differs from the claim; arrival_reference (the provider's transaction reference) required when the customer is suspended. 409 illegal_topup_transition when already closed. Requires topup.match and an Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"amount\": \"20000.00\",\n    \"receiving_account_id\": {{receiving_account_id}},\n    \"note\": null,\n    \"arrival_reference\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Hold Transfer",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups/{{topup_id}}/hold",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups",
+                                        "{{topup_id}}",
+                                        "hold"
+                                    ]
+                                },
+                                "description": "Spec 009. pending \u2192 on_hold while you check; stays matchable. note required (staff only). Audited (topup.held). Requires topup.match and an Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"note\": \"Checking the CIB statement.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Unhold Transfer",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups/{{topup_id}}/unhold",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups",
+                                        "{{topup_id}}",
+                                        "unhold"
+                                    ]
+                                },
+                                "description": "Spec 009. on_hold \u2192 pending. Audited (topup.unheld). Requires topup.match and an Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Reject Transfer",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups/{{topup_id}}/reject",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups",
+                                        "{{topup_id}}",
+                                        "reject"
+                                    ]
+                                },
+                                "description": "Spec 009. pending or on_hold \u2192 rejected (final); no money moves. reason: money_not_received | duplicate_notice | sender_not_accepted | other (told to the customer); note: staff only. Audited (topup.rejected). Requires topup.match and an Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"money_not_received\",\n    \"note\": \"Nothing on the statement after 3 days.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Credit Transfer By Hand",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/topups",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "topups"
+                                    ]
+                                },
+                                "description": "Spec 009. Money that arrived without a notice: a credited transfer (origin by_hand) and the topup ledger entry, audited (topup.credited_by_hand). Verified and active customers; suspended (from active) customers only with arrival_reference; customers awaiting verification or rejected \u2192 403 verification_required. Requires topup.match and an Idempotency-Key. Saves topup_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"customer_id\": \"{{customer_id}}\",\n    \"amount\": \"15000.00\",\n    \"receiving_account_id\": {{receiving_account_id}},\n    \"note\": \"Phone matches, no reference.\",\n    \"arrival_reference\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('topup_id', Array.isArray(d) ? (d[0] ? d[0].id : '') : d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "List Receiving Accounts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/receiving-accounts?include_inactive=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "receiving-accounts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "include_inactive",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 009. Dahab's receiving accounts; include_inactive=1 adds deactivated ones. Requires topup.match or topup.accounts.manage. Saves the first receiving_account_id."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    const a = Array.isArray(d) ? d[0] : d;",
+                                            "    if (a) { pm.collectionVariables.set('receiving_account_id', a.id); }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Create Receiving Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/receiving-accounts",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "receiving-accounts"
+                                    ]
+                                },
+                                "description": "Spec 009. method: bank_transfer (bank_name, account_holder, account_number required; iban optional) | instapay (instapay_address) | vodafone_cash (wallet_number 01XXXXXXXXX). daily_limit and provider_fee_percent are display only. Audited (receiving_account.created). Requires topup.accounts.manage. Saves receiving_account_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"method\": \"instapay\",\n    \"label\": \"InstaPay\",\n    \"instapay_address\": \"dahab@instapay\",\n    \"daily_limit\": \"70000\",\n    \"provider_fee_percent\": \"0.5\",\n    \"customer_note\": \"The fee is charged by InstaPay, not by Dahab.\",\n    \"sort_order\": 0,\n    \"is_active\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    const a = Array.isArray(d) ? d[0] : d;",
+                                            "    if (a) { pm.collectionVariables.set('receiving_account_id', a.id); }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Update Receiving Account",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/receiving-accounts/{{receiving_account_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "receiving-accounts",
+                                        "{{receiving_account_id}}"
+                                    ]
+                                },
+                                "description": "Spec 009. Any editable field; method is prohibited (422). is_active=false hides it from customers. Audited (receiving_account.updated) with before/after. Requires topup.accounts.manage. No delete route.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"label\": \"InstaPay main\",\n    \"is_active\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ],
+                    "description": "Spec 009: incoming transfers (match, hold, reject, credit by hand) and Dahab's receiving accounts. CEO and Finance by default; never the COO."
                 }
             ],
             "description": ""
@@ -3680,6 +4288,259 @@
                                     ]
                                 },
                                 "description": "One row per ledger entry, newest first: kind, available_change, held_change, available_after, held_after, reference. A hold is money out of available. Page with cursor = meta.next_cursor."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Top-up Methods",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet/topup-methods",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet",
+                                        "topup-methods"
+                                    ]
+                                },
+                                "description": "Spec 009. Where to send money: Dahab's active receiving accounts by method, and the customer's reference DAHAB-<display_ref>. daily_limit and provider_fee_percent are display only. Trade gate: 403 verification_required / account_suspended. Saves the first account to receiving_account_id."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const m = pm.response.json().data.methods;",
+                                            "    if (m.length && m[0].accounts.length) { pm.collectionVariables.set('receiving_account_id', m[0].accounts[0].id); }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Upload Top-up Receipt",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "topup_receipt",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 009. Optional receipt for a notice: JPEG, PNG, WebP or PDF (max 8 MB), encrypted on the private disk. Trade gate for this purpose (403 verification_required / account_suspended). Saves receipt_upload_token (single use)."
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('receipt_upload_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Submit Top-up Notice",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet/topups",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet",
+                                        "topups"
+                                    ]
+                                },
+                                "description": "Spec 009. \"I've sent the transfer\": records a pending notice; no money moves. amount > 0 with at most 2 decimals; receiving_account_id must be active; receipt_upload_token optional (drop the line if none). Trade gate; Idempotency-Key required; throttle customer.topups (10/min). Saves topup_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"amount\": \"20000.00\",\n    \"receiving_account_id\": {{receiving_account_id}},\n    \"receipt_upload_token\": \"{{receipt_upload_token}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('topup_id', Array.isArray(d) ? (d[0] ? d[0].id : '') : d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "List My Top-ups",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet/topups?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet",
+                                        "topups"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 009. The customer's own notices and hand credits, newest first; optional status and cursor. Never includes staff notes or receiving details. Verified gate: a suspended customer may read."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Cancel Top-up Notice",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet/topups/{{topup_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet",
+                                        "topups",
+                                        "{{topup_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Spec 009. pending \u2192 cancelled; no money moves. 409 illegal_topup_transition unless pending. Verified gate (a suspended customer may cancel). Idempotency-Key required."
                             },
                             "response": []
                         }

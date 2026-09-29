@@ -109,6 +109,9 @@ final class AuditEntryPresenter
             $row->entity_type === 'branch_closure' => trim(($pick('closure_date') ?? '').' · '.($pick('branch_id') === null ? 'All branches' : ($this->branchNames[(int) $pick('branch_id')] ?? 'Branch '.$pick('branch_id'))), ' ·'),
             $row->entity_type === 'branch' && $pick('branch_id') !== null => $this->branchNames[(int) $pick('branch_id')] ?? 'Branch '.$pick('branch_id'),
             $pick('role') !== null => $this->roleNames[(string) $pick('role')] ?? (string) $pick('role'),
+            // Spec 009: the top-up number and the customer; the receiving account's label.
+            $row->entity_type === 'topup' => trim(($pick('number') ?? '').' · '.($pick('customer_ref') ?? ''), ' ·') ?: null,
+            $row->entity_type === 'receiving_account' => $pick('label'),
             $row->entity_type === 'staff' && $row->entity_id !== null => $this->staffNames[$row->entity_id] ?? null,
             $row->entity_type === 'customer' && $row->entity_id !== null => $this->customerRefs[$row->entity_id] ?? null,
             $row->entity_id !== null && isset($this->documentRefs[$row->entity_id]) => $this->documentRefs[$row->entity_id],
@@ -148,6 +151,13 @@ final class AuditEntryPresenter
             AuditEvent::IDENTITY_DOCUMENT_RESUBMITTED => [null, self::words($after['doc_kind'] ?? null)],
             AuditEvent::CUSTOMER_VERIFICATION_DETAILS_VIEWED => [null, self::words($after['status'] ?? null)],
             AuditEvent::LEDGER_STATEMENT_VIEWED, AuditEvent::LEDGER_STATEMENT_EXPORTED => [null, trim(self::words($after['view'] ?? null).' · '.($after['from'] ?? '').' to '.($after['to'] ?? ''), ' ·')],
+            AuditEvent::TOPUP_MATCHED, AuditEvent::TOPUP_CREDITED_BY_HAND => [
+                self::words($before['status'] ?? null),
+                isset($after['credited_amount']) ? 'Credited '.self::number($after['credited_amount']).' EGP'.(($after['customer_status'] ?? null) === 'suspended' ? ' (customer suspended)' : '') : null,
+            ],
+            AuditEvent::TOPUP_HELD, AuditEvent::TOPUP_UNHELD => [self::words($before['status'] ?? null), self::words($after['status'] ?? null)],
+            AuditEvent::TOPUP_REJECTED => [self::words($before['status'] ?? null), trim('Rejected: '.(self::words($after['reject_reason'] ?? null) ?? ''), ': ')],
+            AuditEvent::TOPUP_LIST_EXPORTED => [null, isset($after['rows']) ? $after['rows'].' rows' : null],
             AuditEvent::CUSTOMER_VERIFICATION_APPROVED, AuditEvent::CUSTOMER_VERIFICATION_REJECTED,
             AuditEvent::IDENTITY_DOCUMENT_APPROVED, AuditEvent::IDENTITY_DOCUMENT_REJECTED,
             AuditEvent::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED => [
@@ -179,7 +189,7 @@ final class AuditEntryPresenter
             ->merge($rows->where('entity_type', 'customer')->pluck('entity_id'))
             ->filter()->unique()->values();
 
-        $documentIds = $rows->whereNotIn('entity_type', ['staff', 'customer'])->pluck('entity_id')->filter()->unique()->values();
+        $documentIds = $rows->whereNotIn('entity_type', ['staff', 'customer', 'topup', 'receiving_account'])->pluck('entity_id')->filter()->unique()->values();
         $documents = IdentityDocument::query()->whereIn('document_id', $documentIds)->pluck('customer_id', 'document_id');
 
         $this->customerRefs = Customer::query()->whereIn('customer_id', $customerIds->merge($documents->values())->unique())
