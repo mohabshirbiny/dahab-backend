@@ -64,8 +64,9 @@ deliberately not enabled.
 - **Staff**: permission-based via Spatie Permission, enforced per route by the
   `staff.permission:<code>` middleware (`EnforceStaffPermission`), which returns **403 `permission_denied`**
   and audit-logs the denial. The permission catalogue is `app/Enums/StaffPermission.php` (customers, identity,
-  access control, reference data, pricing, audit, and — since spec 008 — `wallet.view`, seeded to `ceo` and
-  `finance`, never `coo`: wallet-touching codes skip the COO by default).
+  access control, reference data, pricing, audit, and — since spec 008 — `wallet.view`, and — since spec 009 —
+  `topup.match` and `topup.accounts.manage`, all seeded to `ceo` and `finance`, never `coo`: wallet-touching codes
+  skip the COO by default).
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -86,7 +87,9 @@ deliberately not enabled.
 ## Request format
 
 - JSON bodies (`Content-Type: application/json`), `Accept: application/json`.
-- File uploads are `multipart/form-data` (`/customer/auth/register/documents`, `/customer/me/uploads`).
+- File uploads are `multipart/form-data` (`/customer/auth/register/documents`, `/customer/me/uploads`). Upload
+  purposes: `identity` (JPEG/PNG/WebP, open to unverified customers) and, since spec 009, `topup_receipt`
+  (JPEG/PNG/WebP/PDF, customer gate `trade`).
 - Validation lives in `app/Http/Requests/*` FormRequests; enums are validated with `Rule::enum(...)`.
 - Customer requests send `X-Device-Id` and `X-Device-Platform` (both frontends do this on every request).
 
@@ -104,7 +107,11 @@ deliberately not enabled.
 **Money** is always a decimal **string** with 4 places (`"56760.0000"`, EGP), never a JSON number, to keep the
 `NUMERIC(18,4)` precision the ledger depends on. Clients format it for display and never compute with it (spec 008).
 Ledger event kinds are sent as stable codes (`topup`, `deposit_hold`, …); the Dashboard also gets a staff `label`, the
-Customer App localises the code itself.
+Customer App localises the code itself. Since spec 009 a `topup` row's `reference` is its top-up number `TOP-{n}`
+(in the customer's history and the Wallet statement); other kinds stay `null` until orders and listings exist.
+Amounts people type (top-up notices, matches) are accepted with at most 2 decimals and returned with 4.
+A top-up's `expected_amount` is a display-only estimate (claim minus the provider fee snapshotted on the notice when it
+was filed, `notice_fee_percent`); it never decides what is credited — staff credit what actually arrived.
 
 ## Pagination
 
@@ -144,8 +151,8 @@ machine-readable value clients must switch on**; `message` is human text and may
 - Domain codes: `app/Exceptions/DomainApiException.php` (`document_already_pending` 409,
   `illegal_document_transition` 409, `unsupported_doc_kind` 422, `upload_token_invalid` 422,
   `customer_already_suspended` 409, `customer_not_suspended` 409, the `idempotency_*` codes below,
-  `insufficient_funds` 409 and `ledger_already_reversed` 409 from the money service (spec 008; no endpoint moves money
-  yet), …).
+  `insufficient_funds` 409 and `ledger_already_reversed` 409 from the money service (spec 008),
+  `illegal_topup_transition` 409 — a top-up status move not allowed, or a lost race (spec 009), …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -169,7 +176,9 @@ Added by feature 007 (`App\Http\Middleware\EnforceIdempotency`, route alias `ide
 Keys are scoped per actor (customer or staff) and per route. Clients reuse the key only when **retrying
 the same submission**, and use a new key when the input changes (Dashboard: `composables/useIdempotencyKey.ts`).
 
-In use on: `POST /dashboard/customers/{id}/suspend`, `POST /dashboard/customers/{id}/reinstate`.
+In use on: `POST /dashboard/customers/{id}/suspend`, `POST /dashboard/customers/{id}/reinstate`, and since spec 009
+every top-up POST: `POST /customer/me/wallet/topups`, `POST /customer/me/wallet/topups/{id}/cancel`,
+`POST /dashboard/topups` (credit by hand) and `POST /dashboard/topups/{id}/match|hold|unhold|reject`.
 
 ## Status codes in use
 
@@ -181,7 +190,7 @@ In use on: `POST /dashboard/customers/{id}/suspend`, `POST /dashboard/customers/
 
 Named limiters on sensitive routes (`throttle:auth.customer.login`, `auth.customer.register`,
 `auth.customer.register.otp`, `auth.customer.register.documents`, `auth.otp.verify`, `auth.staff.login`,
-`auth.staff.mfa`, `auth.refresh`, `customer.uploads`) plus the default API throttle. Identity lockouts
+`auth.staff.mfa`, `auth.refresh`, `customer.uploads`, `customer.topups`) plus the default API throttle. Identity lockouts
 return **429 `account_locked`**.
 
 ## CORS

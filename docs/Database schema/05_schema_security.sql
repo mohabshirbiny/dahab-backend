@@ -431,6 +431,16 @@ CREATE POLICY ledger_transaction_write ON ledger_transaction FOR INSERT WITH CHE
 CREATE POLICY ledger_transaction_lock ON ledger_transaction FOR UPDATE
   USING ((SELECT dahab_rls_scope()) = 'ledger') WITH CHECK (false);
 
+-- Top-ups (added by spec 009) ---------------------------------------------
+-- A customer sees and changes only their own notices (submit, cancel);
+-- staff act in the elevated 'staff' scope. receiving_account is reference
+-- data (no customer column) and has no RLS.
+ALTER TABLE topup              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE topup              FORCE  ROW LEVEL SECURITY;
+CREATE POLICY topup_isolation ON topup FOR ALL
+  USING      (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+  WITH CHECK (dahab_rls_elevated() OR customer_id = dahab_current_customer_id());
+
 -- Pattern for tables added by later modules ---------------------------
 -- In the SAME migration that creates the table: ENABLE + FORCE RLS and
 --   CREATE POLICY <table>_isolation ON <table> FOR ALL
