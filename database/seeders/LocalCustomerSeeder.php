@@ -10,11 +10,13 @@ use App\Enums\IdentityDocumentStatus;
 use App\Enums\SeedRole;
 use App\Enums\SuspendedReason;
 use App\Models\Customer;
+use App\Models\CustomerPassword;
 use App\Models\IdentityDocument;
 use App\Models\Staff;
 use App\Services\IdentityDocumentStorage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -22,6 +24,7 @@ use Illuminate\Support\Str;
  * can actually be opened, so the review cycle can be tried by hand. Refuses
  * to run outside local/testing, like LocalStaffSeeder. Safe to run twice:
  * rows are matched by phone and a customer keeps the document it already has.
+ * Each can sign in with the local seed password (`dahab-auth.local_seed_password`).
  */
 class LocalCustomerSeeder extends Seeder
 {
@@ -74,6 +77,12 @@ class LocalCustomerSeeder extends Seeder
 
             // Not fillable: `created_at` is only ever set by the database.
             $customer->forceFill(['created_at' => $created])->save();
+
+            // So the seeded customers can sign in to the app locally (same password as the seeded staff).
+            CustomerPassword::query()->firstOrCreate(
+                ['customer_id' => $customer->customer_id],
+                ['password_hash' => Hash::make((string) config('dahab-auth.local_seed_password')), 'password_changed_at' => now()],
+            );
 
             if (IdentityDocument::query()->where('customer_id', $customer->customer_id)->exists()) {
                 continue;

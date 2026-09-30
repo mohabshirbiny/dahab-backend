@@ -11,6 +11,7 @@ use App\Services\Sms\HttpSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\Sms\SmsSender;
 use App\Support\DatabaseActorEvents;
+use App\Support\Listings\ListingTransitions;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\ChannelManager;
@@ -27,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerSmsSender();
         // The gold price provider (spec 005, Part 4 §1); tests fake its HTTP.
         $this->app->bind(GoldPriceFeed::class, ProviderGoldPriceFeed::class);
+        // The allowed listing moves are reference data: read once per request (spec 010).
+        $this->app->scoped(ListingTransitions::class);
     }
 
     public function boot(): void
@@ -127,6 +130,15 @@ class AppServiceProvider extends ServiceProvider
         // Spec 009: transfer notices per customer (research R15).
         RateLimiter::for('customer.topups', function (Request $request) {
             return $this->limit((int) config('dahab-wallet.topups_per_minute'), 60, 'customer-topups:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        // Spec 010: new listings per customer, and the public market / reference reads per IP.
+        RateLimiter::for('customer.listings', function (Request $request) {
+            return $this->limit((int) config('dahab-listings.listings_per_minute'), 60, 'customer-listings:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('public.market', function (Request $request) {
+            return $this->limit((int) config('dahab-listings.market_per_minute'), 60, 'public-market:'.$request->ip());
         });
 
         $mfa = config('dahab-auth.rate_limits.staff_mfa');

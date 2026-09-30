@@ -164,4 +164,55 @@ class DomainApiException extends RuntimeException
     {
         return new self('illegal_topup_transition', 409, 'This transfer has already been closed or cannot move to that state.');
     }
+
+    /**
+     * A listing move outside `listing_transition`, or a lost race (spec 010
+     * FR-015; the guard triggers' SQLSTATE DH004 maps here too).
+     */
+    public static function illegalListingTransition(): self
+    {
+        return new self('illegal_listing_transition', 409, 'This listing cannot move to that state.');
+    }
+
+    /** Only a draft or a listing sent back for changes can be edited (spec 010 FR-006). */
+    public static function listingNotEditable(): self
+    {
+        return new self('listing_not_editable', 409, 'This listing can no longer be edited.');
+    }
+
+    /** A suspended seller's piece never reaches the market (spec 010 FR-030b). */
+    public static function sellerSuspended(): self
+    {
+        return new self('seller_suspended', 409, 'The seller is suspended, so this listing cannot go live.');
+    }
+
+    /** The listing's karat was turned off while it waited for review (spec 010 FR-030c). */
+    public static function karatDisabled(): self
+    {
+        return new self('karat_disabled', 409, "This listing's karat has been turned off, so it cannot go live.");
+    }
+
+    /** Mirrors the schema CHECK: anything but a pure diamond states its karat and weight (Part 2 §3). */
+    public static function goldNeedsKaratWeight(): self
+    {
+        return new self('gold_needs_karat_weight', 422, 'A gold piece needs its karat and weight.');
+    }
+
+    /** At least one branch, each enabled (Part 2 §3). */
+    public static function branchOptionsRequired(): self
+    {
+        return new self('branch_options_required', 422, 'Choose at least one open branch for this piece.');
+    }
+
+    /** Not accepted, or not the current version of the declaration (Part 2 §3, spec 010 FR-039). */
+    public static function ownershipDeclarationRequired(): self
+    {
+        return new self('ownership_declaration_required', 422, 'Confirm the current ownership declaration to list the piece.');
+    }
+
+    /** Too few photos to send the listing for review (Part 2 §3, spec 010 FR-013). */
+    public static function photoRequired(int $minimum): self
+    {
+        return new self('photo_required', 422, "Add at least {$minimum} photos before sending the piece for review.");
+    }
 }

@@ -9,6 +9,7 @@ use App\Http\Middleware\EnsureCustomerStanding;
 use App\Http\Middleware\EnsureStaffStanding;
 use App\Http\Middleware\SetDatabaseActor;
 use App\Http\Middleware\SetRequestContext;
+use App\Http\Middleware\UseMarketScope;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -50,6 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer.gate' => EnsureCustomerStanding::class,
             // Row-level-security bootstrap for unauthenticated customer auth routes (spec 003).
             'db.elevate' => ElevateDatabaseScope::class,
+            // The public market's read-only row-level-security scope (spec 010). Only on /market/*.
+            'db.market' => UseMarketScope::class,
             // Idempotency-Key on state-creating POSTs (spec 007 research R2). List it last on a route.
             'idempotent' => EnforceIdempotency::class,
             // Sanctum token abilities: `abilities:customer:access` (all listed)
@@ -101,6 +104,8 @@ return Application::configure(basePath: dirname(__DIR__))
             return match ($e->errorInfo[0] ?? null) {
                 'DH001' => DomainApiException::insufficientFunds(),
                 'DH003' => DomainApiException::illegalTopUpTransition(),
+                // Spec 010: the listing guard triggers (illegal move, unrecorded move, frozen columns).
+                'DH004' => DomainApiException::illegalListingTransition(),
                 default => $e,
             };
         });

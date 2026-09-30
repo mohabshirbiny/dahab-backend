@@ -25,10 +25,13 @@ use InvalidArgumentException;
  *  - maintenance: migrations, seeders, tests (audited outside tests)
  *  - ledger:      the money service only (spec 008): sees and inserts ledger
  *                 rows, and nothing else — not an elevation
+ *  - market:      the public market only (spec 010): reads live/reserved
+ *                 listings, their branch options and their public media;
+ *                 writes nothing and carries no customer — not an elevation
  */
 final class DatabaseActor
 {
-    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger'];
+    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market'];
 
     public const ELEVATED = ['staff', 'bootstrap', 'system', 'maintenance'];
 
@@ -97,6 +100,27 @@ final class DatabaseActor
             // statement is rolled back to it before the pop below, which would
             // otherwise hit an aborted transaction and hide the real error.
             return DB::transactionLevel() > 0 ? DB::transaction($work) : $work();
+        } finally {
+            self::pop();
+        }
+    }
+
+    /**
+     * Run `$work` in the read-only `market` scope (spec 010 research R2). The
+     * frame carries no customer id on purpose: with one, the owner policy
+     * would add the caller's own drafts to what the market can see.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public static function market(Closure $work): mixed
+    {
+        self::push('market');
+
+        try {
+            return $work();
         } finally {
             self::pop();
         }

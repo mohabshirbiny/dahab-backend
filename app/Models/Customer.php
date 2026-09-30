@@ -98,6 +98,12 @@ class Customer extends Authenticatable implements HasApiTokensContract
         return $this->hasMany(TopUp::class, 'customer_id', 'customer_id');
     }
 
+    /** The pieces this customer has put up for sale (spec 010). */
+    public function listings(): HasMany
+    {
+        return $this->hasMany(Listing::class, 'seller_id', 'customer_id');
+    }
+
     public function identityDocuments(): HasMany
     {
         return $this->hasMany(IdentityDocument::class, 'customer_id', 'customer_id');

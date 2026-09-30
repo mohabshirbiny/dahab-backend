@@ -72,6 +72,18 @@ enum StaffPermission: string
     /** Add, edit and deactivate Dahab's receiving accounts (spec 009). */
     case TOPUP_ACCOUNTS_MANAGE = 'topup.accounts.manage';
 
+    /** See the review queue and a listing; approve or reject it (Part 1 §4.1 "Approve or reject a new listing"; spec 010). */
+    case LISTING_REVIEW = 'listing.review';
+
+    /** Send a listing back to its seller with a message (Part 1 §4.1 "Ask a seller for a better photo"; spec 010). */
+    case LISTING_REQUEST_CHANGES = 'listing.request_changes';
+
+    /** Take a live listing off the market (Part 1 §4.1 "Take a live listing down"; spec 010). */
+    case LISTING_TAKEDOWN = 'listing.takedown';
+
+    /** Any of these opens the review queue, a listing and its media (spec 010 research R10). */
+    public const LISTING_ANY = 'listing.review|listing.request_changes|listing.takedown';
+
     public function label(): string
     {
         return match ($this) {
@@ -95,6 +107,9 @@ enum StaffPermission: string
             self::WALLET_VIEW => 'View wallets and statements',
             self::TOPUP_MATCH => 'Match an incoming transfer',
             self::TOPUP_ACCOUNTS_MANAGE => "Manage Dahab's receiving accounts",
+            self::LISTING_REVIEW => 'Approve or reject a new listing',
+            self::LISTING_REQUEST_CHANGES => 'Ask a seller for a better photo',
+            self::LISTING_TAKEDOWN => 'Take a live listing down',
         };
     }
 
@@ -109,6 +124,7 @@ enum StaffPermission: string
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
             self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE => 'Money',
+            self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
         };
     }
 
@@ -162,6 +178,10 @@ enum StaffPermission: string
             // Spec 009: wallet-touching, so never the COO (Part 1 §4.2).
             self::TOPUP_MATCH,
             self::TOPUP_ACCOUNTS_MANAGE => [SeedRole::FINANCE->value],
+            // Spec 010 (Part 1 §4.1): CEO, COO and Operations; not wallet-touching.
+            self::LISTING_REVIEW,
+            self::LISTING_REQUEST_CHANGES,
+            self::LISTING_TAKEDOWN => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
         };
     }
 }
