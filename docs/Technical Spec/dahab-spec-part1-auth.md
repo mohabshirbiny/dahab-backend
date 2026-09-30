@@ -130,9 +130,9 @@ The service resolves every privileged endpoint against the staff member's effect
 
 | Action | CEO | COO | Finance | Operations | Verification | IGI |
 |---|---|---|---|---|---|---|
-| Approve or reject a new listing | ✓ | ✓ | — | ✓ | — | — |
-| Ask a seller for a better photo | ✓ | ✓ | — | ✓ | — | — |
-| Take a live listing down | ✓ | ✓ | — | ✓ | — | — |
+| Approve or reject a new listing (`listing.review`) | ✓ | ✓ | — | ✓ | — | — |
+| Ask a seller for a better photo (`listing.request_changes`) | ✓ | ✓ | — | ✓ | — | — |
+| Take a live listing down (`listing.takedown`) | ✓ | ✓ | — | ✓ | — | — |
 | Approve a piece for market makers | ✓ | — | ✓ | — | — | — |
 | Extend a deadline on request | ✓ | ✓ | — | ✓ | — | — |
 | Change the inspection branch on an open order | ✓ | ✓ | — | ✓ | — | — |
@@ -141,6 +141,8 @@ The service resolves every privileged endpoint against the staff member's effect
 | Enter an inspection result | ✓ | — | — | — | — | ✓ |
 | Confirm handover at the counter | ✓ | — | — | — | — | ✓ |
 | Check the ID of someone collecting for another | — | — | — | — | — | ✓ |
+
+> **Changed by spec 010** — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md). The first three rows are built as the catalogue codes shown. `listing.review` covers approving **and rejecting** (a new final state `rejected`). The review queue, a listing and its media (the private invoice included) open with **any** of the three codes.
 
 Note the two founder columns differ only where wallet access is involved. For listings/orders they are identical. "Approve a piece for market makers" is CEO+Finance, **not** COO — it is a money-adjacent approval (it waives commission), so it follows the wallet-access narrowing.
 
@@ -215,7 +217,7 @@ authorize(staff, action):
 
 > **Implemented by spec 003** (2026-09-26) — see [`specs/003-customer-rls-isolation/`](../../specs/003-customer-rls-isolation/). The binding model below replaces the earlier `SET LOCAL` wording.
 
-RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the application connects as the table owner) on every customer-owned table. Today those are `customer`, `customer_password`, `customer_trusted_device`, `identity_document`, customer rows of `one_time_token` and — since spec 008 — the wallet accounts and their ledger rows (`account`, `ledger_transaction`, `ledger_posting`; a customer reads only their own, and only the money service's dedicated `ledger` scope may insert — [`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)). `listing`, `buy_request`, `order`, `payout_account`, `withdrawal` and the wallet accounts join when their modules land. In a customer context, `audit_log` accepts only inserts where the customer is the actor and returns nothing on read, and `document_view_log` is closed. Each policy is `dahab_rls_elevated() OR <owner> = dahab_current_customer_id()`: buyer or seller for orders, the owner for everything else. **With no actor bound, customer tables return nothing and accept no writes (fail closed).**
+RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the application connects as the table owner) on every customer-owned table. Today those are `customer`, `customer_password`, `customer_trusted_device`, `identity_document`, customer rows of `one_time_token` and — since spec 008 — the wallet accounts and their ledger rows (`account`, `ledger_transaction`, `ledger_posting`; a customer reads only their own, and only the money service's dedicated `ledger` scope may insert — [`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)). Since spec 010 ([`specs/010-listings/spec.md`](../../specs/010-listings/spec.md)) the listing tables are under forced RLS too: `listing` (owner = `seller_id`), `listing_media`, `listing_branch_option`, `listing_ownership_declaration`, `listing_state_change`, `listing_queue_seq` (through their listing) and `agreement_acceptance`. `buy_request`, `order`, `payout_account` and `withdrawal` join when their modules land. In a customer context, `audit_log` accepts only inserts where the customer is the actor and returns nothing on read, and `document_view_log` is closed. Each policy is `dahab_rls_elevated() OR <owner> = dahab_current_customer_id()`: buyer or seller for orders, the owner for everything else. **With no actor bound, customer tables return nothing and accept no writes (fail closed).**
 
 **Binding.** `App\Support\DatabaseActor` publishes `app.rls_scope`, `app.current_customer_id` and `app.current_staff_id` for one **unit of work**: a request (`SetDatabaseActor` middleware), a queued job, or a `migrate`/`db:seed` run. Each unit pushes a frame and pops it in `finally`, restoring the previous values, so the binding never survives its unit on a reused connection. It is session-level rather than `SET LOCAL` because several paths deliberately write an audit row and then refuse; a request-wide transaction would roll those rows back (spec 003 research R2). **This assumes no transaction-mode connection pooler** (PgBouncer `pool_mode=transaction`) between the app and PostgreSQL; with one, the binding would have to become per-transaction.
 
@@ -228,6 +230,7 @@ RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the applicati
 | `bootstrap` | all customers | unauthenticated auth routes (`db.elevate:bootstrap`: customer register/login/OTP, staff login/MFA) and loading a token's owner during authentication |
 | `system` | all customers | queued jobs, as the system actor; each job writes an `rls.system_elevation` audit row |
 | `maintenance` | all customers | CLI `migrate*` / `db:seed` (audited `rls.maintenance_elevation`) and test fixtures |
+| `market` | listings in state `live`/`reserved`, their branch options and their **non-private** media — read-only, no customer id | the public market routes (`db.market`, spec 010). Not an elevation |
 | none | nothing | everything else |
 
 The customer id comes only from the authenticated session, written by the framework (§7), never from request input. The application's database role must be neither superuser nor `BYPASSRLS`; a test enforces this, and another test fails the build if a table with a customer owner column lacks forced RLS and a policy.
@@ -238,7 +241,19 @@ The customer id comes only from the authenticated session, written by the framew
 
 ### 5.3 Public browsing does not leak seller identity
 
-Browsing needs no account, but a live listing exposes photos, weight, karat, price and the making charge — never the seller's identity. This is served by a **dedicated public view** exposing only non-owner-sensitive columns of listings in state `live`/`reserved`, kept deliberately *outside* the owner RLS policy so that a public read can never surface `seller_id` or contact details. The public path connects as a low-privilege role with `SELECT` on that view and nothing else.
+> **Changed by spec 010** (product-owner decision 2026-09-30) — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md). The earlier wording required a dedicated public view read by a low-privilege role. **There is no view and no separate role.**
+
+Browsing needs no account, but a live listing exposes photos, weight, karat, price and the making charge — never the seller's identity. The path is:
+
+```
+public market  →  `market` row-level-security scope  →  listing  →  public response Resource
+```
+
+- **Rows — the engine.** A market request runs in the `market` scope (`db.market` middleware, declared only on `/api/v1/market/*`). The scope is not an elevation and carries no customer id. Its policies are `SELECT`-only: listings in state `live`/`reserved`, their branch options, and their media where `is_private = false`. It can write nothing and sees no other customer table.
+- **Columns — the response shape.** The market returns only `MarketListingResource` / `MarketListingDetailResource`, which have no seller field. `seller_id` is read once, to compute `is_mine` for a signed-in customer, and is never serialised.
+- **Proof.** `MarketLeakTest` walks every market response and fails the build on any seller id, reference, name, phone, email or private media; `MarketScopeTest` pins the scope to the market routes and proves it is read-only.
+
+A customer token on a market route is optional and only sets `is_mine`; the market stays open without one.
 
 ### 5.4 Identity documents
 

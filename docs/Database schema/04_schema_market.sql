@@ -27,18 +27,44 @@ CREATE TABLE listing (
   -- buy_request via trigger. Source of truth is the buy_request rows.
   active_queue_count INTEGER NOT NULL DEFAULT 0,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  listed_at      TIMESTAMPTZ,                              -- when it went live
+  listed_at      TIMESTAMPTZ,                              -- when it FIRST went live (set by listing_guard)
+  -- spec 010: when the state last changed (stamped by listing_guard). Orders
+  -- the review queue "oldest first" and gives the waiting time.
+  state_changed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT gold_needs_karat_weight CHECK (
     category = 'diamond'
     OR (karat_code IS NOT NULL AND stated_weight_g IS NOT NULL)
   ),
-  CONSTRAINT queue_count_nonneg CHECK (active_queue_count >= 0)
+  CONSTRAINT queue_count_nonneg CHECK (active_queue_count >= 0),
+  -- spec 010: gold is priced by making charge, stones by one asking price.
+  CONSTRAINT listing_price_shape CHECK (
+    (category = 'gold' AND making_charge_per_g IS NOT NULL AND asking_price IS NULL)
+    OR (category <> 'gold' AND asking_price IS NOT NULL AND making_charge_per_g IS NULL)
+  ),
+  -- spec 010: positive weight; money people type has at most 2 decimals.
+  CONSTRAINT listing_amounts CHECK (
+    (stated_weight_g IS NULL OR stated_weight_g > 0)
+    AND (making_charge_per_g IS NULL
+         OR (making_charge_per_g >= 0 AND making_charge_per_g = round(making_charge_per_g, 2)))
+    AND (asking_price IS NULL OR (asking_price > 0 AND asking_price = round(asking_price, 2)))
+  ),
+  CONSTRAINT listing_description_len CHECK (description IS NULL OR char_length(description) <= 2000),
+  -- spec 010: anything that has been on the market knows when it went live.
+  CONSTRAINT listing_listed_shape CHECK (
+    listed_at IS NOT NULL OR state IN ('draft','in_review','changes_requested','rejected')
+  )
 );
 
-CREATE INDEX idx_listing_state ON listing(state);
-CREATE INDEX idx_listing_seller ON listing(seller_id);
+CREATE INDEX idx_listing_state  ON listing(state, state_changed_at);
+CREATE INDEX idx_listing_seller ON listing(seller_id, created_at DESC);
+-- spec 010: the public market page (newest first).
+CREATE INDEX idx_listing_market ON listing(listed_at DESC, listing_id)
+  WHERE state IN ('live','reserved');
 
 -- Photos / video / uploaded original invoice / uploaded stone certificate.
+-- Only the invoice is private; the stone certificate is public once the
+-- listing is live (spec 010). storage_ref names a chunk-encrypted object on
+-- the private disk; mime is what it is served as; position orders the photos.
 CREATE TABLE listing_media (
   media_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id   UUID NOT NULL REFERENCES listing(listing_id),
@@ -46,8 +72,12 @@ CREATE TABLE listing_media (
                  ('photo','video','invoice','stone_certificate')),
   storage_ref  TEXT NOT NULL,
   is_private   BOOLEAN NOT NULL DEFAULT FALSE,   -- invoice stays private pre-sale
+  mime         TEXT NOT NULL,                    -- spec 010
+  position     SMALLINT NOT NULL DEFAULT 0,      -- spec 010
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE INDEX idx_listing_media_listing ON listing_media(listing_id, kind, position);
 
 -- Branches the seller named at listing (the willing set). The final
 -- branch chosen at acceptance MUST be one of these.
@@ -65,6 +95,48 @@ CREATE TABLE listing_ownership_declaration (
   accepted_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   legal_doc_id SMALLINT NOT NULL REFERENCES legal_document(legal_doc_id)
 );
+
+-- Listing history (added by spec 010). One permanent row per state change:
+-- who moved the listing, from what to what, and the message or reason
+-- (the reviewer's "changes needed" text, a rejection or take-down reason,
+-- 'account_suspended' / 'account_reinstated' for holds). from_state NULL is
+-- the creation. listing_transition (Part 4) is the table of ALLOWED moves;
+-- this is the record of the moves that happened. txid ties the row to the
+-- transaction of the move: trg_listing_change_recorded refuses a commit that
+-- moved a listing without one.
+CREATE TABLE listing_state_change (
+  change_id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  listing_id   UUID NOT NULL REFERENCES listing(listing_id),
+  from_state   listing_state,
+  to_state     listing_state NOT NULL,
+  actor_customer_id UUID REFERENCES customer(customer_id),
+  actor_staff_id    UUID REFERENCES staff(staff_id),
+  note         TEXT CHECK (char_length(note) <= 1000),
+  changed_at   TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),  -- the moment of the move, not of the transaction
+  txid         BIGINT NOT NULL DEFAULT txid_current(),
+  CONSTRAINT listing_change_one_actor CHECK (
+    (actor_customer_id IS NULL) <> (actor_staff_id IS NULL)
+  ),
+  -- A send-back, a rejection and a staff take-down always say why.
+  CONSTRAINT listing_change_note_required CHECK (
+    note IS NOT NULL OR NOT (
+      to_state IN ('changes_requested','rejected')
+      OR (to_state = 'withdrawn' AND actor_staff_id IS NOT NULL)
+    )
+  )
+);
+
+CREATE INDEX idx_listing_state_change_listing ON listing_state_change(listing_id, changed_at);
+
+CREATE OR REPLACE FUNCTION listing_state_change_immutable() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'listing history is append-only' USING ERRCODE = 'DH004';
+END $$;
+
+CREATE TRIGGER trg_listing_state_change_immutable
+  BEFORE UPDATE OR DELETE ON listing_state_change
+  FOR EACH ROW EXECUTE FUNCTION listing_state_change_immutable();
 
 -- ---------------------------------------------------------------------
 -- 8. Buy requests = the QUEUE
@@ -116,6 +188,9 @@ CREATE TABLE listing_queue_seq (
 
 -- Keep listing.active_queue_count and listing.state in step with the
 -- set of active (queued) requests. Source of truth = buy_request.
+-- (spec 010 creates listing_queue_seq with the listing tables; this function
+--  and trg_sync_queue are created by the buy-request module, which must also
+--  write the listing_state_change row for the live <-> reserved moves.)
 CREATE OR REPLACE FUNCTION sync_listing_queue() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE

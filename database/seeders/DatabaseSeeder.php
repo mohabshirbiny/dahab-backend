@@ -33,6 +33,9 @@ class DatabaseSeeder extends Seeder
         // Fake receiving accounts for top-ups (spec 009); same guard. Real ones come from the Dashboard.
         $this->call(ReceivingAccountSeeder::class);
 
+        // Listings in every state, with photos (spec 010); same guard.
+        $this->call(LocalListingSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

@@ -255,6 +255,7 @@ INSERT INTO listing_transition (from_state, to_state, note) VALUES
   ('in_review','changes_requested','reviewer asked for a better photo/detail'),
   ('changes_requested','in_review','resubmitted'),
   ('in_review','live','approved and published'),
+  ('in_review','rejected','rejected by the reviewer (spec 010); final'),
   ('live','reserved','first buy request queued'),
   ('reserved','live','queue emptied (all requests released)'),
   ('reserved','accepted','seller accepted the first in the queue'),
@@ -262,6 +263,7 @@ INSERT INTO listing_transition (from_state, to_state, note) VALUES
   ('at_inspection','settling','inspection recorded'),
   ('settling','sold','completed'),
   ('settling','live','sale fell through; back on the market'),
+  -- withdrawn is FINAL (spec 010): no withdrawn -> in_review, no withdrawn -> live.
   ('live','withdrawn','seller/admin took it down'),
   ('reserved','withdrawn','taken down (no locked price affected)'),
   ('live','suspended_hold','category paused / account suspended'),
@@ -332,6 +334,68 @@ END $$;
 CREATE TRIGGER trg_order_transition
   BEFORE UPDATE OF state ON "order"
   FOR EACH ROW EXECUTE FUNCTION assert_order_transition();
+
+-- Listing guards (added by spec 010) ------------------------------------
+-- A listing is born a draft, is never deleted, keeps its seller, and changes
+-- state only along listing_transition. SQLSTATE DH004 -> 409
+-- illegal_listing_transition. The guard also stamps state_changed_at and
+-- sets listed_at the first time the listing goes live (the wall clock, so
+-- two moves in one transaction keep their order). `withdrawn` and
+-- `rejected` have no outgoing row: both are final.
+CREATE OR REPLACE FUNCTION listing_guard() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'listings are never deleted' USING ERRCODE = 'DH004';
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.state <> 'draft' THEN
+      RAISE EXCEPTION 'a listing starts as a draft, not %', NEW.state USING ERRCODE = 'DH004';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF NEW.seller_id IS DISTINCT FROM OLD.seller_id OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'listing % identity columns cannot change', OLD.listing_id USING ERRCODE = 'DH004';
+  END IF;
+  IF NEW.state IS DISTINCT FROM OLD.state THEN
+    IF NOT EXISTS (SELECT 1 FROM listing_transition
+                   WHERE from_state = OLD.state AND to_state = NEW.state) THEN
+      RAISE EXCEPTION 'illegal listing transition % -> %', OLD.state, NEW.state USING ERRCODE = 'DH004';
+    END IF;
+    NEW.state_changed_at := clock_timestamp();
+    IF NEW.state = 'live' AND NEW.listed_at IS NULL THEN
+      NEW.listed_at := clock_timestamp();
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER trg_listing_guard
+  BEFORE INSERT OR UPDATE OR DELETE ON listing
+  FOR EACH ROW EXECUTE FUNCTION listing_guard();
+
+-- Every move is recorded: at commit, the creation and each state change must
+-- have its listing_state_change row written in the same transaction.
+CREATE OR REPLACE FUNCTION listing_change_recorded() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND NEW.state IS NOT DISTINCT FROM OLD.state THEN
+    RETURN NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM listing_state_change c
+                 WHERE c.listing_id = NEW.listing_id
+                   AND c.to_state = NEW.state
+                   AND c.txid = txid_current()) THEN
+    RAISE EXCEPTION 'listing % moved to % without a history row', NEW.listing_id, NEW.state
+      USING ERRCODE = 'DH004';
+  END IF;
+  RETURN NULL;
+END $$;
+
+CREATE CONSTRAINT TRIGGER trg_listing_change_recorded
+  AFTER INSERT OR UPDATE OF state ON listing
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION listing_change_recorded();
 
 -- ---------------------------------------------------------------------
 -- 19. Row-Level Security (customer data isolation)
@@ -447,7 +511,6 @@ CREATE POLICY topup_isolation ON topup FOR ALL
 --     USING      (dahab_rls_elevated() OR <owner predicate>)
 --     WITH CHECK (dahab_rls_elevated() OR <owner predicate>);
 -- Owner predicates planned:
---   listing         seller_id = dahab_current_customer_id()
 --   buy_request     buyer_id  = dahab_current_customer_id()
 --   "order"         seller_id = dahab_current_customer_id() OR buyer_id = dahab_current_customer_id()
 --   payout_account  customer_id = dahab_current_customer_id()
@@ -456,10 +519,78 @@ CREATE POLICY topup_isolation ON topup FOR ALL
 -- customer_id / actor_customer_id / buyer_id / seller_id column that lacks
 -- forced RLS and a policy.
 
--- NOTE: a public marketplace read of LIVE listings is served by a
--- dedicated view (or a separate policy) that exposes only non-owner-
--- sensitive columns of listings in state 'live'/'reserved'. Kept out of
--- the owner policy above so browsing does not leak seller identity.
+-- Listings (added by spec 010) --------------------------------------------
+-- A seller sees and changes only their own listings and what hangs off them;
+-- staff act in the elevated 'staff' scope.
+--
+-- PUBLIC MARKET (product-owner decision, spec 010 — replaces the earlier
+-- "dedicated view" note): there is NO view and no separate low-privilege
+-- role. The unauthenticated market request runs in the read-only scope
+-- 'market' (not an elevation; it carries no customer id):
+--     public market -> 'market' scope -> listing -> public response Resource
+-- In that scope the engine returns only listings in state live/reserved,
+-- their branch options and their NON-private media, and accepts no write
+-- (the scope has SELECT policies only). Column privacy (seller_id) is the
+-- job of the market Resources, guarded by MarketLeakTest / MarketScopeTest.
+ALTER TABLE listing                       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listing                       FORCE  ROW LEVEL SECURITY;
+ALTER TABLE listing_media                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listing_media                 FORCE  ROW LEVEL SECURITY;
+ALTER TABLE listing_branch_option         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listing_branch_option         FORCE  ROW LEVEL SECURITY;
+ALTER TABLE listing_ownership_declaration ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listing_ownership_declaration FORCE  ROW LEVEL SECURITY;
+ALTER TABLE listing_state_change          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listing_state_change          FORCE  ROW LEVEL SECURITY;
+ALTER TABLE listing_queue_seq             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE listing_queue_seq             FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY listing_isolation ON listing FOR ALL
+  USING      (dahab_rls_elevated() OR seller_id = dahab_current_customer_id())
+  WITH CHECK (dahab_rls_elevated() OR seller_id = dahab_current_customer_id());
+CREATE POLICY listing_market_read ON listing FOR SELECT
+  USING (dahab_rls_scope() = 'market' AND state IN ('live','reserved'));
+
+-- Child rows follow their listing. The inner SELECT on listing is itself
+-- filtered by the listing policies above.
+CREATE POLICY listing_media_isolation ON listing_media FOR ALL
+  USING      (dahab_rls_elevated() OR EXISTS (SELECT 1 FROM listing l
+                WHERE l.listing_id = listing_media.listing_id AND l.seller_id = dahab_current_customer_id()))
+  WITH CHECK (dahab_rls_elevated() OR EXISTS (SELECT 1 FROM listing l
+                WHERE l.listing_id = listing_media.listing_id AND l.seller_id = dahab_current_customer_id()));
+CREATE POLICY listing_media_market_read ON listing_media FOR SELECT
+  USING (dahab_rls_scope() = 'market' AND NOT is_private
+         AND EXISTS (SELECT 1 FROM listing l WHERE l.listing_id = listing_media.listing_id));
+
+CREATE POLICY listing_branch_option_isolation ON listing_branch_option FOR ALL
+  USING      (dahab_rls_elevated() OR EXISTS (SELECT 1 FROM listing l
+                WHERE l.listing_id = listing_branch_option.listing_id AND l.seller_id = dahab_current_customer_id()))
+  WITH CHECK (dahab_rls_elevated() OR EXISTS (SELECT 1 FROM listing l
+                WHERE l.listing_id = listing_branch_option.listing_id AND l.seller_id = dahab_current_customer_id()));
+CREATE POLICY listing_branch_option_market_read ON listing_branch_option FOR SELECT
+  USING (dahab_rls_scope() = 'market'
+         AND EXISTS (SELECT 1 FROM listing l WHERE l.listing_id = listing_branch_option.listing_id));
+
+-- Never visible to the market.
+CREATE POLICY listing_ownership_declaration_isolation ON listing_ownership_declaration FOR ALL
+  USING      (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+  WITH CHECK (dahab_rls_elevated() OR customer_id = dahab_current_customer_id());
+
+CREATE POLICY listing_queue_seq_isolation ON listing_queue_seq FOR ALL
+  USING      (dahab_rls_elevated() OR EXISTS (SELECT 1 FROM listing l
+                WHERE l.listing_id = listing_queue_seq.listing_id AND l.seller_id = dahab_current_customer_id()))
+  WITH CHECK (dahab_rls_elevated() OR EXISTS (SELECT 1 FROM listing l
+                WHERE l.listing_id = listing_queue_seq.listing_id AND l.seller_id = dahab_current_customer_id()));
+
+-- A seller reads the history of their own listing; a row written in the
+-- customer scope must name that customer as the actor, never staff.
+CREATE POLICY listing_state_change_isolation ON listing_state_change FOR ALL
+  USING      (dahab_rls_elevated() OR EXISTS (SELECT 1 FROM listing l
+                WHERE l.listing_id = listing_state_change.listing_id AND l.seller_id = dahab_current_customer_id()))
+  WITH CHECK (dahab_rls_elevated() OR (
+                actor_customer_id = dahab_current_customer_id() AND actor_staff_id IS NULL
+                AND EXISTS (SELECT 1 FROM listing l
+                  WHERE l.listing_id = listing_state_change.listing_id AND l.seller_id = dahab_current_customer_id())));
 
 -- =====================================================================
 -- Added by feature 001-auth-customer-staff

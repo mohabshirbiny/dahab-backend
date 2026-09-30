@@ -12,7 +12,7 @@
 
 **Transport.** JSON over HTTPS. `Content-Type: application/json` on every request with a body. All timestamps are RFC 3339 / ISO 8601 with an explicit offset (`2026-09-05T14:03:00+03:00`); the server stores `TIMESTAMPTZ` and returns Africa/Cairo offsets. All money fields are decimal **strings** in the JSON, never floats — `"12500.0000"` — to preserve the `NUMERIC(18,4)` precision the ledger depends on. Weights are decimal strings to 3 places (grams). Karat is an integer code.
 
-**Authentication.** Every protected route carries the session (Part 1 §2.3, §3.3). The server re-reads the live actor row inside the request transaction (Part 1 §7 step 2); token claims are routing hints only. Public browse routes (§2 below) are the only unauthenticated ones.
+**Authentication.** Every protected route carries the session (Part 1 §2.3, §3.3). The server re-reads the live actor row inside the request transaction (Part 1 §7 step 2); token claims are routing hints only. Public browse routes (§2 below) are the only unauthenticated ones. Since spec 010 they form a **Public surface**: `/api/v1/market/*` and `/api/v1/reference/*` ([`specs/010-listings/spec.md`](../../specs/010-listings/spec.md)).
 
 **Authorization.** Staff endpoints declare `permission:` — a code from the permission catalogue; which roles hold it is Dashboard-managed data seeded from Part 1 §4. Customer endpoints declare `gate:` (`trade_allowed`, `verified`, or `none`). Since spec 002 the customer gate is **default-deny**: `none` is only for the allow-list in Part 1 §2.2 (sign-in/session, own profile, identity verification incl. re-submission by a rejected customer, browse; wishlist is out of scope until its feature is implemented); `verified` refuses unverified customers with `403 verification_required`; `trade_allowed` also refuses suspended ones (`403 account_suspended`). The service resolves both before executing (Part 1 §4.4, §7 step 4). There is no Postgres-grant enforcement of staff actions (Part 1 §5.2, spec 002).
 
@@ -108,92 +108,115 @@ Returns a pre-signed URL for a private object (ID image, listing photo, invoice,
 - **Body:** `{ "purpose": "identity"|"listing_photo"|"listing_invoice"|"stone_certificate"|"proxy_id", "content_type" }`
 - **200:** `{ "upload_token", "upload_url", "expires_in" }`
 - **As built (local private disk, no object store yet):** `POST /api/v1/customer/me/uploads` is `multipart/form-data` (`purpose`, `file`) — the bytes come straight to the API, are encrypted application-side and stored on the private `identity_private` disk (no URL, never served). It answers `201 { data: { upload_token, purpose, expires_in } }` (there is no `upload_url`). The token is single-use, bound to the customer and purpose, and expires unclaimed after `dahab-identity.upload_token_ttl_seconds` (default 1 h). Only `purpose = identity` is accepted until the other purposes have a consumer; only JPEG/PNG/WebP up to 8 MB (content-sniffed, not trusted by extension); limiter `customer.uploads` (10/min). Swapping in S3 pre-signed URLs later changes this endpoint only. Unclaimed objects are not garbage-collected yet.
+- **As built (spec 010 — listing media):** four more purposes, all trade-gated (`403 verification_required` / `account_suspended`): `listing_photo` (JPEG/PNG/WebP, ≤ 8 MB), `listing_video` (MP4/MOV/WebM, ≤ 50 MB), `listing_invoice` and `stone_certificate` (JPEG/PNG/WebP/PDF, ≤ 8 MB), content-sniffed. Listing media is encrypted and stored **in chunks** (never whole in memory) and is served back as a stream by the media endpoints in §2 and §3 with `Cache-Control: no-store`. The limiter `customer.uploads` is 20/min.
 
 ---
 
 ## 2. Browsing (public, no account)
 
-Browsing needs no account (Part 1 §2.2). Served by the dedicated public view that exposes only non-owner-sensitive columns of `live`/`reserved` listings and never `seller_id` or contact details (Part 1 §5.3, schema note on the public read).
+> **Built by spec 010** — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md) and [`docs/features/listings.md`](../features/listings.md). The contract is the code; this section is the as-built summary.
+
+Browsing needs no account (Part 1 §2.2). It is served by the read-only `market` database scope and the market response shapes — **no view** (Part 1 §5.3, product-owner decision). A customer access token is optional and only sets `is_mine`.
 
 ### `GET /market/listings`
-- **gate:** none (unauthenticated allowed) · **idempotent:** n/a
-- **Query:** `category`, `karat`, `piece_type`, `branch` (any of the listing's named options), `min_g`, `max_g`, `is_market_maker` (filter flag — the marker exists in the prototype; server logic is in scope, open-questions §4), `sort` (`newest`|`price_asc`|`price_desc`), `limit`, `cursor`.
-- **200:** `{ "items": [ { listing_id, category, piece_type, karat, weight_g, making_charge_per_g, current_price, photos: [urls], branch_options: [names], queue_count, is_market_maker } ], "next_cursor" }`
-- **Price semantics:** the `current_price` shown to a buyer is the **sell-side** price. For gold it is computed live from the current gold rate corrected by `price_correction.sell_side` (EGP/gram), × weight × purity, + making charge (the rate source is Evolve, Part 4; a manual rate applies if set — Part 1 matrix "enter a gold price manually"). The public list shows the *live* sell-side price; a price only *locks* when a buy request is placed (§4). This must be labelled in the UI as indicative until a request locks it.
-- **Spread (gold only).** For the `gold` category, Dahab earns the **spread** = the buy/sell rate difference on the gold value: the buyer pays at the rate corrected by `price_correction.sell_side` and the seller receives at the rate corrected by `price_correction.buy_side`; the difference `(sell_side − buy_side) × weight × purity` is Dahab's spread. The published buy/sell difference is *derived from these two correction settings, never entered by hand* (blueprint §3) — change a correction and the published figure moves with it. **Diamond and gold-with-diamond carry no spread:** the seller sets one fixed asking price, the buyer pays it, and Dahab earns commission on the stone value only (blueprint §5). The spread is **computed at `pay-balance` from the IGI-confirmed weight and is not stored** (locked decision); `locked_total_price` locks the per-gram rate and formula, not a frozen total (§7, Part 3).
-- **Never exposes:** `seller_id`, seller contact, the private invoice (`listing_media.is_private = true`).
+- **gate:** none (unauthenticated allowed) · **idempotent:** n/a · limiter `public.market`
+- **Query:** `category`, `karat`, `piece_type`, `branch` (any of the listing's named options), `min_g`, `max_g`, `sort` (`newest`|`price_asc`|`price_desc`), `per_page` (1–100, default 20), `cursor`. There is no `is_market_maker` filter or field until the market-maker module.
+- **200:** `{ "data": [ { id, category, piece_type {id, name_en, name_ar}, karat, weight_g, making_charge_per_g, current_price, price_available, price_is_indicative, photos: [media], branch_options: [{id, name_en, name_ar}], queue_count, listed_at, is_mine } ], "meta": { per_page, next_cursor } }` — listings in state `live` or `reserved` only.
+- **Price semantics:** the `current_price` shown to a buyer is the **sell-side** price, from the single calculator (Part 3 §2, spec 005): for gold, `buyers_pay(karat) × weight + making charge × weight` at the current gold price (`price_is_indicative: true`); for diamond and gold-with-diamond, the seller's asking price. It is never stored. When it cannot be computed (no gold price, or the karat's prices are inverted) it is `null` with `price_available: false`, and the listing is still returned (last in price order). A price only *locks* when a buy request is placed (§4); the UI labels it indicative until then. A cursor only positions the page; prices are recomputed per page.
+- **Spread (gold only).** For the `gold` category, Dahab earns the **spread** = the buy/sell rate difference on the gold value; **diamond and gold-with-diamond carry no spread** (Part 3 §2.3–§2.4). The spread is **computed at `pay-balance` from the IGI-confirmed weight and is not stored** (locked decision).
+- **Never exposes:** `seller_id`, the seller's reference, name, phone or email, the private invoice (`listing_media.is_private = true`).
 
 ### `GET /market/listings/{id}`
-Single public listing detail (same column restrictions). Includes public photos and video, excludes the private invoice and stone certificate pre-sale.
+Single public listing detail (same restrictions): adds `description`, `video`, `stone_certificate` and, for gold, `price_parts { rate_per_gram, gold_value, making_total }`. The **stone certificate is public once the listing is live**; only the invoice is private (spec 010 — this replaces "excludes … stone certificate pre-sale").
 - **404** if the listing is not in a publicly visible state.
+
+### `GET /market/listings/{id}/media/{media}`
+The decrypted file of a public media item of a publicly visible listing, streamed, `Cache-Control: no-store`. **404** otherwise (private media, another listing's media, a listing that left the market).
+
+### Reference data for the apps (spec 010)
+Unauthenticated, limiter `public.market`: `GET /reference/karats` (enabled karats), `GET /reference/piece-types?category=` (enabled types, EN/AR names, typical weights), `GET /reference/branches` (enabled branches, EN/AR name and address), `GET /reference/legal-documents/{code}` (the current version of a legal text, e.g. `ownership_declaration`).
 
 ---
 
 ## 3. Selling — listing a piece
 
-Implements the listing lifecycle (`listing_state`) and the locked decision that **branch options are named at listing** (schema §7; open-questions §3).
+> **Built by spec 010** — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md). Paths follow the codebase convention: the seller's under `/customer/me/listings*`, staff's under `/dashboard/listings*` (the earlier `/listings`, `/admin/listings` headings are replaced).
 
-### `POST /listings`  (create draft)
-- **gate:** `trade_allowed` (verified + not suspended — the first-sale gate fires here, Part 1 §2.2) · **idempotent:** required · **audited:** no (customer action, not privileged)
+Implements the listing lifecycle (`listing_state`) and the locked decision that **branch options are named at listing** (schema §7; open-questions §3). Every state change goes through the allowed moves (`listing_transition`, enforced by the `listing_guard` trigger) and is recorded in `listing_state_change` with its actor and message. Moves in use: `draft → in_review`, `changes_requested → in_review`, `in_review → live | changes_requested | rejected`, `live → withdrawn`, `live ↔ suspended_hold`. **`withdrawn` and `rejected` are final.**
+
+### `POST /customer/me/listings`  (create draft)
+- **gate:** `trade_allowed` · **idempotent:** required · **audited:** no (customer action; recorded in the listing history) · limiter `customer.listings`
 - **Body:**
   ```json
   {
     "category": "gold"|"diamond"|"gold_with_diamond",
     "piece_type_id": 12,
-    "karat_code": 21,               // required unless pure diamond
-    "stated_weight_g": "15.500",    // required unless pure diamond
-    "making_charge_per_g": "85.0000", // gold making charge
-    "asking_price": "…",            // stones / whole-piece ask
-    "description": "…",
-    "branch_option_ids": [1, 3],    // >=1; the willing set
+    "karat_code": 21,                 // required unless pure diamond (prohibited for diamond)
+    "stated_weight_g": "15.500",      // required unless pure diamond (prohibited for diamond)
+    "making_charge_per_g": "85.00",   // gold only
+    "asking_price": "…",              // diamond and gold_with_diamond only
+    "description": "…",               // ≤ 2000; 40–2000 required to submit
+    "branch_option_ids": [1, 3],      // >=1; the willing set
     "photo_tokens": ["…"], "video_token": "…"|null,
     "invoice_token": "…"|null, "stone_certificate_token": "…"|null,
     "ownership_declaration_accepted": true,
-    "ownership_legal_doc_id": 7
+    "ownership_legal_doc_id": 7       // must be the current ownership_declaration
   }
   ```
-- **201:** `{ "listing_id", "state": "draft" }`
+- **201:** `{ "data": Listing }` with `state: "draft"`.
 - **Validation & errors:**
   - `gold_needs_karat_weight` (422) — mirrors the schema CHECK: non-diamond requires karat + weight.
   - `branch_options_required` (422) — at least one branch option; each must be an enabled branch.
-  - `ownership_declaration_required` (422) — the ownership declaration must be accepted; the acceptance is written to both `agreement_acceptance` (context `list_piece`) and `listing_ownership_declaration` in the same transaction.
-  - `category_stopped` (409) — if a `category_control` at `stop_new_listings` or higher is active for this category (schema §14).
+  - `ownership_declaration_required` (422) — not accepted, or not the current version; the acceptance is written to both `agreement_acceptance` (context `list_piece`) and `listing_ownership_declaration` in the same transaction.
+  - `upload_token_invalid` (422) — a media token that is unknown, expired, used, for another purpose or another customer's.
+  - Media limits: ≤ 6 photos, ≤ 1 video, ≤ 1 invoice, ≤ 1 stone certificate.
+  - `category_stopped` (409) — reserved for `category_control` (schema §14); not raised until that module exists.
 - **Note:** creating a listing also creates its `listing_queue_seq` row (needed before any buy request can take a position).
 
-### `POST /listings/{id}/submit`
-Moves `draft → in_review` (listing_transition).
-- **gate:** `trade_allowed` · **idempotent:** required
-- **Errors:** `illegal_listing_transition` (409) if not in `draft`/`changes_requested`; `photo_required` (422) if no photo media attached.
+### `GET /customer/me/listings` · `GET /customer/me/listings/{id}` · `GET /customer/me/listings/{id}/media/{media}`
+The seller's own listings (newest first, keyset, optional `state`), one listing, and any of its media (the invoice included).
+- **gate:** `verified` (a suspended seller may read) · **idempotent:** n/a
+- The listing carries `staff_message` (the latest staff note when changes were requested, it was rejected or it was taken down), `current_price` and `you_would_receive` (the calculator's seller proceeds, indicative).
 
-### `PATCH /listings/{id}`
-Edit a `draft` or `changes_requested` listing (e.g. after a reviewer asks for a better photo).
+### `POST /customer/me/listings/{id}/submit`
+Moves `draft | changes_requested → in_review` (listing_transition).
+- **gate:** `trade_allowed` · **idempotent:** required
+- **Errors:** `illegal_listing_transition` (409) if not in `draft`/`changes_requested`; `photo_required` (422) with fewer than 2 photos (gold) or 3 (diamond, gold-with-diamond); `validation_failed` (422) without a 40–2000 character description or when the karat or piece type was turned off; `branch_options_required` (422) when no named branch is still enabled.
+
+### `PATCH /customer/me/listings/{id}`
+Edit a `draft` or `changes_requested` listing (e.g. after a reviewer asks for a better photo): any field but `category`, the branch set, and the media (`add_photo_tokens`, `remove_media_ids`, `photo_order`, and `video_token` / `invoice_token` / `stone_certificate_token`: a token replaces, `null` removes).
 - **gate:** `trade_allowed` · **idempotent:** required
 - **Errors:** `listing_not_editable` (409) if state is not `draft`/`changes_requested`.
 
-### `POST /listings/{id}/withdraw`
-Seller takes a listing down. Allowed from `live` or `reserved` (listing_transition `live/reserved → withdrawn`) — note a `reserved` withdrawal is only permitted because no price is *locked at the listing level*; each queued buyer holds their own locked price and is refunded on release (see §4 release semantics).
+### `POST /customer/me/listings/{id}/withdraw`
+Seller takes a listing down: `live → withdrawn`. **Final** — a withdrawn piece is sold again only as a new listing. `reserved → withdrawn` (releasing and refunding the queue) is wired by the buy-request module; until then only `live` is accepted.
 - **gate:** `trade_allowed` · **idempotent:** required · **audited:** no
-- **Effect:** any active `buy_request` rows are released and their deposits refunded (the release path in §4.4), in one transaction.
-- **Errors:** `illegal_listing_transition` (409) if not `live`/`reserved`.
+- **Errors:** `illegal_listing_transition` (409) if not `live`.
 
-### Admin listing review (Operations / founders)
+### Staff listing review (Operations / founders)
 
-### `GET /admin/listings?state=in_review`
-- **permission:** *Approve or reject a new listing* (CEO/COO/Operations — Part 1 §4.1) · **idempotent:** n/a
-- Staff connections bypass customer RLS (Part 1 §3.3) and see across sellers.
+### `GET /dashboard/listings?state=in_review` · `GET /dashboard/listings/{id}` · `GET /dashboard/listings/{id}/media/{media}`
+- **permission:** any of `listing.review`, `listing.request_changes`, `listing.takedown` (CEO/COO/Operations — Part 1 §4.1) · **idempotent:** n/a
+- `in_review` is oldest first; `meta.counts` has `in_review`, `changes_requested`, `approved_today`, `rejected`. A listing carries the seller (reference, name, masked phone), its history and the "sent back" counters. Staff connections bypass customer RLS (Part 1 §3.3) and see across sellers.
 
-### `POST /admin/listings/{id}/approve`
+### `POST /dashboard/listings/{id}/approve`
 `in_review → live`. Sets `listed_at`.
-- **permission:** Approve/reject a listing · **audited:** yes · **reason:** none · **idempotent:** required
-- **Errors:** `illegal_listing_transition` (409).
+- **permission:** `listing.review` · **audited:** yes · **reason:** none · **idempotent:** required
+- **Errors:** `illegal_listing_transition` (409); `seller_suspended` (409) while the seller is suspended; `karat_disabled` (409) when the listing's karat was turned off since it was submitted (it stays in review).
 
-### `POST /admin/listings/{id}/request-changes`
+### `POST /dashboard/listings/{id}/request-changes`
 `in_review → changes_requested`, with a message to the seller (e.g. "clearer hallmark photo").
-- **permission:** *Ask a seller for a better photo* (CEO/COO/Operations) · **audited:** yes · **reason:** required (the message) · **idempotent:** required
+- **permission:** `listing.request_changes` · **audited:** yes · **reason:** required (the message, 10–1000) · **idempotent:** required
 
-### `POST /admin/listings/{id}/takedown`
-Take a live listing down (`live/reserved → withdrawn`), releasing/refunding any queue.
-- **permission:** *Take a live listing down* (CEO/COO/Operations) · **audited:** yes · **reason:** required · **idempotent:** required
+### `POST /dashboard/listings/{id}/reject`  (spec 010)
+`in_review → rejected` — a new **final** state — with a reason the seller sees.
+- **permission:** `listing.review` · **audited:** yes · **reason:** required (10–1000) · **idempotent:** required
+
+### `POST /dashboard/listings/{id}/takedown`
+Take a live listing down (`live → withdrawn`, final). From `reserved` — with the queue released and refunded — once the buy-request module exists.
+- **permission:** `listing.takedown` · **audited:** yes · **reason:** required (10–1000) · **idempotent:** required
+
+**Notifications (spec 010).** Approve, request-changes (with the message), reject (with the reason) and takedown (with the reason) each send the seller an SMS, plus an email when they have one, after commit.
 
 ---
 
@@ -573,6 +596,7 @@ Manage first-sale / market-maker codes (`promo_code`). · **permission:** *Manag
 
 ### Accounts & access
 ### `POST /admin/customers/{id}/suspend` · `/reinstate`
+> **Changed by spec 010:** suspending also moves the customer's `live` listings to `suspended_hold` (off the market) in the same transaction; reinstating returns them to `live` ([`specs/010-listings/spec.md`](../../specs/010-listings/spec.md)).
 - **permission:** *Suspend / reinstate a user account* — **both founders** (open-questions §3 governs: COO has full permissions except wallets; suspension is not a wallet action). · **audited:** yes · **reason:** required · **idempotent:** required
 - Sets `is_suspended` + `suspended_by` + `suspended_reason` (the `suspended_needs_actor` CHECK enforces the reason + actor).
 - **As built (feature `007-customer-file`, [`specs/007-customer-file/`](../../specs/007-customer-file/), [`docs/features/customer-file.md`](../features/customer-file.md)).** Every route below is under `/api/v1/dashboard/customers`.
@@ -683,6 +707,9 @@ Auth codes are in Part 1 §9. Domain codes introduced above:
 | `not_in_queue` / `not_queue_head` / `queue_empty` | 409 | withdraw / accept |
 | `branch_not_in_options` | 409 | accept / change-branch |
 | `illegal_listing_transition` / `illegal_order_transition` / `illegal_withdrawal_transition` | 409 | any guarded state change |
+| `listing_not_editable` | 409 | edit a listing outside draft / changes requested (spec 010) |
+| `seller_suspended` / `karat_disabled` | 409 | approve a listing (spec 010) |
+| `photo_required` / `gold_needs_karat_weight` / `branch_options_required` | 422 | create / submit a listing (spec 010) |
 | `wrong_branch` | 403 | IGI actions outside own branch |
 | `karat_rule_violation` | 422 | inconsistent inspection submit |
 | `not_the_buyer` / `not_the_seller` | 403 | caller-identity checks |

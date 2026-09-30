@@ -23,6 +23,11 @@ final class CreateCustomerUploadAction
         $ref = match ($purpose) {
             UploadPurpose::IDENTITY => $this->storage->store($actor->customer_id, $file),
             UploadPurpose::TOPUP_RECEIPT => $this->storage->storeAt('topup-receipts', $actor->customer_id, $file),
+            // Spec 010: listing media is encrypted in chunks, never whole in memory.
+            UploadPurpose::LISTING_PHOTO,
+            UploadPurpose::LISTING_VIDEO,
+            UploadPurpose::LISTING_INVOICE,
+            UploadPurpose::STONE_CERTIFICATE => $this->storage->storeChunkedAt('listing-media', $actor->customer_id, $file),
         };
 
         return $this->tokens->issue($actor->customer_id, $purpose, $ref, $file->getMimeType());

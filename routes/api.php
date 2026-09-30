@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\StaffPermission;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerAuthController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
+use App\Http\Controllers\Api\V1\Customer\ListingController as CustomerListingController;
 use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
@@ -17,6 +19,7 @@ use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPr
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
+use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\ReceivingAccountController as DashboardReceivingAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
@@ -24,6 +27,8 @@ use App\Http\Controllers\Api\V1\Dashboard\SettingController as DashboardSettingC
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
 use App\Http\Controllers\Api\V1\Dashboard\TopUpController as DashboardTopUpController;
 use App\Http\Controllers\Api\V1\Dashboard\WalletController as DashboardWalletController;
+use App\Http\Controllers\Api\V1\Market\MarketListingController;
+use App\Http\Controllers\Api\V1\Market\ReferenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -35,6 +40,28 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             'time' => now()->toIso8601String(),
         ]);
     })->name('health');
+
+    // ─── Public surface (spec 010) ───────────────────────────────────────
+    // No account needed. Reference data for the apps, and the market: the
+    // live pieces, read in the read-only `market` database scope (`db.market`)
+    // and returned without any seller field (Part 1 §5.3). A customer token on
+    // a market route is optional and only sets `is_mine`.
+    Route::middleware('throttle:public.market')->group(function () {
+        Route::prefix('reference')->name('reference.')->group(function () {
+            Route::get('/karats', [ReferenceController::class, 'karats'])->name('karats');
+            Route::get('/piece-types', [ReferenceController::class, 'pieceTypes'])->name('piece-types');
+            Route::get('/branches', [ReferenceController::class, 'branches'])->name('branches');
+            Route::get('/legal-documents/{code}', [ReferenceController::class, 'legalDocument'])
+                ->where('code', '[a-z][a-z0-9_]{1,49}')->name('legal-documents.show');
+        });
+
+        Route::middleware('db.market')->prefix('market/listings')->name('market.listings.')->group(function () {
+            Route::get('/', [MarketListingController::class, 'index'])->name('index');
+            Route::get('/{listing}', [MarketListingController::class, 'show'])->whereUuid('listing')->name('show');
+            Route::get('/{listing}/media/{media}', [MarketListingController::class, 'media'])
+                ->whereUuid(['listing', 'media'])->name('media');
+        });
+    });
 
     // ─── Customer surface ────────────────────────────────────────────────
     Route::prefix('customer')->name('customer.')->group(function () {
@@ -120,6 +147,29 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/topup-methods', [CustomerTopUpController::class, 'methods'])->name('topup-methods');
                 Route::post('/topups', [CustomerTopUpController::class, 'store'])
                     ->middleware(['throttle:customer.topups', 'idempotent'])->name('topups.store');
+            });
+
+            // Spec 010: the seller's own listings. Reads need a verified customer (a
+            // suspended seller may read); every write needs the trade gate and an
+            // Idempotency-Key (`idempotent` runs last).
+            Route::prefix('listings')->name('listings.')->group(function () {
+                Route::middleware('customer.gate:verified')->group(function () {
+                    Route::get('/', [CustomerListingController::class, 'index'])->name('index');
+                    Route::get('/{listing}', [CustomerListingController::class, 'show'])->whereUuid('listing')->name('show');
+                    Route::get('/{listing}/media/{media}', [CustomerListingController::class, 'media'])
+                        ->whereUuid(['listing', 'media'])->name('media');
+                });
+
+                Route::middleware('customer.gate:trade')->group(function () {
+                    Route::post('/', [CustomerListingController::class, 'store'])
+                        ->middleware(['throttle:customer.listings', 'idempotent'])->name('store');
+                    Route::patch('/{listing}', [CustomerListingController::class, 'update'])
+                        ->whereUuid('listing')->middleware('idempotent')->name('update');
+                    Route::post('/{listing}/submit', [CustomerListingController::class, 'submit'])
+                        ->whereUuid('listing')->middleware('idempotent')->name('submit');
+                    Route::post('/{listing}/withdraw', [CustomerListingController::class, 'withdraw'])
+                        ->whereUuid('listing')->middleware('idempotent')->name('withdraw');
+                });
             });
         });
     });
@@ -299,6 +349,28 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->middleware('staff.permission:topup.accounts.manage')->name('store');
                 Route::patch('/{account}', [DashboardReceivingAccountController::class, 'update'])
                     ->whereNumber('account')->middleware('staff.permission:topup.accounts.manage')->name('update');
+            });
+
+        // Listings to review (spec 010): CEO, COO and Operations by default. Reading
+        // needs any listing permission; each decision its own. Every POST is
+        // idempotent (`idempotent` runs last) and audited.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('listings')->name('listings.')->group(function () {
+                Route::middleware('staff.permission:'.StaffPermission::LISTING_ANY)->group(function () {
+                    Route::get('/', [DashboardListingController::class, 'index'])->name('index');
+                    Route::get('/{listing}', [DashboardListingController::class, 'show'])->whereUuid('listing')->name('show');
+                    Route::get('/{listing}/media/{media}', [DashboardListingController::class, 'media'])
+                        ->whereUuid(['listing', 'media'])->name('media');
+                });
+
+                Route::post('/{listing}/approve', [DashboardListingController::class, 'approve'])
+                    ->whereUuid('listing')->middleware(['staff.permission:listing.review', 'idempotent'])->name('approve');
+                Route::post('/{listing}/reject', [DashboardListingController::class, 'reject'])
+                    ->whereUuid('listing')->middleware(['staff.permission:listing.review', 'idempotent'])->name('reject');
+                Route::post('/{listing}/request-changes', [DashboardListingController::class, 'requestChanges'])
+                    ->whereUuid('listing')->middleware(['staff.permission:listing.request_changes', 'idempotent'])->name('request-changes');
+                Route::post('/{listing}/takedown', [DashboardListingController::class, 'takedown'])
+                    ->whereUuid('listing')->middleware(['staff.permission:listing.takedown', 'idempotent'])->name('takedown');
             });
 
         // The audit log viewer (spec 006): everything, or your own actions only.

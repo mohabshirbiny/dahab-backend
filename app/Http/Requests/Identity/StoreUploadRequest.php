@@ -13,7 +13,7 @@ use OpenApi\Attributes as OA;
     description: 'multipart/form-data',
     required: ['purpose', 'file'],
     properties: [
-        new OA\Property(property: 'purpose', type: 'string', enum: ['identity', 'topup_receipt'], description: '`identity` is open to customers waiting for verification; `topup_receipt` (spec 009) needs a verified, non-suspended customer (403 verification_required / account_suspended).'),
+        new OA\Property(property: 'purpose', type: 'string', enum: ['identity', 'topup_receipt', 'listing_photo', 'listing_video', 'listing_invoice', 'stone_certificate'], description: '`identity` is open to customers waiting for verification; every other purpose needs a verified, non-suspended customer (403 verification_required / account_suspended). Types and sizes: `identity` and `listing_photo` JPEG/PNG/WebP up to 8 MB; `topup_receipt`, `listing_invoice` and `stone_certificate` also PDF, up to 8 MB; `listing_video` MP4/MOV/WebM up to 50 MB (spec 010).'),
         new OA\Property(property: 'file', type: 'string', format: 'binary', description: '`identity`: JPEG, PNG or WebP image. `topup_receipt`: the same images or a PDF. Size limited by `dahab-identity.max_upload_kb`.'),
     ],
 )]
@@ -34,7 +34,7 @@ class StoreUploadRequest extends FormRequest
                 'required',
                 'file',
                 'mimes:'.implode(',', $purpose->allowedMimes()),
-                'max:'.config('dahab-identity.max_upload_kb'),
+                'max:'.$purpose->maxKilobytes(),
             ],
         ];
     }
@@ -47,7 +47,8 @@ class StoreUploadRequest extends FormRequest
      */
     protected function passedValidation(): void
     {
-        if ($this->validated('purpose') === UploadPurpose::TOPUP_RECEIPT->value) {
+        // Spec 010: listing media is part of selling, so it takes the trade gate too.
+        if (UploadPurpose::from($this->validated('purpose'))->requiresTrade()) {
             EnsureCustomerStanding::assert($this->user('customer'), 'trade');
         }
     }

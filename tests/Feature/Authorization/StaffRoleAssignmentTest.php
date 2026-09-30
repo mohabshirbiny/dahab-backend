@@ -24,7 +24,7 @@ it('replaces a staff member\'s roles, audits it, and applies on their next reque
         'reason' => 'Covering the verification queue',
     ])->assertOk()
         ->assertJsonPath('data.roles', [['name' => 'operations', 'display_name' => 'Operations'], ['name' => 'verification', 'display_name' => 'Verification']])
-        ->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'customer.view', 'identity.review', 'identity.view', 'pricing.view', 'reference.view']);
+        ->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'customer.view', 'identity.review', 'identity.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'pricing.view', 'reference.view']);
 
     $audit = AuditLog::query()->where('action', 'authz.staff.roles_changed')->sole();
     expect($audit->entity_id)->toBe($this->ops->staff_id)
@@ -34,7 +34,7 @@ it('replaces a staff member\'s roles, audits it, and applies on their next reque
         ->and($audit->after_json['removed'])->toBe([]);
 
     $this->bearer($opsToken)->getJson('/api/v1/dashboard/identity-documents')->assertOk();
-    $this->bearer($opsToken)->getJson('/api/v1/dashboard/auth/me')->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'customer.view', 'identity.review', 'identity.view', 'pricing.view', 'reference.view']);
+    $this->bearer($opsToken)->getJson('/api/v1/dashboard/auth/me')->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'customer.view', 'identity.review', 'identity.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'pricing.view', 'reference.view']);
 });
 
 it('allows an empty role list', function () {

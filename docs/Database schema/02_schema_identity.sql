@@ -164,6 +164,36 @@ CREATE TABLE agreement_acceptance (
   device_fingerprint TEXT
 );
 
+-- As built by spec 010 ----------------------------------------------------
+-- Both tables are created unchanged. An acceptance is evidence: append-only.
+CREATE OR REPLACE FUNCTION agreement_acceptance_immutable() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'agreement acceptances are append-only';
+END $$;
+
+CREATE TRIGGER trg_agreement_acceptance_immutable
+  BEFORE UPDATE OR DELETE ON agreement_acceptance
+  FOR EACH ROW EXECUTE FUNCTION agreement_acceptance_immutable();
+
+CREATE INDEX idx_agreement_acceptance_customer ON agreement_acceptance(customer_id, accepted_at);
+
+-- A customer sees only their own acceptances (forced RLS, spec 003 pattern).
+ALTER TABLE agreement_acceptance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agreement_acceptance FORCE  ROW LEVEL SECURITY;
+CREATE POLICY agreement_acceptance_isolation ON agreement_acceptance FOR ALL
+  USING      (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+  WITH CHECK (dahab_rls_elevated() OR customer_id = dahab_current_customer_id());
+
+-- Seed: the ownership declaration ticked when listing a piece, version 1,
+-- published by the system actor (no Dashboard document management yet).
+INSERT INTO legal_document (code, version, body_en, body_ar, is_material, published_by)
+SELECT 'ownership_declaration', 1,
+       'I confirm this piece is mine to sell and the details above are accurate.',
+       'أقر أن القطعة دي ملكي ومن حقي أبيعها، وأن البيانات اللي فوق صحيحة.',
+       FALSE, staff_id
+FROM staff WHERE is_system = TRUE;
+
 -- =====================================================================
 -- Added by feature 001-auth-customer-staff
 -- Credentials, MFA secrets, and per-actor device fingerprints. These

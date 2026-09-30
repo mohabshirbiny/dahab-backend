@@ -155,7 +155,10 @@ it('guards every customer and dashboard route with the right guard and ability, 
     // spec 009:  customer topup-methods, topups index/store, topups cancel (4);
     //            dashboard topups index/store/export/show/receipt/match/hold/unhold/reject (9),
     //            receiving-accounts index/store/update (3)
-    expect($checked)->toBe(75);
+    // spec 010:  customer listings index/store/show/update/media/submit/withdraw (7);
+    //            dashboard listings index/show/media/approve/request-changes/reject/takedown (7).
+    //            The public market and reference routes carry no guard at all (MarketScopeTest).
+    expect($checked)->toBe(89);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

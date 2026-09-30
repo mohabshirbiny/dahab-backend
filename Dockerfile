@@ -42,6 +42,9 @@ RUN apk add --no-cache \
 
 WORKDIR /var/www/html
 
+# Upload limits for listing videos (spec 010): 50 MB files, encrypted in chunks.
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/zz-dahab-uploads.ini
+
 COPY --from=vendor /app /var/www/html
 
 RUN chown -R www-data:www-data storage bootstrap/cache

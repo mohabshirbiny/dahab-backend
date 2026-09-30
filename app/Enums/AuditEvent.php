@@ -67,6 +67,10 @@ enum AuditEvent: string
     case TOPUP_LIST_EXPORTED = 'topup.list_exported';
     case RECEIVING_ACCOUNT_CREATED = 'receiving_account.created';
     case RECEIVING_ACCOUNT_UPDATED = 'receiving_account.updated';
+    case LISTING_APPROVED = 'listing.approved';
+    case LISTING_CHANGES_REQUESTED = 'listing.changes_requested';
+    case LISTING_REJECTED = 'listing.rejected';
+    case LISTING_TAKEN_DOWN = 'listing.taken_down';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -135,6 +139,10 @@ enum AuditEvent: string
             self::TOPUP_LIST_EXPORTED => 'Incoming transfers exported',
             self::RECEIVING_ACCOUNT_CREATED => 'Receiving account added',
             self::RECEIVING_ACCOUNT_UPDATED => 'Receiving account changed',
+            self::LISTING_APPROVED => 'Listing approved',
+            self::LISTING_CHANGES_REQUESTED => 'Changes requested on a listing',
+            self::LISTING_REJECTED => 'Listing rejected',
+            self::LISTING_TAKEN_DOWN => 'Listing taken down',
         };
     }
 
@@ -152,6 +160,7 @@ enum AuditEvent: string
             self::TOPUP_MATCHED, self::TOPUP_CREDITED_BY_HAND, self::TOPUP_HELD, self::TOPUP_UNHELD,
             self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
             self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,
+            self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN => AuditCategory::LISTINGS,
         };
     }
 

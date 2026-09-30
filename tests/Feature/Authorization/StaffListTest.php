@@ -26,7 +26,7 @@ it('lists staff with their roles, founder flag and permissions, ordered by name,
 
     $response->assertJsonPath('data.0.is_founder', true)
         ->assertJsonPath('data.0.roles', [['name' => 'coo', 'display_name' => 'COO']])
-        ->assertJsonPath('data.0.permissions', ['audit.view_own', 'branches.manage', 'customer.suspend', 'karats.create', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'])
+        ->assertJsonPath('data.0.permissions', ['audit.view_own', 'branches.manage', 'customer.suspend', 'karats.create', 'listing.request_changes', 'listing.review', 'listing.takedown', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'])
         ->assertJsonPath('data.1.branch_id', Branch::query()->value('branch_id'))
         ->assertJsonPath('meta.per_page', 25);
 

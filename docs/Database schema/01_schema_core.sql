@@ -75,7 +75,10 @@ CREATE TYPE listing_state AS ENUM (
   -- The returned piece sat awaiting the seller past the return window and
   -- the seller never came. Status shown ("window passed, not our liability");
   -- Dahab then hands it over or compensates. Manual, like uncollected_expired.
-  'seller_unclaimed'
+  'seller_unclaimed',
+  -- spec 010: rejected by the reviewer. Final, like 'withdrawn': neither has
+  -- an outgoing move; the piece is sold again only as a new listing.
+  'rejected'
 );
 
 -- Order (a single accepted buyer's purchase) lifecycle.

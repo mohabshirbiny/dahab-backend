@@ -371,6 +371,8 @@ Suspension is always a named action with a reason from a fixed list (`customer.s
 
 A suspended customer can still sign in and read, withdraw a remaining balance, and wind down open orders (Part 1 §2.2); every **trade** action returns `403 account_suspended`. Locked-price orders already in flight are honoured — suspension stops new trading, it does not confiscate a promise already made. Reinstatement is founders-only (Part 1 §4.3).
 
+> **Changed by spec 010** — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md). Suspending a customer moves each of their `live` listings to `suspended_hold` (off the market) in the same transaction; reinstating returns each to `live` with its original `listed_at`. A listing of theirs waiting for review stays in review and cannot be approved while they are suspended (`seller_suspended`).
+
 ### 9.3 Pattern flags (not suspension)
 
 Crossing `flag.pattern_txn_threshold` (5) raises a **review flag**, not an automatic suspension — a human decides. Who receives the flag and by which channel is unresolved (**OI-3.4**, = Part 1 OI-1.3 / Part 2 OI-2.2).

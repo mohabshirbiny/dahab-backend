@@ -96,7 +96,10 @@ Each project is its own repository. **Never merge them.**
 3. Dashboard: `VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1` (`.env.development.local`).
 4. Flutter: defaults to `http://127.0.0.1:8000/api/v1`; for a deploy build pass the production host:
    `flutter build web --release --dart-define=API_BASE_URL=<production origin>/api/v1`.
-5. OTP/SMS codes are `123456` in the backend `local` environment. Staff: `<role>@dahab.test` /
+5. Listing videos are up to 50 MB (spec 010): PHP needs `upload_max_filesize` ≥ 50M and `post_max_size` ≥ 60M
+   (`docker/php/uploads.ini` sets them in the image; on Laragon edit `php.ini`), and nginx `client_max_body_size 60m`
+   (`docker/nginx/default.conf`). Below those limits the upload is refused before Laravel sees it.
+6. OTP/SMS codes are `123456` in the backend `local` environment. Staff: `<role>@dahab.test` /
    `seeded-password-1`; `ceo`/`coo`/`finance` need TOTP MFA.
 
 ## 6. Mocks
