@@ -161,6 +161,41 @@ const OPENAPI_DASHBOARD_TOPUP_PATHS = [
     'patch /dashboard/receiving-accounts/{account}',
 ];
 
+// Spec 010: the seller's listings, the staff review queue, and the public surface
+// (market + reference), which needs no token.
+const OPENAPI_CUSTOMER_LISTING_PATHS = [
+    'get /customer/me/listings',
+    'post /customer/me/listings',
+    'get /customer/me/listings/{listing}',
+    'patch /customer/me/listings/{listing}',
+    'get /customer/me/listings/{listing}/media/{media}',
+    'post /customer/me/listings/{listing}/submit',
+    'post /customer/me/listings/{listing}/withdraw',
+];
+
+const OPENAPI_DASHBOARD_LISTING_PATHS = [
+    'get /dashboard/listings',
+    'get /dashboard/listings/{listing}',
+    'get /dashboard/listings/{listing}/media/{media}',
+    'post /dashboard/listings/{listing}/approve',
+    'post /dashboard/listings/{listing}/request-changes',
+    'post /dashboard/listings/{listing}/reject',
+    'post /dashboard/listings/{listing}/takedown',
+];
+
+const OPENAPI_MARKET_PATHS = [
+    'get /market/listings',
+    'get /market/listings/{listing}',
+    'get /market/listings/{listing}/media/{media}',
+];
+
+const OPENAPI_REFERENCE_PATHS = [
+    'get /reference/karats',
+    'get /reference/piece-types',
+    'get /reference/branches',
+    'get /reference/legal-documents/{code}',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -181,7 +216,7 @@ it('generates a valid OpenAPI document', function () {
         ->and($doc['servers'][0]['url'])->toBe('/api/v1');
 });
 
-it('documents exactly the customer and dashboard endpoints', function () {
+it('documents exactly the customer, dashboard and public endpoints', function () {
     $ops = documentedOperations(generatedOpenApi());
 
     expect(array_keys($ops))->toEqualCanonicalizing([
@@ -198,6 +233,10 @@ it('documents exactly the customer and dashboard endpoints', function () {
         ...OPENAPI_DASHBOARD_WALLET_PATHS,
         ...OPENAPI_CUSTOMER_TOPUP_PATHS,
         ...OPENAPI_DASHBOARD_TOPUP_PATHS,
+        ...OPENAPI_CUSTOMER_LISTING_PATHS,
+        ...OPENAPI_DASHBOARD_LISTING_PATHS,
+        ...OPENAPI_MARKET_PATHS,
+        ...OPENAPI_REFERENCE_PATHS,
     ]);
 });
 
@@ -266,6 +305,11 @@ it('secures every operation with its own surface scheme and never the generic sa
         ...array_fill_keys(OPENAPI_DASHBOARD_WALLET_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_CUSTOMER_TOPUP_PATHS, 'customerBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_TOPUP_PATHS, 'dashboardBearer'),
+        ...array_fill_keys(OPENAPI_CUSTOMER_LISTING_PATHS, 'customerBearer'),
+        ...array_fill_keys(OPENAPI_DASHBOARD_LISTING_PATHS, 'dashboardBearer'),
+        // The public surface (spec 010): no token.
+        ...array_fill_keys(OPENAPI_MARKET_PATHS, null),
+        ...array_fill_keys(OPENAPI_REFERENCE_PATHS, null),
     ];
 
     foreach ($expected as $key => $scheme) {
@@ -327,6 +371,17 @@ it('tags each surface separately', function () {
         expect($ops[$key]['tags'])->toBe(['Customer Wallet']);
     }
 
+    foreach ([
+        'Customer Listings' => OPENAPI_CUSTOMER_LISTING_PATHS,
+        'Dashboard Listings' => OPENAPI_DASHBOARD_LISTING_PATHS,
+        'Market' => OPENAPI_MARKET_PATHS,
+        'Reference' => OPENAPI_REFERENCE_PATHS,
+    ] as $tag => $paths) {
+        foreach ($paths as $key) {
+            expect($ops[$key]['tags'])->toBe([$tag]);
+        }
+    }
+
     foreach (OPENAPI_DASHBOARD_TOPUP_PATHS as $key) {
         expect($ops[$key]['tags'])->toBe(['Dashboard Top-ups']);
     }
@@ -358,6 +413,8 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'CustomerTopUp', 'CustomerReceivingAccount', 'SubmitTopUpNoticeRequest',
         'StaffTopUp', 'StaffReceivingAccount', 'DashboardMatchTopUp', 'DashboardHoldTopUp', 'DashboardRejectTopUp',
         'DashboardCreditTopUpByHand', 'DashboardStoreReceivingAccount', 'DashboardUpdateReceivingAccount',
+        'ListingMedia', 'MarketListing', 'MarketListingDetail', 'CustomerListing', 'DashboardListing',
+        'StoreListingRequest', 'UpdateListingRequest', 'RequestListingChangesRequest', 'ListingReasonRequest',
     ]);
 
     $ops = documentedOperations($doc);
@@ -395,7 +452,7 @@ it('stays in step with the registered routes', function () {
     $ops = documentedOperations(generatedOpenApi());
 
     $registered = collect(Route::getRoutes()->getRoutes())
-        ->filter(fn ($r) => preg_match('#^api/v1/(customer|dashboard)/#', $r->uri()))
+        ->filter(fn ($r) => preg_match('#^api/v1/(customer|dashboard|market|reference)/#', $r->uri()))
         ->flatMap(fn ($r) => collect($r->methods())
             ->reject(fn ($m) => in_array($m, ['HEAD', 'OPTIONS'], true))
             ->map(fn ($m) => strtolower($m).' /'.substr($r->uri(), strlen('api/v1/'))))
