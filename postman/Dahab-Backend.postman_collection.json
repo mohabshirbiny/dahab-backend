@@ -120,6 +120,66 @@
             "key": "receipt_upload_token",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "listing_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "media_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "market_listing_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "market_media_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "piece_type_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "ownership_legal_doc_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "listing_photo_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "listing_photo_token_2",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "listing_video_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "listing_invoice_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "stone_certificate_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "branch_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -892,7 +952,7 @@
                                         "suspend"
                                     ]
                                 },
-                                "description": "Spec 007. reason: piece_misrepresented | off_platform_dealing | repeated_disputes | reported_by_users | identity_unconfirmed | customer_request | other. note: required, 1-1000 characters, staff-only. Any state may be suspended; the state it interrupts is restored on reinstate. 200 = the customer file. 409 customer_already_suspended. Requires customer.suspend and an Idempotency-Key. Audited (auth.customer.suspended)."
+                                "description": "Spec 007. reason: piece_misrepresented | off_platform_dealing | repeated_disputes | reported_by_users | identity_unconfirmed | customer_request | other. note: required, 1-1000 characters, staff-only. Any state may be suspended; the state it interrupts is restored on reinstate. 200 = the customer file. 409 customer_already_suspended. Requires customer.suspend and an Idempotency-Key. Audited (auth.customer.suspended). Spec 010: their live listings are taken off the market (suspended_hold) in the same transaction."
                             },
                             "response": []
                         },
@@ -946,7 +1006,7 @@
                                         "reinstate"
                                     ]
                                 },
-                                "description": "Spec 007. note: required, 1-1000 characters. Returns the customer to the state the suspension interrupted. 200 = the customer file. 409 customer_not_suspended. Requires customer.suspend and an Idempotency-Key. Audited (auth.customer.unsuspended)."
+                                "description": "Spec 007. note: required, 1-1000 characters. Returns the customer to the state the suspension interrupted. 200 = the customer file. 409 customer_not_suspended. Requires customer.suspend and an Idempotency-Key. Audited (auth.customer.unsuspended). Spec 010: listings held by the suspension go back on the market."
                             },
                             "response": []
                         },
@@ -3504,6 +3564,358 @@
                         }
                     ],
                     "description": "Spec 009: incoming transfers (match, hold, reject, credit by hand) and Dahab's receiving accounts. CEO and Finance by default; never the COO."
+                },
+                {
+                    "name": "Listings",
+                    "description": "Spec 010: listings to review. Reading needs any of listing.review, listing.request_changes, listing.takedown (CEO, COO, Operations by default). Every decision is idempotent, audited, recorded in the listing history, and told to the seller by SMS/email after commit.",
+                    "item": [
+                        {
+                            "name": "List Listings To Review",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings?state=in_review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "in_review"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "25",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": "",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 010. Listings of every seller in one state (default in_review, oldest first; other states most recent first). meta.counts: in_review, changes_requested, approved_today, rejected, live. Saves the first listing_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('listing_id', Array.isArray(d) ? (d[0] ? d[0].id : pm.collectionVariables.get('listing_id')) : d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Show Listing For Review",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings/{{listing_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings",
+                                        "{{listing_id}}"
+                                    ]
+                                },
+                                "description": "Spec 010. Every field and media item (the private invoice included), the seller (reference, name, masked phone), the history and the \"sent back\" counters; can_approve / can_request_changes / can_reject / can_take_down for the signed-in staff member. Saves the first media id as media_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('media_id', d.media && d.media[0] ? d.media[0].id : '');",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "View Listing Media",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings/{{listing_id}}/media/{{media_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "media",
+                                        "{{media_id}}"
+                                    ]
+                                },
+                                "description": "Spec 010. The decrypted file, streamed, private ones included; Cache-Control: no-store."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Approve Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings/{{listing_id}}/approve",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "approve"
+                                    ]
+                                },
+                                "description": "Spec 010. in_review \u2192 live; sets listed_at; on the market at once. 409 illegal_listing_transition | seller_suspended | karat_disabled (the listing stays in review). Audited (listing.approved). Requires listing.review and an Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Request Listing Changes",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings/{{listing_id}}/request-changes",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "request-changes"
+                                    ]
+                                },
+                                "description": "Spec 010. in_review \u2192 changes_requested with a message the seller reads (10\u20131000 characters). Audited (listing.changes_requested). Requires listing.request_changes and an Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"message\": \"The hallmark photo is blurred and we cannot read the karat. Please retake it in daylight.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Reject Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings/{{listing_id}}/reject",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "reject"
+                                    ]
+                                },
+                                "description": "Spec 010. in_review \u2192 rejected with a reason the seller reads (10\u20131000 characters). Final. Audited (listing.rejected). Requires listing.review and an Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"The photos are not of the piece described.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Take Down Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings/{{listing_id}}/takedown",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "takedown"
+                                    ]
+                                },
+                                "description": "Spec 010. live \u2192 withdrawn with a reason the seller reads (10\u20131000 characters). Final; from live only. Audited (listing.taken_down). Requires listing.takedown and an Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"A buyer reported that the photos are taken from another listing.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""
@@ -4545,6 +4957,956 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Listings",
+                    "description": "Spec 010: selling a piece. Upload the media (verified, non-suspended customers), create a draft, send it for review, follow it, fix it when Dahab asks for changes, withdraw it once live. Reads need a verified customer; every write needs the trade gate and an Idempotency-Key.",
+                    "item": [
+                        {
+                            "name": "Upload Listing Photo",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 010. A photo of the piece: JPEG, PNG or WebP, max 8 MB; at most 6 per listing. Encrypted in chunks on the private disk. Trade gate (403 verification_required / account_suspended). Saves listing_photo_token (single use).",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "listing_photo",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('listing_photo_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Upload Listing Photo (second)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 010. A gold listing needs at least 2 photos to be sent for review (3 for diamond and gold with diamond). Saves listing_photo_token_2.",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "listing_photo",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('listing_photo_token_2', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Upload Listing Video",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 010. Optional, one per listing: MP4, MOV or WebM, max 50 MB (PHP upload_max_filesize 64M / post_max_size 70M). Encrypted and later served in chunks, never whole in memory. Saves listing_video_token.",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "listing_video",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('listing_video_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Upload Listing Invoice",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 010. Optional, one per listing: the original invoice as an image or PDF, max 8 MB. Private: buyers never see it; the seller and review staff can open it. Saves listing_invoice_token.",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "listing_invoice",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('listing_invoice_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Upload Stone Certificate",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 010. Optional, one per listing: an image or PDF, max 8 MB. Public once the listing is live. Saves stone_certificate_token.",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "stone_certificate",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('stone_certificate_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Create Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings"
+                                    ]
+                                },
+                                "description": "Spec 010, Part 2 \u00a73. Creates a draft with its media, branch options, the accepted ownership declaration and its queue counter. Fields by category: gold \u2014 karat_code, stated_weight_g, making_charge_per_g; gold_with_diamond \u2014 karat_code, stated_weight_g, asking_price; diamond \u2014 asking_price only. 422 gold_needs_karat_weight | branch_options_required | ownership_declaration_required | upload_token_invalid | validation_failed. Trade gate; Idempotency-Key. Saves listing_id. Run Reference \u2192 Piece Types, Branches and Ownership Declaration first.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"category\": \"gold\",\n    \"piece_type_id\": {{piece_type_id}},\n    \"karat_code\": 21,\n    \"stated_weight_g\": \"8.000\",\n    \"making_charge_per_g\": \"250.00\",\n    \"asking_price\": null,\n    \"description\": \"Worn a few times and kept in its box. Small scratch on the inner band.\",\n    \"branch_option_ids\": [{{branch_id}}],\n    \"photo_tokens\": [\"{{listing_photo_token}}\", \"{{listing_photo_token_2}}\"],\n    \"video_token\": null,\n    \"invoice_token\": null,\n    \"stone_certificate_token\": null,\n    \"ownership_declaration_accepted\": true,\n    \"ownership_legal_doc_id\": {{ownership_legal_doc_id}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('listing_id', d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List My Listings",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings?",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "live",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": "",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 010. The seller's own listings, newest first; state filter; keyset (cursor = meta.next_cursor). Each carries staff_message (what Dahab asked or why it rejected / took it down), current_price and you_would_receive (indicative). A suspended seller may read. Saves the first listing_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('listing_id', Array.isArray(d) ? (d[0] ? d[0].id : pm.collectionVariables.get('listing_id')) : d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Show My Listing",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}"
+                                    ]
+                                },
+                                "description": "Spec 010. One of the seller's own listings with all its media (the invoice included). 404 for anyone else's. Saves the first media id as media_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('media_id', d.media && d.media[0] ? d.media[0].id : '');",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "View My Listing Media",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/media/{{media_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "media",
+                                        "{{media_id}}"
+                                    ]
+                                },
+                                "description": "Spec 010. The decrypted file, streamed, with its content type; Cache-Control: no-store."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Listing",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}"
+                                    ]
+                                },
+                                "description": "Spec 010. Edit a draft or a listing sent back for changes: any field but the category, branch_option_ids (replaces the set), add_photo_tokens, remove_media_ids, photo_order, and video_token / invoice_token / stone_certificate_token (a token replaces, null removes, absent leaves). 409 listing_not_editable in any other state. Trade gate; Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"description\": \"Worn a few times and kept in its box. Small scratch on the inner band, visible in the second photo.\",\n    \"making_charge_per_g\": \"240.00\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Submit Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/submit",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "submit"
+                                    ]
+                                },
+                                "description": "Spec 010. draft | changes_requested \u2192 in_review. 422 photo_required (2 photos for gold, 3 for stones), validation_failed (description 40\u20132000; karat or piece type turned off), branch_options_required; 409 illegal_listing_transition. Trade gate; Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Withdraw Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/withdraw",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "withdraw"
+                                    ]
+                                },
+                                "description": "Spec 010. live \u2192 withdrawn, off the market at once. Final: there is no relisting. From live only. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
+                            },
+                            "response": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Market",
+            "description": "Spec 010: the public surface. No token needed. The market returns only live pieces, with no seller information; a customer token is optional and only sets is_mine. Reference returns what the apps need before anyone signs in.",
+            "item": [
+                {
+                    "name": "Reference",
+                    "item": [
+                        {
+                            "name": "Karats",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/karats",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "karats"
+                                    ]
+                                },
+                                "description": "Spec 010. The enabled karats a seller can choose. No purity, no prices. Public.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Piece Types",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/piece-types?category=gold",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "piece-types"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "category",
+                                            "value": "gold"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 010. Enabled piece types (EN/AR names, typical weights), optionally of one category. Public. Saves the first id as piece_type_id.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('piece_type_id', d[0] ? d[0].id : '');",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Branches",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/branches",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "branches"
+                                    ]
+                                },
+                                "description": "Spec 010. Enabled inspection branches (EN/AR name and address). Public. Saves the first id as branch_id.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('branch_id', d[0] ? d[0].id : '');",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Ownership Declaration",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/legal-documents/ownership_declaration",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "legal-documents",
+                                        "ownership_declaration"
+                                    ]
+                                },
+                                "description": "Spec 010. The current version of the text a seller ticks when listing a piece. Public. Saves its id as ownership_legal_doc_id.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    pm.collectionVariables.set('ownership_legal_doc_id', d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Browse Listings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/market/listings?sort=newest",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "market",
+                                "listings"
+                            ],
+                            "query": [
+                                {
+                                    "key": "category",
+                                    "value": "gold",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "karat",
+                                    "value": "21",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "piece_type",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "branch",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "min_g",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "max_g",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "sort",
+                                    "value": "newest"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "cursor",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Spec 010, Part 2 \u00a72. Live pieces; filters category, karat, piece_type, branch, min_g, max_g; sort newest | price_asc | price_desc; keyset (cursor = meta.next_cursor), per_page 1\u2013100. current_price is computed now (indicative for gold) and null with price_available=false when it cannot be quoted. Never returns the seller or private media. Public. Saves the first id as market_listing_id.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                    "    const d = pm.response.json().data;",
+                                    "    pm.collectionVariables.set('market_listing_id', d[0] ? d[0].id : '');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Show Listing",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/market/listings/{{market_listing_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "market",
+                                "listings",
+                                "{{market_listing_id}}"
+                            ]
+                        },
+                        "description": "Spec 010. One live piece: adds description, video, stone_certificate and, for gold, price_parts. 404 for anything that is not on the market. Public. Saves the first photo id as market_media_id.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                    "    const d = pm.response.json().data;",
+                                    "    pm.collectionVariables.set('market_media_id', d.photos && d.photos[0] ? d.photos[0].id : '');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "View Listing Media",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/market/listings/{{market_listing_id}}/media/{{market_media_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "market",
+                                "listings",
+                                "{{market_listing_id}}",
+                                "media",
+                                "{{market_media_id}}"
+                            ]
+                        },
+                        "description": "Spec 010. A public photo, video or certificate of a live piece, streamed; Cache-Control: no-store. 404 for the invoice, for another listing's file, and once the listing leaves the market. Public.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
                 }
             ]
         },

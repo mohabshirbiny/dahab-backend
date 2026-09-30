@@ -25,6 +25,7 @@ Backend API (dahab-backend, Laravel 12, /api/v1)
      ├──────────────► Dashboard            (../dahab-dashboard, Vue 3)  →  /api/v1/dashboard/*
      │
      └──────────────► Customer Flutter Web (../dahab-flutter, Flutter)  →  /api/v1/customer/*
+                                                                           + public /api/v1/market/*, /reference/*
 ```
 
 | Folder | Role | Stack | Git |
@@ -48,7 +49,8 @@ transactions · permissions · audit. **The Backend is the source of truth for b
 **Dashboard** — staff/admin UI · dashboard state · API consumption (`/dashboard/*` only) ·
 navigation · UI validation · loading/error/empty states. Gates UI on the Backend's permission strings.
 
-**Customer App** — customer UI · customer state · API consumption (`/customer/*` only) ·
+**Customer App** — customer UI · customer state · API consumption (`/customer/*` and the public `/market/*`,
+`/reference/*`) ·
 navigation · UI validation · loading/error/empty states.
 
 Frontends may validate for UX, but must not re-implement Backend business rules (pricing
@@ -140,7 +142,7 @@ Projects intentionally not changed: <projects + reason>
    project. Missing → report what the Backend needs; don't fake it.
 2. **Never modify one project without checking the others.**
 3. **Never change an API without checking all its consumers** (Dashboard for `/dashboard/*`;
-   Flutter for `/customer/*`; both for shared conventions like the error envelope).
+   Flutter for `/customer/*`, `/market/*` and `/reference/*`; both for shared conventions like the error envelope).
 4. **Frontends never guess the Backend** — read the Resource/FormRequest/`#[OA]`/Postman first.
 5. **Don't duplicate Backend business rules** in frontends unnecessarily.
 6. **No unrelated refactoring; never delete working functionality.**
@@ -191,7 +193,7 @@ Missing:         anything not found, stated exactly (endpoint / field / permissi
 Action needed:   Backend → … · Dashboard → … · Customer App → …
 ```
 
-## Current state (verified 2026-09-29 — re-verify before relying on it)
+## Current state (verified 2026-09-30 — re-verify before relying on it)
 
 - Backend implements: health, customer registration (6 steps) / login / new-device OTP / refresh / me /
   logout, customer uploads + identity-document submission; staff login + MFA / refresh / me / logout;
@@ -219,16 +221,27 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   receipt upload (`purpose=topup_receipt`), notices, list and cancel (`/customer/me/wallet/topup-methods|topups*`, trade
   gate to add money; a suspended customer may list/cancel), and Incoming transfers — match (credits what arrived),
   hold/unhold, reject, credit by hand, receipt, export (`/dashboard/topups*`, `topup.match`) — the first endpoints that
-  move money (`topup` entries; a suspended customer is credited only with `arrival_reference`). Nothing else yet.
+  move money (`topup` entries; a suspended customer is credited only with `arrival_reference`);
+  listings (spec 010) — selling a piece and the market: the public reference reads (`/reference/karats|piece-types|
+  branches|legal-documents/{code}`) and market (`/market/listings*`, read-only `market` RLS scope, no view; never the
+  seller or private media; `current_price` from the spec 005 calculator, indicative), the seller's listings
+  (`/customer/me/listings*`: create, edit, submit, withdraw from live only; media through `/customer/me/uploads` with
+  the purposes `listing_photo|listing_video|listing_invoice|stone_certificate`, stored encrypted in chunks), the
+  review queue (`/dashboard/listings*`: approve, request changes, reject, take down; `listing.review`,
+  `listing.request_changes`, `listing.takedown`), the `listing_state` machine (guard trigger + `listing_transition`,
+  `illegal_listing_transition` 409, history in `listing_state_change`; `rejected` and `withdrawn` are final), SMS +
+  email to the seller on each decision, and a suspended seller's live listings held and restored. No buy requests,
+  orders or settlement yet. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
-  (spec 008); Incoming transfers and Controls → Receiving accounts are live (spec 009); the rest of the Overview and
-  other sections are mock.
+  (spec 008); Incoming transfers and Controls → Receiving accounts are live (spec 009); Listings to review is live
+  (spec 010); the rest of the Overview and other sections are mock.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
-  (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); catalog, orders, invoices,
-  withdrawals, notifications, etc.
+  (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
+  (public market, filtered on the device), the sell flow and My listings are live (spec 010; the on-form payout
+  estimate, saved pieces and the buy flow are still mock); orders, invoices, withdrawals, notifications, etc.
   run on mock repositories (`lib/services/mock_repositories.dart`).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed
   with `--dart-define` only when building a deploy version.

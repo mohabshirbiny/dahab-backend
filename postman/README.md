@@ -6,7 +6,10 @@ into folders by API surface, then by domain: `Dashboard` (Auth, Identity, ...), 
 `Dahab-Backend.local.postman_environment.json` provides `base_url`, `device_id`,
 `access_token`, `refresh_token`, `staff_access_token`, `staff_refresh_token`,
 `staff_mfa_session_ref`, `upload_token`, `document_id`, `role_name`, `staff_id`, `karat_code`,
-`branch_id`, `closure_id`, `manual_price_id`, `audit_entry_id` and `audit_cursor` variables
+`branch_id`, `closure_id`, `manual_price_id`, `audit_entry_id`, `audit_cursor` and the listing variables
+(`listing_id`, `media_id`, `market_listing_id`, `market_media_id`, `piece_type_id`, `ownership_legal_doc_id`,
+`listing_photo_token`, `listing_photo_token_2`, `listing_video_token`, `listing_invoice_token`,
+`stone_certificate_token`)
 for local use against `APP_URL` (default `http://localhost`). The last five are filled in by
 test scripts: `staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_token` by
 **Upload ID Image**, `document_id` by **Submit Identity Document** / **List Identity
@@ -63,6 +66,16 @@ Top-up Notice** (saves `topup_id`; drop the `receipt_upload_token` line if you h
 arrived), **Hold** / **Unhold**, **Reject**, or **Credit Transfer By Hand** (uses `customer_id`). A suspended customer
 needs `arrival_reference`. Every top-up POST sends a fresh `Idempotency-Key`. **Receiving accounts** are managed in
 the same folder (`topup.accounts.manage`). The COO gets 403 everywhere here.
+
+**Listings** (spec 010). The **Market** folder is public (no token): **Reference** (karats, piece types — saves
+`piece_type_id`, branches — saves `branch_id`, the ownership declaration — saves `ownership_legal_doc_id`), **Browse
+Listings** (saves `market_listing_id` / `market_media_id`), **Show Listing**, **View Listing Media**. Send a customer
+token on the market requests only to get `is_mine`. As a verified customer, **Customer → Listings**: the five uploads
+(each saves its token; choose a real file in the body), **Create Listing** (saves `listing_id`), **Update Listing**,
+**Submit Listing**, **Withdraw Listing** (live only, final), list / show / media. As `operations`, `coo` or `ceo`,
+**Dashboard → Listings**: the queue (saves `listing_id` / `media_id`), **Approve**, **Request Listing Changes**,
+**Reject** (both need a note) and **Take Down Listing** (live only, needs a reason). Every listing POST and PATCH
+sends a fresh `Idempotency-Key`. Upload tokens are single use: upload again before creating another listing.
 
 ## Import
 

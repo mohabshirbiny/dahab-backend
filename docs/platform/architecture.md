@@ -49,6 +49,10 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
   staff auth (login, MFA/TOTP), Dashboard-managed staff roles and permissions and the customer verified
   gate (spec 002), and customer data isolation by PostgreSQL row-level security (spec 003). Marketplace modules (items, orders, wallet, payments, …) are **not built yet**;
   their design is in `docs/`.
+- **Public surface (spec 010)**: `/api/v1/market/*` (live listings) and `/api/v1/reference/*` (karats, piece types,
+  branches, the ownership declaration) need no token; the Customer App reads them. The market runs in the read-only
+  `market` database scope, which sees live listings only, and its Resources never return the seller or private media.
+  There is no database view for this (a recorded deviation: see `specs/010-listings/plan.md`).
 - **Customer data isolation (spec 003)**: every customer-owned table has **forced** row-level security.
   `App\Support\DatabaseActor` binds the scope (`customer` · `staff` · `bootstrap` · `system` · `maintenance`)
   per request, queued job or CLI migrate/seed, and restores it afterwards; no scope sees no customer rows.

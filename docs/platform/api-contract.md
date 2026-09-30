@@ -25,6 +25,7 @@ This file **summarises** the contract; it does not replace it.
 | Surface | Prefix | Guard / token | Consumers |
 |---|---|---|---|
 | Public | `/api/v1/health` | none | any |
+| Public (spec 010) | `/api/v1/market/*`, `/api/v1/reference/*` | none; on `/market/*` a customer access token is optional and only sets `is_mine` | `dahab-flutter`, `dahab-dashboard` |
 | Customer | `/api/v1/customer/*` | `auth:customer` (Sanctum, `customers` provider) | `dahab-flutter` |
 | Dashboard | `/api/v1/dashboard/*` | `auth:staff` (Sanctum, `staff` provider) | `dahab-dashboard` |
 
@@ -61,12 +62,14 @@ deliberately not enabled.
 ## Authorization
 
 - **Customer**: a customer can act only on its own resources (`/customer/me/*`).
+- **Public market** (spec 010): served in a read-only `market` database scope — live/reserved listings and their public media only — and returns no seller field (no database view; `MarketLeakTest` guards it).
 - **Staff**: permission-based via Spatie Permission, enforced per route by the
   `staff.permission:<code>` middleware (`EnforceStaffPermission`), which returns **403 `permission_denied`**
   and audit-logs the denial. The permission catalogue is `app/Enums/StaffPermission.php` (customers, identity,
   access control, reference data, pricing, audit, and — since spec 008 — `wallet.view`, and — since spec 009 —
   `topup.match` and `topup.accounts.manage`, all seeded to `ceo` and `finance`, never `coo`: wallet-touching codes
-  skip the COO by default).
+  skip the COO by default; and — since spec 010 — `listing.review`, `listing.request_changes` and `listing.takedown`,
+  seeded to `ceo`, `coo` and `operations`; the review queue and a listing open with any of the three).
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -74,8 +77,8 @@ deliberately not enabled.
 
 ## HTTP methods and resource naming
 
-- Methods in use: `GET` (read), `POST` (create and actions). No `PUT`/`PATCH`/`DELETE` routes exist yet;
-  follow REST conventions if introduced.
+- Methods in use: `GET` (read), `POST` (create and actions), and `PUT` / `PATCH` / `DELETE` on a few resources
+  (e.g. `PATCH /customer/me/listings/{id}`, spec 010).
 - Paths are lower-case, kebab-case, plural nouns: `/dashboard/customers`, `/dashboard/identity-documents/{document}`.
 - State transitions are sub-resource actions via `POST`: `/identity-documents/{document}/review`,
   `/auth/logout`, `/auth/otp/verify`.
@@ -89,7 +92,9 @@ deliberately not enabled.
 - JSON bodies (`Content-Type: application/json`), `Accept: application/json`.
 - File uploads are `multipart/form-data` (`/customer/auth/register/documents`, `/customer/me/uploads`). Upload
   purposes: `identity` (JPEG/PNG/WebP, open to unverified customers) and, since spec 009, `topup_receipt`
-  (JPEG/PNG/WebP/PDF, customer gate `trade`).
+  (JPEG/PNG/WebP/PDF, customer gate `trade`), and since spec 010 `listing_photo` (JPEG/PNG/WebP, 8 MB),
+  `listing_video` (MP4/MOV/WebM, 50 MB), `listing_invoice` and `stone_certificate` (JPEG/PNG/WebP/PDF, 8 MB), all gate
+  `trade`. Listing media is served back by streaming media endpoints with `Cache-Control: no-store`.
 - Validation lives in `app/Http/Requests/*` FormRequests; enums are validated with `Rule::enum(...)`.
 - Customer requests send `X-Device-Id` and `X-Device-Platform` (both frontends do this on every request).
 
@@ -113,6 +118,11 @@ Amounts people type (top-up notices, matches) are accepted with at most 2 decima
 A top-up's `expected_amount` is a display-only estimate (claim minus the provider fee snapshotted on the notice when it
 was filed, `notice_fee_percent`); it never decides what is credited — staff credit what actually arrived.
 
+**Weights** are decimal strings with 3 places (grams). A listing's weight is `stated_weight_g` in requests and in the
+seller and staff shapes, and `weight_g` in the public market shapes (spec 010). A listing's `current_price` and
+`you_would_receive` are indicative, recomputed on every read from the price calculator, `null` when no price can be
+quoted (`price_available: false`).
+
 ## Pagination
 
 - Laravel length-aware pagination through `Resource::collection($paginator)`:
@@ -122,7 +132,8 @@ was filed, `notice_fee_percent`); it never decides what is credited — staff cr
   `GET /dashboard/customers`, `GET /dashboard/identity-documents`.
 - **Keyset (cursor) pages** for append-only or fast-growing lists: `meta` has `per_page` and `next_cursor`
   (opaque; `null` on the last page), the client passes `cursor=<next_cursor>`; a malformed cursor is `422`.
-  Used by the audit log and customer History (specs 006/007) and the wallet history and Wallet statement (spec 008).
+  Used by the audit log and customer History (specs 006/007), the wallet history and Wallet statement (spec 008), and
+  every listing list — market, seller, review queue (spec 010).
   A cursor only positions the page — every figure is recomputed server-side.
 - Filters are optional query params validated by the list FormRequest (e.g. `status` as an enum).
 - The Dashboard types this as `ApiPageMeta` in `src/types/api.ts`.
@@ -152,7 +163,10 @@ machine-readable value clients must switch on**; `message` is human text and may
   `illegal_document_transition` 409, `unsupported_doc_kind` 422, `upload_token_invalid` 422,
   `customer_already_suspended` 409, `customer_not_suspended` 409, the `idempotency_*` codes below,
   `insufficient_funds` 409 and `ledger_already_reversed` 409 from the money service (spec 008),
-  `illegal_topup_transition` 409 — a top-up status move not allowed, or a lost race (spec 009), …).
+  `illegal_topup_transition` 409 — a top-up status move not allowed, or a lost race (spec 009); from spec 010:
+  `illegal_listing_transition` 409 (a listing move not allowed, or a lost race), `listing_not_editable` 409,
+  `seller_suspended` 409 and `karat_disabled` 409 (approving a listing), `gold_needs_karat_weight` 422,
+  `branch_options_required` 422, `ownership_declaration_required` 422, `photo_required` 422, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -178,7 +192,9 @@ the same submission**, and use a new key when the input changes (Dashboard: `com
 
 In use on: `POST /dashboard/customers/{id}/suspend`, `POST /dashboard/customers/{id}/reinstate`, and since spec 009
 every top-up POST: `POST /customer/me/wallet/topups`, `POST /customer/me/wallet/topups/{id}/cancel`,
-`POST /dashboard/topups` (credit by hand) and `POST /dashboard/topups/{id}/match|hold|unhold|reject`.
+`POST /dashboard/topups` (credit by hand) and `POST /dashboard/topups/{id}/match|hold|unhold|reject`; and since spec 010
+every listing write: `POST /customer/me/listings`, `PATCH /customer/me/listings/{id}`,
+`POST /customer/me/listings/{id}/submit|withdraw` and `POST /dashboard/listings/{id}/approve|request-changes|reject|takedown`.
 
 ## Status codes in use
 
@@ -190,7 +206,8 @@ every top-up POST: `POST /customer/me/wallet/topups`, `POST /customer/me/wallet/
 
 Named limiters on sensitive routes (`throttle:auth.customer.login`, `auth.customer.register`,
 `auth.customer.register.otp`, `auth.customer.register.documents`, `auth.otp.verify`, `auth.staff.login`,
-`auth.staff.mfa`, `auth.refresh`, `customer.uploads`, `customer.topups`) plus the default API throttle. Identity lockouts
+`auth.staff.mfa`, `auth.refresh`, `customer.uploads` (20/min since spec 010), `customer.topups`, `customer.listings`,
+`public.market`) plus the default API throttle. Identity lockouts
 return **429 `account_locked`**.
 
 ## CORS
