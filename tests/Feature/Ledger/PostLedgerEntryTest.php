@@ -155,12 +155,13 @@ it('keeps the references, the memo and the staff actor', function () {
     $txn = post(new LedgerEntry(LedgerEventKind::COMPENSATION, [
         line(Account::internal(AccountKind::EXTERNAL_EQUITY), '-800'),
         line($this->available, '800'),
-    ], actorStaffId: $staff->staff_id, memo: 'Wasted trip to IGI', orderId: $order))->fresh();
+    ], actorStaffId: $staff->staff_id, memo: 'Wasted trip to IGI', listingId: $order))->fresh();
 
     expect($txn->staff_id)->toBe($staff->staff_id)
         ->and($txn->customer_id)->toBeNull()
         ->and($txn->memo)->toBe('Wasted trip to IGI')
-        ->and($txn->order_id)->toBe($order);
+        // listing_id: a reference without a foreign key (order_id has one since spec 011).
+        ->and($txn->listing_id)->toBe($order);
 });
 
 it('refuses to edit a posted entry through the model', function () {

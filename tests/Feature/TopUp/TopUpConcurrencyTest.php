@@ -91,7 +91,7 @@ function withCommittedFixtures(Closure $test): void
         }
         DatabaseActor::reapply();
         // TRUNCATE skips the row-level no-delete triggers; the ledger singletons are re-provisioned.
-        DB::statement('TRUNCATE topup, receiving_account, ledger_posting, ledger_transaction, account, audit_log');
+        DB::statement('TRUNCATE topup, receiving_account, ledger_posting, ledger_transaction, account, audit_log CASCADE');
         DB::table('customer')->where('customer_id', $customer->customer_id)->delete();
         DB::table('staff')->whereIn('staff_id', [$staff->staff_id, $other->staff_id])->delete();
         (require base_path('database/migrations/2026_10_01_000010_create_ledger.php'))->provision();

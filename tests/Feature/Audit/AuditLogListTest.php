@@ -137,7 +137,7 @@ it('opens one entry with everything recorded for it', function () {
 it('lists the categories and which ones Everything includes', function () {
     $data = $this->bearer($this->token)->getJson('/api/v1/dashboard/audit-log/categories')->assertOk()->json('data');
 
-    expect(collect($data)->pluck('value')->all())->toBe(['money', 'pricing', 'accounts', 'identity', 'promo', 'reference', 'listings', 'sessions', 'system'])
+    expect(collect($data)->pluck('value')->all())->toBe(['money', 'pricing', 'accounts', 'identity', 'promo', 'reference', 'listings', 'orders', 'sessions', 'system'])
         ->and(collect($data)->firstWhere('value', 'sessions')['in_everything'])->toBeFalse();
 });
 

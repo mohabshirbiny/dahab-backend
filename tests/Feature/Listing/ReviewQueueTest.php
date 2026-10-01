@@ -86,7 +86,7 @@ it('counts the listings for the chips', function () {
     DB::statement('ALTER TABLE listing_state_change ENABLE TRIGGER trg_listing_state_change_immutable');
 
     $this->getJson(Listings::STAFF_URL)->assertOk()
-        ->assertJsonPath('meta.counts', ['in_review' => 2, 'changes_requested' => 1, 'approved_today' => 1, 'rejected' => 1, 'live' => 2]);
+        ->assertJsonPath('meta.counts', ['in_review' => 2, 'changes_requested' => 1, 'approved_today' => 1, 'rejected' => 1, 'live' => 2, 'reserved' => 0, 'accepted' => 0]);
 });
 
 it('shows the piece, its price and the seller on each row', function () {

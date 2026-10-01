@@ -31,7 +31,7 @@ const MARKET_KEYS = [
     'price_is_indicative', 'photos', 'branch_options', 'queue_count', 'listed_at', 'is_mine',
 ];
 
-const MARKET_DETAIL_KEYS = ['description', 'video', 'stone_certificate', 'price_parts'];
+const MARKET_DETAIL_KEYS = ['description', 'video', 'stone_certificate', 'price_parts', 'deposit_amount'];
 
 beforeEach(function () {
     Storage::fake('identity_private');

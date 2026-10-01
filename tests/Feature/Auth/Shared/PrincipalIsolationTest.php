@@ -158,7 +158,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
     // spec 010:  customer listings index/store/show/update/media/submit/withdraw (7);
     //            dashboard listings index/show/media/approve/request-changes/reject/takedown (7).
     //            The public market and reference routes carry no guard at all (MarketScopeTest).
-    expect($checked)->toBe(89);
+    // spec 011:  customer buy-requests index/store/show/withdraw (4), listings buy-requests/accept/decline (3);
+    //            dashboard orders cancel (1).
+    expect($checked)->toBe(97);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {
