@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BuyRequestState;
 use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
 use App\Enums\PieceCategory;
@@ -111,6 +112,26 @@ class Listing extends Model
     public function changes(): HasMany
     {
         return $this->hasMany(ListingStateChange::class, 'listing_id', 'listing_id')->orderBy('change_id');
+    }
+
+    /** Every buy request on this piece (spec 011). */
+    public function buyRequests(): HasMany
+    {
+        return $this->hasMany(BuyRequest::class, 'listing_id', 'listing_id');
+    }
+
+    /** The line: queued requests in arrival order (spec 011 FR-013). */
+    public function queuedRequests(): HasMany
+    {
+        return $this->buyRequests()->where('state', BuyRequestState::QUEUED->value)->orderBy('queue_position');
+    }
+
+    /** The latest order on this piece (spec 011: created at acceptance). */
+    public function order(): HasOne
+    {
+        // Not latestOfMany(): it aggregates the uuid key with max(), which PostgreSQL lacks.
+        // Eager loading keeps the first row per listing in this order.
+        return $this->hasOne(Order::class, 'listing_id', 'listing_id')->orderByDesc('accepted_at')->orderByDesc('order_id');
     }
 
     /** What the public market shows (spec 010 FR-020). */

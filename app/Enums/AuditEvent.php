@@ -71,6 +71,7 @@ enum AuditEvent: string
     case LISTING_CHANGES_REQUESTED = 'listing.changes_requested';
     case LISTING_REJECTED = 'listing.rejected';
     case LISTING_TAKEN_DOWN = 'listing.taken_down';
+    case ORDER_CANCELLED = 'order.cancelled';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -143,6 +144,7 @@ enum AuditEvent: string
             self::LISTING_CHANGES_REQUESTED => 'Changes requested on a listing',
             self::LISTING_REJECTED => 'Listing rejected',
             self::LISTING_TAKEN_DOWN => 'Listing taken down',
+            self::ORDER_CANCELLED => 'Acceptance cancelled',
         };
     }
 
@@ -161,6 +163,7 @@ enum AuditEvent: string
             self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
             self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,
             self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN => AuditCategory::LISTINGS,
+            self::ORDER_CANCELLED => AuditCategory::ORDERS,
         };
     }
 

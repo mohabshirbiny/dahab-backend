@@ -106,6 +106,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH003' => DomainApiException::illegalTopUpTransition(),
                 // Spec 010: the listing guard triggers (illegal move, unrecorded move, frozen columns).
                 'DH004' => DomainApiException::illegalListingTransition(),
+                // Spec 011: the buy-request and order guards; a second active request
+                // from the same buyer hits the partial unique index.
+                'DH005' => DomainApiException::illegalBuyRequestTransition(),
+                '23505' => str_contains($e->getMessage(), 'one_active_request_per_buyer_listing')
+                    ? DomainApiException::alreadyInQueue()
+                    : $e,
+                default => $e,
+            };
+        });
+
+        // Spec 011: a deferred trigger fires at COMMIT, and PDO raises it from
+        // commit() as a bare PDOException — a lost race still answers 409.
+        $exceptions->map(function (PDOException $e) {
+            return match ($e->errorInfo[0] ?? null) {
+                'DH001' => DomainApiException::insufficientFunds(),
+                'DH004' => DomainApiException::illegalListingTransition(),
+                'DH005' => DomainApiException::illegalBuyRequestTransition(),
                 default => $e,
             };
         });
@@ -115,7 +132,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return response()->json(['message' => $e->getMessage(), 'code' => $e->errorCode], $e->statusCode);
+            $body = ['message' => $e->getMessage(), 'code' => $e->errorCode];
+            if ($e->details !== []) {
+                $body['details'] = $e->details;
+            }
+
+            return response()->json($body, $e->statusCode);
         });
 
         // A valid token of the right principal presented to an endpoint whose

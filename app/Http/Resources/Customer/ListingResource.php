@@ -16,7 +16,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'CustomerListing',
     description: 'One of the seller\'s own listings (spec 010). `staff_message` is what Dahab wrote when it asked for changes, rejected the piece or took it down. `current_price` is what a buyer would pay now and `you_would_receive` what would reach the seller after commission and VAT; both are indicative, recomputed on every read, and null when no price can be quoted.',
-    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw'],
+    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw', 'queue_count', 'order'],
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'state', type: 'string', description: 'A listing_state value; clients must tolerate ones they do not know', example: 'changes_requested'),
@@ -49,7 +49,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'state_changed_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'can_edit', type: 'boolean', description: 'Draft or changes requested'),
         new OA\Property(property: 'can_submit', type: 'boolean', description: 'Draft or changes requested'),
-        new OA\Property(property: 'can_withdraw', type: 'boolean', description: 'Live'),
+        new OA\Property(property: 'can_withdraw', type: 'boolean', description: 'Live, or (spec 011) reserved: the line is then released and refunded'),
+        new OA\Property(property: 'queue_count', type: 'integer', description: 'Spec 011: buyers waiting in line'),
+        new OA\Property(property: 'order', ref: '#/components/schemas/OrderSummary', nullable: true, description: 'Spec 011: the latest order on the piece (set once a buyer was accepted; state cancelled_staff when Dahab cancelled it)'),
     ],
 )]
 class ListingResource extends JsonResource
@@ -73,7 +75,10 @@ class ListingResource extends JsonResource
             'state_changed_at' => $l->state_changed_at->toIso8601String(),
             'can_edit' => $l->state->isEditable(),
             'can_submit' => $l->state->isEditable(),
-            'can_withdraw' => $l->state === ListingState::LIVE,
+            // Spec 011: withdrawing a reserved piece releases and refunds its line.
+            'can_withdraw' => $l->state === ListingState::LIVE || $l->state === ListingState::RESERVED,
+            'queue_count' => $l->active_queue_count,
+            'order' => OrderSummaryResource::shape($l->relationLoaded('order') ? $l->order : null),
         ];
     }
 

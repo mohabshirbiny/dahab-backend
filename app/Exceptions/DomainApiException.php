@@ -11,10 +11,15 @@ use RuntimeException;
  */
 class DomainApiException extends RuntimeException
 {
+    /**
+     * @param  array<string, mixed>  $details  extra figures the client needs to act (spec 011:
+     *                                         `insufficient_funds`, `price_moved`), rendered as `details`
+     */
     public function __construct(
         public readonly string $errorCode,
         public readonly int $statusCode,
         string $message,
+        public readonly array $details = [],
     ) {
         parent::__construct($message);
     }
@@ -144,9 +149,15 @@ class DomainApiException extends RuntimeException
     }
 
     /** A ledger entry would take a customer account below zero (spec 008 FR-007; Part 2 §4, §8). */
-    public static function insufficientFunds(): self
+    /**
+     * Spec 011 adds optional details for a buy request's deposit: `deposit_amount`,
+     * `available` and `shortfall` (decimal strings).
+     *
+     * @param  array<string, string>  $details
+     */
+    public static function insufficientFunds(array $details = []): self
     {
-        return new self('insufficient_funds', 409, 'There is not enough money in the wallet for this.');
+        return new self('insufficient_funds', 409, 'There is not enough money in the wallet for this.', $details);
     }
 
     /** A ledger entry is reversed at most once (spec 008 FR-010). */
@@ -214,5 +225,81 @@ class DomainApiException extends RuntimeException
     public static function photoRequired(int $minimum): self
     {
         return new self('photo_required', 422, "Add at least {$minimum} photos before sending the piece for review.");
+    }
+
+    /** The price moved beyond the tolerance since the buyer saw it (spec 011 FR-002). */
+    public static function priceMoved(string $currentPrice, string $depositAmount): self
+    {
+        return new self('price_moved', 409, 'The price has changed since you saw it. Check the new price and send again.', [
+            'current_price' => $currentPrice,
+            'deposit_amount' => $depositAmount,
+        ]);
+    }
+
+    /** A gold piece cannot be priced right now (no usable gold price; spec 011). */
+    public static function priceUnavailable(): self
+    {
+        return new self('price_unavailable', 409, 'This piece cannot be priced right now. Try again in a few minutes.');
+    }
+
+    public static function alreadyInQueue(): self
+    {
+        return new self('already_in_queue', 409, 'You already have a request on this piece.');
+    }
+
+    public static function listingNotPurchasable(): self
+    {
+        return new self('listing_not_purchasable', 409, 'This piece cannot be requested now.');
+    }
+
+    public static function cannotBuyOwnListing(): self
+    {
+        return new self('cannot_buy_own_listing', 409, 'You cannot send a buy request on your own piece.');
+    }
+
+    public static function depositAgreementRequired(): self
+    {
+        return new self('deposit_agreement_required', 422, 'Accept the current deposit terms to send a request.');
+    }
+
+    public static function notInQueue(): self
+    {
+        return new self('not_in_queue', 409, 'This request is no longer in the queue.');
+    }
+
+    public static function notQueueHead(): self
+    {
+        return new self('not_queue_head', 409, 'Only the first request in the queue can be answered.');
+    }
+
+    public static function queueEmpty(): self
+    {
+        return new self('queue_empty', 409, 'There is no request waiting on this piece.');
+    }
+
+    public static function branchNotInOptions(): self
+    {
+        return new self('branch_not_in_options', 409, 'Choose one of the open branches you named for this piece.');
+    }
+
+    public static function buyerSuspended(): self
+    {
+        return new self('buyer_suspended', 409, 'This buyer cannot be accepted right now. You can decline the request.');
+    }
+
+    public static function branchHoursUnavailable(): self
+    {
+        return new self('branch_hours_unavailable', 409, 'The deadline at this branch cannot be worked out. Choose another branch.');
+    }
+
+    public static function orderNotCancellable(): self
+    {
+        return new self('order_not_cancellable', 409, 'Only an order waiting for delivery can be cancelled.');
+    }
+
+    /** SQLSTATE DH005 from the buy-request and order guards (spec 011). */
+    public static function illegalBuyRequestTransition(): self
+    {
+        return new self('illegal_buy_request_transition', 409, 'This request cannot change that way.');
     }
 }

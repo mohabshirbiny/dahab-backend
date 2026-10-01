@@ -16,6 +16,9 @@ class AgreementAcceptance extends Model
     /** `context` for the ownership declaration ticked when listing a piece. */
     public const CONTEXT_LIST_PIECE = 'list_piece';
 
+    /** `context` for the deposit terms accepted with a buy request (spec 011). */
+    public const CONTEXT_BUY_REQUEST = 'buy_request';
+
     protected $table = 'agreement_acceptance';
 
     protected $primaryKey = 'acceptance_id';

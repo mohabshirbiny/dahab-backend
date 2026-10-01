@@ -28,10 +28,14 @@ use InvalidArgumentException;
  *  - market:      the public market only (spec 010): reads live/reserved
  *                 listings, their branch options and their public media;
  *                 writes nothing and carries no customer — not an elevation
+ *  - queue:       the buy-request service only (spec 011 research R2): keeps the
+ *                 customer, reads a listing's line and the pieces a buyer asked for,
+ *                 moves the caller's own request or the requests on the caller's own
+ *                 listing, flips a listing live <-> reserved — not an elevation
  */
 final class DatabaseActor
 {
-    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market'];
+    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market', 'queue'];
 
     public const ELEVATED = ['staff', 'bootstrap', 'system', 'maintenance'];
 
@@ -118,6 +122,36 @@ final class DatabaseActor
     public static function market(Closure $work): mixed
     {
         self::push('market');
+
+        try {
+            return $work();
+        } finally {
+            self::pop();
+        }
+    }
+
+    /**
+     * Run `$work` in the `queue` scope (spec 011 research R2), keeping the
+     * current customer / staff ids. Pushed only by the buy-request Actions and
+     * the seller's withdrawal of a reserved listing (QueueScopeTest). Callers
+     * open their transaction inside it, so the deferred checks fire at commit
+     * with this scope still set (analysis H1).
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public static function queue(Closure $work): mixed
+    {
+        // Never narrows an elevated caller (staff, a system job, maintenance): it
+        // already sees what the queue scope would, and more.
+        if (self::isElevated()) {
+            return $work();
+        }
+
+        $frame = self::current();
+        self::push('queue', $frame['customer'] ?: null, $frame['staff'] ?: null);
 
         try {
             return $work();

@@ -84,6 +84,9 @@ enum StaffPermission: string
     /** Any of these opens the review queue, a listing and its media (spec 010 research R10). */
     public const LISTING_ANY = 'listing.review|listing.request_changes|listing.takedown';
 
+    /** Cancel an order (Part 1 §4.1 "Cancel an order"); spec 011: cancel an acceptance, refunding the buyer. */
+    case ORDER_CANCEL = 'order.cancel';
+
     public function label(): string
     {
         return match ($this) {
@@ -110,6 +113,7 @@ enum StaffPermission: string
             self::LISTING_REVIEW => 'Approve or reject a new listing',
             self::LISTING_REQUEST_CHANGES => 'Ask a seller for a better photo',
             self::LISTING_TAKEDOWN => 'Take a live listing down',
+            self::ORDER_CANCEL => 'Cancel an order',
         };
     }
 
@@ -125,6 +129,7 @@ enum StaffPermission: string
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
             self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE => 'Money',
             self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
+            self::ORDER_CANCEL => 'Orders',
         };
     }
 
@@ -182,6 +187,9 @@ enum StaffPermission: string
             self::LISTING_REVIEW,
             self::LISTING_REQUEST_CHANGES,
             self::LISTING_TAKEDOWN => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
+            // Spec 011 (Part 1 §4.1 "Cancel an order"): CEO, COO and Operations. It refunds a
+            // held deposit to its owner; it moves no money of Dahab's, so the COO keeps it.
+            self::ORDER_CANCEL => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
         };
     }
 }

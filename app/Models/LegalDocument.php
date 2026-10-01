@@ -19,6 +19,9 @@ class LegalDocument extends Model
     /** Ticked when listing a piece (Part 2 §3). */
     public const OWNERSHIP_DECLARATION = 'ownership_declaration';
 
+    /** Accepted with every buy request (Part 2 §4, spec 011). */
+    public const DEPOSIT_AGREEMENT = 'deposit_agreement';
+
     protected $table = 'legal_document';
 
     protected $primaryKey = 'legal_doc_id';

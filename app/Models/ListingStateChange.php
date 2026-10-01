@@ -28,6 +28,13 @@ class ListingStateChange extends Model
 
     public const NOTE_REINSTATED = 'account_reinstated';
 
+    /** Notes written by the buy-request module (spec 011). */
+    public const NOTE_BUY_REQUEST_QUEUED = 'buy_request_queued';
+
+    public const NOTE_QUEUE_EMPTIED = 'queue_emptied';
+
+    public const NOTE_BUY_REQUEST_ACCEPTED = 'buy_request_accepted';
+
     protected $table = 'listing_state_change';
 
     protected $primaryKey = 'change_id';

@@ -40,7 +40,7 @@ final class ListListingsForReviewAction
      */
     public function show(string $listingId): array
     {
-        $listing = Listing::query()->with([...self::RELATIONS, 'changes.staff', 'karat'])->findOrFail($listingId);
+        $listing = Listing::query()->with([...self::RELATIONS, 'changes.staff', 'karat', 'queuedRequests.buyer', 'order.branch', 'order.buyer', 'order.buyRequest'])->findOrFail($listingId);
 
         $sellerListings = Listing::query()->where('seller_id', $listing->seller_id);
         $sentBack = fn () => ListingStateChange::query()->where('to_state', ListingState::CHANGES_REQUESTED->value);
@@ -64,11 +64,11 @@ final class ListListingsForReviewAction
         ];
     }
 
-    /** @return array{in_review: int, changes_requested: int, approved_today: int, rejected: int, live: int} */
+    /** @return array{in_review: int, changes_requested: int, approved_today: int, rejected: int, live: int, reserved: int, accepted: int} */
     private function counts(): array
     {
         $byState = DB::table('listing')->selectRaw('state, count(*) AS n')
-            ->whereIn('state', [ListingState::IN_REVIEW->value, ListingState::CHANGES_REQUESTED->value, ListingState::REJECTED->value, ListingState::LIVE->value])
+            ->whereIn('state', [ListingState::IN_REVIEW->value, ListingState::CHANGES_REQUESTED->value, ListingState::REJECTED->value, ListingState::LIVE->value, ListingState::RESERVED->value, ListingState::ACCEPTED->value])
             ->groupBy('state')->pluck('n', 'state');
 
         return [
@@ -80,6 +80,9 @@ final class ListListingsForReviewAction
                 ->where('changed_at', '>=', Carbon::now()->startOfDay())->count(),
             'rejected' => (int) ($byState[ListingState::REJECTED->value] ?? 0),
             'live' => (int) ($byState[ListingState::LIVE->value] ?? 0),
+            // Spec 011: pieces with buyers in line, and pieces a seller accepted.
+            'reserved' => (int) ($byState[ListingState::RESERVED->value] ?? 0),
+            'accepted' => (int) ($byState[ListingState::ACCEPTED->value] ?? 0),
         ];
     }
 }

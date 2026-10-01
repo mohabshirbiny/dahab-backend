@@ -3,8 +3,10 @@
 namespace App\Actions\Listings;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
+use App\Actions\BuyRequests\ReleaseQueueAction;
 use App\Actions\Listings\Concerns\MovesListing;
 use App\Enums\AuditEvent;
+use App\Enums\BuyRequestEvent;
 use App\Enums\CustomerStatus;
 use App\Enums\ListingDecision;
 use App\Enums\ListingState;
@@ -23,7 +25,8 @@ use Illuminate\Support\Facades\DB;
  * is told by SMS / email only after the transaction commits.
  *
  * Each decision starts from exactly one state (approve, ask for changes and
- * reject from `in_review`; take down from `live`), even where
+ * reject from `in_review`; take down from `live`, or since spec 011 from
+ * `reserved`, releasing and refunding the line), even where
  * `listing_transition` holds other rows into the same target for later
  * modules.
  */
@@ -31,7 +34,10 @@ final class DecideListingAction
 {
     use MovesListing;
 
-    public function __construct(private readonly RecordAuditLogAction $audit) {}
+    public function __construct(
+        private readonly RecordAuditLogAction $audit,
+        private readonly ReleaseQueueAction $queue,
+    ) {}
 
     public function handle(Staff $actor, string $listingId, ListingDecision $decision, ?string $note = null, ?RequestContext $ctx = null): Listing
     {
@@ -47,6 +53,11 @@ final class DecideListingAction
         return DB::transaction(function () use ($actor, $listingId, $decision, $note, $ctx, $from, $to, $event) {
             $listing = $this->lockListing($listingId);
 
+            // Spec 011 FR-019: a take-down also works on a reserved piece; its line is released.
+            if ($decision === ListingDecision::TAKEN_DOWN && $listing->state === ListingState::RESERVED) {
+                $from = ListingState::RESERVED;
+            }
+
             if ($listing->state !== $from) {
                 throw DomainApiException::illegalListingTransition();
             }
@@ -57,10 +68,15 @@ final class DecideListingAction
 
             $listing = $this->moveListing($listing, $to, null, $actor, $note);
 
+            $payload = ['state' => $to->value, 'seller_id' => $listing->seller_id];
+            if ($from === ListingState::RESERVED) {
+                $payload['released_count'] = $this->queue->releaseAll($listing, null, $actor, BuyRequestEvent::PIECE_WITHDRAWN);
+            }
+
             $this->audit->execute(
                 $event,
                 'success',
-                ['state' => $to->value, 'seller_id' => $listing->seller_id],
+                $payload,
                 'listing',
                 $listing->listing_id,
                 $ctx,

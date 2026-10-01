@@ -12,5 +12,9 @@ Artisan::command('inspire', function () {
 // `php artisan schedule:run` every minute in every environment.
 Schedule::command('pricing:pull-feed')->everyMinute()->withoutOverlapping();
 
+// The seller-reply sweep (spec 011 FR-018, Part 2 §11): queued buy requests past
+// their reply deadline are released and refunded, one per transaction.
+Schedule::command('buy-requests:expire')->everyMinute()->withoutOverlapping();
+
 // Expired Idempotency-Key records (spec 007 research R2; kept 24 h).
 Schedule::command('idempotency:prune')->hourly()->withoutOverlapping();

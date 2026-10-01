@@ -49,6 +49,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'message', type: 'string', example: 'Unauthenticated.'),
         new OA\Property(property: 'code', type: 'string', example: 'unauthenticated', description: 'Stable machine-readable code; see contracts/error-codes.md'),
         new OA\Property(property: 'errors', type: 'object', nullable: true, description: 'Field errors, present on validation_failed only', additionalProperties: new OA\AdditionalProperties(type: 'array', items: new OA\Items(type: 'string'))),
+        new OA\Property(property: 'details', type: 'object', nullable: true, description: 'Spec 011: figures the client needs to act, on some codes only — insufficient_funds on a buy request { deposit_amount, available, shortfall }, price_moved { current_price, deposit_amount } (decimal strings)', additionalProperties: new OA\AdditionalProperties(type: 'string')),
     ],
 )]
 abstract class Controller
