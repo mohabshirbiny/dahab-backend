@@ -193,7 +193,7 @@ Missing:         anything not found, stated exactly (endpoint / field / permissi
 Action needed:   Backend → … · Dashboard → … · Customer App → …
 ```
 
-## Current state (verified 2026-09-30 — re-verify before relying on it)
+## Current state (verified 2026-10-01 — re-verify before relying on it)
 
 - Backend implements: health, customer registration (6 steps) / login / new-device OTP / refresh / me /
   logout, customer uploads + identity-document submission; staff login + MFA / refresh / me / logout;
@@ -230,19 +230,30 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   review queue (`/dashboard/listings*`: approve, request changes, reject, take down; `listing.review`,
   `listing.request_changes`, `listing.takedown`), the `listing_state` machine (guard trigger + `listing_transition`,
   `illegal_listing_transition` 409, history in `listing_state_change`; `rejected` and `withdrawn` are final), SMS +
-  email to the seller on each decision, and a suspended seller's live listings held and restored. No buy requests,
-  orders or settlement yet. Nothing else yet.
+  email to the seller on each decision, and a suspended seller's live listings held and restored;
+  buy requests (spec 011) — a buyer joins a piece's line (`/customer/me/buy-requests*`: send with the deposit terms
+  `deposit_agreement`, list, leave), the deposit (`deposit.buyer_pct` of the locked price) held on the ledger
+  (`deposit_hold` / `deposit_release`), price locked within `buyrequest.price_tolerance_pct`; the seller's line
+  (`/customer/me/listings/{id}/buy-requests|accept|decline`: the head only; accept creates the `"order"` row with
+  `DH-YYYY-NNNNNN` and the reach-branch deadline from the working-hours resolver, releasing the others); a per-minute
+  sweep `buy-requests:expire`; take-down / withdrawal / seller suspension from `reserved` release the line; staff
+  cancel an acceptance (`POST /dashboard/orders/{id}/cancel`, `order.cancel`, order `cancelled_staff`, refund, relist
+  or withdraw). Queue operations run in the non-elevated `queue` RLS scope. The order's life after acceptance
+  (delivery, IGI, balance, settlement) is not built. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
   (spec 008); Incoming transfers and Controls → Receiving accounts are live (spec 009); Listings to review is live
-  (spec 010); the rest of the Overview and other sections are mock.
+  (spec 010), with the read-only line, the order box, Cancel acceptance and the Buyers in line / Accepted chips
+  (spec 011); the rest of the Overview and other sections (Orders included) are mock.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
   (public market, filtered on the device), the sell flow and My listings are live (spec 010; the on-form payout
-  estimate, saved pieces and the buy flow are still mock); orders, invoices, withdrawals, notifications, etc.
-  run on mock repositories (`lib/services/mock_repositories.dart`).
+  estimate and saved pieces are still mock); the buy flow is live (spec 011: Send buy request with the deposit terms,
+  Request sent, You need a little more, the place in line and Leave the queue on the piece page, the seller's
+  Accept with the branch pick / Decline on their piece, and the buyer's requests leading Orders); the rest of Orders,
+  invoices, withdrawals, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed
   with `--dart-define` only when building a deploy version.
 

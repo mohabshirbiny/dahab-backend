@@ -180,6 +180,26 @@
             "key": "branch_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "buy_request_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "deposit_legal_doc_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "confirm_locked_price",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "order_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -3675,6 +3695,16 @@
                                             "}"
                                         ]
                                     }
+                                },
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "// Spec 011: the detail carries the queue and the latest order.",
+                                            "if (pm.response.code === 200) { const o = pm.response.json().data.order; if (o && o.id) pm.collectionVariables.set('order_id', o.id); }"
+                                        ]
+                                    }
                                 }
                             ]
                         },
@@ -3902,10 +3932,65 @@
                                         "takedown"
                                     ]
                                 },
-                                "description": "Spec 010. live \u2192 withdrawn with a reason the seller reads (10\u20131000 characters). Final; from live only. Audited (listing.taken_down). Requires listing.takedown and an Idempotency-Key.",
+                                "description": "Spec 010 FR-030, spec 011 FR-019. live or reserved \u2192 withdrawn with a reason; from reserved the line is released and refunded (the audit row carries released_count). Requires listing.takedown; Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"reason\": \"A buyer reported that the photos are taken from another listing.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Orders",
+                    "description": "Spec 011. Only the cancellation of an acceptance until the orders module.",
+                    "item": [
+                        {
+                            "name": "Cancel Acceptance",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-020a. An order awaiting delivery \u2192 cancelled_staff; the buyer's deposit is refunded in full; relist true: the piece goes back on the market (accepted \u2192 live), false: withdrawn for good. Audited (order.cancelled); buyer and seller told. Requires order.cancel; Idempotency-Key. Run Dashboard \u203a Listings \u203a Show Listing on the accepted piece first (saves order_id). 409 order_not_cancellable.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"The seller reported the piece damaged before delivery.\",\n  \"relist\": true\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -5554,7 +5639,332 @@
                                         "withdraw"
                                     ]
                                 },
-                                "description": "Spec 010. live \u2192 withdrawn, off the market at once. Final: there is no relisting. From live only. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
+                                "description": "Spec 010, spec 011 FR-019. live or reserved \u2192 withdrawn, off the market at once. Final: there is no relisting. From reserved, every buyer in line is released and refunded and told. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Buy Requests on My Listing",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/buy-requests",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "buy-requests"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-013. The line in order, buyers by display_ref only; meta.you_would_receive (indicative). 404 for a listing that is not yours."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    if (d.length) pm.collectionVariables.set('buy_request_id', d[0].id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Accept First Buy Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/accept",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "accept"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-014. The head of the queue only, at one of the listing's enabled branch options. Creates the order (DH-YYYY-NNNNNN, reach_branch_deadline in working hours), keeps the head's deposit held, releases and refunds everyone else, listing reserved \u2192 accepted. 409 not_queue_head | queue_empty | branch_not_in_options | buyer_suspended | branch_hours_unavailable.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"buy_request_id\": \"{{buy_request_id}}\",\n  \"branch_id\": \"{{branch_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Decline First Buy Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/decline",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "decline"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-015. The head only, no reason. Refunded; the next moves up; nobody left \u2192 live. 409 not_queue_head | queue_empty.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"buy_request_id\": \"{{buy_request_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Buy Requests",
+                    "description": "Spec 011 \u2014 buyer side. Sending needs the trade gate; reading and leaving need a verified customer (a suspended buyer may leave). Every POST needs an Idempotency-Key.",
+                    "item": [
+                        {
+                            "name": "Send Buy Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-001\u2013FR-008. On a live or reserved piece that is not yours: locks the fresh price (refused as price_moved beyond buyrequest.price_tolerance_pct, with details.current_price), holds deposit.buyer_pct of it (deposit_hold on the ledger), takes the next place in line, records the deposit terms. 409 insufficient_funds carries details.deposit_amount / available / shortfall. Run Market \u203a Show Listing and Reference \u203a Deposit Agreement first.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"listing_id\": \"{{market_listing_id}}\",\n  \"confirm_locked_price\": \"{{confirm_locked_price}}\",\n  \"deposit_legal_doc_id\": \"{{deposit_legal_doc_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    if (d && d.id) pm.collectionVariables.set('buy_request_id', d && d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List My Buy Requests",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 011 FR-009. Newest first; optional state and listing_id (the piece page uses listing_id + state=queued for \"your place in line\"). Keyset: per_page, cursor."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show My Buy Request",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests/{{buy_request_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests",
+                                        "{{buy_request_id}}"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-009. place_in_line / ahead_count while queued; order once accepted (order_ref, branch, reach_branch_deadline; state cancelled_staff if Dahab cancelled). 404 for anyone else's request."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Leave the Queue",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests/{{buy_request_id}}/withdraw",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests",
+                                        "{{buy_request_id}}",
+                                        "withdraw"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-010/FR-011. queued \u2192 withdrawn_by_buyer; the deposit is back in available at once. notify_when_free: told once if the piece returns to the market with nobody in line. 409 not_in_queue otherwise.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"notify_when_free\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
                             },
                             "response": []
                         }
@@ -5737,6 +6147,48 @@
                                     }
                                 }
                             ]
+                        },
+                        {
+                            "name": "Deposit Agreement",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/legal-documents/deposit_agreement",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "legal-documents",
+                                        "deposit_agreement"
+                                    ]
+                                },
+                                "description": "Spec 011. The current deposit terms (id, version, English and Arabic text). A buy request sends this id as deposit_legal_doc_id; an older version is refused as deposit_agreement_required."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    if (d && d.id) pm.collectionVariables.set('deposit_legal_doc_id', d && d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },
@@ -5854,7 +6306,7 @@
                                 "{{market_listing_id}}"
                             ]
                         },
-                        "description": "Spec 010. One live piece: adds description, video, stone_certificate and, for gold, price_parts. 404 for anything that is not on the market. Public. Saves the first photo id as market_media_id.",
+                        "description": "Spec 010. One live piece: adds description, video, stone_certificate and, for gold, price_parts. 404 for anything that is not on the market. Public. Saves the first photo id as market_media_id. Spec 011 adds deposit_amount (indicative; deposit.buyer_pct of current_price).",
                         "auth": {
                             "type": "noauth"
                         }
@@ -5870,6 +6322,16 @@
                                     "    const d = pm.response.json().data;",
                                     "    pm.collectionVariables.set('market_media_id', d.photos && d.photos[0] ? d.photos[0].id : '');",
                                     "}"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "// Spec 011: the price a buy request confirms, and the indicative deposit.",
+                                    "if (pm.response.code === 200) { const d = pm.response.json().data; if (d.current_price) pm.collectionVariables.set('confirm_locked_price', d.current_price); }"
                                 ]
                             }
                         }

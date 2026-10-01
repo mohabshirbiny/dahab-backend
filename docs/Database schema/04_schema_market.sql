@@ -122,6 +122,7 @@ CREATE TABLE listing_state_change (
     note IS NOT NULL OR NOT (
       to_state IN ('changes_requested','rejected')
       OR (to_state = 'withdrawn' AND actor_staff_id IS NOT NULL)
+      OR from_state = 'accepted'  -- spec 011: a staff cancellation carries its reason
     )
   )
 );
@@ -151,22 +152,32 @@ CREATE TABLE buy_request (
   listing_id     UUID NOT NULL REFERENCES listing(listing_id),
   buyer_id       UUID NOT NULL REFERENCES customer(customer_id),
   state          buy_request_state NOT NULL DEFAULT 'queued',
-  -- Arrival order within the listing. Assigned from a per-listing
-  -- sequence at insert (see trigger). Lower = earlier = ahead in line.
+  -- Arrival order within the listing. Assigned from listing_queue_seq under
+  -- the listing lock (spec 011 research R4). Lower = earlier = ahead in line.
   queue_position INTEGER NOT NULL,
-  -- Price locked for THIS buyer at request time.
-  locked_unit_rate NUMERIC(18,4) NOT NULL,   -- gold rate used
+  -- Price locked for THIS buyer at request time. spec 011: locked_unit_rate is
+  -- the karat's sell-side rate per gram; NULL for pure diamond (set for every
+  -- listing with a karat — the table has no category column, the application
+  -- sets it; research R5).
+  locked_unit_rate NUMERIC(18,4),
   locked_total_price NUMERIC(18,4) NOT NULL, -- full piece price at lock
-  deposit_amount NUMERIC(18,4) NOT NULL,     -- 20% of locked_total_price
+  deposit_amount NUMERIC(18,4) NOT NULL,     -- deposit.buyer_pct of locked_total_price, half-up to the piastre
   -- The ledger transaction that placed the deposit hold (available->held).
-  deposit_hold_txn_id UUID REFERENCES ledger_transaction(ledger_txn_id),
+  -- spec 011: NOT NULL; the hold is posted just before the insert (lt_request_fk is deferred).
+  deposit_hold_txn_id UUID NOT NULL REFERENCES ledger_transaction(ledger_txn_id),
+  -- spec 011: the deposit terms accepted with this request (legal_document 'deposit_agreement').
+  deposit_acceptance_id UUID NOT NULL UNIQUE REFERENCES agreement_acceptance(acceptance_id),
   requested_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  -- Seller reply deadline (clock hours), computed from setting at insert.
+  -- Seller reply deadline: requested_at + deadline.seller_reply_hours (clock hours).
   seller_reply_deadline TIMESTAMPTZ NOT NULL,
-  resolved_at    TIMESTAMPTZ,                 -- when it left 'queued'
+  resolved_at    TIMESTAMPTZ,                 -- when it left 'queued' (stamped by trg_buy_request_guard)
   -- If the buyer withdrew and asked to be told when the piece is free.
   notify_when_free BOOLEAN NOT NULL DEFAULT FALSE,
+  -- spec 011: when the "free again" message went out (at most once per leave).
+  free_notified_at TIMESTAMPTZ,
   CONSTRAINT deposit_positive CHECK (deposit_amount > 0),
+  CONSTRAINT buy_request_price_positive CHECK (locked_total_price > 0),              -- spec 011
+  CONSTRAINT buy_request_resolved_shape CHECK ((state = 'queued') = (resolved_at IS NULL)), -- spec 011
   -- A buyer can hold only one ACTIVE request per listing at a time.
   -- Enforced via a partial unique index below (queued/accepted only).
   UNIQUE (listing_id, queue_position)
@@ -177,7 +188,9 @@ CREATE UNIQUE INDEX one_active_request_per_buyer_listing
   WHERE state IN ('queued','accepted');
 
 CREATE INDEX idx_buy_request_listing_state ON buy_request(listing_id, state);
-CREATE INDEX idx_buy_request_buyer ON buy_request(buyer_id);
+CREATE INDEX idx_buy_request_buyer ON buy_request(buyer_id, requested_at DESC);
+-- spec 011: the seller-reply sweep.
+CREATE INDEX idx_buy_request_due ON buy_request(seller_reply_deadline) WHERE state = 'queued';
 
 -- Per-listing monotonic queue position. A dedicated table of counters
 -- avoids gaps-vs-reuse ambiguity and races under concurrency.
@@ -186,34 +199,76 @@ CREATE TABLE listing_queue_seq (
   next_pos   INTEGER NOT NULL DEFAULT 1
 );
 
--- Keep listing.active_queue_count and listing.state in step with the
--- set of active (queued) requests. Source of truth = buy_request.
--- (spec 010 creates listing_queue_seq with the listing tables; this function
---  and trg_sync_queue are created by the buy-request module, which must also
---  write the listing_state_change row for the live <-> reserved moves.)
+-- As built by spec 011 --------------------------------------------------
+-- The scope a trigger reads under (analysis H1): an elevated caller keeps its
+-- own view; anyone else reads as the non-elevated 'queue' scope.
+CREATE OR REPLACE FUNCTION dahab_queue_read_scope(prev text) RETURNS text AS $$
+  SELECT CASE WHEN prev IN ('staff','system','bootstrap','maintenance') THEN prev ELSE 'queue' END;
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Request guard (SQLSTATE DH005 -> 409 illegal_buy_request_transition): born
+-- queued; moves only along buy_request_transition; listing_id, buyer_id,
+-- queue_position, locked_unit_rate, locked_total_price, deposit_amount,
+-- deposit_hold_txn_id, deposit_acceptance_id, requested_at and
+-- seller_reply_deadline frozen; never deleted; stamps resolved_at on leaving
+-- queued. In the 'queue' scope a seller moving another buyer's request may
+-- change its state only (not notify_when_free / free_notified_at).
+-- (Full body: database/migrations/2026_10_04_000010_create_buy_requests.php.)
+CREATE TRIGGER trg_buy_request_guard
+  BEFORE INSERT OR UPDATE OR DELETE ON buy_request
+  FOR EACH ROW EXECUTE FUNCTION buy_request_guard();
+
+-- Keep listing.active_queue_count in step with the queued requests. spec 011
+-- (research R3): the function counts ONLY; the live <-> reserved moves are made
+-- by the application's listing mover with a listing_state_change row naming
+-- the actor, and trg_listing_queue_consistent (deferred) refuses a commit where
+-- a live listing has queued requests or a reserved one has none.
 CREATE OR REPLACE FUNCTION sync_listing_queue() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
   v_listing UUID := COALESCE(NEW.listing_id, OLD.listing_id);
   v_count INTEGER;
+  v_rows INTEGER;
+  prev_scope TEXT := COALESCE(current_setting('app.rls_scope', true), '');
 BEGIN
+  -- The count must see every buyer's request: read under the queue scope.
+  PERFORM set_config('app.rls_scope', dahab_queue_read_scope(prev_scope), true);
   SELECT count(*) INTO v_count FROM buy_request
    WHERE listing_id = v_listing AND state = 'queued';
+  PERFORM set_config('app.rls_scope', prev_scope, true);
 
-  UPDATE listing
-     SET active_queue_count = v_count,
-         state = CASE
-                   WHEN state IN ('live','reserved')
-                     THEN CASE WHEN v_count > 0 THEN 'reserved' ELSE 'live' END
-                   ELSE state
-                 END
-   WHERE listing_id = v_listing;
+  UPDATE listing SET active_queue_count = v_count
+   WHERE listing_id = v_listing AND active_queue_count IS DISTINCT FROM v_count;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  IF v_rows = 0 AND NOT EXISTS (SELECT 1 FROM listing WHERE listing_id = v_listing AND active_queue_count = v_count) THEN
+    RAISE EXCEPTION 'queue count of listing % could not be updated in scope %', v_listing, prev_scope
+      USING ERRCODE = 'DH005';
+  END IF;
   RETURN NULL;
 END $$;
 
 CREATE TRIGGER trg_sync_queue
   AFTER INSERT OR UPDATE OF state ON buy_request
   FOR EACH ROW EXECUTE FUNCTION sync_listing_queue();
+
+-- spec 011: deferred checks, each reading under a scope it sets itself.
+--  * trg_buy_request_money (buy_request, AFTER INSERT / UPDATE OF state): a new
+--    request has its deposit_hold of exactly deposit_amount on the buyer's
+--    cust_held; a request that left queued for a released / withdrawn state has
+--    its deposit_release (-deposit_amount on cust_held). DH005.
+--  * trg_deposit_release_allowed (ledger_transaction, AFTER INSERT): a
+--    deposit_release names a request that has ended, or an accepted one whose
+--    order is cancelled_staff. DH005.
+--  * trg_order_cancel_refunded ("order", AFTER UPDATE OF state): a
+--    cancelled_staff order has its deposit_release. DH005.
+--  * trg_listing_queue_consistent (listing, AFTER UPDATE OF state,
+--    active_queue_count): live => 0 queued, reserved => >= 1. DH004.
+--  * listing_change_recorded() (spec 010) now reads listing_state_change under
+--    dahab_queue_read_scope(): a buyer's join moves the seller's listing.
+-- Engine-level "exactly once": unique indexes on ledger_transaction(buy_request_id)
+-- for event_kind = 'deposit_hold' and for event_kind = 'deposit_release'.
+-- trg_listing_queue_guard (listing, BEFORE UPDATE): in the 'queue' scope a
+-- customer who is not the seller changes nothing but state and the queue count. DH004.
 
 -- ---------------------------------------------------------------------
 -- 9. Orders (one accepted buyer's purchase)
@@ -244,8 +299,23 @@ CREATE TABLE "order" (
   balance_due_deadline  TIMESTAMPTZ,            -- set after inspection pass
   collect_deadline      TIMESTAMPTZ,            -- set after balance paid
   completed_at   TIMESTAMPTZ,
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- spec 011: the staff cancellation of an acceptance (research R22).
+  cancelled_by   UUID REFERENCES staff(staff_id),
+  cancelled_at   TIMESTAMPTZ,
+  cancel_reason  TEXT CHECK (cancel_reason IS NULL OR char_length(cancel_reason) BETWEEN 10 AND 1000),
+  CONSTRAINT order_cancel_shape CHECK (
+    (state = 'cancelled_staff') = (cancelled_by IS NOT NULL AND cancelled_at IS NOT NULL AND cancel_reason IS NOT NULL)
+  )
 );
+
+-- As built by spec 011: created at acceptance with order_ref
+-- 'DH-' || year (Cairo) || '-' || lpad(nextval('order_ref_seq'), 6) — the
+-- number never resets. Reached states: awaiting_delivery, cancelled_staff.
+-- order_branch_change, order_deadline_extension and the later tables are not
+-- created yet (the orders module).
+CREATE SEQUENCE order_ref_seq;
+CREATE INDEX idx_order_listing ON "order"(listing_id);
 
 CREATE INDEX idx_order_state ON "order"(state);
 CREATE INDEX idx_order_seller ON "order"(seller_id);
@@ -259,7 +329,7 @@ BEGIN
     SELECT 1 FROM listing_branch_option
     WHERE listing_id = NEW.listing_id AND branch_id = NEW.branch_id
   ) THEN
-    RAISE EXCEPTION 'branch % is not among the listing''s named options', NEW.branch_id;
+    RAISE EXCEPTION 'branch % is not among the listing''s named options', NEW.branch_id USING ERRCODE = 'DH005'; -- spec 011
   END IF;
   RETURN NEW;
 END $$;
@@ -475,7 +545,8 @@ CREATE INDEX idx_withdrawal_customer_state ON withdrawal(customer_id, state);
 ALTER TABLE ledger_transaction
   ADD CONSTRAINT lt_listing_fk    FOREIGN KEY (listing_id)     REFERENCES listing(listing_id),
   ADD CONSTRAINT lt_order_fk      FOREIGN KEY (order_id)       REFERENCES "order"(order_id),
-  ADD CONSTRAINT lt_request_fk    FOREIGN KEY (buy_request_id) REFERENCES buy_request(buy_request_id),
+  -- spec 011: deferred, so a join posts the hold before inserting the request it names.
+  ADD CONSTRAINT lt_request_fk    FOREIGN KEY (buy_request_id) REFERENCES buy_request(buy_request_id) DEFERRABLE INITIALLY DEFERRED,
   ADD CONSTRAINT lt_withdrawal_fk FOREIGN KEY (withdrawal_id)  REFERENCES withdrawal(withdrawal_id);
 
 -- Tax invoice, issued automatically at completion, filed with ETA.

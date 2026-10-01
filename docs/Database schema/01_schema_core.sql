@@ -93,7 +93,8 @@ CREATE TYPE order_state AS ENUM (
   'cancelled_seller',  -- seller cancelled after accepting
   'cancelled_buyer_nopay', -- buyer never paid the balance
   'cancelled_inspection',  -- failed inspection / karat mismatch / declined adj.
-  'disputed'           -- frozen while a dispute is open
+  'disputed',          -- frozen while a dispute is open
+  'cancelled_staff'    -- spec 011: staff cancelled the acceptance (order.cancel); final
 );
 
 -- A single buyer's position on a piece. The queue is the ordered set of
@@ -327,7 +328,8 @@ INSERT INTO setting (setting_key, value_numeric, unit, description) VALUES
   ('compensation.cap_per_day_egp',     5000,   'egp',           'Compensation cap per day (Finance)'),
   ('manualprice.confirm_deviation_pct',10,     'percent',       'Manual gold price above this deviation needs a second confirm'),
   ('manualprice.pending_expiry_hours', 24,     'hours',         'A manual price waiting for confirmation lapses after N hours (spec 005)'),
-  ('pricefeed.stale_after_minutes',    5,      'minutes',       'The price feed counts as down after N minutes without a good reading (spec 005)');
+  ('pricefeed.stale_after_minutes',    5,      'minutes',       'The price feed counts as down after N minutes without a good reading (spec 005)'),
+  ('buyrequest.price_tolerance_pct',   0.5,    'percent',       'A buy request locks the fresh price if the confirmed one is within this percent (spec 011)');
 INSERT INTO setting (setting_key, value_bool, unit, description) VALUES
   ('manualprice.confirmer_must_differ', TRUE,  'bool',          'The person who confirms a manual price must differ from the one who entered it (spec 005)');
 -- NOTE: karat tolerance is intentionally NOT a number. Any karat

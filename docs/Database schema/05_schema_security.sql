@@ -241,7 +241,8 @@ INSERT INTO order_transition (from_state, to_state, note) VALUES
   ('ready_to_collect','disputed','dispute opened'),
   ('disputed','awaiting_balance','dispute resolved, resume'),
   ('disputed','cancelled_inspection','dispute resolved against sale'),
-  ('disputed','ready_to_collect','dispute resolved, resume');
+  ('disputed','ready_to_collect','dispute resolved, resume'),
+  ('awaiting_delivery','cancelled_staff','staff cancelled the acceptance; deposit refunded (spec 011)');
 
 CREATE TABLE listing_transition (
   from_state   listing_state NOT NULL,
@@ -285,7 +286,10 @@ INSERT INTO listing_transition (from_state, to_state, note) VALUES
   -- Seller never came for the returned piece within the seller-return window.
   ('awaiting_seller_return','seller_unclaimed','seller-return window passed; seller never came'),
   ('seller_unclaimed','withdrawn','seller finally collected / Dahab handed over'),
-  ('seller_unclaimed','live','relisted after contact');
+  ('seller_unclaimed','live','relisted after contact'),
+  -- spec 011: the staff cancellation of an acceptance (order.cancel) relists or withdraws.
+  ('accepted','live','staff cancelled the acceptance; back on the market'),
+  ('accepted','withdrawn','staff cancelled the acceptance and withdrew the piece');
 
 CREATE TABLE buy_request_transition (
   from_state   buy_request_state NOT NULL,
@@ -511,13 +515,77 @@ CREATE POLICY topup_isolation ON topup FOR ALL
 --     USING      (dahab_rls_elevated() OR <owner predicate>)
 --     WITH CHECK (dahab_rls_elevated() OR <owner predicate>);
 -- Owner predicates planned:
---   buy_request     buyer_id  = dahab_current_customer_id()
---   "order"         seller_id = dahab_current_customer_id() OR buyer_id = dahab_current_customer_id()
 --   payout_account  customer_id = dahab_current_customer_id()
 --   withdrawal      customer_id = dahab_current_customer_id()
 -- CustomerTableIsolationTest fails the build for any table with a
 -- customer_id / actor_customer_id / buyer_id / seller_id column that lacks
 -- forced RLS and a policy.
+
+-- Buy requests and orders (added by spec 011) ---------------------------
+-- buy_request: buyer_id = current customer; "order": seller or buyer. A
+-- customer's own reads of their requests run under this isolation only.
+--
+-- The non-elevated 'queue' scope (spec 011 research R2; a recorded deviation
+-- from Constitution II, see specs/011-buy-requests/plan.md). A queue operation
+-- spans two customers: a buyer's join moves the seller's listing and its
+-- counter; a seller's accept moves other buyers' requests and refunds them.
+-- The scope is pushed only by the buy-request Actions (DatabaseActor::queue(),
+-- QueueScopeTest), keeps the caller's customer id, and never narrows an
+-- elevated caller. Policies:
+ALTER TABLE buy_request ENABLE ROW LEVEL SECURITY;
+ALTER TABLE buy_request FORCE  ROW LEVEL SECURITY;
+ALTER TABLE "order"     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "order"     FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY buy_request_isolation ON buy_request FOR ALL
+  USING      ((SELECT dahab_rls_elevated()) OR buyer_id = (SELECT dahab_current_customer_id()))
+  WITH CHECK ((SELECT dahab_rls_elevated()) OR buyer_id = (SELECT dahab_current_customer_id()));
+-- The queue service counts a line and a buyer's place in it.
+CREATE POLICY buy_request_queue_read ON buy_request FOR SELECT
+  USING ((SELECT dahab_rls_scope()) = 'queue');
+-- Only the buyer, or the seller of the listing, moves a request in this scope
+-- (the guard trigger keeps a seller to the state column).
+CREATE POLICY buy_request_queue_move ON buy_request FOR UPDATE
+  USING ((SELECT dahab_rls_scope()) = 'queue' AND (
+           buyer_id = (SELECT dahab_current_customer_id())
+           OR EXISTS (SELECT 1 FROM listing l WHERE l.listing_id = buy_request.listing_id
+                        AND l.seller_id = (SELECT dahab_current_customer_id()))))
+  WITH CHECK ((SELECT dahab_rls_scope()) = 'queue' AND (
+           buyer_id = (SELECT dahab_current_customer_id())
+           OR EXISTS (SELECT 1 FROM listing l WHERE l.listing_id = buy_request.listing_id
+                        AND l.seller_id = (SELECT dahab_current_customer_id()))));
+
+CREATE POLICY order_isolation ON "order" FOR ALL
+  USING      ((SELECT dahab_rls_elevated()) OR seller_id = (SELECT dahab_current_customer_id())
+              OR buyer_id = (SELECT dahab_current_customer_id()))
+  WITH CHECK ((SELECT dahab_rls_elevated()) OR seller_id = (SELECT dahab_current_customer_id())
+              OR buyer_id = (SELECT dahab_current_customer_id()));
+
+-- A buyer's summary of a piece they asked for, in any later state.
+CREATE POLICY listing_queue_read ON listing FOR SELECT
+  USING ((SELECT dahab_rls_scope()) = 'queue' AND listed_at IS NOT NULL);
+-- The buyer's own live <-> reserved flips; trg_listing_queue_guard keeps a
+-- non-seller to the state and queue-count columns.
+CREATE POLICY listing_queue_move ON listing FOR UPDATE
+  USING      ((SELECT dahab_rls_scope()) = 'queue' AND state IN ('live','reserved'))
+  WITH CHECK ((SELECT dahab_rls_scope()) = 'queue' AND state IN ('live','reserved'));
+CREATE POLICY listing_queue_seq_queue_read ON listing_queue_seq FOR SELECT
+  USING ((SELECT dahab_rls_scope()) = 'queue');
+CREATE POLICY listing_queue_seq_queue_bump ON listing_queue_seq FOR UPDATE
+  USING ((SELECT dahab_rls_scope()) = 'queue') WITH CHECK ((SELECT dahab_rls_scope()) = 'queue');
+CREATE POLICY listing_state_change_queue_read ON listing_state_change FOR SELECT
+  USING ((SELECT dahab_rls_scope()) = 'queue');
+CREATE POLICY listing_state_change_queue_insert ON listing_state_change FOR INSERT
+  WITH CHECK ((SELECT dahab_rls_scope()) = 'queue'
+              AND actor_customer_id = (SELECT dahab_current_customer_id()) AND actor_staff_id IS NULL);
+CREATE POLICY listing_branch_option_queue_read ON listing_branch_option FOR SELECT
+  USING ((SELECT dahab_rls_scope()) = 'queue');
+CREATE POLICY listing_media_queue_read ON listing_media FOR SELECT
+  USING ((SELECT dahab_rls_scope()) = 'queue' AND NOT is_private);
+-- The head buyer's display_ref and suspension, for the seller's queue.
+CREATE POLICY customer_queue_read ON customer FOR SELECT
+  USING ((SELECT dahab_rls_scope()) = 'queue'
+         AND EXISTS (SELECT 1 FROM buy_request r WHERE r.buyer_id = customer.customer_id));
 
 -- Listings (added by spec 010) --------------------------------------------
 -- A seller sees and changes only their own listings and what hangs off them;

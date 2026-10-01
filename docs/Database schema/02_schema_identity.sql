@@ -188,6 +188,8 @@ CREATE POLICY agreement_acceptance_isolation ON agreement_acceptance FOR ALL
 -- Seed: the ownership declaration ticked when listing a piece, version 1,
 -- published by the system actor (no Dashboard document management yet).
 INSERT INTO legal_document (code, version, body_en, body_ar, is_material, published_by)
+-- spec 011 also seeds 'deposit_agreement' version 1 (accepted with every buy
+-- request, context 'buy_request'; no fixed percentage, draft for the legal clinic).
 SELECT 'ownership_declaration', 1,
        'I confirm this piece is mine to sell and the details above are accurate.',
        'أقر أن القطعة دي ملكي ومن حقي أبيعها، وأن البيانات اللي فوق صحيحة.',

@@ -9,7 +9,8 @@ into folders by API surface, then by domain: `Dashboard` (Auth, Identity, ...), 
 `branch_id`, `closure_id`, `manual_price_id`, `audit_entry_id`, `audit_cursor` and the listing variables
 (`listing_id`, `media_id`, `market_listing_id`, `market_media_id`, `piece_type_id`, `ownership_legal_doc_id`,
 `listing_photo_token`, `listing_photo_token_2`, `listing_video_token`, `listing_invoice_token`,
-`stone_certificate_token`)
+`stone_certificate_token`) and the buy-request variables (`buy_request_id`, `deposit_legal_doc_id`,
+`confirm_locked_price`, `order_id`; spec 011)
 for local use against `APP_URL` (default `http://localhost`). The last five are filled in by
 test scripts: `staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_token` by
 **Upload ID Image**, `document_id` by **Submit Identity Document** / **List Identity
@@ -115,3 +116,12 @@ Whenever a new endpoint is added, changed, or removed in `routes/api.php`:
 
 This is tracked in `CLAUDE.md` as a required step for any task that adds or changes an
 API endpoint.
+
+**Buy requests** (spec 011). Run **Market → Show Listing** (saves `confirm_locked_price` from `current_price`) and
+**Market → Reference → Deposit Agreement** (saves `deposit_legal_doc_id`). As a second verified customer with money in
+the wallet, **Customer → Buy Requests → Send Buy Request** (saves `buy_request_id`; a short wallet answers 409
+`insufficient_funds` with `details`, a stale price 409 `price_moved`), **List / Show My Buy Requests**, **Leave the
+Queue**. As the seller, **Customer → Listings → Buy Requests on My Listing** (saves the head's `buy_request_id`),
+**Accept First Buy Request** (needs `branch_id` = one of the listing's branches) or **Decline First Buy Request**. As
+`operations`, `coo` or `ceo`, **Dashboard → Listings → Show Listing** on the accepted piece saves `order_id`; then
+**Dashboard → Orders → Cancel Acceptance** (`order.cancel`). Every POST sends a new `Idempotency-Key`.

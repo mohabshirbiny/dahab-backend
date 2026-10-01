@@ -142,6 +142,8 @@ The service resolves every privileged endpoint against the staff member's effect
 | Confirm handover at the counter | ✓ | — | — | — | — | ✓ |
 | Check the ID of someone collecting for another | — | — | — | — | — | ✓ |
 
+> **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). "Cancel an order" is built as the code `order.cancel` (CEO, COO, Operations; editable from the Dashboard). Until the orders module it cancels an **acceptance** only: an order awaiting delivery becomes `cancelled_staff`, the buyer's deposit is refunded in full, and the piece is relisted or withdrawn (staff choose). It is not a seller cancellation.
+
 > **Changed by spec 010** — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md). The first three rows are built as the catalogue codes shown. `listing.review` covers approving **and rejecting** (a new final state `rejected`). The review queue, a listing and its media (the private invoice included) open with **any** of the three codes.
 
 Note the two founder columns differ only where wallet access is involved. For listings/orders they are identical. "Approve a piece for market makers" is CEO+Finance, **not** COO — it is a money-adjacent approval (it waives commission), so it follows the wallet-access narrowing.
@@ -234,6 +236,8 @@ RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the applicati
 | none | nothing | everything else |
 
 The customer id comes only from the authenticated session, written by the framework (§7), never from request input. The application's database role must be neither superuser nor `BYPASSRLS`; a test enforces this, and another test fails the build if a table with a customer owner column lacks forced RLS and a policy.
+
+> **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). `buy_request` (owner: the buyer) and `"order"` (owners: the seller and the buyer) join forced RLS. A queue operation spans two customers (a buyer's join moves the seller's listing; a seller's accept refunds other buyers), so the buy-request Actions push a non-elevated **`queue`** scope: it reads a listing's line and the pieces a buyer asked for, moves only the caller's own request or the requests on the caller's own listing, flips a listing only between live and reserved, sees no other customer table, and never narrows an elevated caller. A customer's own reads of their requests never use it. This is a recorded deviation from Constitution II (`specs/011-buy-requests/plan.md`), proven by `QueueScopeTest` and `BuyRequestLeakTest`.
 
 ### 5.2 Wallet visibility is a permission
 

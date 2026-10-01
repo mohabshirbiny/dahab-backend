@@ -83,8 +83,8 @@ CREATE TABLE ledger_transaction (
   -- What this event is about, for traceability. Nullable because e.g. a
   -- top-up or external bank movement has no order.
   listing_id    UUID,   -- FK added in Part 3
-  order_id      UUID,   -- FK added in Part 3
-  buy_request_id UUID,  -- FK added in Part 3
+  order_id      UUID,   -- FK lt_order_fk added by spec 011
+  buy_request_id UUID,  -- FK lt_request_fk added by spec 011 (deferred); one deposit_hold and at most one deposit_release per request (unique indexes)
   withdrawal_id UUID,   -- FK added in Part 3
   -- Named actor. Customer-initiated events carry the customer; staff
   -- actions carry the staff member. At least one must be present.

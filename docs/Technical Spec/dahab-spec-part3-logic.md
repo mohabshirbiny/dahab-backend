@@ -215,6 +215,12 @@ For gold-with-diamond, the certificate-cost handling (IGI certificate free; anot
 
 The buyer queue (Part 2 §4) is the most concurrency-sensitive area in the system. Multiple buyers race to join one listing's queue; the seller races to accept the head while a buyer races to withdraw. The model must guarantee: **FIFO integrity, no gap/reuse in positions, exactly one deposit hold per active request, and no double-accept.**
 
+> **As built by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md) (research R2–R4).
+> - **Lock order.** Every queue operation locks the listing row first (the per-listing lock), then `listing_queue_seq` (join), then the requests in line order; customer accounts are locked last by the money service in `account_id` order. The sweep takes one request per transaction, listing first.
+> - **The `queue` scope.** A buyer's join and a seller's accept touch two customers' rows, so they run in the non-elevated `queue` RLS scope, as `DatabaseActor::queue(fn () => DB::transaction(...))` — the scope is the outer frame so the deferred checks fire with it set. Deferred triggers also set their own read scope (`dahab_queue_read_scope()`), so a commit under any scope sees what it checks.
+> - **State vs count.** `trg_sync_queue` keeps `active_queue_count` only; `live ↔ reserved` is moved by the application with a history row; `trg_listing_queue_consistent` refuses a disagreement at commit.
+> - **Money.** `trg_buy_request_money` checks at commit that every request has its hold and every ended request its refund; unique indexes allow one `deposit_hold` and at most one `deposit_release` per request.
+
 ### 4.1 The queue lock
 
 Every mutation of a listing's queue (join, withdraw, accept, release) takes a **per-listing lock** first. The dedicated `listing_queue_seq` counter table exists precisely so position assignment is race-free: the join takes the listing's `listing_queue_seq` row `FOR UPDATE`, reads `next_pos`, increments it, and inserts the `buy_request` with that `queue_position`. Two concurrent joins serialize on that row lock; neither can get the same position (`UNIQUE (listing_id, queue_position)` is the backstop).
@@ -371,6 +377,8 @@ Suspension is always a named action with a reason from a fixed list (`customer.s
 
 A suspended customer can still sign in and read, withdraw a remaining balance, and wind down open orders (Part 1 §2.2); every **trade** action returns `403 account_suspended`. Locked-price orders already in flight are honoured — suspension stops new trading, it does not confiscate a promise already made. Reinstatement is founders-only (Part 1 §4.3).
 
+> **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). Suspending a **seller** also moves each `reserved` listing to `suspended_hold` and releases its queue (`released_declined`, refunded, buyers told); reinstating returns it to `live` with an empty queue. Suspending a **buyer** leaves their requests queued (they may still leave; the seller may decline or let them expire), but a suspended buyer cannot be accepted (`buyer_suspended`). Accepted requests and orders are untouched.
+
 > **Changed by spec 010** — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md). Suspending a customer moves each of their `live` listings to `suspended_hold` (off the market) in the same transaction; reinstating returns each to `live` with its original `listed_at`. A listing of theirs waiting for review stays in review and cannot be approved while they are suspended (`seller_suspended`).
 
 ### 9.3 Pattern flags (not suspension)
@@ -435,7 +443,7 @@ Each runs as a **system staff actor** (attributable in the audit log), obeys the
 
 | Job | Scans for | Effect |
 |---|---|---|
-| Seller-reply sweep | `buy_request` `queued` past `seller_reply_deadline` | → `released_expired`, refund deposit (per request, FIFO preserved) |
+| Seller-reply sweep | `buy_request` `queued` past `seller_reply_deadline` | → `released_expired`, refund deposit (per request, FIFO preserved). Built by spec 011: `buy-requests:expire`, every minute |
 | Reach-branch sweep | `order` `awaiting_delivery` past `reach_branch_deadline` | → `cancelled_seller`, refund buyer, count toward suspension (§9) |
 | Balance-payment sweep | `order` `awaiting_balance` past `balance_due_deadline` | → `cancelled_buyer_nopay`; deposit forfeiture 50/50; piece → `awaiting_seller_return` + `seller_return` row (§10.1) |
 | Seller-return sweep | `seller_return` past `return_deadline`, `collected_at IS NULL` | listing `awaiting_seller_return → seller_unclaimed`; notify seller (§10.1) |
