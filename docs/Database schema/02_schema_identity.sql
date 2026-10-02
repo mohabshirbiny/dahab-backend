@@ -114,8 +114,13 @@ ALTER TABLE customer
   ADD CONSTRAINT customer_suspended_reason_check CHECK (
     suspended_reason IS NULL OR suspended_reason IN (
       'piece_misrepresented','off_platform_dealing','repeated_disputes',
-      'reported_by_users','identity_unconfirmed','customer_request','other')
+      'reported_by_users','identity_unconfirmed','customer_request','other',
+      'repeated_cancellations')  -- spec 012: set only by the system (cancellation threshold)
   );
+
+-- spec 012: seller cancellations count toward suspension.cancellations_threshold
+-- from this moment (set at reinstatement, the database clock).
+ALTER TABLE customer ADD COLUMN cancellations_reset_at TIMESTAMPTZ;
 
 -- Identity documents. Photos are encrypted at rest (application-side or
 -- pgcrypto); this table holds references + verification metadata, not raw

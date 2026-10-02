@@ -242,7 +242,9 @@ INSERT INTO order_transition (from_state, to_state, note) VALUES
   ('disputed','awaiting_balance','dispute resolved, resume'),
   ('disputed','cancelled_inspection','dispute resolved against sale'),
   ('disputed','ready_to_collect','dispute resolved, resume'),
-  ('awaiting_delivery','cancelled_staff','staff cancelled the acceptance; deposit refunded (spec 011)');
+  ('awaiting_delivery','cancelled_staff','staff cancelled the acceptance; deposit refunded (spec 011)'),
+  ('awaiting_balance','weight_adjust_pending','corrected result needs the buyer''s approval (spec 012)'),
+  ('awaiting_balance','cancelled_inspection','corrected result: karat mismatch / counterfeit (spec 012)');
 
 CREATE TABLE listing_transition (
   from_state   listing_state NOT NULL,
@@ -323,6 +325,11 @@ INSERT INTO withdrawal_transition (from_state, to_state, note) VALUES
   ('released','settled','confirmed arrived at bank');
 
 -- Optional generic guard: reject an order state change not in the table.
+-- As built (spec 011, spec 012): also refuses a delete and changes to the
+-- identity, accepted_at and locked_total_price, freezes locked_seller_unit_rate
+-- once set and, once paid, the settlement figures and each *_txn_id; raises
+-- SQLSTATE DH006 -> 409 illegal_order_transition (full body in
+-- database/migrations/2026_10_05_000010_create_orders_lifecycle.php).
 CREATE OR REPLACE FUNCTION assert_order_transition() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -586,6 +593,34 @@ CREATE POLICY listing_media_queue_read ON listing_media FOR SELECT
 CREATE POLICY customer_queue_read ON customer FOR SELECT
   USING ((SELECT dahab_rls_scope()) = 'queue'
          AND EXISTS (SELECT 1 FROM buy_request r WHERE r.buyer_id = customer.customer_id));
+
+-- The order's life (added by spec 012) -----------------------------------
+-- Every table of an order follows its order: visible to its seller and buyer
+-- (each inner SELECT on "order" is filtered by order_isolation) or to an
+-- elevated scope. Customers write them only in the non-elevated 'order'
+-- scope, pushed by the customer order Actions; every write under it is
+-- AUDITED with the customer as actor (order.seller_cancelled, order.decided,
+-- order.paid, order.relisted — analysis C1), and no customer path elevates
+-- (analysis C2). A recorded deviation from Constitution II, like 'queue'.
+--   new tables (FORCE RLS): order_state_change, order_branch_change,
+--   order_deadline_extension, seller_cancellation, inspection_result,
+--   settlement_decision, collection, seller_return
+--     <table>_isolation FOR ALL USING (elevated OR EXISTS my order);
+--     WITH CHECK: elevated only for the staff tables (branch change,
+--     extension, inspection); elevated OR ('order' scope AND my order) for
+--     the customer-written ones (seller_cancellation by its seller,
+--     settlement_decision and collection by the buyer, seller_return by
+--     either; order_state_change also needs actor_customer_id = me).
+--   'order' scope on existing tables:
+--     buy_request_order_read (SELECT: the request of my order)
+--     listing_order_read (SELECT) / listing_order_move (UPDATE by the buyer of
+--       an order on it, to sold | awaiting_seller_return only; the column
+--       side is listing_queue_guard, now for 'queue' and 'order')
+--     listing_state_change_order_insert / _order_read (actor = me)
+--     listing_media_order_read (public only), listing_branch_option_order_read
+--     customer_order_read (the other party of my order; display_ref only by
+--       the Resources)
+-- (Full DDL: database/migrations/2026_10_05_000010_create_orders_lifecycle.php.)
 
 -- Listings (added by spec 010) --------------------------------------------
 -- A seller sees and changes only their own listings and what hangs off them;

@@ -78,6 +78,18 @@ token on the market requests only to get `is_mine`. As a verified customer, **Cu
 **Reject** (both need a note) and **Take Down Listing** (live only, needs a reason). Every listing POST and PATCH
 sends a fresh `Idempotency-Key`. Upload tokens are single use: upload again before creating another listing.
 
+**Orders** (spec 012). After a seller accepts (Customer › Listings › Accept), **Customer → Orders → List My Orders**
+saves `order_id`. As `operations` (or an `igi_branch` user assigned to the order's branch), **Dashboard → Orders →
+Receive Piece**, then as `igi_branch` **Record Inspection Result** (saves `inspection_id`; send `supersedes_id` only to
+correct the latest result). On a pass the buyer runs **Pay Balance** (saves `collection_code`). On a stone regrade,
+**Propose Regrade Price** (`operations`/`coo`). The seller may **Cancel Sale** while the piece has not reached the
+branch. After a no-pay (the `orders:sweep` command) or an inspection cancel, the seller's **Show My Order** saves
+`return_code`; staff run **Hand Back Returned Piece**, or the seller **Relist Returned Piece**. **Branch Work List**
+shows what to do at your branch. After an adjustment the buyer runs **Decide Adjusted Price** (uses `inspection_id`). After
+payment, **Hand Over To Buyer** uses `collection_code`. **Change Order Branch** (uses `branch_id`) and **Extend Order
+Deadline** need `order.change_branch` / `order.extend_deadline`. Five wrong codes lock a handover for 15 minutes. Every POST sends a fresh
+`Idempotency-Key`. Variables: `order_id`, `inspection_id`, `collection_code`, `return_code` (the last two secret).
+
 ## Import
 
 1. Postman → Import → select both `.json` files in this folder.

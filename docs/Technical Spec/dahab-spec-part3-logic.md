@@ -43,6 +43,8 @@ Working time accrues only inside a branch's open intervals, skipping closures.
 
 ### 1.3 Working-weeks
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: the pay window (`deadline.buyer_pay_days`, also used for the buyer's decision on an adjustment), the collection window and the seller-return window are **calendar** time in Cairo; only the reach-branch deadline is working hours. OI-3.1 is settled as written.
+
 `deadline.seller_return_weeks` and `deadline.collect_weeks` are expressed in **weeks** in the seed. The business intent differs by which:
 
 - **`collect_weeks` (buyer, paid, storage limit):** this is a **calendar** storage window — "they have paid and it is theirs; this is a storage limit, not a penalty" (blueprint §4). Compute as calendar weeks from `pay-balance`, **not** working hours. The piece physically sits at the branch; closures do not extend the buyer's ownership clock.
@@ -77,6 +79,8 @@ The current `gold_price` row holds the provider's **24K bid** (what the market p
 Each is kept at 4 dp (half-up). For 24K itself (`p = 0.999`) the market prices are the provider's figures.
 
 ### 2.3 The two published prices and the spread (gold)
+
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). Settlement never reads a live gold price: the buyer's per-gram rate is locked at the buy request (spec 011) and the **seller's at acceptance** (`order.locked_seller_unit_rate`), both times the IGI-measured weight (`PriceCalculator::lockedBreakdown`). If gold rose between the buyer's join and the acceptance, the spread can be negative; Dahab absorbs it (a negative `dahab_spread` line).
 
 Each karat has a **buy-side** and a **sell-side adjustment** (`karat_price_adjustment`), each `fixed` (EGP per gram of that karat, added) or `percent` (× `1 + value/100`):
 
@@ -255,6 +259,8 @@ At join, the service computes the buyer's `locked_unit_rate` (the live gold rate
 
 ### 5.1 Reach-branch deadline
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: the seller may also cancel explicitly; both count. The count is the seller's `seller_cancellation` rows since `customer.cancellations_reset_at` (set at reinstatement). The listing moves `accepted → withdrawn` (the seller still holds the piece). The automatic suspension (`repeated_cancellations`, system actor) is a separate pass of the sweep, never part of the seller's own request.
+
 From acceptance, the seller has `deadline.reach_branch_working_hours` working hours at the chosen branch to deliver (§1). Missing it is handled by the reach-branch sweep (§12): order `awaiting_delivery → cancelled_seller`, buyer refunded in full, and the miss **counts toward seller suspension** (§9) exactly as an explicit cancel does — "I sold it elsewhere is a cancellation, not a request for more time" (blueprint §4).
 
 ### 5.2 Branch change
@@ -325,6 +331,8 @@ The buyer no-pay sweep (§10.1) still returns the piece to the seller and pays 5
 
 ## 7. Inspection outcomes and the karat rule
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: the inspector sets two flags — counterfeit (→ `fake_cancel`) and a stone below its claim (→ `stone_regrade`, stone categories). A regrade is priced by staff (`order.price_adjust`), not by IGI. A declined adjustment, or one left unanswered for `deadline.buyer_pay_days`, returns the piece to the seller with no compensation; the seller collects it or relists with the measured figures. Karat / counterfeit suspend the seller with the existing reason `piece_misrepresented`, by the inspector. A correction (§7.3) is allowed only before any decision or payment.
+
 The settlement service sets `inspection_result.outcome` from the measured vs stated figures (Part 2 §6); this section is the decision logic and its consequences.
 
 ### 7.1 Outcome decision
@@ -370,6 +378,8 @@ Suspension is always a named action with a reason from a fixed list (`customer.s
 
 ### 9.1 Automatic-flagged, human-confirmed
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). The threshold suspension is **automatic** (product-owner decision 2026-10-01): when a seller's cancellations since their last reinstatement reach `suspension.cancellations_threshold` (read live), the sweep suspends them as the system actor with the new reason `repeated_cancellations` (a system-only reason: staff cannot choose it).
+
 - **Seller cancellations:** each `seller_cancellation` (explicit seller-cancel, or a reach-branch miss — §5.1) counts; when the count reaches `suspension.cancellations_threshold` (2), the seller's ability to list is suspended. The **count** is enforced by the backend; the suspension writes `is_suspended`, `suspended_by` (the system actor or the confirming admin), `suspended_reason`.
 - **Karat mismatch / counterfeit:** immediate suspension on `karat_cancel`/`fake_cancel` (§7.2). This is not a threshold — one is enough (the karat is stamped; a mismatch is treated as fraud).
 
@@ -392,6 +402,8 @@ Crossing `flag.pattern_txn_threshold` (5) raises a **review flag**, not an autom
 The order is a **closed accounting record** once terminal (`completed`, `cancelled_buyer_nopay`, `cancelled_inspection`). The **physical afterlife of the piece rides entirely on `listing_state`** (locked model): `awaiting_seller_return`, `seller_unclaimed`, `uncollected_expired`. The order never re-opens. This section specifies the two afterlife flows.
 
 ### 10.1 Buyer never pays → piece returns to the seller (decision #3)
+
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: the seller's share is `deposit × deposit.seller_forfeit_share_pct` (read live) rounded half-up to the piastre; the rest, with any residue, goes to `dahab_commission`, with no VAT. `seller_return.return_deadline` is calendar weeks; the seller collects against an HMAC code (also kept encrypted for their own view) or relists. Past the window → `seller_unclaimed`.
 
 Balance-payment sweep (§12), one transaction:
 
@@ -438,6 +450,8 @@ Full wire contract in Part 2 §8–§9; the logic:
 ---
 
 ## 12. Scheduled jobs
+
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). Built as one command, `orders:sweep` (every minute): the cancellation threshold, the reach-branch sweep, the reminders, the unanswered-adjustment sweep (a decline), the balance-payment sweep, the seller-return sweep and the collection sweep.
 
 Each runs as a **system staff actor** (attributable in the audit log), obeys the one-transaction rule, and produces the same audited, ledgered effects as an endpoint. All thresholds/deadlines are settings.
 

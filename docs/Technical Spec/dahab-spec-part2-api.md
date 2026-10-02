@@ -278,6 +278,8 @@ Buyer leaves the line (`queued → withdrawn_by_buyer`).
 
 ## 5. Acceptance & branch selection
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). **Accept** now also locks the seller's per-gram rate on the order (`locked_seller_unit_rate`: `sellers_get` for gold, the unadjusted mid for gold with diamond) and writes the order's first history row; a gold piece that cannot be priced now is refused `price_unavailable` (409). **Seller cancel** is `POST /customer/me/orders/{order}/cancel` (verified gate — a suspended seller winds down), audited `order.seller_cancelled`: `cancelled_seller`, the buyer refunded in full, a `seller_cancellation`, the listing `accepted → withdrawn`; it never suspends — the sweep applies `suspension.cancellations_threshold`. **Change branch** is `POST /dashboard/orders/{order}/change-branch` `{branch_id, reason, extend_to?}` (`order.change_branch`; only while awaiting delivery — `order_not_open`; a named, enabled branch — `branch_not_in_options`; the clock keeps running unless `extend_to` is later — then also an extension). **Extend deadline** is `POST /dashboard/orders/{order}/extend-deadline` `{which: reach_branch|balance|collect, new_deadline, reason}` (`order.extend_deadline`; the deadline running in the order's state — `deadline_not_running`; forward and in the future — `deadline_must_move_forward` 422; its reminder may fire again; a reopened collection window puts the piece back to `sold`). Reason 10–1000 required, no cap, audited, both parties told.
+
 > **As built by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md).
 > - **Accept** — `POST /customer/me/listings/{id}/accept` `{ buy_request_id, branch_id }` (trade gate, Idempotency-Key). The branch must be one of the listing's options **and enabled** (`branch_not_in_options`). New refusals: `buyer_suspended` (409, the head's buyer is suspended — the seller may decline them) and `branch_hours_unavailable` (409, the resolver finds no working time). The order is created with `order_ref` `DH-YYYY-NNNNNN` (`order_ref_seq`, never resets) and nothing moves it afterwards until the orders module. `201 { order, listing, released_count }`.
 > - **Decline** — `POST /customer/me/listings/{id}/decline` `{ buy_request_id }`: the **head only**, no reason; `released_declined` with refund; the next becomes the head; empty → live. Refusals `not_queue_head`, `queue_empty`.
@@ -327,6 +329,8 @@ Only an admin can change the branch after acceptance; the deadline **keeps runni
 ---
 
 ## 6. Inspection & settlement
+
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: `GET /dashboard/inspections/work-list` (`inspection.enter` | `order.receive` | `order.handover`, no money or names); `POST /dashboard/orders/{order}/receive` (`order.receive`); `POST /dashboard/orders/{order}/inspection-results` (`inspection.enter`) with `measured_karat`, `measured_weight_g`, `measured_stone_grade`, `certificate_number`, `inspector_note`, `is_counterfeit`, `stone_below_claim`, `supersedes_id`. The outcome adds the inspector's two flags: counterfeit → `fake_cancel`, a stone below its claim → `stone_regrade`. Karat or counterfeit: the buyer refunded, the seller suspended (`piece_misrepresented`) by the inspector, the piece returned to the seller with a code and no compensation. A weight adjustment asks the buyer at the price on the measured weight (the locked rates); a stone regrade waits for `POST /dashboard/orders/{order}/propose-price` (`order.price_adjust`). A correction supersedes the latest result only while the order waits for the buyer or the balance, before any decision or payment (`inspection_correction_not_allowed` 409). The buyer's decision is `POST /customer/me/orders/{order}/decision` `{accept, inspection_id}` (verified gate, audited `order.decided`; `price_not_set` before a regrade is priced; a stale `inspection_id` → `inspection_correction_not_allowed`); an adjustment unanswered by `decision_due_deadline` is declined by the sweep (no decision row, no forfeiture).
 
 Implements the immutable-inspection rule and the karat rule (schema §10). Results are entered by the IGI branch account (Part 1 §3.4), which sees no prices, wallets or contact details.
 
@@ -381,6 +385,8 @@ Buyer's decision when a weight adjustment or stone regrade needs approval (schem
 ---
 
 ## 7. Balance payment, settlement & collection
+
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). **Pay balance** is `POST /customer/me/orders/{order}/pay-balance` (verified gate — a suspended buyer may pay), audited `order.paid`. Wallet only, in full, once, before `balance_due_deadline` (`deadline.buyer_pay_days` **calendar** days). One `balance_payment` transaction: buyer available −balance, buyer held −deposit, [buyer available +excess when the total is below the deposit], escrow +total / −total, seller available +proceeds, `dahab_commission`, `vat_payable`, `dahab_spread` (may be negative when the locked rates crossed; zero lines omitted). Figures stored on the order. `insufficient_funds` carries `amount_due`, `available`, `shortfall`; `settlement_not_possible` (409) when proceeds would be ≤ 0. The 6-digit collection code is stored as an HMAC and also encrypted so the buyer reads it in their own order detail (never a list, never staff). **Handover** of a returned piece to its seller is `POST /dashboard/orders/{order}/seller-return/handover` (`order.handover`): a wrong code answers **422** `invalid_collection_code` (not 401, which would sign Dashboard staff out) with `attempts_left`; the fifth locks it 15 minutes (429 `handover_locked`, `retry_after`). The seller may instead relist (`POST /customer/me/orders/{order}/relist`, trade gate; a gold piece takes the IGI-measured karat and weight). The buyer's **handover** is `POST /dashboard/orders/{order}/handover` (`order.handover`, branch-scoped, same code rules): `ready_to_collect → completed`, no money; a piece past its collection window goes back from `uncollected_expired` to `sold` first. Tax invoices are out of scope.
 
 Implements the **locked money-timing decision**: the seller is settled and Dahab takes commission + spread + VAT **at balance payment (`pay-balance`), not at collection.** Collection (`handover`) becomes a **physical handover only, with zero money movement.** The full price still transits `escrow`, but as an **instantaneous pass-through inside the one `pay-balance` transaction** — money enters `escrow` and is distributed out of it in the same atomic step — rather than resting there from payment until collection.
 
@@ -691,6 +697,8 @@ Publish a new legal version (`legal_document`); a material change forces re-acce
 
 ## 11. Background jobs (not endpoints, but part of the API surface's contract)
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). Built: `orders:sweep`, every minute, system actor, one item per transaction — the cancellation threshold (suspends the seller, `repeated_cancellations`), missed reach-branch deadlines (`cancelled_seller`, refund), the threshold again, the reach-branch reminder (3 working hours before) and the balance reminder (24 h before), the unpaid balance (`cancelled_buyer_nopay`, forfeit, piece returned) and the seller-return window (`seller_unclaimed`, calendar weeks). Also the unanswered adjustment (declined, system actor) and the collection window (listing `sold → uncollected_expired`, the buyer told; the order stays ready to collect).
+
 These are scheduled workers that drive deadline-based transitions. They are listed here because they produce the same audited, ledgered effects as endpoints and must obey the same one-transaction rule. Each runs as the system actor (the single `staff` row with `is_system = true`, `App\Support\SystemActor`, spec 002) recorded in the audit log.
 
 - **Seller-reply deadline sweep.** Requests past `seller_reply_deadline` while still `queued` → `released_expired`, deposit refunded. (Per request; FIFO integrity preserved.) *Built by spec 011: `buy-requests:expire`, every minute, one transaction per request, system actor; the buyer is told.*
@@ -723,6 +731,13 @@ Auth codes are in Part 1 §9. Domain codes introduced above:
 | `cannot_buy_own_listing` / `price_unavailable` | 409 | join queue (spec 011) |
 | `buyer_suspended` / `branch_hours_unavailable` | 409 | accept (spec 011) |
 | `order_not_cancellable` | 409 | staff cancel acceptance (spec 011) |
+| `illegal_order_transition` | 409 | any guarded order change — SQLSTATE DH006 since spec 012 (was DH005) |
+| `inspection_correction_not_allowed` / `price_not_set` | 409 | inspection correction / buyer decision before a regrade price (spec 012) |
+| `deadline_not_running` / `order_not_open` | 409 | extend a deadline / change the branch (spec 012) |
+| `deadline_must_move_forward` | 422 | extend a deadline / change the branch (spec 012) |
+| `settlement_not_possible` | 409 | pay-balance when the proceeds would be ≤ 0 (spec 012) |
+| `invalid_collection_code` | **422** | handover — spec 012 deviation from the 401 below: a 401 signs Dashboard staff out |
+| `handover_locked` | 429 | five wrong codes, 15 minutes (spec 012) |
 | `illegal_buy_request_transition` | 409 | any guarded request / order change (SQLSTATE DH005, spec 011) |
 | `branch_not_in_options` | 409 | accept / change-branch |
 | `illegal_listing_transition` / `illegal_order_transition` / `illegal_withdrawal_transition` | 409 | any guarded state change |
