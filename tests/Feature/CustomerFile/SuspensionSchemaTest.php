@@ -59,10 +59,12 @@ it('refuses a suspension reason outside the fixed list', function (string $reaso
 ]);
 
 it('lists the seven reasons of the design, each with a label', function () {
-    expect(array_map(fn (SuspendedReason $r) => $r->value, SuspendedReason::cases()))->toBe([
+    expect(array_map(fn (SuspendedReason $r) => $r->value, SuspendedReason::staffChoices()))->toBe([
         'piece_misrepresented', 'off_platform_dealing', 'repeated_disputes',
         'reported_by_users', 'identity_unconfirmed', 'customer_request', 'other',
     ]);
+    // Spec 012: one more, set only by the system when cancellations reach the threshold.
+    expect(SuspendedReason::REPEATED_CANCELLATIONS->value)->toBe('repeated_cancellations');
 
     foreach (SuspendedReason::cases() as $reason) {
         expect($reason->label())->toBeString()->not->toBe('');

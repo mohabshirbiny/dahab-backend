@@ -186,6 +186,29 @@ const OPENAPI_CUSTOMER_BUY_REQUEST_PATHS = [
 
 const OPENAPI_DASHBOARD_ORDER_PATHS = [
     'post /dashboard/orders/{order}/cancel',
+    // spec 012: the order's life after acceptance, staff side.
+    'get /dashboard/orders/{order}',
+    'post /dashboard/orders/{order}/receive',
+    'post /dashboard/orders/{order}/inspection-results',
+    'post /dashboard/orders/{order}/propose-price',
+    'post /dashboard/orders/{order}/seller-return/handover',
+    'get /dashboard/inspections/work-list',
+    'post /dashboard/orders/{order}/handover',
+    'post /dashboard/orders/{order}/change-branch',
+    'post /dashboard/orders/{order}/extend-deadline',
+    'get /dashboard/orders',
+    'get /dashboard/inspections',
+    'get /dashboard/buy-requests',
+];
+
+// spec 012: the buyer's and the seller's orders.
+const OPENAPI_CUSTOMER_ORDER_PATHS = [
+    'get /customer/me/orders',
+    'get /customer/me/orders/{order}',
+    'post /customer/me/orders/{order}/cancel',
+    'post /customer/me/orders/{order}/decision',
+    'post /customer/me/orders/{order}/pay-balance',
+    'post /customer/me/orders/{order}/relist',
 ];
 
 const OPENAPI_DASHBOARD_LISTING_PATHS = [
@@ -252,6 +275,7 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_DASHBOARD_LISTING_PATHS,
         ...OPENAPI_CUSTOMER_BUY_REQUEST_PATHS,
         ...OPENAPI_DASHBOARD_ORDER_PATHS,
+        ...OPENAPI_CUSTOMER_ORDER_PATHS,
         ...OPENAPI_MARKET_PATHS,
         ...OPENAPI_REFERENCE_PATHS,
     ]);
@@ -326,6 +350,7 @@ it('secures every operation with its own surface scheme and never the generic sa
         ...array_fill_keys(OPENAPI_DASHBOARD_LISTING_PATHS, 'dashboardBearer'),
         ...array_fill_keys(OPENAPI_CUSTOMER_BUY_REQUEST_PATHS, 'customerBearer'),
         ...array_fill_keys(OPENAPI_DASHBOARD_ORDER_PATHS, 'dashboardBearer'),
+        ...array_fill_keys(OPENAPI_CUSTOMER_ORDER_PATHS, 'customerBearer'),
         // The public surface (spec 010): no token.
         ...array_fill_keys(OPENAPI_MARKET_PATHS, null),
         ...array_fill_keys(OPENAPI_REFERENCE_PATHS, null),
@@ -395,6 +420,7 @@ it('tags each surface separately', function () {
         'Dashboard Listings' => OPENAPI_DASHBOARD_LISTING_PATHS,
         'Customer Buy Requests' => OPENAPI_CUSTOMER_BUY_REQUEST_PATHS,
         'Dashboard Orders' => OPENAPI_DASHBOARD_ORDER_PATHS,
+        'Customer Orders' => OPENAPI_CUSTOMER_ORDER_PATHS,
         'Market' => OPENAPI_MARKET_PATHS,
         'Reference' => OPENAPI_REFERENCE_PATHS,
     ] as $tag => $paths) {
@@ -438,6 +464,9 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StoreListingRequest', 'UpdateListingRequest', 'RequestListingChangesRequest', 'ListingReasonRequest',
         'BuyRequest', 'SellerQueueItem', 'OrderSummary', 'OrderBranch', 'SendBuyRequestRequest', 'LeaveQueueRequest',
         'AcceptBuyRequestRequest', 'DeclineBuyRequestRequest', 'CancelOrderRequest',
+        'CustomerOrder', 'StaffOrder', 'InspectionResult', 'WorkListItem',
+        'RecordInspectionResultRequest', 'ProposePriceRequest', 'HandoverRequest',
+        'DecideAdjustmentRequest', 'ChangeBranchRequest', 'ExtendDeadlineRequest', 'StaffBuyRequest',
     ]);
 
     $ops = documentedOperations($doc);

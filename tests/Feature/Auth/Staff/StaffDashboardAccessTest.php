@@ -33,18 +33,18 @@ it('authenticates a staff token on the dashboard and returns roles and permissio
         ->assertJsonPath('data.email', 'boss@dahab.test')
         ->assertJsonPath('data.role', 'ceo')
         ->assertJsonPath('data.roles', ['ceo'])
-        ->assertJsonPath('data.permissions', ['audit.view_all', 'audit.view_own', 'branches.manage', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'])
+        ->assertJsonPath('data.permissions', ['audit.view_all', 'audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'inspection.enter', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.handover', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'])
         ->assertJsonMissingPath('data.password_hash');
 });
 
-it('lists no permissions for a role that has none', function () {
-    // igi_branch holds nothing in the seed (spec 004 gave operations the reference-data codes).
+it('lists only the branch order codes for the inspector role', function () {
+    // igi_branch held nothing until spec 012 gave it the counter's three codes.
     $staff = Staff::factory()->role(SeedRole::IGI_BRANCH)->create();
 
     $this->withToken(staffBearer($staff))->getJson('/api/v1/dashboard/auth/me')
         ->assertOk()
         ->assertJsonPath('data.roles', ['igi_branch'])
-        ->assertJsonPath('data.permissions', []);
+        ->assertJsonPath('data.permissions', ['inspection.enter', 'order.handover', 'order.receive']);
 });
 
 it('returns 401 without a token', function () {

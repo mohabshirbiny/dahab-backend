@@ -123,16 +123,18 @@ it('guards the order: branch among the options, moves along order_transition, th
     $order = DB::table('order')->first();
     $foreign = Branch::factory()->create()->branch_id;
 
+    // The branch check stays on the buy-request code (DH005); the order guard has
+    // its own SQLSTATE since spec 012 (DH006 -> illegal_order_transition).
     expect(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->update(['branch_id' => $foreign])))->toBe('DH005')
-        ->and(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->update(['state' => 'completed'])))->toBe('DH005')
+        ->and(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->update(['state' => 'completed'])))->toBe('DH006')
         ->and(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->update(['state' => 'cancelled_staff'])))->toBe('23514')
-        ->and(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->delete()))->toBe('DH005')
-        ->and(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->update(['order_ref' => 'DH-1999-000001'])))->toBe('DH005');
+        ->and(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->delete()))->toBe('DH006')
+        ->and(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->update(['order_ref' => 'DH-1999-000001'])))->toBe('DH006');
 
-    // Cancelling without refunding the buyer: refused at commit.
+    // Cancelling without refunding the buyer (or without its history row): refused at commit.
     expect(brSqlState(fn () => DB::table('order')->where('order_id', $order->order_id)->update([
         'state' => 'cancelled_staff', 'cancelled_by' => SystemActor::id(), 'cancelled_at' => now(), 'cancel_reason' => 'Staff cancelled for testing only.',
-    ])))->toBe('DH005');
+    ])))->toBe('DH006');
 });
 
 it('refuses accepted -> live without the staff reason in the history', function () {
