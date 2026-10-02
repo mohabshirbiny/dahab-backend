@@ -16,5 +16,9 @@ Schedule::command('pricing:pull-feed')->everyMinute()->withoutOverlapping();
 // their reply deadline are released and refunded, one per transaction.
 Schedule::command('buy-requests:expire')->everyMinute()->withoutOverlapping();
 
+// The order deadlines (spec 012 research R14, Part 2 §11): missed delivery, unpaid
+// balance, the seller-return window, reminders and the cancellation threshold.
+Schedule::command('orders:sweep')->everyMinute()->withoutOverlapping();
+
 // Expired Idempotency-Key records (spec 007 research R2; kept 24 h).
 Schedule::command('idempotency:prune')->hourly()->withoutOverlapping();

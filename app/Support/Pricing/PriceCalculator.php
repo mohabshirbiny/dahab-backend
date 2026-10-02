@@ -45,6 +45,38 @@ final class PriceCalculator
         };
     }
 
+    /**
+     * The settlement figures on rates locked earlier (spec 012 research R6;
+     * Part 3 §3.3–§3.4): gold uses the buyer's per-gram rate locked at the
+     * request and the seller's locked at acceptance, both times the measured
+     * weight; gold-with-diamond protects the gold value at the locked mid;
+     * a pure diamond is its asking (or accepted regrade) price. The same
+     * finish() as a live quote, so commission, VAT, spread and proceeds are
+     * derived exactly as everywhere else. The spread may be negative when the
+     * locked rates crossed.
+     */
+    public function lockedBreakdown(Piece $piece, ?string $buyerRate, ?string $sellerRate, PricingRates $rates): PriceBreakdown
+    {
+        return match ($piece->category) {
+            PieceCategory::GOLD => $this->finish(
+                Money::add(Money::mul((string) $buyerRate, $piece->weight), Money::mul($piece->makingPerGram, $piece->weight)),
+                Money::add(Money::mul((string) $sellerRate, $piece->weight), Money::mul($piece->makingPerGram, $piece->weight)),
+                Money::round4(Money::mul($piece->makingPerGram, $piece->weight)),
+                $rates->goldPct, $piece, $rates,
+            ),
+            PieceCategory::DIAMOND => $this->finish($piece->askingPrice, $piece->askingPrice, $piece->askingPrice, $rates->stonePct, $piece, $rates),
+            PieceCategory::GOLD_WITH_DIAMOND => $this->lockedGoldWithDiamond($piece, (string) $sellerRate, $rates),
+        };
+    }
+
+    private function lockedGoldWithDiamond(Piece $piece, string $mid, PricingRates $rates): PriceBreakdown
+    {
+        $goldValue = Money::round4(Money::mul($mid, $piece->weight));
+        $aboveGold = Money::max(Money::sub($piece->askingPrice, $goldValue), '0');
+
+        return $this->finish($piece->askingPrice, $piece->askingPrice, $aboveGold, $rates->stonePct, $piece, $rates, $goldValue);
+    }
+
     private function gold(MarketPrice $market, Piece $piece, PricingRates $rates): PriceBreakdown
     {
         $prices = $this->quotable($market, $piece->karat);

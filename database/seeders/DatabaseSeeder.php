@@ -39,6 +39,9 @@ class DatabaseSeeder extends Seeder
         // A buyer in line and an accepted order, through the real Actions (spec 011); same guard.
         $this->call(LocalBuyRequestSeeder::class);
 
+        // Orders in each state, through the real Actions (spec 012); same guard.
+        $this->call(LocalOrderSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

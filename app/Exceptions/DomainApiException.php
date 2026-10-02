@@ -297,9 +297,64 @@ class DomainApiException extends RuntimeException
         return new self('order_not_cancellable', 409, 'Only an order waiting for delivery can be cancelled.');
     }
 
-    /** SQLSTATE DH005 from the buy-request and order guards (spec 011). */
+    /** SQLSTATE DH005 from the buy-request guards (spec 011). Orders use DH006 since spec 012. */
     public static function illegalBuyRequestTransition(): self
     {
         return new self('illegal_buy_request_transition', 409, 'This request cannot change that way.');
+    }
+
+    // Spec 012 — orders (research R21).
+
+    /** SQLSTATE DH006 from the order guard, and every order Action's state check. */
+    public static function illegalOrderTransition(): self
+    {
+        return new self('illegal_order_transition', 409, 'This order cannot do that now.');
+    }
+
+    public static function orderNotOpen(): self
+    {
+        return new self('order_not_open', 409, 'The branch can only change while the piece has not reached it.');
+    }
+
+    public static function deadlineNotRunning(): self
+    {
+        return new self('deadline_not_running', 409, 'That deadline is not running for this order now.');
+    }
+
+    public static function deadlineMustMoveForward(): self
+    {
+        return new self('deadline_must_move_forward', 422, 'The new deadline must be later than the current one and in the future.');
+    }
+
+    public static function inspectionCorrectionNotAllowed(): self
+    {
+        return new self('inspection_correction_not_allowed', 409, 'This result can no longer be corrected, or it is not the latest one.');
+    }
+
+    public static function priceNotSet(): self
+    {
+        return new self('price_not_set', 409, 'Dahab has not set the new price yet.');
+    }
+
+    public static function balanceDeadlinePassed(): self
+    {
+        return new self('balance_deadline_passed', 409, 'The time to pay the balance has passed.');
+    }
+
+    /** A safeguard: the seller's proceeds would not be positive (research R7). */
+    public static function settlementNotPossible(): self
+    {
+        return new self('settlement_not_possible', 409, 'This order cannot be settled automatically. Dahab will contact you.');
+    }
+
+    /** 422, not Part 2's 401: a 401 makes the Dashboard sign the staff member out (research R10). */
+    public static function invalidCollectionCode(int $attemptsLeft): self
+    {
+        return new self('invalid_collection_code', 422, 'That code is not right.', ['attempts_left' => $attemptsLeft]);
+    }
+
+    public static function handoverLocked(int $retryAfterSeconds): self
+    {
+        return new self('handover_locked', 429, 'Too many wrong codes. Try again later.', ['retry_after' => $retryAfterSeconds]);
     }
 }

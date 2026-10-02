@@ -4,11 +4,13 @@ namespace App\Actions\BuyRequests;
 
 use App\Actions\BuyRequests\Concerns\ReleasesRequests;
 use App\Actions\BuyRequests\Concerns\RunsInQueue;
+use App\Actions\Orders\Concerns\MovesOrder;
 use App\Enums\BuyRequestEvent;
 use App\Enums\BuyRequestState;
 use App\Enums\CustomerStatus;
 use App\Enums\ListingState;
 use App\Enums\OrderState;
+use App\Enums\PieceCategory;
 use App\Enums\SettingKey;
 use App\Exceptions\DomainApiException;
 use App\Models\Branch;
@@ -17,6 +19,7 @@ use App\Models\Listing;
 use App\Models\ListingStateChange;
 use App\Models\Order;
 use App\Support\BuyRequests\OrderReference;
+use App\Support\Listings\ListingPricer;
 use App\Support\Pricing\Settings;
 use App\Support\WorkingHours\WorkingHoursResolver;
 use App\Support\WorkingHours\WorkingHoursUnavailable;
@@ -34,7 +37,7 @@ use Carbon\CarbonImmutable;
  */
 final class AcceptBuyRequestAction
 {
-    use ReleasesRequests, RunsInQueue;
+    use MovesOrder, ReleasesRequests, RunsInQueue;
 
     public function __construct(
         private readonly WorkingHoursResolver $hours,
@@ -81,6 +84,9 @@ final class AcceptBuyRequestAction
                 throw DomainApiException::branchHoursUnavailable();
             }
 
+            // Spec 012 research R6: the seller's side is fixed now, at what they were shown.
+            $sellerRate = $this->sellerRate($listing);
+
             $listing = $this->moveListing($listing, ListingState::ACCEPTED, $seller, null, ListingStateChange::NOTE_BUY_REQUEST_ACCEPTED);
 
             $order = Order::query()->create([
@@ -95,7 +101,9 @@ final class AcceptBuyRequestAction
                 'accepted_at' => $now,
                 'reach_branch_deadline' => $deadline,
                 'locked_total_price' => $head->locked_total_price,
+                'locked_seller_unit_rate' => $sellerRate,
             ]);
+            $this->recordOrderCreated($order, $seller);
 
             $head->state = BuyRequestState::ACCEPTED;
             $head->save();
@@ -119,5 +127,25 @@ final class AcceptBuyRequestAction
                 'released_count' => $released,
             ];
         });
+    }
+
+    /**
+     * The seller's per-gram rate locked with the order (spec 012 research R6):
+     * `sellers_get` for gold, the unadjusted mid for gold with diamond (the gold
+     * value protected from commission), none for a pure diamond. A piece that
+     * cannot be priced now cannot be accepted (`price_unavailable`).
+     */
+    private function sellerRate(Listing $listing): ?string
+    {
+        if ($listing->category === PieceCategory::DIAMOND) {
+            return null;
+        }
+
+        $prices = app(ListingPricer::class)->karatPrices((int) $listing->karat_code);
+        if ($prices === null || $prices->inverted) {
+            throw DomainApiException::priceUnavailable();
+        }
+
+        return $listing->category === PieceCategory::GOLD ? $prices->sellersGet : $prices->mid;
     }
 }

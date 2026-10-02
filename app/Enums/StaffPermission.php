@@ -87,6 +87,36 @@ enum StaffPermission: string
     /** Cancel an order (Part 1 §4.1 "Cancel an order"); spec 011: cancel an acceptance, refunding the buyer. */
     case ORDER_CANCEL = 'order.cancel';
 
+    /** See the Orders page and an order (spec 012; amounts on orders, not a wallet). */
+    case ORDER_VIEW = 'order.view';
+
+    /** Mark a piece received at the branch (spec 012; branch-scoped by the staff member's assigned branch). */
+    case ORDER_RECEIVE = 'order.receive';
+
+    /** Enter an inspection result (Part 1 §4.1 "Enter an inspection result"; spec 012). */
+    case INSPECTION_ENTER = 'inspection.enter';
+
+    /** Propose the new price after a stone regrade (spec 012; follows "Cancel an order"). */
+    case ORDER_PRICE_ADJUST = 'order.price_adjust';
+
+    /** Change the inspection branch on an open order (Part 1 §4.1; spec 012). */
+    case ORDER_CHANGE_BRANCH = 'order.change_branch';
+
+    /** Extend a deadline on request (Part 1 §4.1; spec 012). */
+    case ORDER_EXTEND_DEADLINE = 'order.extend_deadline';
+
+    /** Confirm handover at the counter (Part 1 §4.1; spec 012). */
+    case ORDER_HANDOVER = 'order.handover';
+
+    /** See every buy request across listings (product-owner decision 2026-10-01; spec 012). */
+    case BUY_REQUEST_VIEW = 'buy_request.view';
+
+    /** Any of these opens the inspection work list (spec 012 research R18). */
+    public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
+
+    /** Any of these opens the inspection results (spec 012 research R18). */
+    public const INSPECTIONS_ANY = 'inspection.enter|order.view';
+
     public function label(): string
     {
         return match ($this) {
@@ -114,6 +144,14 @@ enum StaffPermission: string
             self::LISTING_REQUEST_CHANGES => 'Ask a seller for a better photo',
             self::LISTING_TAKEDOWN => 'Take a live listing down',
             self::ORDER_CANCEL => 'Cancel an order',
+            self::ORDER_VIEW => 'View orders',
+            self::ORDER_RECEIVE => 'Mark a piece received at the branch',
+            self::INSPECTION_ENTER => 'Enter an inspection result',
+            self::ORDER_PRICE_ADJUST => 'Propose a new price after a regrade',
+            self::ORDER_CHANGE_BRANCH => 'Change the inspection branch on an open order',
+            self::ORDER_EXTEND_DEADLINE => 'Extend a deadline on request',
+            self::ORDER_HANDOVER => 'Confirm handover at the counter',
+            self::BUY_REQUEST_VIEW => 'View buy requests',
         };
     }
 
@@ -129,7 +167,9 @@ enum StaffPermission: string
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
             self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE => 'Money',
             self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
-            self::ORDER_CANCEL => 'Orders',
+            self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
+            self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
+            self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW => 'Orders',
         };
     }
 
@@ -190,6 +230,14 @@ enum StaffPermission: string
             // Spec 011 (Part 1 §4.1 "Cancel an order"): CEO, COO and Operations. It refunds a
             // held deposit to its owner; it moves no money of Dahab's, so the COO keeps it.
             self::ORDER_CANCEL => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
+            // Spec 012 (Part 1 §4.1, research R22). Amounts on orders are not a wallet, so Finance reads them.
+            self::ORDER_VIEW => [SeedRole::COO->value, SeedRole::FINANCE->value, SeedRole::OPERATIONS->value],
+            // Not in the Part 1 matrix: the COO holds it too (everything but wallets, spec 002), so a
+            // COO can still manage the Operations role that holds it.
+            self::ORDER_RECEIVE => [SeedRole::COO->value, SeedRole::OPERATIONS->value, SeedRole::IGI_BRANCH->value],
+            self::INSPECTION_ENTER, self::ORDER_HANDOVER => [SeedRole::IGI_BRANCH->value],
+            self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
+            self::BUY_REQUEST_VIEW => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
         };
     }
 }

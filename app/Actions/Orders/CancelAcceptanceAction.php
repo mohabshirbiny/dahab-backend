@@ -4,6 +4,7 @@ namespace App\Actions\Orders;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Actions\BuyRequests\Concerns\ReleasesRequests;
+use App\Actions\Orders\Concerns\MovesOrder;
 use App\Enums\AuditEvent;
 use App\Enums\BuyRequestEvent;
 use App\Enums\ListingState;
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class CancelAcceptanceAction
 {
-    use ReleasesRequests;
+    use MovesOrder, ReleasesRequests;
 
     public function __construct(
         private readonly RecordAuditLogAction $audit,
@@ -54,14 +55,14 @@ final class CancelAcceptanceAction
 
             $request = BuyRequest::query()->whereKey($order->buy_request_id)->lockForUpdate()->firstOrFail();
 
-            $order->forceFill([
-                'state' => OrderState::CANCELLED_STAFF,
+            $order = $this->moveOrder($order, OrderState::CANCELLED_STAFF, null, $actor, $reason, [
                 'cancelled_by' => $actor->staff_id,
                 'cancelled_at' => now(),
                 'cancel_reason' => $reason,
-            ])->save();
+            ]);
 
-            $this->deposits->release($request, null, $actor->staff_id, $order->order_id);
+            $txn = $this->deposits->release($request, null, $actor->staff_id, $order->order_id);
+            $order->forceFill(['release_txn_id' => $txn->ledger_txn_id])->save();
 
             $to = $relist ? ListingState::LIVE : ListingState::WITHDRAWN;
             $listing = $this->moveListing($listing, $to, null, $actor, $reason);

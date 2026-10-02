@@ -52,6 +52,7 @@ class Customer extends Authenticatable implements HasApiTokensContract
         'suspended_at',
         'suspended_note',
         'status_before_suspension',
+        'cancellations_reset_at',
     ];
 
     protected function casts(): array
@@ -61,6 +62,7 @@ class Customer extends Authenticatable implements HasApiTokensContract
             'is_suspended' => 'boolean',
             'email_verified_at' => 'datetime',
             'suspended_at' => 'datetime',
+            'cancellations_reset_at' => 'immutable_datetime',
             'suspended_reason' => SuspendedReason::class,
             'status' => CustomerStatus::class,
             'status_before_suspension' => CustomerStatus::class,

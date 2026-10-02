@@ -32,10 +32,15 @@ use InvalidArgumentException;
  *                 customer, reads a listing's line and the pieces a buyer asked for,
  *                 moves the caller's own request or the requests on the caller's own
  *                 listing, flips a listing live <-> reserved — not an elevation
+ *  - order:       the customer order Actions only (spec 012 research R2): keeps the
+ *                 customer, reads the counterparty's request, listing and display_ref
+ *                 for an order the caller is a party to, and lets the buyer move that
+ *                 listing to sold / awaiting_seller_return — not an elevation; every
+ *                 write under it is audited with the customer as actor (analysis C1)
  */
 final class DatabaseActor
 {
-    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market', 'queue'];
+    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market', 'queue', 'order'];
 
     public const ELEVATED = ['staff', 'bootstrap', 'system', 'maintenance'];
 
@@ -152,6 +157,34 @@ final class DatabaseActor
 
         $frame = self::current();
         self::push('queue', $frame['customer'] ?: null, $frame['staff'] ?: null);
+
+        try {
+            return $work();
+        } finally {
+            self::pop();
+        }
+    }
+
+    /**
+     * Run `$work` in the `order` scope (spec 012 research R2), keeping the
+     * current customer id. Pushed only by app/Actions/Orders/Customer/*
+     * (OrderScopeTest), with the transaction opened inside it so the deferred
+     * checks fire with the scope still set. An elevated caller (the sweep) is
+     * never narrowed.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public static function order(Closure $work): mixed
+    {
+        if (self::isElevated()) {
+            return $work();
+        }
+
+        $frame = self::current();
+        self::push('order', $frame['customer'] ?: null, $frame['staff'] ?: null);
 
         try {
             return $work();

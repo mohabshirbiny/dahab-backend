@@ -106,9 +106,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH003' => DomainApiException::illegalTopUpTransition(),
                 // Spec 010: the listing guard triggers (illegal move, unrecorded move, frozen columns).
                 'DH004' => DomainApiException::illegalListingTransition(),
-                // Spec 011: the buy-request and order guards; a second active request
-                // from the same buyer hits the partial unique index.
+                // Spec 011: the buy-request guards; a second active request from the
+                // same buyer hits the partial unique index. Spec 012: the order guard
+                // and its deferred checks have their own SQLSTATE, DH006.
                 'DH005' => DomainApiException::illegalBuyRequestTransition(),
+                'DH006' => DomainApiException::illegalOrderTransition(),
                 '23505' => str_contains($e->getMessage(), 'one_active_request_per_buyer_listing')
                     ? DomainApiException::alreadyInQueue()
                     : $e,
@@ -123,6 +125,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH001' => DomainApiException::insufficientFunds(),
                 'DH004' => DomainApiException::illegalListingTransition(),
                 'DH005' => DomainApiException::illegalBuyRequestTransition(),
+                'DH006' => DomainApiException::illegalOrderTransition(),
                 default => $e,
             };
         });
