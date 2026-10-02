@@ -63,13 +63,27 @@ deliberately not enabled.
 
 - **Customer**: a customer can act only on its own resources (`/customer/me/*`).
 - **Public market** (spec 010): served in a read-only `market` database scope — live/reserved listings and their public media only — and returns no seller field (no database view; `MarketLeakTest` guards it).
+- **Buy requests** (spec 011): a buyer reaches only their own requests (`buy_request` RLS), a seller only the line on
+  their own listing (404 otherwise), where each buyer appears as `display_ref` only; an order is visible to its buyer
+  and seller. Queue operations run in the non-elevated `queue` database scope (`QueueScopeTest`, `BuyRequestLeakTest`).
+- **Orders** (spec 012): a customer reaches only orders they are the buyer or seller of (`"order"` and its eight
+  tables under RLS, 404 otherwise); the other party appears as `counterparty_ref` (a display reference) only; a
+  collection or return code appears only in the owner's own order detail. A party's write that reaches the other
+  party's rows runs in the non-elevated, **audited** `order` scope (`OrderScopeTest`). Staff branch actions (receive,
+  inspection result, handover) are limited to the staff member's assigned branch — `403 wrong_branch`, audited — and
+  every answer an inspector can reach carries no money and no names (`InspectorLeakTest`).
 - **Staff**: permission-based via Spatie Permission, enforced per route by the
   `staff.permission:<code>` middleware (`EnforceStaffPermission`), which returns **403 `permission_denied`**
   and audit-logs the denial. The permission catalogue is `app/Enums/StaffPermission.php` (customers, identity,
   access control, reference data, pricing, audit, and — since spec 008 — `wallet.view`, and — since spec 009 —
   `topup.match` and `topup.accounts.manage`, all seeded to `ceo` and `finance`, never `coo`: wallet-touching codes
   skip the COO by default; and — since spec 010 — `listing.review`, `listing.request_changes` and `listing.takedown`,
-  seeded to `ceo`, `coo` and `operations`; the review queue and a listing open with any of the three).
+  seeded to `ceo`, `coo` and `operations`; the review queue and a listing open with any of the three; and — since
+  spec 011 — `order.cancel` (cancel an acceptance, refunding the buyer), seeded to `ceo`, `coo` and `operations`;
+  and — since spec 012 — `order.view` (coo, finance, operations), `order.receive` (coo, operations, igi_branch),
+  `inspection.enter` (igi_branch), `order.price_adjust`, `order.change_branch`, `order.extend_deadline` and
+  `buy_request.view` (coo, operations), `order.handover` (igi_branch); the work list opens with any of
+  `inspection.enter|order.receive|order.handover`, the inspection results with `inspection.enter|order.view`).
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -166,11 +180,23 @@ machine-readable value clients must switch on**; `message` is human text and may
   `illegal_topup_transition` 409 — a top-up status move not allowed, or a lost race (spec 009); from spec 010:
   `illegal_listing_transition` 409 (a listing move not allowed, or a lost race), `listing_not_editable` 409,
   `seller_suspended` 409 and `karat_disabled` 409 (approving a listing), `gold_needs_karat_weight` 422,
-  `branch_options_required` 422, `ownership_declaration_required` 422, `photo_required` 422, …).
+  `branch_options_required` 422, `ownership_declaration_required` 422, `photo_required` 422; from spec 011:
+  `price_moved` 409, `price_unavailable` 409, `already_in_queue` 409, `listing_not_purchasable` 409,
+  `cannot_buy_own_listing` 409, `deposit_agreement_required` 422, `not_in_queue` 409, `not_queue_head` 409,
+  `queue_empty` 409, `branch_not_in_options` 409, `buyer_suspended` 409, `branch_hours_unavailable` 409,
+  `order_not_cancellable` 409, `illegal_buy_request_transition` 409; from spec 012: `illegal_order_transition` 409
+  (an order move not allowed, or a lost race — SQLSTATE DH006, previously answered `illegal_buy_request_transition`),
+  `wrong_branch` 403, `inspection_correction_not_allowed` 409, `price_not_set` 409, `balance_deadline_passed` 409,
+  `settlement_not_possible` 409, `invalid_collection_code` **422** (not 401: a 401 makes the Dashboard sign out),
+  `handover_locked` 429, `order_not_open` 409, `deadline_not_running` 409, `deadline_must_move_forward` 422, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
-  should tolerate unknown keys.
+  should tolerate unknown keys. Since spec 011 a domain error may carry `details`, an object of decimal strings the
+  client needs to act: `insufficient_funds` on a buy request `{ deposit_amount, available, shortfall }`,
+  `price_moved` `{ current_price, deposit_amount }`; since spec 012 `insufficient_funds` on pay-balance
+  `{ amount_due, available, shortfall }`, `invalid_collection_code` `{ attempts_left }`, `handover_locked`
+  `{ retry_after }` (seconds).
 
 ## Idempotency
 
@@ -194,7 +220,11 @@ In use on: `POST /dashboard/customers/{id}/suspend`, `POST /dashboard/customers/
 every top-up POST: `POST /customer/me/wallet/topups`, `POST /customer/me/wallet/topups/{id}/cancel`,
 `POST /dashboard/topups` (credit by hand) and `POST /dashboard/topups/{id}/match|hold|unhold|reject`; and since spec 010
 every listing write: `POST /customer/me/listings`, `PATCH /customer/me/listings/{id}`,
-`POST /customer/me/listings/{id}/submit|withdraw` and `POST /dashboard/listings/{id}/approve|request-changes|reject|takedown`.
+`POST /customer/me/listings/{id}/submit|withdraw` and `POST /dashboard/listings/{id}/approve|request-changes|reject|takedown`;
+and since spec 011 every buy-request write: `POST /customer/me/buy-requests`, `POST /customer/me/buy-requests/{id}/withdraw`,
+`POST /customer/me/listings/{id}/accept|decline` and `POST /dashboard/orders/{id}/cancel`; and since spec 012 every
+order write: `POST /customer/me/orders/{id}/cancel|decision|pay-balance|relist` and
+`POST /dashboard/orders/{id}/receive|inspection-results|propose-price|change-branch|extend-deadline|handover|seller-return/handover`.
 
 ## Status codes in use
 
@@ -207,7 +237,7 @@ every listing write: `POST /customer/me/listings`, `PATCH /customer/me/listings/
 Named limiters on sensitive routes (`throttle:auth.customer.login`, `auth.customer.register`,
 `auth.customer.register.otp`, `auth.customer.register.documents`, `auth.otp.verify`, `auth.staff.login`,
 `auth.staff.mfa`, `auth.refresh`, `customer.uploads` (20/min since spec 010), `customer.topups`, `customer.listings`,
-`public.market`) plus the default API throttle. Identity lockouts
+`customer.buy_requests` (10/min, spec 011), `public.market`) plus the default API throttle. Identity lockouts
 return **429 `account_locked`**.
 
 ## CORS

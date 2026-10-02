@@ -68,6 +68,7 @@ it('shows one listing with everything the seller attached', function () {
         'id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description',
         'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive',
         'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw',
+        'queue_count', 'order', // spec 011
     ])
         ->and(array_column($data['media'], 'kind'))->toBe(['photo', 'photo', 'invoice'])
         ->and(collect($data['media'])->firstWhere('kind', 'invoice')['is_private'])->toBeTrue()

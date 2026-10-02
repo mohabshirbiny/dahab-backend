@@ -5,6 +5,7 @@ namespace App\Http\Resources\Market;
 use App\Enums\ListingMediaKind;
 use App\Http\Resources\ListingMediaResource;
 use App\Models\Listing;
+use App\Support\BuyRequests\DepositRule;
 use App\Support\Listings\ListingPricer;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -17,11 +18,11 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Schema(
     schema: 'MarketListingDetail',
-    description: 'A live piece in full (spec 010): MarketListing plus the description, the video, the stone certificate and, for gold, the parts of the price. No seller information.',
+    description: 'A live piece in full (spec 010): MarketListing plus the description, the video, the stone certificate, for gold the parts of the price, and (spec 011) the indicative deposit. No seller information.',
     allOf: [
         new OA\Schema(ref: '#/components/schemas/MarketListing'),
         new OA\Schema(
-            required: ['description', 'video', 'stone_certificate', 'price_parts'],
+            required: ['description', 'video', 'stone_certificate', 'price_parts', 'deposit_amount'],
             properties: [
                 new OA\Property(property: 'description', type: 'string', nullable: true),
                 new OA\Property(property: 'video', ref: '#/components/schemas/ListingMedia', nullable: true),
@@ -31,6 +32,7 @@ use OpenApi\Attributes as OA;
                     new OA\Property(property: 'gold_value', type: 'string', example: '55800.0000'),
                     new OA\Property(property: 'making_total', type: 'string', example: '2000.0000'),
                 ], type: 'object'),
+                new OA\Property(property: 'deposit_amount', type: 'string', nullable: true, example: '11640.0000', description: 'Spec 011 FR-002a: what a buy request would hold now (deposit.buyer_pct of current_price, half-up to the piastre). Indicative; null when there is no price.'),
             ],
         ),
     ],
@@ -49,6 +51,9 @@ class MarketListingDetailResource extends MarketListingResource
             'video' => ListingMediaResource::first($public, ListingMediaKind::VIDEO, ListingMediaResource::MARKET),
             'stone_certificate' => ListingMediaResource::first($public, ListingMediaKind::STONE_CERTIFICATE, ListingMediaResource::MARKET),
             'price_parts' => ListingPricer::for($request)->quote($l)->priceParts(),
+            'deposit_amount' => ($price = ListingPricer::for($request)->quote($l)->currentPrice) === null
+                ? null
+                : app(DepositRule::class)->deposit($price),
         ];
     }
 }

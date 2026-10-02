@@ -34,6 +34,9 @@ enum SettingKey: string
     case MANUALPRICE_CONFIRMER_MUST_DIFFER = 'manualprice.confirmer_must_differ';
     case PRICEFEED_STALE_AFTER_MINUTES = 'pricefeed.stale_after_minutes';
 
+    /** Spec 011: how far the confirmed price may be from the fresh one before a buy request is refused. */
+    case BUYREQUEST_PRICE_TOLERANCE_PCT = 'buyrequest.price_tolerance_pct';
+
     /** Money and price rules (Finance + CEO) or operations (founders) — research R1. */
     public function group(): SettingGroup
     {
@@ -85,7 +88,8 @@ enum SettingKey: string
         return match ($this) {
             self::COMMISSION_GOLD_PCT, self::COMMISSION_STONE_PCT, self::VAT_PCT,
             self::DEPOSIT_BUYER_PCT, self::DEPOSIT_SELLER_FORFEIT_SHARE_PCT,
-            self::INSPECTION_WEIGHT_TOLERANCE_PCT, self::MANUALPRICE_CONFIRM_DEVIATION_PCT => '100',
+            self::INSPECTION_WEIGHT_TOLERANCE_PCT, self::MANUALPRICE_CONFIRM_DEVIATION_PCT,
+            self::BUYREQUEST_PRICE_TOLERANCE_PCT => '100',
             self::MANUALPRICE_PENDING_EXPIRY_HOURS => '168',
             self::PRICEFEED_STALE_AFTER_MINUTES => '1440',
             default => null,

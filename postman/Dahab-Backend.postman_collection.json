@@ -180,6 +180,26 @@
             "key": "branch_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "buy_request_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "deposit_legal_doc_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "confirm_locked_price",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "order_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -3675,6 +3695,16 @@
                                             "}"
                                         ]
                                     }
+                                },
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "// Spec 011: the detail carries the queue and the latest order.",
+                                            "if (pm.response.code === 200) { const o = pm.response.json().data.order; if (o && o.id) pm.collectionVariables.set('order_id', o.id); }"
+                                        ]
+                                    }
                                 }
                             ]
                         },
@@ -3902,7 +3932,7 @@
                                         "takedown"
                                     ]
                                 },
-                                "description": "Spec 010. live \u2192 withdrawn with a reason the seller reads (10\u20131000 characters). Final; from live only. Audited (listing.taken_down). Requires listing.takedown and an Idempotency-Key.",
+                                "description": "Spec 010 FR-030, spec 011 FR-019. live or reserved \u2192 withdrawn with a reason; from reserved the line is released and refunded (the audit row carries released_count). Requires listing.takedown; Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"reason\": \"A buyer reported that the photos are taken from another listing.\"\n}",
@@ -3912,6 +3942,596 @@
                                         }
                                     }
                                 }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Orders",
+                    "description": "Spec 011: cancel an acceptance. Spec 012: show an order, receive the piece, record the inspection result, price a regrade, hand a returned piece back, the branch work list. Each needs its own permission; the branch actions are limited to the staff member's assigned branch.",
+                    "item": [
+                        {
+                            "name": "Cancel Acceptance",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-020a. An order awaiting delivery \u2192 cancelled_staff; the buyer's deposit is refunded in full; relist true: the piece goes back on the market (accepted \u2192 live), false: withdrawn for good. Audited (order.cancelled); buyer and seller told. Requires order.cancel; Idempotency-Key. Run Dashboard \u203a Listings \u203a Show Listing on the accepted piece first (saves order_id). 409 order_not_cancellable.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"The seller reported the piece damaged before delivery.\",\n  \"relist\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show Order",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-022. The order with figures, inspections, history, ledger entries and `can`. Requires order.view (ceo, coo, finance, operations). Never a code."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Receive Piece",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/receive",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "receive"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-003. awaiting_delivery → at_inspection. Requires order.receive (ceo, coo, operations, igi_branch); staff with an assigned branch act only there (403 wrong_branch, audited). Answers StaffOrder with order.view, else the money-free work-list item."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Record Inspection Result",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const j = pm.response.json();",
+                                            "if (j.data && j.data.inspection) { pm.environment.set('inspection_id', j.data.inspection.inspection_id); }"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/inspection-results",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "inspection-results"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-011. The server derives the outcome (pass | weight_adjust | stone_regrade | karat_cancel | fake_cancel). Requires inspection.enter (ceo, igi_branch), branch-scoped. Send supersedes_id (the latest inspection_id) only to correct. Saves inspection_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"measured_karat\": 21,\n  \"measured_weight_g\": \"9.900\",\n  \"measured_stone_grade\": null,\n  \"certificate_number\": \"IGI-EG-88214\",\n  \"inspector_note\": \"Hallmark clear and matches 21K.\",\n  \"is_counterfeit\": false,\n  \"stone_below_claim\": false,\n  \"supersedes_id\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Propose Regrade Price",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/propose-price",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "propose-price"
+                                    ]
+                                },
+                                "description": "Spec 012 research R11. Only after a stone_regrade, once. Requires order.price_adjust (ceo, coo, operations). Starts the buyer's decision clock.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"price\": \"108000.0000\",\n  \"reason\": \"Grade VS2 instead of VS1 per the IGI result.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Hand Back Returned Piece",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/seller-return/handover",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "seller-return",
+                                        "handover"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-019. Against the seller's code (Customer › Orders › Show My Order saves return_code). Requires order.handover (ceo, igi_branch), branch-scoped. 422 invalid_collection_code (details.attempts_left), 429 handover_locked after five.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"code\": \"{{return_code}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Branch Work List",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const j = pm.response.json();",
+                                            "const o = Array.isArray(j.data) ? j.data[0] : j.data;",
+                                            "if (o && o.id) { pm.collectionVariables.set('order_id', o.id); pm.environment.set('order_id', o.id); }"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/inspections/work-list",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "inspections",
+                                        "work-list"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-010. Pieces to receive, inspect, correct or hand over at your branch (every branch, optionally ?branch_id=, without one). No money, no names. Requires inspection.enter, order.receive or order.handover. Saves order_id (the first)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Hand Over To Buyer",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/handover",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "handover"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-020. Against the buyer's code (Customer › Orders › Pay Balance saves collection_code); check their ID at the counter. ready_to_collect → completed, no money. Requires order.handover (ceo, igi_branch), branch-scoped. 422 invalid_collection_code (details.attempts_left), 429 handover_locked after five.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"code\": \"{{collection_code}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Change Order Branch",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/change-branch",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "change-branch"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-008. Only while awaiting delivery (409 order_not_open). The branch must be one the seller named and enabled (409 branch_not_in_options). The clock keeps running unless extend_to is later. Requires order.change_branch (ceo, coo, operations).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"branch_id\": \"{{branch_id}}\",\n  \"reason\": \"The seller cannot reach the first branch this week.\",\n  \"extend_to\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Extend Order Deadline",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/extend-deadline",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "extend-deadline"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-009. which = reach_branch | balance | collect, for the deadline running in the order's state (409 deadline_not_running); the new instant must be later and in the future (422 deadline_must_move_forward). Requires order.extend_deadline (ceo, coo, operations).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"which\": \"reach_branch\",\n  \"new_deadline\": \"2026-12-31T18:00:00+02:00\",\n  \"reason\": \"The branch was closed when the seller went.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Orders",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const j = pm.response.json();",
+                                            "const o = Array.isArray(j.data) ? j.data[0] : j.data;",
+                                            "if (o && o.id) { pm.collectionVariables.set('order_id', o.id); pm.environment.set('order_id', o.id); }"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders?group=open&past_deadline=0&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders?group=open&past_deadline=0&per_page=25"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-022. group = open | waiting_seller | at_igi | needs_decision | waiting_balance | ready_to_collect | returns | closed | all; past_deadline; branch_id; q (order ref or customer display ref); keyset cursor. meta.counts per group. Requires order.view (ceo, coo, finance, operations). Saves order_id (the first)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Inspection Results",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/inspections?per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "inspections?per_page=25"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-022. Newest first; from / to (Cairo dates, default 30 days), branch_id, outcome. Corrections flagged (superseded). No money. Requires inspection.enter or order.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Buy Requests",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/buy-requests?state=queued&near_expiry=0&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "buy-requests?state=queued&near_expiry=0&per_page=25"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-023. Buy requests across listings, soonest reply deadline first; state queued | accepted | ended; listing_id; near_expiry (within 6 h); branch_id. Display references only. Read-only. Requires buy_request.view (ceo, coo, operations)."
                             },
                             "response": []
                         }
@@ -5554,7 +6174,636 @@
                                         "withdraw"
                                     ]
                                 },
-                                "description": "Spec 010. live \u2192 withdrawn, off the market at once. Final: there is no relisting. From live only. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
+                                "description": "Spec 010, spec 011 FR-019. live or reserved \u2192 withdrawn, off the market at once. Final: there is no relisting. From reserved, every buyer in line is released and refunded and told. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Buy Requests on My Listing",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/buy-requests",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "buy-requests"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-013. The line in order, buyers by display_ref only; meta.you_would_receive (indicative). 404 for a listing that is not yours."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    if (d.length) pm.collectionVariables.set('buy_request_id', d[0].id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Accept First Buy Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/accept",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "accept"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-014. The head of the queue only, at one of the listing's enabled branch options. Creates the order (DH-YYYY-NNNNNN, reach_branch_deadline in working hours), keeps the head's deposit held, releases and refunds everyone else, listing reserved \u2192 accepted. 409 not_queue_head | queue_empty | branch_not_in_options | buyer_suspended | branch_hours_unavailable.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"buy_request_id\": \"{{buy_request_id}}\",\n  \"branch_id\": \"{{branch_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Decline First Buy Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/decline",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "decline"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-015. The head only, no reason. Refunded; the next moves up; nobody left \u2192 live. 409 not_queue_head | queue_empty.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"buy_request_id\": \"{{buy_request_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Buy Requests",
+                    "description": "Spec 011 \u2014 buyer side. Sending needs the trade gate; reading and leaving need a verified customer (a suspended buyer may leave). Every POST needs an Idempotency-Key.",
+                    "item": [
+                        {
+                            "name": "Send Buy Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-001\u2013FR-008. On a live or reserved piece that is not yours: locks the fresh price (refused as price_moved beyond buyrequest.price_tolerance_pct, with details.current_price), holds deposit.buyer_pct of it (deposit_hold on the ledger), takes the next place in line, records the deposit terms. 409 insufficient_funds carries details.deposit_amount / available / shortfall. Run Market \u203a Show Listing and Reference \u203a Deposit Agreement first.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"listing_id\": \"{{market_listing_id}}\",\n  \"confirm_locked_price\": \"{{confirm_locked_price}}\",\n  \"deposit_legal_doc_id\": \"{{deposit_legal_doc_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    if (d && d.id) pm.collectionVariables.set('buy_request_id', d && d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List My Buy Requests",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests?per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 011 FR-009. Newest first; optional state and listing_id (the piece page uses listing_id + state=queued for \"your place in line\"). Keyset: per_page, cursor."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show My Buy Request",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests/{{buy_request_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests",
+                                        "{{buy_request_id}}"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-009. place_in_line / ahead_count while queued; order once accepted (order_ref, branch, reach_branch_deadline; state cancelled_staff if Dahab cancelled). 404 for anyone else's request."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Leave the Queue",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests/{{buy_request_id}}/withdraw",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests",
+                                        "{{buy_request_id}}",
+                                        "withdraw"
+                                    ]
+                                },
+                                "description": "Spec 011 FR-010/FR-011. queued \u2192 withdrawn_by_buyer; the deposit is back in available at once. notify_when_free: told once if the piece returns to the market with nobody in line. 409 not_in_queue otherwise.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"notify_when_free\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Orders",
+                    "description": "Spec 012. The order after acceptance, as buyer or seller. Reads, cancel and pay need a verified customer (a suspended one winds down); relist needs the trade gate. Every POST sends a fresh Idempotency-Key.",
+                    "item": [
+                        {
+                            "name": "List My Orders",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const j = pm.response.json();",
+                                            "const o = Array.isArray(j.data) ? j.data[0] : j.data;",
+                                            "if (o && o.id) { pm.collectionVariables.set('order_id', o.id); pm.environment.set('order_id', o.id); }",
+                                            "if (o && o.collection_code) { pm.environment.set('collection_code', o.collection_code); }",
+                                            "if (o && o.return_code) { pm.environment.set('return_code', o.return_code); }"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders?group=open",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "role",
+                                            "value": "buyer",
+                                            "description": "buyer | seller; leave off for both",
+                                            "disabled": true
+                                        },
+                                        {
+                                            "key": "group",
+                                            "value": "open",
+                                            "description": "open | closed; leave off for both"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 012 FR-001. Newest first, keyset (`cursor`, `per_page`). `role` buyer|seller, `group` open|closed. Never a code. Saves order_id (the first)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show My Order",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const j = pm.response.json();",
+                                            "const o = Array.isArray(j.data) ? j.data[0] : j.data;",
+                                            "if (o && o.id) { pm.collectionVariables.set('order_id', o.id); pm.environment.set('order_id', o.id); }",
+                                            "if (o && o.collection_code) { pm.environment.set('collection_code', o.collection_code); }",
+                                            "if (o && o.return_code) { pm.environment.set('return_code', o.return_code); }"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-001. Adds collection_code (the buyer, ready to collect) / return_code (the seller, a returned piece waiting). Saves them. 404 for anyone else's order."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Cancel Sale (Seller)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-005. awaiting_delivery → cancelled_seller: the buyer refunded, the cancellation counted, the piece withdrawn. Audited (order.seller_cancelled). The threshold suspension runs in the sweep, not here. 409 illegal_order_transition."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Pay Balance (Buyer)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const j = pm.response.json();",
+                                            "const o = Array.isArray(j.data) ? j.data[0] : j.data;",
+                                            "if (o && o.id) { pm.collectionVariables.set('order_id', o.id); pm.environment.set('order_id', o.id); }",
+                                            "if (o && o.collection_code) { pm.environment.set('collection_code', o.collection_code); }",
+                                            "if (o && o.return_code) { pm.environment.set('return_code', o.return_code); }"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/pay-balance",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "pay-balance"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-014–FR-016. The settlement: wallet only, in full, before the deadline; one balance_payment through escrow. Answers the order with collection_code (saved). 409 insufficient_funds (details amount_due, available, shortfall) | balance_deadline_passed | settlement_not_possible."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Relist Returned Piece (Seller)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/relist",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "relist"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-019. A returned piece waiting at the branch goes back live (gold takes the IGI-measured karat and weight). Trade gate. 409 illegal_listing_transition."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Decide Adjusted Price (Buyer)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/decision",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "decision"
+                                    ]
+                                },
+                                "description": "Spec 012 FR-013. After a weight adjustment (or a priced stone regrade): accept → awaiting the balance; decline → cancelled_inspection, deposit back, the piece returned to the seller. Send the inspection_id you answer (Show My Order → inspection.inspection_id). 409 price_not_set | inspection_correction_not_allowed (stale).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"accept\": true,\n  \"inspection_id\": \"{{inspection_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
                             },
                             "response": []
                         }
@@ -5737,6 +6986,48 @@
                                     }
                                 }
                             ]
+                        },
+                        {
+                            "name": "Deposit Agreement",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/legal-documents/deposit_agreement",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "legal-documents",
+                                        "deposit_agreement"
+                                    ]
+                                },
+                                "description": "Spec 011. The current deposit terms (id, version, English and Arabic text). A buy request sends this id as deposit_legal_doc_id; an older version is refused as deposit_agreement_required."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const d = pm.response.json().data;",
+                                            "    if (d && d.id) pm.collectionVariables.set('deposit_legal_doc_id', d && d.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },
@@ -5854,7 +7145,7 @@
                                 "{{market_listing_id}}"
                             ]
                         },
-                        "description": "Spec 010. One live piece: adds description, video, stone_certificate and, for gold, price_parts. 404 for anything that is not on the market. Public. Saves the first photo id as market_media_id.",
+                        "description": "Spec 010. One live piece: adds description, video, stone_certificate and, for gold, price_parts. 404 for anything that is not on the market. Public. Saves the first photo id as market_media_id. Spec 011 adds deposit_amount (indicative; deposit.buyer_pct of current_price).",
                         "auth": {
                             "type": "noauth"
                         }
@@ -5870,6 +7161,16 @@
                                     "    const d = pm.response.json().data;",
                                     "    pm.collectionVariables.set('market_media_id', d.photos && d.photos[0] ? d.photos[0].id : '');",
                                     "}"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "// Spec 011: the price a buy request confirms, and the indicative deposit.",
+                                    "if (pm.response.code === 200) { const d = pm.response.json().data; if (d.current_price) pm.collectionVariables.set('confirm_locked_price', d.current_price); }"
                                 ]
                             }
                         }

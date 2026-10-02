@@ -112,6 +112,8 @@ Staff authenticate with their own credentials and operate under:
 
 ### 3.4 IGI inspector — the narrowest role
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). The IGI branch account is a Dashboard staff user with the seed role `igi_branch` and an assigned branch; there is no separate `/igi` surface. Branch scope comes from the **assigned branch** (spec 004), never a role name: a staff member with a branch receives, inspects and hands over only there (`wrong_branch` 403, audited); one with none acts at every branch. The order codes are not spec 002 "branch-scoped" permissions. Every answer an inspector can reach (the work list, a result, a receive or handover for a caller without `order.view`) carries no price, wallet figure, name, phone or email (`InspectorLeakTest`).
+
 The `igi_branch` account is external staff with the tightest permission set of any role. Auth-layer specifics:
 
 - It is **branch-scoped**: it may act only on pieces routed to *its own* branch, and only while those pieces are in inspection. This is not just a permission flag — the service filters every read and write by `inspection.branch_id = session.branch_id`, and a later part's RLS-style guard on the IGI-facing views enforces it.
@@ -128,6 +130,8 @@ The service resolves every privileged endpoint against the staff member's effect
 
 ### 4.1 Listings and orders
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). New catalogue codes, editable from the Dashboard (the CEO holds every code): `order.view` *View orders* (COO, Finance, Operations — amounts on orders are not a wallet), `order.receive` *Mark a piece received at the branch* (COO, Operations, IGI), `inspection.enter` *Enter an inspection result* (IGI), `order.price_adjust` *Propose a new price after a regrade* (COO, Operations), `order.change_branch` *Change the inspection branch on an open order* (COO, Operations), `order.extend_deadline` *Extend a deadline on request* (COO, Operations), `order.handover` *Confirm handover at the counter* (IGI), `buy_request.view` *View buy requests* (COO, Operations). "Check the ID of someone collecting for another" is not built (proxy collection is out of scope).
+
 | Action | CEO | COO | Finance | Operations | Verification | IGI |
 |---|---|---|---|---|---|---|
 | Approve or reject a new listing (`listing.review`) | ✓ | ✓ | — | ✓ | — | — |
@@ -141,6 +145,8 @@ The service resolves every privileged endpoint against the staff member's effect
 | Enter an inspection result | ✓ | — | — | — | — | ✓ |
 | Confirm handover at the counter | ✓ | — | — | — | — | ✓ |
 | Check the ID of someone collecting for another | — | — | — | — | — | ✓ |
+
+> **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). "Cancel an order" is built as the code `order.cancel` (CEO, COO, Operations; editable from the Dashboard). Until the orders module it cancels an **acceptance** only: an order awaiting delivery becomes `cancelled_staff`, the buyer's deposit is refunded in full, and the piece is relisted or withdrawn (staff choose). It is not a seller cancellation.
 
 > **Changed by spec 010** — see [`specs/010-listings/spec.md`](../../specs/010-listings/spec.md). The first three rows are built as the catalogue codes shown. `listing.review` covers approving **and rejecting** (a new final state `rejected`). The review queue, a listing and its media (the private invoice included) open with **any** of the three codes.
 
@@ -215,6 +221,8 @@ authorize(staff, action):
 
 ### 5.1 Customer row-level security
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). The eight tables of the order's life (`order_state_change`, `order_branch_change`, `order_deadline_extension`, `seller_cancellation`, `inspection_result`, `settlement_decision`, `collection`, `seller_return`) join forced RLS: a customer sees only rows of orders they are a party to. A party's action that reaches the other party's rows (the seller's cancel refunds the buyer; the buyer's payment pays the seller and marks the seller's listing sold) runs in a new non-elevated **`order`** scope, pushed only by `app/Actions/Orders/Customer/*`, and **audited** with the customer as actor (`order.seller_cancelled`, `order.decided`, `order.paid`, `order.relisted`). No customer path elevates: the automatic suspension at the cancellation threshold is a separate sweep pass by the system actor. A recorded deviation from Constitution II like `queue`, proven by `OrderScopeTest`, `OrderIsolationTest` and the leak tests.
+
 > **Implemented by spec 003** (2026-09-26) — see [`specs/003-customer-rls-isolation/`](../../specs/003-customer-rls-isolation/). The binding model below replaces the earlier `SET LOCAL` wording.
 
 RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the application connects as the table owner) on every customer-owned table. Today those are `customer`, `customer_password`, `customer_trusted_device`, `identity_document`, customer rows of `one_time_token` and — since spec 008 — the wallet accounts and their ledger rows (`account`, `ledger_transaction`, `ledger_posting`; a customer reads only their own, and only the money service's dedicated `ledger` scope may insert — [`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)). Since spec 010 ([`specs/010-listings/spec.md`](../../specs/010-listings/spec.md)) the listing tables are under forced RLS too: `listing` (owner = `seller_id`), `listing_media`, `listing_branch_option`, `listing_ownership_declaration`, `listing_state_change`, `listing_queue_seq` (through their listing) and `agreement_acceptance`. `buy_request`, `order`, `payout_account` and `withdrawal` join when their modules land. In a customer context, `audit_log` accepts only inserts where the customer is the actor and returns nothing on read, and `document_view_log` is closed. Each policy is `dahab_rls_elevated() OR <owner> = dahab_current_customer_id()`: buyer or seller for orders, the owner for everything else. **With no actor bound, customer tables return nothing and accept no writes (fail closed).**
@@ -234,6 +242,8 @@ RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the applicati
 | none | nothing | everything else |
 
 The customer id comes only from the authenticated session, written by the framework (§7), never from request input. The application's database role must be neither superuser nor `BYPASSRLS`; a test enforces this, and another test fails the build if a table with a customer owner column lacks forced RLS and a policy.
+
+> **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). `buy_request` (owner: the buyer) and `"order"` (owners: the seller and the buyer) join forced RLS. A queue operation spans two customers (a buyer's join moves the seller's listing; a seller's accept refunds other buyers), so the buy-request Actions push a non-elevated **`queue`** scope: it reads a listing's line and the pieces a buyer asked for, moves only the caller's own request or the requests on the caller's own listing, flips a listing only between live and reserved, sees no other customer table, and never narrows an elevated caller. A customer's own reads of their requests never use it. This is a recorded deviation from Constitution II (`specs/011-buy-requests/plan.md`), proven by `QueueScopeTest` and `BuyRequestLeakTest`.
 
 ### 5.2 Wallet visibility is a permission
 

@@ -94,7 +94,7 @@ it('lists every setting with its group, range and last change, and the history',
     $list = $this->withToken(staffAccessToken($ops))->getJson('/api/v1/dashboard/settings')->assertOk()->json('data');
     $reply = collect($list)->firstWhere('key', 'deadline.seller_reply_hours');
 
-    expect(count($list))->toBe(24)
+    expect(count($list))->toBe(25)
         ->and($reply)->toMatchArray(['group' => 'operations', 'type' => 'numeric', 'unit' => 'hours', 'min' => '1', 'max' => null, 'integer' => true])
         ->and($reply['updated_by']['id'])->toBe($this->coo->staff_id);
 

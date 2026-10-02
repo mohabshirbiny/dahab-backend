@@ -40,6 +40,11 @@ final class ReinstateCustomerAction
             $customer->reinstate();
             $customer->save();
 
+            // Spec 012 FR-007: seller cancellations count again from this moment (the
+            // database clock, to the microsecond, like seller_cancellation.cancelled_at).
+            DB::table('customer')->where('customer_id', $customer->customer_id)
+                ->update(['cancellations_reset_at' => DB::raw('clock_timestamp()')]);
+
             // Spec 010 FR-037: the listings held by the suspension go back on the market.
             $restored = $this->listings->restore($actor, $customer->customer_id);
 

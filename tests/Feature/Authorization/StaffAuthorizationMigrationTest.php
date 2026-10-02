@@ -28,12 +28,12 @@ it('seeds today\'s access map plus the new access-control permissions for both f
     $this->seed([DashboardRolesAndPermissionsSeeder::class, LocalStaffSeeder::class]);
 
     $expected = [
-        'ceo' => ['audit.view_all', 'audit.view_own', 'branches.manage', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'],
-        'coo' => ['audit.view_own', 'branches.manage', 'customer.suspend', 'karats.create', 'listing.request_changes', 'listing.review', 'listing.takedown', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
-        'finance' => ['audit.view_own', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'karats.toggle', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'],
-        'operations' => ['audit.view_own', 'branches.manage', 'listing.request_changes', 'listing.review', 'listing.takedown', 'pricing.view', 'reference.view'],
+        'ceo' => ['audit.view_all', 'audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'inspection.enter', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.handover', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'],
+        'coo' => ['audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'karats.create', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
+        'finance' => ['audit.view_own', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'karats.toggle', 'order.view', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'],
+        'operations' => ['audit.view_own', 'branches.manage', 'buy_request.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.view', 'reference.view'],
         'verification' => ['audit.view_own', 'customer.view', 'identity.review', 'identity.view'],
-        'igi_branch' => [],
+        'igi_branch' => ['inspection.enter', 'order.handover', 'order.receive'],
     ];
 
     foreach ($expected as $role => $permissions) {

@@ -4,8 +4,11 @@ use App\Enums\StaffPermission;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerAuthController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
+use App\Http\Controllers\Api\V1\Customer\BuyRequestController as CustomerBuyRequestController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Customer\ListingController as CustomerListingController;
+use App\Http\Controllers\Api\V1\Customer\ListingQueueController as CustomerListingQueueController;
+use App\Http\Controllers\Api\V1\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
@@ -14,12 +17,15 @@ use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBranchClosureController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
+use App\Http\Controllers\Api\V1\Dashboard\BuyRequestController as DashboardBuyRequestController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPriceController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
+use App\Http\Controllers\Api\V1\Dashboard\InspectionController as DashboardInspectionController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
+use App\Http\Controllers\Api\V1\Dashboard\OrderController as DashboardOrderController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\ReceivingAccountController as DashboardReceivingAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
@@ -158,6 +164,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     Route::get('/{listing}', [CustomerListingController::class, 'show'])->whereUuid('listing')->name('show');
                     Route::get('/{listing}/media/{media}', [CustomerListingController::class, 'media'])
                         ->whereUuid(['listing', 'media'])->name('media');
+                    // Spec 011: the line on the seller's own listing.
+                    Route::get('/{listing}/buy-requests', [CustomerListingQueueController::class, 'index'])
+                        ->whereUuid('listing')->name('buy-requests');
                 });
 
                 Route::middleware('customer.gate:trade')->group(function () {
@@ -169,6 +178,50 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->whereUuid('listing')->middleware('idempotent')->name('submit');
                     Route::post('/{listing}/withdraw', [CustomerListingController::class, 'withdraw'])
                         ->whereUuid('listing')->middleware('idempotent')->name('withdraw');
+                    // Spec 011: the seller answers the first buyer in line.
+                    Route::post('/{listing}/accept', [CustomerListingQueueController::class, 'accept'])
+                        ->whereUuid('listing')->middleware('idempotent')->name('accept');
+                    Route::post('/{listing}/decline', [CustomerListingQueueController::class, 'decline'])
+                        ->whereUuid('listing')->middleware('idempotent')->name('decline');
+                });
+            });
+
+            // Spec 011: the buyer's requests. Sending needs the trade gate; reading and
+            // leaving the queue need a verified customer (a suspended buyer may leave).
+            // Every POST needs an Idempotency-Key (`idempotent` runs last).
+            Route::prefix('buy-requests')->name('buy-requests.')->group(function () {
+                Route::middleware('customer.gate:verified')->group(function () {
+                    Route::get('/', [CustomerBuyRequestController::class, 'index'])->name('index');
+                    Route::get('/{buyRequest}', [CustomerBuyRequestController::class, 'show'])->whereUuid('buyRequest')->name('show');
+                    Route::post('/{buyRequest}/withdraw', [CustomerBuyRequestController::class, 'withdraw'])
+                        ->whereUuid('buyRequest')->middleware('idempotent')->name('withdraw');
+                });
+
+                Route::middleware('customer.gate:trade')->group(function () {
+                    Route::post('/', [CustomerBuyRequestController::class, 'store'])
+                        ->middleware(['throttle:customer.buy_requests', 'idempotent'])->name('store');
+                });
+            });
+
+            // Spec 012: the order after acceptance, buyer and seller. Reads, the seller's
+            // cancel and the buyer's payment need a verified customer (a suspended
+            // customer winds down open orders, Part 3 §9.2); relisting a returned
+            // piece is new trading. Every POST needs an Idempotency-Key.
+            Route::prefix('orders')->name('orders.')->group(function () {
+                Route::middleware('customer.gate:verified')->group(function () {
+                    Route::get('/', [CustomerOrderController::class, 'index'])->name('index');
+                    Route::get('/{order}', [CustomerOrderController::class, 'show'])->whereUuid('order')->name('show');
+                    Route::post('/{order}/cancel', [CustomerOrderController::class, 'cancel'])
+                        ->whereUuid('order')->middleware('idempotent')->name('cancel');
+                    Route::post('/{order}/decision', [CustomerOrderController::class, 'decision'])
+                        ->whereUuid('order')->middleware('idempotent')->name('decision');
+                    Route::post('/{order}/pay-balance', [CustomerOrderController::class, 'payBalance'])
+                        ->whereUuid('order')->middleware('idempotent')->name('pay-balance');
+                });
+
+                Route::middleware('customer.gate:trade')->group(function () {
+                    Route::post('/{order}/relist', [CustomerOrderController::class, 'relist'])
+                        ->whereUuid('order')->middleware('idempotent')->name('relist');
                 });
             });
         });
@@ -372,6 +425,47 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/{listing}/takedown', [DashboardListingController::class, 'takedown'])
                     ->whereUuid('listing')->middleware(['staff.permission:listing.takedown', 'idempotent'])->name('takedown');
             });
+
+        // Spec 011: cancel an acceptance. Spec 012: the order's life after acceptance —
+        // each action behind its own permission; the branch actions are scoped to the
+        // staff member's assigned branch in the Action. Every POST is idempotent
+        // (`idempotent` runs last) and audited.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('orders')->name('orders.')->group(function () {
+                Route::get('/', [DashboardOrderController::class, 'index'])
+                    ->middleware('staff.permission:order.view')->name('index');
+                Route::get('/{order}', [DashboardOrderController::class, 'show'])
+                    ->whereUuid('order')->middleware('staff.permission:order.view')->name('show');
+                Route::post('/{order}/cancel', [DashboardOrderController::class, 'cancel'])
+                    ->whereUuid('order')->middleware(['staff.permission:order.cancel', 'idempotent'])->name('cancel');
+                Route::post('/{order}/receive', [DashboardOrderController::class, 'receive'])
+                    ->whereUuid('order')->middleware(['staff.permission:order.receive', 'idempotent'])->name('receive');
+                Route::post('/{order}/inspection-results', [DashboardOrderController::class, 'inspectionResult'])
+                    ->whereUuid('order')->middleware(['staff.permission:inspection.enter', 'idempotent'])->name('inspection-results');
+                Route::post('/{order}/propose-price', [DashboardOrderController::class, 'proposePrice'])
+                    ->whereUuid('order')->middleware(['staff.permission:order.price_adjust', 'idempotent'])->name('propose-price');
+                Route::post('/{order}/handover', [DashboardOrderController::class, 'handover'])
+                    ->whereUuid('order')->middleware(['staff.permission:order.handover', 'idempotent'])->name('handover');
+                Route::post('/{order}/change-branch', [DashboardOrderController::class, 'changeBranch'])
+                    ->whereUuid('order')->middleware(['staff.permission:order.change_branch', 'idempotent'])->name('change-branch');
+                Route::post('/{order}/extend-deadline', [DashboardOrderController::class, 'extendDeadline'])
+                    ->whereUuid('order')->middleware(['staff.permission:order.extend_deadline', 'idempotent'])->name('extend-deadline');
+                Route::post('/{order}/seller-return/handover', [DashboardOrderController::class, 'sellerReturnHandover'])
+                    ->whereUuid('order')->middleware(['staff.permission:order.handover', 'idempotent'])->name('seller-return.handover');
+            });
+
+        // Spec 012: the branch work list and the inspection results — never a price or a name.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('inspections')->name('inspections.')->group(function () {
+                Route::get('/', [DashboardInspectionController::class, 'index'])
+                    ->middleware('staff.permission:'.StaffPermission::INSPECTIONS_ANY)->name('index');
+                Route::get('/work-list', [DashboardInspectionController::class, 'workList'])
+                    ->middleware('staff.permission:'.StaffPermission::WORK_LIST_ANY)->name('work-list');
+            });
+
+        // Spec 012: buy requests across listings, read-only (product-owner decision 2026-10-01).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:buy_request.view'])
+            ->get('/buy-requests', [DashboardBuyRequestController::class, 'index'])->name('buy-requests.index');
 
         // The audit log viewer (spec 006): everything, or your own actions only.
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:audit.view_all|audit.view_own'])

@@ -89,13 +89,14 @@ it('requires a reason of 1 to 1000 characters', function (string $reason) {
 })->with(['empty' => '', 'blank' => '   ', 'too long' => str_repeat('x', 1001)]);
 
 it('copies the references of the original', function () {
+    // A reference without a foreign key (order_id and buy_request_id have one since spec 011).
     $order = (string) DB::selectOne('SELECT gen_random_uuid() AS id')->id;
     $original = DB::transaction(fn () => app(PostLedgerEntryAction::class)->handle(new LedgerEntry(
         LedgerEventKind::TOPUP,
         [new LedgerLine(Account::internal(AccountKind::BANK), '-5'), new LedgerLine(Ledger::available($this->customer), '5')],
         actorCustomerId: $this->customer->customer_id,
-        orderId: $order,
+        listingId: $order,
     )));
 
-    expect(reverse($original->ledger_txn_id, $this->staff->staff_id)->order_id)->toBe($order);
+    expect(reverse($original->ledger_txn_id, $this->staff->staff_id)->listing_id)->toBe($order);
 });

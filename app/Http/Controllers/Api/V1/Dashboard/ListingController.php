@@ -204,8 +204,8 @@ class ListingController extends Controller
     #[OA\Post(
         path: '/dashboard/listings/{listing}/takedown',
         operationId: 'dashboardTakeDownListing',
-        summary: 'Take a live listing down',
-        description: 'Spec 010 FR-030, Part 2 §3. live → withdrawn with a reason the seller reads; off the market at once. Final. From live only (a reserved listing, with its queue released and refunded, comes with buy requests). Audited (listing.taken_down); the seller gets the reason by SMS/email after commit. Idempotent. Requires listing.takedown.',
+        summary: 'Take a live or reserved listing down',
+        description: 'Spec 010 FR-030, Part 2 §3; spec 011 FR-019. live or reserved → withdrawn with a reason the seller reads; off the market at once. Final. From reserved, every buyer in line is released (released_declined) and refunded in the same transaction and told the piece was withdrawn; the audit row (listing.taken_down) carries released_count. The seller gets the reason by SMS/email after commit. Idempotent. Requires listing.takedown.',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ListingReasonRequest')),
         tags: ['Dashboard Listings'],
@@ -219,7 +219,7 @@ class ListingController extends Controller
             new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 409, description: 'illegal_listing_transition (not live) | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_listing_transition (not live or reserved) | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 422, description: 'validation_failed (reason 10–1000 characters) | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]

@@ -3,9 +3,12 @@
 namespace App\Http\Resources\Staff;
 
 use App\Enums\ListingState;
+use App\Enums\OrderState;
 use App\Enums\StaffPermission;
 use App\Http\Resources\Customer\ListingResource as CustomerListingResource;
+use App\Http\Resources\Customer\OrderSummaryResource;
 use App\Http\Resources\ListingMediaResource;
+use App\Models\BuyRequest;
 use App\Models\Listing;
 use App\Models\ListingStateChange;
 use App\Models\Staff;
@@ -48,7 +51,31 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'can_approve', type: 'boolean'),
         new OA\Property(property: 'can_request_changes', type: 'boolean'),
         new OA\Property(property: 'can_reject', type: 'boolean'),
-        new OA\Property(property: 'can_take_down', type: 'boolean'),
+        new OA\Property(property: 'can_take_down', type: 'boolean', description: 'Live or (spec 011) reserved, and the caller holds listing.takedown'),
+        new OA\Property(property: 'queue', type: 'array', description: 'Detail only (spec 011). The queued buy requests, in line order, read-only.', items: new OA\Items(properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'place_in_line', type: 'integer'),
+            new OA\Property(property: 'buyer', properties: [
+                new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+                new OA\Property(property: 'display_ref', type: 'string'),
+            ], type: 'object'),
+            new OA\Property(property: 'locked_total_price', type: 'string'),
+            new OA\Property(property: 'deposit_amount', type: 'string'),
+            new OA\Property(property: 'requested_at', type: 'string', format: 'date-time'),
+            new OA\Property(property: 'seller_reply_deadline', type: 'string', format: 'date-time'),
+        ], type: 'object')),
+        new OA\Property(property: 'order', nullable: true, description: 'Detail only (spec 011). The latest order on the piece: OrderSummary plus id, buyer, deposit_amount and can_cancel (awaiting_delivery and the caller holds order.cancel).', allOf: [
+            new OA\Schema(ref: '#/components/schemas/OrderSummary'),
+            new OA\Schema(properties: [
+                new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+                new OA\Property(property: 'buyer', properties: [
+                    new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+                    new OA\Property(property: 'display_ref', type: 'string'),
+                ], type: 'object'),
+                new OA\Property(property: 'deposit_amount', type: 'string', nullable: true),
+                new OA\Property(property: 'can_cancel', type: 'boolean'),
+            ]),
+        ]),
         new OA\Property(property: 'history', type: 'array', description: 'Detail only. Oldest first.', items: new OA\Items(properties: [
             new OA\Property(property: 'from_state', type: 'string', nullable: true),
             new OA\Property(property: 'to_state', type: 'string'),
@@ -93,7 +120,47 @@ class ListingResource extends JsonResource
             'can_approve' => $l->state === ListingState::IN_REVIEW && $can(StaffPermission::LISTING_REVIEW),
             'can_request_changes' => $l->state === ListingState::IN_REVIEW && $can(StaffPermission::LISTING_REQUEST_CHANGES),
             'can_reject' => $l->state === ListingState::IN_REVIEW && $can(StaffPermission::LISTING_REVIEW),
-            'can_take_down' => $l->state === ListingState::LIVE && $can(StaffPermission::LISTING_TAKEDOWN),
+            // Spec 011: a reserved piece can be taken down too; its line is released and refunded.
+            'can_take_down' => in_array($l->state, [ListingState::LIVE, ListingState::RESERVED], true) && $can(StaffPermission::LISTING_TAKEDOWN),
+        ] + ($l->relationLoaded('queuedRequests') ? ['queue' => self::queue($l)] : [])
+          + ($l->relationLoaded('order') ? ['order' => self::order($l, $can(StaffPermission::ORDER_CANCEL))] : []);
+    }
+
+    /**
+     * Detail only (spec 011 FR-025): the line, read-only, buyers by reference.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function queue(Listing $l): array
+    {
+        return $l->queuedRequests->values()->map(fn (BuyRequest $r, int $i) => [
+            'id' => $r->buy_request_id,
+            'place_in_line' => $i + 1,
+            'buyer' => ['id' => $r->buyer_id, 'display_ref' => $r->buyer?->display_ref],
+            'locked_total_price' => bcadd((string) $r->locked_total_price, '0', 4),
+            'deposit_amount' => bcadd((string) $r->deposit_amount, '0', 4),
+            'requested_at' => $r->requested_at->toIso8601String(),
+            'seller_reply_deadline' => $r->seller_reply_deadline->toIso8601String(),
+        ])->all();
+    }
+
+    /**
+     * Detail only (spec 011 FR-025, FR-020a): the latest order on the piece.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function order(Listing $l, bool $mayCancel): ?array
+    {
+        $order = $l->order;
+        if ($order === null) {
+            return null;
+        }
+
+        return OrderSummaryResource::shape($order) + [
+            'id' => $order->order_id,
+            'buyer' => ['id' => $order->buyer_id, 'display_ref' => $order->buyer?->display_ref],
+            'deposit_amount' => $order->buyRequest === null ? null : bcadd((string) $order->buyRequest->deposit_amount, '0', 4),
+            'can_cancel' => $order->state === OrderState::AWAITING_DELIVERY && $mayCancel,
         ];
     }
 

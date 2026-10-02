@@ -28,7 +28,8 @@ class SuspendCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => ['required', Rule::enum(SuspendedReason::class)],
+            // Spec 012: repeated_cancellations is the system's own reason, never a staff choice.
+            'reason' => ['required', Rule::enum(SuspendedReason::class)->except(SuspendedReason::REPEATED_CANCELLATIONS)],
             'note' => ['required', 'string', 'min:1', 'max:'.self::NOTE_MAX],
         ];
     }

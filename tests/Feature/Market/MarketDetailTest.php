@@ -42,7 +42,7 @@ it('shows a live piece in full, with no token', function () {
     expect(array_keys($data))->toBe([
         'id', 'category', 'piece_type', 'karat', 'weight_g', 'making_charge_per_g', 'current_price', 'price_available',
         'price_is_indicative', 'photos', 'branch_options', 'queue_count', 'listed_at', 'is_mine',
-        'description', 'video', 'stone_certificate', 'price_parts',
+        'description', 'video', 'stone_certificate', 'price_parts', 'deposit_amount',
     ])
         ->and($data['description'])->toBe($this->listing->description)
         ->and($data['photos'])->toHaveCount(2)

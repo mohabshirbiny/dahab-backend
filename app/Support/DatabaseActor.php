@@ -28,10 +28,19 @@ use InvalidArgumentException;
  *  - market:      the public market only (spec 010): reads live/reserved
  *                 listings, their branch options and their public media;
  *                 writes nothing and carries no customer — not an elevation
+ *  - queue:       the buy-request service only (spec 011 research R2): keeps the
+ *                 customer, reads a listing's line and the pieces a buyer asked for,
+ *                 moves the caller's own request or the requests on the caller's own
+ *                 listing, flips a listing live <-> reserved — not an elevation
+ *  - order:       the customer order Actions only (spec 012 research R2): keeps the
+ *                 customer, reads the counterparty's request, listing and display_ref
+ *                 for an order the caller is a party to, and lets the buyer move that
+ *                 listing to sold / awaiting_seller_return — not an elevation; every
+ *                 write under it is audited with the customer as actor (analysis C1)
  */
 final class DatabaseActor
 {
-    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market'];
+    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market', 'queue', 'order'];
 
     public const ELEVATED = ['staff', 'bootstrap', 'system', 'maintenance'];
 
@@ -118,6 +127,64 @@ final class DatabaseActor
     public static function market(Closure $work): mixed
     {
         self::push('market');
+
+        try {
+            return $work();
+        } finally {
+            self::pop();
+        }
+    }
+
+    /**
+     * Run `$work` in the `queue` scope (spec 011 research R2), keeping the
+     * current customer / staff ids. Pushed only by the buy-request Actions and
+     * the seller's withdrawal of a reserved listing (QueueScopeTest). Callers
+     * open their transaction inside it, so the deferred checks fire at commit
+     * with this scope still set (analysis H1).
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public static function queue(Closure $work): mixed
+    {
+        // Never narrows an elevated caller (staff, a system job, maintenance): it
+        // already sees what the queue scope would, and more.
+        if (self::isElevated()) {
+            return $work();
+        }
+
+        $frame = self::current();
+        self::push('queue', $frame['customer'] ?: null, $frame['staff'] ?: null);
+
+        try {
+            return $work();
+        } finally {
+            self::pop();
+        }
+    }
+
+    /**
+     * Run `$work` in the `order` scope (spec 012 research R2), keeping the
+     * current customer id. Pushed only by app/Actions/Orders/Customer/*
+     * (OrderScopeTest), with the transaction opened inside it so the deferred
+     * checks fire with the scope still set. An elevated caller (the sweep) is
+     * never narrowed.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public static function order(Closure $work): mixed
+    {
+        if (self::isElevated()) {
+            return $work();
+        }
+
+        $frame = self::current();
+        self::push('order', $frame['customer'] ?: null, $frame['staff'] ?: null);
 
         try {
             return $work();

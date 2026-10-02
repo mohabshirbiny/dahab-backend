@@ -71,6 +71,25 @@ enum AuditEvent: string
     case LISTING_CHANGES_REQUESTED = 'listing.changes_requested';
     case LISTING_REJECTED = 'listing.rejected';
     case LISTING_TAKEN_DOWN = 'listing.taken_down';
+    case ORDER_CANCELLED = 'order.cancelled';
+
+    // Spec 012: the order's life after acceptance.
+    case ORDER_RECEIVED = 'order.received';
+    case ORDER_BRANCH_CHANGED = 'order.branch_changed';
+    case ORDER_DEADLINE_EXTENDED = 'order.deadline_extended';
+    case ORDER_PRICE_PROPOSED = 'order.price_proposed';
+    case ORDER_HANDED_OVER = 'order.handed_over';
+    case ORDER_HANDOVER_FAILED = 'order.handover_failed';
+    case ORDER_RETURN_HANDED_OVER = 'order.return_handed_over';
+    case INSPECTION_RESULT_RECORDED = 'inspection.result_recorded';
+    // Sweep effects (system actor).
+    case ORDER_FORFEITED = 'order.forfeited';
+    case ORDER_WINDOW_PASSED = 'order.window_passed';
+    // Customer writes under the `order` scope (analysis C1): audited with the customer as actor.
+    case ORDER_SELLER_CANCELLED = 'order.seller_cancelled';
+    case ORDER_DECIDED = 'order.decided';
+    case ORDER_PAID = 'order.paid';
+    case ORDER_RELISTED = 'order.relisted';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -143,6 +162,21 @@ enum AuditEvent: string
             self::LISTING_CHANGES_REQUESTED => 'Changes requested on a listing',
             self::LISTING_REJECTED => 'Listing rejected',
             self::LISTING_TAKEN_DOWN => 'Listing taken down',
+            self::ORDER_CANCELLED => 'Acceptance cancelled',
+            self::ORDER_RECEIVED => 'Piece received at the branch',
+            self::ORDER_BRANCH_CHANGED => 'Order branch changed',
+            self::ORDER_DEADLINE_EXTENDED => 'Order deadline extended',
+            self::ORDER_PRICE_PROPOSED => 'New price proposed after a regrade',
+            self::ORDER_HANDED_OVER => 'Piece handed over to the buyer',
+            self::ORDER_HANDOVER_FAILED => 'Wrong collection code',
+            self::ORDER_RETURN_HANDED_OVER => 'Returned piece handed back to the seller',
+            self::INSPECTION_RESULT_RECORDED => 'Inspection result recorded',
+            self::ORDER_FORFEITED => 'Deposit forfeited, the buyer did not pay',
+            self::ORDER_WINDOW_PASSED => 'Storage window passed',
+            self::ORDER_SELLER_CANCELLED => 'Seller cancelled the sale',
+            self::ORDER_DECIDED => 'Buyer decided on an adjusted price',
+            self::ORDER_PAID => 'Buyer paid the balance',
+            self::ORDER_RELISTED => 'Seller relisted a returned piece',
         };
     }
 
@@ -161,6 +195,10 @@ enum AuditEvent: string
             self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
             self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,
             self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN => AuditCategory::LISTINGS,
+            self::ORDER_CANCELLED, self::ORDER_RECEIVED, self::ORDER_BRANCH_CHANGED, self::ORDER_DEADLINE_EXTENDED,
+            self::ORDER_PRICE_PROPOSED, self::ORDER_HANDED_OVER, self::ORDER_HANDOVER_FAILED, self::ORDER_RETURN_HANDED_OVER,
+            self::INSPECTION_RESULT_RECORDED, self::ORDER_SELLER_CANCELLED, self::ORDER_DECIDED, self::ORDER_PAID,
+            self::ORDER_RELISTED, self::ORDER_FORFEITED, self::ORDER_WINDOW_PASSED => AuditCategory::ORDERS,
         };
     }
 

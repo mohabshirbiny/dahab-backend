@@ -18,6 +18,9 @@ enum SuspendedReason: string
     case CUSTOMER_REQUEST = 'customer_request';
     case OTHER = 'other';
 
+    /** Spec 012: set only by the system when a seller's cancellations reach the threshold. */
+    case REPEATED_CANCELLATIONS = 'repeated_cancellations';
+
     public function label(): string
     {
         return match ($this) {
@@ -28,6 +31,13 @@ enum SuspendedReason: string
             self::IDENTITY_UNCONFIRMED => 'Identity could not be confirmed',
             self::CUSTOMER_REQUEST => 'They asked us to close it',
             self::OTHER => 'Something else',
+            self::REPEATED_CANCELLATIONS => 'Cancelled too many accepted sales',
         };
+    }
+
+    /** The seven reasons staff choose from (spec 007); `repeated_cancellations` is set by the system only. */
+    public static function staffChoices(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $r) => $r !== self::REPEATED_CANCELLATIONS));
     }
 }

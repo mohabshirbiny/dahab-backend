@@ -193,7 +193,7 @@ Missing:         anything not found, stated exactly (endpoint / field / permissi
 Action needed:   Backend → … · Dashboard → … · Customer App → …
 ```
 
-## Current state (verified 2026-09-30 — re-verify before relying on it)
+## Current state (verified 2026-10-02 — re-verify before relying on it)
 
 - Backend implements: health, customer registration (6 steps) / login / new-device OTP / refresh / me /
   logout, customer uploads + identity-document submission; staff login + MFA / refresh / me / logout;
@@ -230,19 +230,46 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   review queue (`/dashboard/listings*`: approve, request changes, reject, take down; `listing.review`,
   `listing.request_changes`, `listing.takedown`), the `listing_state` machine (guard trigger + `listing_transition`,
   `illegal_listing_transition` 409, history in `listing_state_change`; `rejected` and `withdrawn` are final), SMS +
-  email to the seller on each decision, and a suspended seller's live listings held and restored. No buy requests,
-  orders or settlement yet. Nothing else yet.
+  email to the seller on each decision, and a suspended seller's live listings held and restored;
+  buy requests (spec 011) — a buyer joins a piece's line (`/customer/me/buy-requests*`: send with the deposit terms
+  `deposit_agreement`, list, leave), the deposit (`deposit.buyer_pct` of the locked price) held on the ledger
+  (`deposit_hold` / `deposit_release`), price locked within `buyrequest.price_tolerance_pct`; the seller's line
+  (`/customer/me/listings/{id}/buy-requests|accept|decline`: the head only; accept creates the `"order"` row with
+  `DH-YYYY-NNNNNN` and the reach-branch deadline from the working-hours resolver, releasing the others); a per-minute
+  sweep `buy-requests:expire`; take-down / withdrawal / seller suspension from `reserved` release the line; staff
+  cancel an acceptance (`POST /dashboard/orders/{id}/cancel`, `order.cancel`, order `cancelled_staff`, refund, relist
+  or withdraw). Queue operations run in the non-elevated `queue` RLS scope;
+  orders (spec 012) — the life after acceptance: the customer's orders (`/customer/me/orders*`: list, detail with the
+  owner's collection/return code, the seller's cancel before delivery, the buyer's decision on an adjusted price,
+  pay-balance from the wallet, relist a returned piece), the branch work list and staff actions
+  (`/dashboard/orders*`: list with groups and counts, detail with ledger/timeline/`can`, receive, inspection results
+  with corrections, propose a price after a stone regrade, change branch, extend a deadline, hand over to the buyer
+  or back to the seller against a 6-digit code with a 5-try lock; `/dashboard/inspections*`; `/dashboard/buy-requests`),
+  eight permissions (`order.view|receive|price_adjust|change_branch|extend_deadline|handover`, `inspection.enter`,
+  `buy_request.view`; branch scope from the staff member's assigned branch), settlement on the rates locked at the
+  request (buyer) and at acceptance (seller) as one `balance_payment` through escrow, the no-pay `deposit_forfeit`,
+  the per-minute `orders:sweep` (missed delivery, unanswered adjustment, no-pay, return and collection windows,
+  reminders, suspension for repeated cancellations), history in `order_state_change` (guard SQLSTATE DH006
+  `illegal_order_transition`), the audited non-elevated `order` RLS scope. Disputes, invoices and withdrawals are not
+  built. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
   (spec 008); Incoming transfers and Controls → Receiving accounts are live (spec 009); Listings to review is live
-  (spec 010); the rest of the Overview and other sections are mock.
+  (spec 010), with the read-only line, the order box, Cancel acceptance and the Buyers in line / Accepted chips
+  (spec 011); Orders, Inspections (work list and results) and Buy requests are live (spec 012); the rest of the
+  Overview and other sections are mock.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
   (public market, filtered on the device), the sell flow and My listings are live (spec 010; the on-form payout
-  estimate, saved pieces and the buy flow are still mock); orders, invoices, withdrawals, notifications, etc.
-  run on mock repositories (`lib/services/mock_repositories.dart`).
+  estimate and saved pieces are still mock); the buy flow is live (spec 011: Send buy request with the deposit terms,
+  Request sent, You need a little more, the place in line and Leave the queue on the piece page, the seller's
+  Accept with the branch pick / Decline on their piece); Orders are live (spec 012: the orders and the requests not
+  accepted on the Orders tab, and the order screen — bring the piece with a countdown, cancel the sale, the
+  inspection result, accept/decline a new price, pay the balance with You need a little more → Add funds, the
+  collection code, the returned piece with its code and Put it back on the market); the prototype's other order
+  screens, invoices, withdrawals, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed
   with `--dart-define` only when building a deploy version.
 

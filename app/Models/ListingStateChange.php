@@ -28,6 +28,40 @@ class ListingStateChange extends Model
 
     public const NOTE_REINSTATED = 'account_reinstated';
 
+    /** Notes written by the buy-request module (spec 011). */
+    public const NOTE_BUY_REQUEST_QUEUED = 'buy_request_queued';
+
+    public const NOTE_QUEUE_EMPTIED = 'queue_emptied';
+
+    public const NOTE_BUY_REQUEST_ACCEPTED = 'buy_request_accepted';
+
+    /** Notes written by the orders module (spec 012). */
+    public const NOTE_PIECE_RECEIVED = 'piece_received';
+
+    public const NOTE_SELLER_CANCELLED = 'seller_cancelled';
+
+    public const NOTE_DEADLINE_MISSED = 'deadline_missed';
+
+    public const NOTE_INSPECTED = 'inspected';
+
+    public const NOTE_INSPECTION_CANCELLED = 'inspection_cancelled';
+
+    public const NOTE_ADJUSTMENT_DECLINED = 'adjustment_declined';
+
+    public const NOTE_BALANCE_PAID = 'balance_paid';
+
+    public const NOTE_BUYER_DID_NOT_PAY = 'buyer_did_not_pay';
+
+    public const NOTE_RETURN_COLLECTED = 'return_collected';
+
+    public const NOTE_RETURN_WINDOW_PASSED = 'return_window_passed';
+
+    public const NOTE_COLLECTION_WINDOW_PASSED = 'collection_window_passed';
+
+    public const NOTE_COLLECTED = 'collected';
+
+    public const NOTE_COLLECT_DEADLINE_EXTENDED = 'collect_deadline_extended';
+
     protected $table = 'listing_state_change';
 
     protected $primaryKey = 'change_id';

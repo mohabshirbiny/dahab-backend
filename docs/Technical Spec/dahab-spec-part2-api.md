@@ -133,6 +133,8 @@ Single public listing detail (same restrictions): adds `description`, `video`, `
 ### `GET /market/listings/{id}/media/{media}`
 The decrypted file of a public media item of a publicly visible listing, streamed, `Cache-Control: no-store`. **404** otherwise (private media, another listing's media, a listing that left the market).
 
+> **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). `GET /market/listings/{id}` adds `deposit_amount` (indicative: `deposit.buyer_pct` of `current_price`, half-up to the piastre; null when unpriced), so the app never computes the deposit.
+
 ### Reference data for the apps (spec 010)
 Unauthenticated, limiter `public.market`: `GET /reference/karats` (enabled karats), `GET /reference/piece-types?category=` (enabled types, EN/AR names, typical weights), `GET /reference/branches` (enabled branches, EN/AR name and address), `GET /reference/legal-documents/{code}` (the current version of a legal text, e.g. `ownership_declaration`).
 
@@ -214,6 +216,8 @@ Seller takes a listing down: `live → withdrawn`. **Final** — a withdrawn pie
 
 ### `POST /dashboard/listings/{id}/takedown`
 Take a live listing down (`live → withdrawn`, final). From `reserved` — with the queue released and refunded — once the buy-request module exists.
+
+> **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). Built: staff take-down and the seller's withdrawal (`POST /customer/me/listings/{id}/withdraw`) also work from `reserved`. Every queued request becomes `released_declined` with its own `deposit_release` refund in the same transaction, and each buyer is told the piece was withdrawn; the take-down audit row carries `released_count`.
 - **permission:** `listing.takedown` · **audited:** yes · **reason:** required (10–1000) · **idempotent:** required
 
 **Notifications (spec 010).** Approve, request-changes (with the message), reject (with the reason) and takedown (with the reason) each send the seller an SMS, plus an email when they have one, after commit.
@@ -221,6 +225,12 @@ Take a live listing down (`live → withdrawn`, final). From `reserved` — with
 ---
 
 ## 4. Buying — the queue (buy requests)
+
+> **As built by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md) and [`contracts/buy-requests-api.md`](../../specs/011-buy-requests/contracts/buy-requests-api.md). Paths follow the customer surface:
+> - **Join** — `POST /customer/me/buy-requests` with `{ listing_id, confirm_locked_price, deposit_legal_doc_id }` (trade gate, `throttle:customer.buy_requests`, Idempotency-Key). The fresh calculator price is locked when the confirmed one is within the setting **`buyrequest.price_tolerance_pct`** (0.5); beyond it `price_moved` (409, `details.current_price`, `details.deposit_amount`). The deposit is `deposit.buyer_pct` of the locked price, **half-up to the piastre**. `insufficient_funds` carries `details.deposit_amount`, `available`, `shortfall`. New refusals: `cannot_buy_own_listing` (409), `price_unavailable` (409, a gold piece with no usable price). The deposit terms are the legal document **`deposit_agreement`** (v1 seeded); a stale id is `deposit_agreement_required` (422); each acceptance is an `agreement_acceptance` (context `buy_request`) linked from `buy_request.deposit_acceptance_id`. `category_paused` is not raised (no `category_control` yet).
+> - **Follow / leave** — `GET /customer/me/buy-requests` (filters `state`, `listing_id`; keyset), `GET /customer/me/buy-requests/{id}`, `POST /customer/me/buy-requests/{id}/withdraw` `{ notify_when_free }` (verified gate: a suspended buyer may read and leave). Responses add `place_in_line`, `ahead_count` and, once accepted, `order`.
+> - **Seller's queue** — `GET /customer/me/listings/{id}/buy-requests`: the whole line, buyer `display_ref` only, `meta.you_would_receive` (indicative, once for the listing).
+> - **Listing state** — `trg_sync_queue` counts only; the application moves `live ↔ reserved` with a history row naming the actor, and a deferred check refuses a commit where they disagree.
 
 This is the most concurrency-sensitive area in the system. It implements the locked queue model (open-questions §3): multiple buyers queue FIFO on one listing; **each holds their own deposit and locks their own price at request time**; the seller accepts the first active in line and all others are released and refunded at once; no standby queue behind the accepted buyer.
 
@@ -268,6 +278,13 @@ Buyer leaves the line (`queued → withdrawn_by_buyer`).
 
 ## 5. Acceptance & branch selection
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). **Accept** now also locks the seller's per-gram rate on the order (`locked_seller_unit_rate`: `sellers_get` for gold, the unadjusted mid for gold with diamond) and writes the order's first history row; a gold piece that cannot be priced now is refused `price_unavailable` (409). **Seller cancel** is `POST /customer/me/orders/{order}/cancel` (verified gate — a suspended seller winds down), audited `order.seller_cancelled`: `cancelled_seller`, the buyer refunded in full, a `seller_cancellation`, the listing `accepted → withdrawn`; it never suspends — the sweep applies `suspension.cancellations_threshold`. **Change branch** is `POST /dashboard/orders/{order}/change-branch` `{branch_id, reason, extend_to?}` (`order.change_branch`; only while awaiting delivery — `order_not_open`; a named, enabled branch — `branch_not_in_options`; the clock keeps running unless `extend_to` is later — then also an extension). **Extend deadline** is `POST /dashboard/orders/{order}/extend-deadline` `{which: reach_branch|balance|collect, new_deadline, reason}` (`order.extend_deadline`; the deadline running in the order's state — `deadline_not_running`; forward and in the future — `deadline_must_move_forward` 422; its reminder may fire again; a reopened collection window puts the piece back to `sold`). Reason 10–1000 required, no cap, audited, both parties told.
+
+> **As built by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md).
+> - **Accept** — `POST /customer/me/listings/{id}/accept` `{ buy_request_id, branch_id }` (trade gate, Idempotency-Key). The branch must be one of the listing's options **and enabled** (`branch_not_in_options`). New refusals: `buyer_suspended` (409, the head's buyer is suspended — the seller may decline them) and `branch_hours_unavailable` (409, the resolver finds no working time). The order is created with `order_ref` `DH-YYYY-NNNNNN` (`order_ref_seq`, never resets) and nothing moves it afterwards until the orders module. `201 { order, listing, released_count }`.
+> - **Decline** — `POST /customer/me/listings/{id}/decline` `{ buy_request_id }`: the **head only**, no reason; `released_declined` with refund; the next becomes the head; empty → live. Refusals `not_queue_head`, `queue_empty`.
+> - **Staff cancel** — `POST /dashboard/orders/{id}/cancel` `{ reason, relist }` (permission `order.cancel`, audited `order.cancelled`, Idempotency-Key): `awaiting_delivery → cancelled_staff`, the buyer's deposit refunded in full, the listing `accepted → live | withdrawn`. `order_not_cancellable` (409) otherwise. Seller cancel, branch change and deadline extension remain the orders module's.
+
 Implements the locked decision: the seller accepts the **first active in line**; the final branch is chosen now from the listing's named options; the reach-branch deadline starts at acceptance and is counted in **working hours** at that branch (schema §9).
 
 ### `POST /listings/{id}/accept`  (seller accepts the head of the queue)
@@ -312,6 +329,8 @@ Only an admin can change the branch after acceptance; the deadline **keeps runni
 ---
 
 ## 6. Inspection & settlement
+
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: `GET /dashboard/inspections/work-list` (`inspection.enter` | `order.receive` | `order.handover`, no money or names); `POST /dashboard/orders/{order}/receive` (`order.receive`); `POST /dashboard/orders/{order}/inspection-results` (`inspection.enter`) with `measured_karat`, `measured_weight_g`, `measured_stone_grade`, `certificate_number`, `inspector_note`, `is_counterfeit`, `stone_below_claim`, `supersedes_id`. The outcome adds the inspector's two flags: counterfeit → `fake_cancel`, a stone below its claim → `stone_regrade`. Karat or counterfeit: the buyer refunded, the seller suspended (`piece_misrepresented`) by the inspector, the piece returned to the seller with a code and no compensation. A weight adjustment asks the buyer at the price on the measured weight (the locked rates); a stone regrade waits for `POST /dashboard/orders/{order}/propose-price` (`order.price_adjust`). A correction supersedes the latest result only while the order waits for the buyer or the balance, before any decision or payment (`inspection_correction_not_allowed` 409). The buyer's decision is `POST /customer/me/orders/{order}/decision` `{accept, inspection_id}` (verified gate, audited `order.decided`; `price_not_set` before a regrade is priced; a stale `inspection_id` → `inspection_correction_not_allowed`); an adjustment unanswered by `decision_due_deadline` is declined by the sweep (no decision row, no forfeiture).
 
 Implements the immutable-inspection rule and the karat rule (schema §10). Results are entered by the IGI branch account (Part 1 §3.4), which sees no prices, wallets or contact details.
 
@@ -366,6 +385,8 @@ Buyer's decision when a weight adjustment or stone regrade needs approval (schem
 ---
 
 ## 7. Balance payment, settlement & collection
+
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). **Pay balance** is `POST /customer/me/orders/{order}/pay-balance` (verified gate — a suspended buyer may pay), audited `order.paid`. Wallet only, in full, once, before `balance_due_deadline` (`deadline.buyer_pay_days` **calendar** days). One `balance_payment` transaction: buyer available −balance, buyer held −deposit, [buyer available +excess when the total is below the deposit], escrow +total / −total, seller available +proceeds, `dahab_commission`, `vat_payable`, `dahab_spread` (may be negative when the locked rates crossed; zero lines omitted). Figures stored on the order. `insufficient_funds` carries `amount_due`, `available`, `shortfall`; `settlement_not_possible` (409) when proceeds would be ≤ 0. The 6-digit collection code is stored as an HMAC and also encrypted so the buyer reads it in their own order detail (never a list, never staff). **Handover** of a returned piece to its seller is `POST /dashboard/orders/{order}/seller-return/handover` (`order.handover`): a wrong code answers **422** `invalid_collection_code` (not 401, which would sign Dashboard staff out) with `attempts_left`; the fifth locks it 15 minutes (429 `handover_locked`, `retry_after`). The seller may instead relist (`POST /customer/me/orders/{order}/relist`, trade gate; a gold piece takes the IGI-measured karat and weight). The buyer's **handover** is `POST /dashboard/orders/{order}/handover` (`order.handover`, branch-scoped, same code rules): `ready_to_collect → completed`, no money; a piece past its collection window goes back from `uncollected_expired` to `sold` first. Tax invoices are out of scope.
 
 Implements the **locked money-timing decision**: the seller is settled and Dahab takes commission + spread + VAT **at balance payment (`pay-balance`), not at collection.** Collection (`handover`) becomes a **physical handover only, with zero money movement.** The full price still transits `escrow`, but as an **instantaneous pass-through inside the one `pay-balance` transaction** — money enters `escrow` and is distributed out of it in the same atomic step — rather than resting there from payment until collection.
 
@@ -676,15 +697,17 @@ Publish a new legal version (`legal_document`); a material change forces re-acce
 
 ## 11. Background jobs (not endpoints, but part of the API surface's contract)
 
+> **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). Built: `orders:sweep`, every minute, system actor, one item per transaction — the cancellation threshold (suspends the seller, `repeated_cancellations`), missed reach-branch deadlines (`cancelled_seller`, refund), the threshold again, the reach-branch reminder (3 working hours before) and the balance reminder (24 h before), the unpaid balance (`cancelled_buyer_nopay`, forfeit, piece returned) and the seller-return window (`seller_unclaimed`, calendar weeks). Also the unanswered adjustment (declined, system actor) and the collection window (listing `sold → uncollected_expired`, the buyer told; the order stays ready to collect).
+
 These are scheduled workers that drive deadline-based transitions. They are listed here because they produce the same audited, ledgered effects as endpoints and must obey the same one-transaction rule. Each runs as the system actor (the single `staff` row with `is_system = true`, `App\Support\SystemActor`, spec 002) recorded in the audit log.
 
-- **Seller-reply deadline sweep.** Requests past `seller_reply_deadline` while still `queued` → `released_expired`, deposit refunded. (Per request; FIFO integrity preserved.)
+- **Seller-reply deadline sweep.** Requests past `seller_reply_deadline` while still `queued` → `released_expired`, deposit refunded. (Per request; FIFO integrity preserved.) *Built by spec 011: `buy-requests:expire`, every minute, one transaction per request, system actor; the buyer is told.*
 - **Reach-branch deadline sweep.** Orders past `reach_branch_deadline` in `awaiting_delivery` → `cancelled_seller` path (or a distinct no-deliver cancellation), buyer refunded; counts toward seller suspension.
 - **Balance-payment deadline sweep.** Orders past `balance_due_deadline` in `awaiting_balance` → order `cancelled_buyer_nopay` (terminal accounting record) **and** the **piece returns to the seller**: listing `settling/at_inspection/accepted → awaiting_seller_return`, and a `seller_return` row is opened with `return_deadline = now() + deadline.seller_return_weeks` (working hours). **Deposit forfeiture** (`event_kind = deposit_forfeit`): the buyer's held deposit is split — `deposit.seller_forfeit_share_pct` (50%) to the seller's `cust_available` (recorded as `seller_return.compensation_txn_id`), remainder to `dahab_*` — drafted as **agreed compensation, not a penalty** (open-questions §1, for the legal clinic; the split ratio is a setting). Full workflow (incl. the seller-return collection and the `awaiting_seller_return → seller_unclaimed` escalation) is in Part 3. Because the seller was **not** yet paid (the buyer never paid, so settlement never fired), there is no seller settlement to reverse here.
 - **Seller-return deadline sweep.** Returned pieces past `seller_return.return_deadline` while still uncollected (`collected_at IS NULL`) → listing `awaiting_seller_return → seller_unclaimed`; a status is shown to the seller ("window passed, not our liability"). Disposition (hand over / compensate) is a **manual decision** when the seller makes contact (decision #3; Part 3). The order stays `cancelled_buyer_nopay` throughout — the afterlife rides on the listing, never the order.
 - **Collection-deadline sweep.** Orders past `collect_deadline` in `ready_to_collect` → listing `sold → uncollected_expired`; the order stays terminal (`completed` once handed over, but here it was never handed over — it remains `ready_to_collect` as the *order* accounting state while the *listing* carries `uncollected_expired`). Fire a buyer notification. **Disposition is a manual decision when the buyer makes contact** (decision #4 — hand over the piece, or refund from `escrow`): the money source for a refund is the escrowed price, which is why §7 keeps escrow on the path. The system provides the state, the notification, and the manual hand-over/refund actions; it does **not** auto-dispose. *(This was OI-2.1; decision #4 resolves the disposition to a manual path. The commercial choice per case — hand over vs refund — is made by an operator, not automated.)*
 - **Withdrawal-pause expiry.** `on_hold_account_change → under_review` once `pause_until` elapses.
-- **Notify-when-free.** When a listing returns to `live` with zero active requests, notify buyers who left with `notify_when_free = true` (they rejoin at the back — locked decision).
+- **Notify-when-free.** When a listing returns to `live` with zero active requests, notify buyers who left with `notify_when_free = true` (they rejoin at the back — locked decision). *Built by spec 011: an after-commit job; `buy_request.free_notified_at` makes it once per leave; a buyer already back in line is skipped.*
 - **Pattern/cap flags.** When transaction counts cross `flag.pattern_txn_threshold`, raise a review flag. ⚠️ **Who receives the alert and by which channel is unresolved** (open-questions §5; Part 1 OI-1.3). **OI-2.2.**
 
 ---
@@ -704,7 +727,18 @@ Auth codes are in Part 1 §9. Domain codes introduced above:
 | `listing_not_purchasable` | 409 | join queue (wrong listing state) |
 | `category_stopped` / `category_paused` | 409 | listing create / buy |
 | `deposit_agreement_required` / `ownership_declaration_required` | 422 | buy / list |
-| `not_in_queue` / `not_queue_head` / `queue_empty` | 409 | withdraw / accept |
+| `not_in_queue` / `not_queue_head` / `queue_empty` | 409 | withdraw / accept / decline |
+| `cannot_buy_own_listing` / `price_unavailable` | 409 | join queue (spec 011) |
+| `buyer_suspended` / `branch_hours_unavailable` | 409 | accept (spec 011) |
+| `order_not_cancellable` | 409 | staff cancel acceptance (spec 011) |
+| `illegal_order_transition` | 409 | any guarded order change — SQLSTATE DH006 since spec 012 (was DH005) |
+| `inspection_correction_not_allowed` / `price_not_set` | 409 | inspection correction / buyer decision before a regrade price (spec 012) |
+| `deadline_not_running` / `order_not_open` | 409 | extend a deadline / change the branch (spec 012) |
+| `deadline_must_move_forward` | 422 | extend a deadline / change the branch (spec 012) |
+| `settlement_not_possible` | 409 | pay-balance when the proceeds would be ≤ 0 (spec 012) |
+| `invalid_collection_code` | **422** | handover — spec 012 deviation from the 401 below: a 401 signs Dashboard staff out |
+| `handover_locked` | 429 | five wrong codes, 15 minutes (spec 012) |
+| `illegal_buy_request_transition` | 409 | any guarded request / order change (SQLSTATE DH005, spec 011) |
 | `branch_not_in_options` | 409 | accept / change-branch |
 | `illegal_listing_transition` / `illegal_order_transition` / `illegal_withdrawal_transition` | 409 | any guarded state change |
 | `listing_not_editable` | 409 | edit a listing outside draft / changes requested (spec 010) |

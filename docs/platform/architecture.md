@@ -53,6 +53,11 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
   branches, the ownership declaration) need no token; the Customer App reads them. The market runs in the read-only
   `market` database scope, which sees live listings only, and its Resources never return the seller or private media.
   There is no database view for this (a recorded deviation: see `specs/010-listings/plan.md`).
+- **Buy requests (spec 011)**: a queue operation spans two customers, so the buy-request Actions run in a
+  non-elevated **`queue`** database scope (`DatabaseActor::queue()`): it reads a listing's line, moves only the
+  caller's own request or the requests on the caller's own listing, never narrows an elevated caller, and is never used
+  for a customer's own reads. A recorded deviation from Constitution II (`specs/011-buy-requests/plan.md`), guarded by
+  `QueueScopeTest` and `BuyRequestLeakTest`. Deferred triggers read under a scope they set themselves.
 - **Customer data isolation (spec 003)**: every customer-owned table has **forced** row-level security.
   `App\Support\DatabaseActor` binds the scope (`customer` · `staff` · `bootstrap` · `system` · `maintenance`)
   per request, queued job or CLI migrate/seed, and restores it afterwards; no scope sees no customer rows.

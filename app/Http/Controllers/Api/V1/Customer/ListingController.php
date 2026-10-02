@@ -192,7 +192,7 @@ class ListingController extends Controller
         path: '/customer/me/listings/{listing}/withdraw',
         operationId: 'customerWithdrawListing',
         summary: 'Take a live listing off the market',
-        description: 'Spec 010 FR-014, Part 2 §3. live → withdrawn, at once. Final: a withdrawn piece is sold again only as a new listing. From live only (withdrawing a reserved listing comes with buy requests). Trade gate. Idempotent.',
+        description: 'Spec 010 FR-014, Part 2 §3; spec 011 FR-019. live or reserved → withdrawn, at once. Final: a withdrawn piece is sold again only as a new listing. From reserved, every buyer in line is released (released_declined), refunded in the same transaction and told the piece was withdrawn. Trade gate. Idempotent.',
         security: [['customerBearer' => []]],
         tags: ['Customer Listings'],
         parameters: [
@@ -205,7 +205,7 @@ class ListingController extends Controller
             new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 403, description: 'verification_required | account_suspended', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 409, description: 'illegal_listing_transition (not live) | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_listing_transition (not live or reserved) | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]
     public function withdraw(Request $request, string $listing, WithdrawListingAction $withdraw): JsonResponse

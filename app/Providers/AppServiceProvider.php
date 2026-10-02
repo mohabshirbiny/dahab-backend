@@ -137,6 +137,11 @@ class AppServiceProvider extends ServiceProvider
             return $this->limit((int) config('dahab-listings.listings_per_minute'), 60, 'customer-listings:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
         });
 
+        // Spec 011: buy requests sent per customer.
+        RateLimiter::for('customer.buy_requests', function (Request $request) {
+            return $this->limit((int) config('dahab-buy-requests.send_per_minute'), 60, 'customer-buy-requests:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         RateLimiter::for('public.market', function (Request $request) {
             return $this->limit((int) config('dahab-listings.market_per_minute'), 60, 'public-market:'.$request->ip());
         });

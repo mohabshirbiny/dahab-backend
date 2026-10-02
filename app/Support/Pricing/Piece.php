@@ -30,4 +30,14 @@ final readonly class Piece
     {
         return new self(PieceCategory::GOLD_WITH_DIAMOND, $karat, $weight, null, $askingPrice, $commissionWaived);
     }
+
+    /**
+     * A piece priced on rates locked earlier (spec 012 research R6): no karat
+     * pricing is needed, the per-gram rates come from the order. The weight is
+     * the IGI-measured one; the asking price may be a regrade's accepted price.
+     */
+    public static function locked(PieceCategory $category, ?string $weight, ?string $makingPerGram, ?string $askingPrice): self
+    {
+        return new self($category, null, $weight, $makingPerGram, $askingPrice, false);
+    }
 }

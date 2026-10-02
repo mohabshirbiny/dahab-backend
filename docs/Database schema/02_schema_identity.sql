@@ -114,8 +114,13 @@ ALTER TABLE customer
   ADD CONSTRAINT customer_suspended_reason_check CHECK (
     suspended_reason IS NULL OR suspended_reason IN (
       'piece_misrepresented','off_platform_dealing','repeated_disputes',
-      'reported_by_users','identity_unconfirmed','customer_request','other')
+      'reported_by_users','identity_unconfirmed','customer_request','other',
+      'repeated_cancellations')  -- spec 012: set only by the system (cancellation threshold)
   );
+
+-- spec 012: seller cancellations count toward suspension.cancellations_threshold
+-- from this moment (set at reinstatement, the database clock).
+ALTER TABLE customer ADD COLUMN cancellations_reset_at TIMESTAMPTZ;
 
 -- Identity documents. Photos are encrypted at rest (application-side or
 -- pgcrypto); this table holds references + verification metadata, not raw
@@ -188,6 +193,8 @@ CREATE POLICY agreement_acceptance_isolation ON agreement_acceptance FOR ALL
 -- Seed: the ownership declaration ticked when listing a piece, version 1,
 -- published by the system actor (no Dashboard document management yet).
 INSERT INTO legal_document (code, version, body_en, body_ar, is_material, published_by)
+-- spec 011 also seeds 'deposit_agreement' version 1 (accepted with every buy
+-- request, context 'buy_request'; no fixed percentage, draft for the legal clinic).
 SELECT 'ownership_declaration', 1,
        'I confirm this piece is mine to sell and the details above are accurate.',
        'أقر أن القطعة دي ملكي ومن حقي أبيعها، وأن البيانات اللي فوق صحيحة.',
