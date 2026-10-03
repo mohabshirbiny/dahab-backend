@@ -32,6 +32,8 @@ class WalletController extends Controller
             new OA\Response(response: 200, description: 'The figures', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
                 new OA\Property(property: 'available', type: 'string', example: '2346160.0000'),
                 new OA\Property(property: 'held', type: 'string', example: '612400.0000'),
+                new OA\Property(property: 'held_on_orders', type: 'string', example: '570400.0000', description: 'Spec 013: held − pending_withdrawals'),
+                new OA\Property(property: 'pending_withdrawals', type: 'string', example: '42000.0000', description: 'Spec 013: held for withdrawals requested or under review'),
                 new OA\Property(property: 'total_owed', type: 'string', example: '2958560.0000'),
                 new OA\Property(property: 'bank', type: 'string', example: '3142880.0000'),
                 new OA\Property(property: 'headroom', type: 'string', example: '184320.0000'),

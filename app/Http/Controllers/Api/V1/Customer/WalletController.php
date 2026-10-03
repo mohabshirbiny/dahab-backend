@@ -15,7 +15,9 @@ use OpenApi\Attributes as OA;
     required: ['available', 'held', 'total', 'currency'],
     properties: [
         new OA\Property(property: 'available', type: 'string', example: '600.0000', description: 'Spendable and withdrawable, EGP, 4 places'),
-        new OA\Property(property: 'held', type: 'string', example: '400.0000', description: 'Set aside against open orders; still the customer\'s'),
+        new OA\Property(property: 'held', type: 'string', example: '400.0000', description: 'Set aside against open orders and withdrawals not yet sent; still the customer\'s'),
+        new OA\Property(property: 'held_on_orders', type: 'string', example: '300.0000', description: 'Spec 013: the part of held set aside against open orders (held − pending_withdrawals)'),
+        new OA\Property(property: 'pending_withdrawals', type: 'string', example: '100.0000', description: 'Spec 013: the part of held on its way to the customer\'s bank (withdrawals requested or under review)'),
         new OA\Property(property: 'total', type: 'string', example: '1000.0000'),
         new OA\Property(property: 'currency', type: 'string', example: 'EGP'),
     ],
@@ -31,7 +33,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'held_change', type: 'string', example: '400.0000'),
         new OA\Property(property: 'available_after', type: 'string', example: '600.0000'),
         new OA\Property(property: 'held_after', type: 'string', example: '400.0000'),
-        new OA\Property(property: 'reference', type: 'string', nullable: true, description: 'The related order or request reference; null until orders exist'),
+        new OA\Property(property: 'reference', type: 'string', nullable: true, description: 'The related top-up (TOP-{n}) or withdrawal (WD-{n}, spec 013) number; null otherwise'),
     ],
 )]
 class WalletController extends Controller

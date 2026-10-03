@@ -26,6 +26,7 @@ This file **summarises** the contract; it does not replace it.
 |---|---|---|---|
 | Public | `/api/v1/health` | none | any |
 | Public (spec 010) | `/api/v1/market/*`, `/api/v1/reference/*` | none; on `/market/*` a customer access token is optional and only sets `is_mine` | `dahab-flutter`, `dahab-dashboard` |
+| Public (spec 013) | `/api/v1/withdrawal-confirmations/read`, `/confirm` | none; the email link's token is the key (throttled per IP) | `dahab-flutter` (the link's page) |
 | Customer | `/api/v1/customer/*` | `auth:customer` (Sanctum, `customers` provider) | `dahab-flutter` |
 | Dashboard | `/api/v1/dashboard/*` | `auth:staff` (Sanctum, `staff` provider) | `dahab-dashboard` |
 
@@ -83,7 +84,10 @@ deliberately not enabled.
   and — since spec 012 — `order.view` (coo, finance, operations), `order.receive` (coo, operations, igi_branch),
   `inspection.enter` (igi_branch), `order.price_adjust`, `order.change_branch`, `order.extend_deadline` and
   `buy_request.view` (coo, operations), `order.handover` (igi_branch); the work list opens with any of
-  `inspection.enter|order.receive|order.handover`, the inspection results with `inspection.enter|order.view`).
+  `inspection.enter|order.receive|order.handover`, the inspection results with `inspection.enter|order.view`); and — since
+  spec 013 — `withdrawal.release` (the Withdrawals queue and every action on it, the export; CEO, Finance, never COO; the
+  list and a withdrawal also open read-only, numbers masked, with `wallet.view`) and `payout_account.verify` (verify or refuse
+  a payout account; CEO, Finance, Verification).
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -131,6 +135,11 @@ Customer App localises the code itself. Since spec 009 a `topup` row's `referenc
 Amounts people type (top-up notices, matches) are accepted with at most 2 decimals and returned with 4.
 A top-up's `expected_amount` is a display-only estimate (claim minus the provider fee snapshotted on the notice when it
 was filed, `notice_fee_percent`); it never decides what is credited — staff credit what actually arrived.
+
+Since spec 013 a `withdrawal` history row's `reference` is its number `WD-{n}`, and every wallet figure that shows `held`
+also shows its split: `held_on_orders` + `pending_withdrawals` (withdrawals requested or under review) = `held`. A payout
+account number is shown masked (`•••• 4417`) except to its owner's staff readers holding `payout_account.verify` or
+`withdrawal.release`; customers only ever get it masked.
 
 **Weights** are decimal strings with 3 places (grams). A listing's weight is `stated_weight_g` in requests and in the
 seller and staff shapes, and `weight_g` in the public market shapes (spec 010). A listing's `current_price` and
@@ -188,7 +197,10 @@ machine-readable value clients must switch on**; `message` is human text and may
   (an order move not allowed, or a lost race — SQLSTATE DH006, previously answered `illegal_buy_request_transition`),
   `wrong_branch` 403, `inspection_correction_not_allowed` 409, `price_not_set` 409, `balance_deadline_passed` 409,
   `settlement_not_possible` 409, `invalid_collection_code` **422** (not 401: a 401 makes the Dashboard sign out),
-  `handover_locked` 429, `order_not_open` 409, `deadline_not_running` 409, `deadline_must_move_forward` 422, …).
+  `handover_locked` 429, `order_not_open` 409, `deadline_not_running` 409, `deadline_must_move_forward` 422; from spec 013:
+  `email_confirmation_required` 403, `confirmation_invalid` 422, `declaration_required` 422, `withdrawals_paused` 409,
+  `payout_account_not_active` 409, `withdrawal_on_hold` 409, `illegal_withdrawal_transition` 409 (SQLSTATE DH007),
+  `illegal_payout_account_transition` 409 (SQLSTATE DH008), …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -196,7 +208,8 @@ machine-readable value clients must switch on**; `message` is human text and may
   client needs to act: `insufficient_funds` on a buy request `{ deposit_amount, available, shortfall }`,
   `price_moved` `{ current_price, deposit_amount }`; since spec 012 `insufficient_funds` on pay-balance
   `{ amount_due, available, shortfall }`, `invalid_collection_code` `{ attempts_left }`, `handover_locked`
-  `{ retry_after }` (seconds).
+  `{ retry_after }` (seconds); since spec 013 `insufficient_funds` on a withdrawal `{ available, shortfall }` and
+  `withdrawals_paused` `{ pause_until }`.
 
 ## Idempotency
 
@@ -224,7 +237,12 @@ every listing write: `POST /customer/me/listings`, `PATCH /customer/me/listings/
 and since spec 011 every buy-request write: `POST /customer/me/buy-requests`, `POST /customer/me/buy-requests/{id}/withdraw`,
 `POST /customer/me/listings/{id}/accept|decline` and `POST /dashboard/orders/{id}/cancel`; and since spec 012 every
 order write: `POST /customer/me/orders/{id}/cancel|decision|pay-balance|relist` and
-`POST /dashboard/orders/{id}/receive|inspection-results|propose-price|change-branch|extend-deadline|handover|seller-return/handover`.
+`POST /dashboard/orders/{id}/receive|inspection-results|propose-price|change-branch|extend-deadline|handover|seller-return/handover`;
+and since spec 013 every payout-account and withdrawal write: `POST /customer/me/payout-accounts`,
+`POST /customer/me/payout-accounts/{id}/use|remove|keep`, `POST /customer/me/withdrawals/confirmations`,
+`POST /customer/me/withdrawals`, `POST /customer/me/withdrawals/{id}/cancel`, `POST /dashboard/withdrawals/{id}/review|hold|unhold|release|reject`
+and `POST /dashboard/payout-accounts/{id}/verify|refuse`. The public `POST /withdrawal-confirmations/confirm` has no key: its
+token is single use.
 
 ## Status codes in use
 
@@ -237,7 +255,8 @@ order write: `POST /customer/me/orders/{id}/cancel|decision|pay-balance|relist` 
 Named limiters on sensitive routes (`throttle:auth.customer.login`, `auth.customer.register`,
 `auth.customer.register.otp`, `auth.customer.register.documents`, `auth.otp.verify`, `auth.staff.login`,
 `auth.staff.mfa`, `auth.refresh`, `customer.uploads` (20/min since spec 010), `customer.topups`, `customer.listings`,
-`customer.buy_requests` (10/min, spec 011), `public.market`) plus the default API throttle. Identity lockouts
+`customer.buy_requests` (10/min, spec 011), `public.market`, and since spec 013 `customer.payout_accounts` (5/min),
+`customer.withdrawals` (10/min), `public.withdrawal_confirmations` (10/min per IP)) plus the default API throttle. Identity lockouts
 return **429 `account_locked`**.
 
 ## CORS

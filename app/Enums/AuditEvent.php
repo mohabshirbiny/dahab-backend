@@ -91,6 +91,25 @@ enum AuditEvent: string
     case ORDER_PAID = 'order.paid';
     case ORDER_RELISTED = 'order.relisted';
 
+    // Spec 013: payout accounts and withdrawals.
+    case PAYOUT_ACCOUNT_ADDED = 'payout_account.added';
+    case PAYOUT_ACCOUNT_VERIFIED = 'payout_account.verified';
+    case PAYOUT_ACCOUNT_REFUSED = 'payout_account.refused';
+    case PAYOUT_ACCOUNT_IN_USE_CHANGED = 'payout_account.in_use_changed';
+    case PAYOUT_ACCOUNT_REMOVAL_SCHEDULED = 'payout_account.removal_scheduled';
+    case PAYOUT_ACCOUNT_KEPT = 'payout_account.kept';
+    case PAYOUT_ACCOUNT_REMOVED = 'payout_account.removed';
+    case WITHDRAWAL_EMAIL_CONFIRMED = 'withdrawal.email_confirmed';
+    case WITHDRAWAL_REQUESTED = 'withdrawal.requested';
+    case WITHDRAWAL_CANCELLED = 'withdrawal.cancelled';
+    case WITHDRAWAL_TAKEN_FOR_REVIEW = 'withdrawal.taken_for_review';
+    case WITHDRAWAL_HELD = 'withdrawal.held';
+    case WITHDRAWAL_UNHELD = 'withdrawal.unheld';
+    case WITHDRAWAL_RELEASED = 'withdrawal.released';
+    case WITHDRAWAL_REJECTED = 'withdrawal.rejected';
+    case WITHDRAWAL_LIST_EXPORTED = 'withdrawal.list_exported';
+    case WITHDRAWAL_PAUSE_ENDED = 'withdrawal.pause_ended';
+
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
     {
@@ -177,6 +196,23 @@ enum AuditEvent: string
             self::ORDER_DECIDED => 'Buyer decided on an adjusted price',
             self::ORDER_PAID => 'Buyer paid the balance',
             self::ORDER_RELISTED => 'Seller relisted a returned piece',
+            self::PAYOUT_ACCOUNT_ADDED => 'Payout account added',
+            self::PAYOUT_ACCOUNT_VERIFIED => 'Payout account verified',
+            self::PAYOUT_ACCOUNT_REFUSED => 'Payout account refused',
+            self::PAYOUT_ACCOUNT_IN_USE_CHANGED => 'Payout account in use changed',
+            self::PAYOUT_ACCOUNT_REMOVAL_SCHEDULED => 'Payout account removal scheduled',
+            self::PAYOUT_ACCOUNT_KEPT => 'Payout account kept',
+            self::PAYOUT_ACCOUNT_REMOVED => 'Payout account removed',
+            self::WITHDRAWAL_EMAIL_CONFIRMED => 'Withdrawal confirmed from the email link',
+            self::WITHDRAWAL_REQUESTED => 'Withdrawal requested',
+            self::WITHDRAWAL_CANCELLED => 'Withdrawal cancelled',
+            self::WITHDRAWAL_TAKEN_FOR_REVIEW => 'Withdrawal taken for review',
+            self::WITHDRAWAL_HELD => 'Withdrawal put on hold',
+            self::WITHDRAWAL_UNHELD => 'Withdrawal hold removed',
+            self::WITHDRAWAL_RELEASED => 'Withdrawal released',
+            self::WITHDRAWAL_REJECTED => 'Withdrawal rejected',
+            self::WITHDRAWAL_LIST_EXPORTED => 'Withdrawals list exported',
+            self::WITHDRAWAL_PAUSE_ENDED => 'Withdrawal pause ended',
         };
     }
 
@@ -199,6 +235,8 @@ enum AuditEvent: string
             self::ORDER_PRICE_PROPOSED, self::ORDER_HANDED_OVER, self::ORDER_HANDOVER_FAILED, self::ORDER_RETURN_HANDED_OVER,
             self::INSPECTION_RESULT_RECORDED, self::ORDER_SELLER_CANCELLED, self::ORDER_DECIDED, self::ORDER_PAID,
             self::ORDER_RELISTED, self::ORDER_FORFEITED, self::ORDER_WINDOW_PASSED => AuditCategory::ORDERS,
+            self::PAYOUT_ACCOUNT_ADDED, self::PAYOUT_ACCOUNT_VERIFIED, self::PAYOUT_ACCOUNT_REFUSED, self::PAYOUT_ACCOUNT_IN_USE_CHANGED, self::PAYOUT_ACCOUNT_REMOVAL_SCHEDULED, self::PAYOUT_ACCOUNT_KEPT, self::PAYOUT_ACCOUNT_REMOVED => AuditCategory::ACCOUNTS,
+            self::WITHDRAWAL_EMAIL_CONFIRMED, self::WITHDRAWAL_REQUESTED, self::WITHDRAWAL_CANCELLED, self::WITHDRAWAL_TAKEN_FOR_REVIEW, self::WITHDRAWAL_HELD, self::WITHDRAWAL_UNHELD, self::WITHDRAWAL_RELEASED, self::WITHDRAWAL_REJECTED, self::WITHDRAWAL_LIST_EXPORTED, self::WITHDRAWAL_PAUSE_ENDED => AuditCategory::MONEY,
         };
     }
 

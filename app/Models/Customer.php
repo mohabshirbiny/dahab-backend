@@ -112,6 +112,12 @@ class Customer extends Authenticatable implements HasApiTokensContract
         return $this->hasMany(BuyRequest::class, 'buyer_id', 'customer_id');
     }
 
+    /** Spec 013: payout accounts, every state. */
+    public function payoutAccounts(): HasMany
+    {
+        return $this->hasMany(PayoutAccount::class, 'customer_id', 'customer_id');
+    }
+
     public function identityDocuments(): HasMany
     {
         return $this->hasMany(IdentityDocument::class, 'customer_id', 'customer_id');

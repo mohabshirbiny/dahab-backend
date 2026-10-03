@@ -121,6 +121,7 @@ CREATE TYPE withdrawal_state AS ENUM (
 CREATE TYPE payout_account_state AS ENUM (
   'pending_review',    -- name being checked against ID
   'active',
+  'refused',           -- spec 013: the name check failed; final
   'removing',          -- scheduled removal after an in-flight withdrawal
   'removed'
 );

@@ -19,6 +19,9 @@ class AgreementAcceptance extends Model
     /** `context` for the deposit terms accepted with a buy request (spec 011). */
     public const CONTEXT_BUY_REQUEST = 'buy_request';
 
+    /** Spec 013: the payout-account declaration, ticked when adding an account. */
+    public const CONTEXT_PAYOUT_ACCOUNT = 'payout_account';
+
     protected $table = 'agreement_acceptance';
 
     protected $primaryKey = 'acceptance_id';

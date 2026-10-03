@@ -58,6 +58,11 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
   caller's own request or the requests on the caller's own listing, never narrows an elevated caller, and is never used
   for a customer's own reads. A recorded deviation from Constitution II (`specs/011-buy-requests/plan.md`), guarded by
   `QueueScopeTest` and `BuyRequestLeakTest`. Deferred triggers read under a scope they set themselves.
+- **Withdrawals (spec 013)**: money out. Payout accounts (several, one in use, checked by staff against the verified ID)
+  and withdrawals (an email-confirmed request holds the money; a person releases it after sending the bank transfer).
+  Every customer action touches only the caller's own rows, so there is no new database scope. The email link's page is
+  the one public write (`/api/v1/withdrawal-confirmations/*`, `db.elevate:bootstrap`, a token whose HMAC finds one row).
+  `withdrawals:sweep` (every minute) tells customers when their withdrawal pause has ended.
 - **Customer data isolation (spec 003)**: every customer-owned table has **forced** row-level security.
   `App\Support\DatabaseActor` binds the scope (`customer` · `staff` · `bootstrap` · `system` · `maintenance`)
   per request, queued job or CLI migrate/seed, and restores it afterwards; no scope sees no customer rows.
@@ -94,7 +99,7 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
   on authenticated calls; proactive + on-401 refresh with a single in-flight refresh; maps the error
   envelope to `ApiException(status, code, message, fieldErrors, extra)`; network failure → `network_error`.
 - **Base URL**: `--dart-define=API_BASE_URL=…` (`lib/core/config/app_config.dart`); defaults to the local
-  backend `http://127.0.0.1:8000/api/v1`. The production host is passed only when building a deploy version.
+  backend `http://127.0.0.1:8010/api/v1`. The production host is passed only when building a deploy version.
 - **Live vs mock**: registration (6 steps incl. ID photo), sign-in with device OTP, session restore, refresh,
   sign-out are live. Catalog, sell, orders, wallet, account data, notifications, admin screens are mock.
   `services/pricing.dart` holds prototype pricing maths that should become server quotes.
@@ -127,7 +132,7 @@ these must handle all values (adding one is potentially breaking).
 
 | Service | Default |
 |---|---|
-| Backend (`php artisan serve`) | `http://127.0.0.1:8000` (Docker nginx: `:8080`) |
+| Backend (`php artisan serve`) | `http://127.0.0.1:8000` for the Dashboard (Docker nginx: `:8080`); `--port=8010` for the Customer App's default `API_BASE_URL` |
 | Dashboard (Vite) | `http://localhost:3000` |
 | Flutter web | `flutter run -d chrome --web-port 8765` or `python -m http.server 8765 --directory build/web` |
 | Local OTP/SMS code | `123456` (backend `local` env) |

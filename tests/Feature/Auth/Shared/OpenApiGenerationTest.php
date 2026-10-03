@@ -211,6 +211,40 @@ const OPENAPI_CUSTOMER_ORDER_PATHS = [
     'post /customer/me/orders/{order}/relist',
 ];
 
+// spec 013: payout accounts and withdrawals, the staff queue, and the email link's public page.
+const OPENAPI_CUSTOMER_WITHDRAWAL_PATHS = [
+    'get /customer/me/payout-accounts',
+    'post /customer/me/payout-accounts',
+    'post /customer/me/payout-accounts/{account}/use',
+    'post /customer/me/payout-accounts/{account}/remove',
+    'post /customer/me/payout-accounts/{account}/keep',
+    'get /customer/me/withdrawals',
+    'post /customer/me/withdrawals',
+    'get /customer/me/withdrawals/{withdrawal}',
+    'post /customer/me/withdrawals/confirmations',
+    'get /customer/me/withdrawals/confirmations/{confirmation}',
+    'post /customer/me/withdrawals/{withdrawal}/cancel',
+];
+
+const OPENAPI_DASHBOARD_WITHDRAWAL_PATHS = [
+    'get /dashboard/payout-accounts',
+    'post /dashboard/payout-accounts/{account}/verify',
+    'post /dashboard/payout-accounts/{account}/refuse',
+    'get /dashboard/withdrawals',
+    'get /dashboard/withdrawals/export',
+    'get /dashboard/withdrawals/{withdrawal}',
+    'post /dashboard/withdrawals/{withdrawal}/review',
+    'post /dashboard/withdrawals/{withdrawal}/hold',
+    'post /dashboard/withdrawals/{withdrawal}/unhold',
+    'post /dashboard/withdrawals/{withdrawal}/release',
+    'post /dashboard/withdrawals/{withdrawal}/reject',
+];
+
+const OPENAPI_WITHDRAWAL_CONFIRMATION_PATHS = [
+    'post /withdrawal-confirmations/read',
+    'post /withdrawal-confirmations/confirm',
+];
+
 const OPENAPI_DASHBOARD_LISTING_PATHS = [
     'get /dashboard/listings',
     'get /dashboard/listings/{listing}',
@@ -276,6 +310,9 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_CUSTOMER_BUY_REQUEST_PATHS,
         ...OPENAPI_DASHBOARD_ORDER_PATHS,
         ...OPENAPI_CUSTOMER_ORDER_PATHS,
+        ...OPENAPI_CUSTOMER_WITHDRAWAL_PATHS,
+        ...OPENAPI_DASHBOARD_WITHDRAWAL_PATHS,
+        ...OPENAPI_WITHDRAWAL_CONFIRMATION_PATHS,
         ...OPENAPI_MARKET_PATHS,
         ...OPENAPI_REFERENCE_PATHS,
     ]);
@@ -467,6 +504,11 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'CustomerOrder', 'StaffOrder', 'InspectionResult', 'WorkListItem',
         'RecordInspectionResultRequest', 'ProposePriceRequest', 'HandoverRequest',
         'DecideAdjustmentRequest', 'ChangeBranchRequest', 'ExtendDeadlineRequest', 'StaffBuyRequest',
+        'CustomerPayoutAccount', 'CustomerPayoutAccounts', 'CustomerWithdrawal', 'WithdrawalConfirmation',
+        'PublicWithdrawalConfirmation', 'StaffPayoutAccount', 'StaffWithdrawal',
+        'AddPayoutAccountRequest', 'RequestWithdrawalConfirmationRequest', 'SubmitWithdrawalRequest',
+        'WithdrawalConfirmationTokenRequest', 'RefusePayoutAccountRequest', 'HoldWithdrawalRequest',
+        'ReleaseWithdrawalRequest', 'RejectWithdrawalRequest',
     ]);
 
     $ops = documentedOperations($doc);
@@ -504,7 +546,7 @@ it('stays in step with the registered routes', function () {
     $ops = documentedOperations(generatedOpenApi());
 
     $registered = collect(Route::getRoutes()->getRoutes())
-        ->filter(fn ($r) => preg_match('#^api/v1/(customer|dashboard|market|reference)/#', $r->uri()))
+        ->filter(fn ($r) => preg_match('#^api/v1/(customer|dashboard|market|reference|withdrawal-confirmations)/#', $r->uri()))
         ->flatMap(fn ($r) => collect($r->methods())
             ->reject(fn ($m) => in_array($m, ['HEAD', 'OPTIONS'], true))
             ->map(fn ($m) => strtolower($m).' /'.substr($r->uri(), strlen('api/v1/'))))

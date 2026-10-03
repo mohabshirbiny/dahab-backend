@@ -33,7 +33,7 @@ it('authenticates a staff token on the dashboard and returns roles and permissio
         ->assertJsonPath('data.email', 'boss@dahab.test')
         ->assertJsonPath('data.role', 'ceo')
         ->assertJsonPath('data.roles', ['ceo'])
-        ->assertJsonPath('data.permissions', ['audit.view_all', 'audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'inspection.enter', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.handover', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'])
+        ->assertJsonPath('data.permissions', ['audit.view_all', 'audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'inspection.enter', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.handover', 'order.price_adjust', 'order.receive', 'order.view', 'payout_account.verify', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view', 'withdrawal.release'])
         ->assertJsonMissingPath('data.password_hash');
 });
 

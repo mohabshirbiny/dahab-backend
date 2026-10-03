@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ShowLedgerOverviewAction
 {
-    /** @return array{available: string, held: string, total_owed: string, bank: string, headroom: string, system_total: string} */
+    /** @return array{available: string, held: string, held_on_orders: string, pending_withdrawals: string, total_owed: string, bank: string, headroom: string, system_total: string} */
     public function handle(): array
     {
         $row = DB::selectOne("
@@ -26,6 +26,16 @@ final class ShowLedgerOverviewAction
             FROM solvency_check s
         ");
 
-        return (array) $row;
+        // Spec 013 FR-017: withdrawals not yet released sit in held too; split them out.
+        $pending = (string) DB::selectOne("
+            SELECT COALESCE(SUM(amount), 0)::numeric(18,4)::text AS pending
+            FROM withdrawal WHERE state IN ('requested', 'under_review')
+        ")->pending;
+
+        $figures = (array) $row;
+
+        return array_slice($figures, 0, 2, true)
+            + ['held_on_orders' => bcsub($figures['held'], $pending, 4), 'pending_withdrawals' => $pending]
+            + array_slice($figures, 2, null, true);
     }
 }

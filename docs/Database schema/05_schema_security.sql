@@ -318,11 +318,42 @@ INSERT INTO withdrawal_transition (from_state, to_state, note) VALUES
   ('requested','under_review','picked up for review'),
   ('under_review','released','approved and sent to bank'),
   ('under_review','rejected','reviewer rejected; funds returned'),
+  ('requested','rejected','reviewer rejected before taking it; funds returned (spec 013)'),
   ('requested','on_hold_account_change','payout account changed; paused'),
   ('on_hold_account_change','under_review','pause window elapsed'),
   ('requested','cancelled','holder cancelled'),
   ('under_review','cancelled','holder cancelled'),
   ('released','settled','confirmed arrived at bank');
+
+-- Payout accounts (added by spec 013) ---------------------------------
+CREATE TABLE payout_account_transition (
+  from_state payout_account_state NOT NULL,
+  to_state   payout_account_state NOT NULL,
+  note       TEXT,
+  PRIMARY KEY (from_state, to_state)
+);
+INSERT INTO payout_account_transition (from_state, to_state, note) VALUES
+  ('pending_review','active','name checked against the ID'),
+  ('pending_review','refused','name check refused'),
+  ('pending_review','removed','customer cancelled the request'),
+  ('active','removing','removal waits for an in-flight withdrawal'),
+  ('active','removed','customer removed it'),
+  ('removing','active','customer kept it after all'),
+  ('removing','removed','its last in-flight withdrawal ended');
+
+-- Guards (spec 013), each with its own SQLSTATE:
+--   assert_withdrawal_transition()     DH007 -> 409 illegal_withdrawal_transition: the move is in
+--     withdrawal_transition; customer, account, amount, number and requested_at never change; the
+--     txn ids are set once; never deleted.
+--   assert_payout_account_transition() DH008 -> 409 illegal_payout_account_transition: the move is in
+--     payout_account_transition; customer, holder, bank, number and created_at never change (a
+--     change is a new account); never deleted.
+--   withdrawal_money_recorded()        deferred (trg_withdrawal_money, AFTER INSERT OR UPDATE):
+--     requested / under_review -> hold_txn_id; released -> release_txn_id and no return;
+--     rejected / cancelled -> return_txn_id and no release; every named txn is a 'withdrawal' entry
+--     of this withdrawal (read in the 'ledger' scope). DH007.
+-- Full bodies: database/migrations/2026_10_06_000010_create_withdrawals.php.
+
 
 -- Optional generic guard: reject an order state change not in the table.
 -- As built (spec 011, spec 012): also refuses a delete and changes to the
@@ -522,8 +553,13 @@ CREATE POLICY topup_isolation ON topup FOR ALL
 --     USING      (dahab_rls_elevated() OR <owner predicate>)
 --     WITH CHECK (dahab_rls_elevated() OR <owner predicate>);
 -- Owner predicates planned:
---   payout_account  customer_id = dahab_current_customer_id()
---   withdrawal      customer_id = dahab_current_customer_id()
+--   payout_account, payout_account_change, withdrawal_pause, withdrawal and
+--   withdrawal_confirmation: built by spec 013 (forced RLS) with
+--     USING      (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+--     WITH CHECK (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+--   (payout_account_change also requires actor_customer_id = the customer on
+--   a customer's own insert). Staff, withdrawals:sweep and the public email
+--   confirm (bootstrap elevation) act elevated.
 -- CustomerTableIsolationTest fails the build for any table with a
 -- customer_id / actor_customer_id / buyer_id / seller_id column that lacks
 -- forced RLS and a policy.

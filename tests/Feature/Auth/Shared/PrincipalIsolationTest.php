@@ -164,7 +164,12 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            dashboard orders show/receive/inspection-results/propose-price/seller-return handover,
     //            inspections work-list (6); then orders decision (1), orders handover/change-branch/extend-deadline (3);
     //            dashboard orders index, inspections index, buy-requests index (3).
-    expect($checked)->toBe(115);
+    // spec 013:  customer payout-accounts index/store/use/remove/keep (5),
+    //            withdrawals index/store/confirmations store/confirmations show/show/cancel (6);
+    //            dashboard withdrawals index/export/show/review/hold/unhold/release/reject (8),
+    //            payout-accounts index/verify/refuse (3).
+    //            The public withdrawal-confirmations read/confirm carry no principal (ElevationTest).
+    expect($checked)->toBe(137);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

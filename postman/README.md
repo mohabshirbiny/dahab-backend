@@ -137,3 +137,15 @@ Queue**. As the seller, **Customer → Listings → Buy Requests on My Listing**
 **Accept First Buy Request** (needs `branch_id` = one of the listing's branches) or **Decline First Buy Request**. As
 `operations`, `coo` or `ceo`, **Dashboard → Listings → Show Listing** on the accepted piece saves `order_id`; then
 **Dashboard → Orders → Cancel Acceptance** (`order.cancel`). Every POST sends a new `Idempotency-Key`.
+
+**Withdrawals** (spec 013). As a verified customer with money: **Customer → Withdrawals → Payout Account Declaration**
+(saves `payout_legal_doc_id`), **Add Payout Account** (saves `payout_account_id`; an Egyptian IBAN with a valid
+checksum or 8–20 digits). As `verification`, `finance` or `ceo`, **Dashboard → Withdrawals → List Payout Accounts To
+Check** (saves `payout_account_id`) and **Verify** or **Refuse**. Back as the customer, **Request Withdrawal
+Confirmation** (saves `confirmation_id`). Locally the email goes to `storage/logs/laravel.log`: copy the `token=` value
+of the link into `confirmation_token`, then **Withdrawal Confirmations → Confirm Withdrawal** (no token needed) and
+**Customer → Withdrawals → Submit Withdrawal** (saves `withdrawal_id`). As `finance` or `ceo` (never `coo`),
+**Dashboard → Withdrawals → List Withdrawals**, **Take For Review**, **Hold** / **Unhold**, **Release** (send the
+transfer at the bank first, then record it) or **Reject**. **Use Payout Account** on a second verified account cancels
+open withdrawals and pauses new ones for `withdrawal.account_change_pause_hours`. Every POST except the public pair
+sends a new `Idempotency-Key`.

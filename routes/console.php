@@ -20,5 +20,9 @@ Schedule::command('buy-requests:expire')->everyMinute()->withoutOverlapping();
 // balance, the seller-return window, reminders and the cancellation threshold.
 Schedule::command('orders:sweep')->everyMinute()->withoutOverlapping();
 
+// The withdrawal-pause expiry (spec 013 FR-015, Part 2 §11): tell each customer
+// once that their pause has ended.
+Schedule::command('withdrawals:sweep')->everyMinute()->withoutOverlapping();
+
 // Expired Idempotency-Key records (spec 007 research R2; kept 24 h).
 Schedule::command('idempotency:prune')->hourly()->withoutOverlapping();

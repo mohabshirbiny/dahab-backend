@@ -200,6 +200,26 @@
             "key": "order_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "payout_legal_doc_id",
+            "value": ""
+        },
+        {
+            "key": "payout_account_id",
+            "value": ""
+        },
+        {
+            "key": "confirmation_id",
+            "value": ""
+        },
+        {
+            "key": "confirmation_token",
+            "value": ""
+        },
+        {
+            "key": "withdrawal_id",
+            "value": ""
         }
     ],
     "item": [
@@ -4536,6 +4556,538 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Withdrawals",
+                    "description": "Spec 013: the Withdrawals page (withdrawal.release: ceo, finance — never coo; reads also with wallet.view) and payout accounts to check (payout_account.verify: ceo, finance, verification). Every POST needs an Idempotency-Key and is audited.",
+                    "item": [
+                        {
+                            "name": "List Withdrawals",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals?state=requested,under_review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "requested,under_review"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 013 FR-012. Oldest first; default state requested,under_review; held, from, to, q, customer_id, cursor. meta.figures. Saves withdrawal_id (first row)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.length) pm.collectionVariables.set('withdrawal_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Export Withdrawals",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals/export",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals",
+                                        "export"
+                                    ]
+                                },
+                                "description": "CSV of the filtered list (withdrawal.release); audited."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show Withdrawal",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals/{{withdrawal_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}"
+                                    ]
+                                },
+                                "description": "With the signals and the ledger entries."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Take For Review",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals/{{withdrawal_id}}/review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}",
+                                        "review"
+                                    ]
+                                },
+                                "description": "requested → under_review."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Hold Withdrawal",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals/{{withdrawal_id}}/hold",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}",
+                                        "hold"
+                                    ]
+                                },
+                                "description": "A hold flag on an under-review withdrawal; the customer is told the message.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"name_mismatch\",\n  \"message\": \"We need to check the name on your bank account. We will call you within one working day.\",\n  \"note\": \"Bank statement shows a shortened name\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Unhold Withdrawal",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals/{{withdrawal_id}}/unhold",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}",
+                                        "unhold"
+                                    ]
+                                },
+                                "description": "Clears the hold.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"note\": \"Customer confirmed by phone\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Release Withdrawal",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals/{{withdrawal_id}}/release",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}",
+                                        "release"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-013. Send the transfer at the bank first, then record it. held → bank. 409 withdrawal_on_hold | illegal_withdrawal_transition | payout_account_not_active.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"bank_txn_number\": \"FT2610031234\",\n  \"transfer_reference\": \"WD-1\",\n  \"value_date\": \"2026-10-03\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Reject Withdrawal",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/withdrawals/{{withdrawal_id}}/reject",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}",
+                                        "reject"
+                                    ]
+                                },
+                                "description": "requested / under_review → rejected; held → available. The customer sees the reason, never the note.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"money_in_straight_out\",\n  \"note\": \"Topped up and asked out the same day\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Payout Accounts To Check",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/payout-accounts?state=pending_review",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "payout-accounts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "pending_review"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 013 FR-003. pending_review oldest first, with the verified ID name. Saves payout_account_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.length) pm.collectionVariables.set('payout_account_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Verify Payout Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/payout-accounts/{{payout_account_id}}/verify",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "payout-accounts",
+                                        "{{payout_account_id}}",
+                                        "verify"
+                                    ]
+                                },
+                                "description": "pending_review → active (in use when none is; may open a pause)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Refuse Payout Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/payout-accounts/{{payout_account_id}}/refuse",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "payout-accounts",
+                                        "{{payout_account_id}}",
+                                        "refuse"
+                                    ]
+                                },
+                                "description": "pending_review → refused (final).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"name_shortened\",\n  \"note\": \"ID says Mona Hassan Ibrahim Ali\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""
@@ -6808,6 +7360,530 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Withdrawals",
+                    "description": "Spec 013: payout accounts and withdrawals, customer side. Reads need a verified customer (a suspended one may read and withdraw); account changes need the trade gate. Every POST needs an Idempotency-Key.",
+                    "item": [
+                        {
+                            "name": "Payout Account Declaration",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/legal-documents/payout_account_declaration",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "legal-documents",
+                                        "payout_account_declaration"
+                                    ]
+                                },
+                                "description": "The current payout-account declaration (EN/AR). Saves payout_legal_doc_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.legal_doc_id) pm.collectionVariables.set('payout_legal_doc_id', json.data.legal_doc_id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List Payout Accounts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/payout-accounts",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "payout-accounts"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-002. The accounts (masked), the open pause and the recent changes. Saves payout_account_id (the first account)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.accounts.length) pm.collectionVariables.set('payout_account_id', json.data.accounts[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Add Payout Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/payout-accounts",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "payout-accounts"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-001 (Part 2 §8). pending_review; the customer is told on phone and email. An Egyptian IBAN (checksum) or 8–20 digits. 422 declaration_required; 403 account_suspended.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"bank_name\": \"CIB\",\n  \"account_name\": \"Mona Hassan Ibrahim\",\n  \"account_number_or_iban\": \"EG38 0019 0005 0000 0000 2631 8000 2\",\n  \"declaration_id\": \"{{payout_legal_doc_id}}\",\n  \"declaration_accepted\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.accounts.length) pm.collectionVariables.set('payout_account_id', json.data.accounts[json.data.accounts.length - 1].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Use Payout Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/payout-accounts/{{payout_account_id}}/use",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "payout-accounts",
+                                        "{{payout_account_id}}",
+                                        "use"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-005. Make a verified account the one in use. Unless it is the first ever: open withdrawals are cancelled (meta.cancelled_withdrawals) and new ones pause for withdrawal.account_change_pause_hours."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Remove Payout Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/payout-accounts/{{payout_account_id}}/remove",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "payout-accounts",
+                                        "{{payout_account_id}}",
+                                        "remove"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-004. Cancel a request under review, or remove a verified account (removing while a withdrawal not yet released goes to it)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Keep Payout Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/payout-accounts/{{payout_account_id}}/keep",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "payout-accounts",
+                                        "{{payout_account_id}}",
+                                        "keep"
+                                    ]
+                                },
+                                "description": "Spec 013 US3. removing → active, no pause."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Request Withdrawal Confirmation",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/withdrawals/confirmations",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "withdrawals",
+                                        "confirmations"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-007 (Part 1 §2.4). Emails a single-use link (30 minutes) tied to the amount and the account. Locally the mail is in storage/logs: copy the token= value into confirmation_token. Saves confirmation_id. 409 withdrawals_paused | payout_account_not_active | insufficient_funds.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"amount\": \"1000.00\",\n  \"payout_account_id\": \"{{payout_account_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.id) pm.collectionVariables.set('confirmation_id', json.data.id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Show Withdrawal Confirmation",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/withdrawals/confirmations/{{confirmation_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "withdrawals",
+                                        "confirmations",
+                                        "{{confirmation_id}}"
+                                    ]
+                                },
+                                "description": "Spec 013 R5: sent | confirmed | used | expired | replaced (the app polls this)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Submit Withdrawal",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/withdrawals",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "withdrawals"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-009 (Part 2 §8). Needs a confirmed confirmation for the same amount and account. Holds the amount (available → held). Saves withdrawal_id. 403 email_confirmation_required.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"confirmation_id\": \"{{confirmation_id}}\",\n  \"amount\": \"1000.00\",\n  \"payout_account_id\": \"{{payout_account_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.id) pm.collectionVariables.set('withdrawal_id', json.data.id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List Withdrawals",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/withdrawals?state=open",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "withdrawals"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "open"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 013. Newest first, keyset (cursor). state=open|closed."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show Withdrawal",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/withdrawals/{{withdrawal_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}"
+                                    ]
+                                },
+                                "description": "Spec 013. Never the reviewer, a staff note or the bank record."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Cancel Withdrawal",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/withdrawals/{{withdrawal_id}}/cancel",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "withdrawals",
+                                        "{{withdrawal_id}}",
+                                        "cancel"
+                                    ]
+                                },
+                                "description": "Spec 013 FR-010. requested / under_review → cancelled; the money returns to available. 409 illegal_withdrawal_transition."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ]
         },
@@ -7203,6 +8279,100 @@
                             ]
                         },
                         "description": "Spec 010. A public photo, video or certificate of a live piece, streamed; Cache-Control: no-store. 404 for the invoice, for another listing's file, and once the listing leaves the market. Public.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Withdrawal Confirmations",
+            "description": "Spec 013 R5: the email link's page. No token; the link's secret is the key. Throttled per IP.",
+            "item": [
+                {
+                    "name": "Read Confirmation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/withdrawal-confirmations/read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "withdrawal-confirmations",
+                                "read"
+                            ]
+                        },
+                        "description": "No side effect. 422 confirmation_invalid.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{confirmation_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Confirm Withdrawal",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/withdrawal-confirmations/confirm",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "withdrawal-confirmations",
+                                "confirm"
+                            ]
+                        },
+                        "description": "Marks the confirmation confirmed (audited). 422 confirmation_invalid when unknown, expired, replaced or used.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{confirmation_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "auth": {
                             "type": "noauth"
                         }

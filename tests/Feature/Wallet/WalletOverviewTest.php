@@ -33,6 +33,8 @@ it('shows what customers hold, the bank\'s cash, the safety figure and a zero sy
         ->assertExactJson(['data' => [
             'available' => '850.5000',
             'held' => '400.0000',
+            'held_on_orders' => '400.0000',
+            'pending_withdrawals' => '0.0000',
             'total_owed' => '1250.5000',
             'bank' => '1250.5000',
             'headroom' => '0.0000',
@@ -63,7 +65,7 @@ it('shows one customer\'s wallet to the customer file, without an audit entry', 
 
     $this->bearer(staffAccessToken($this->finance))->getJson("/api/v1/dashboard/customers/{$customer->customer_id}/wallet")
         ->assertOk()
-        ->assertExactJson(['data' => ['available' => '500.0000', 'held' => '200.0000', 'total' => '700.0000', 'currency' => 'EGP']]);
+        ->assertExactJson(['data' => ['available' => '500.0000', 'held' => '200.0000', 'held_on_orders' => '200.0000', 'pending_withdrawals' => '0.0000', 'total' => '700.0000', 'currency' => 'EGP']]);
 
     expect(AuditLog::query()->count())->toBe($before)
         ->and(AuditLog::query()->where('action', AuditEvent::LEDGER_STATEMENT_VIEWED->value)->exists())->toBeFalse();

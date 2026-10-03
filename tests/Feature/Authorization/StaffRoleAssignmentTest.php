@@ -24,7 +24,7 @@ it('replaces a staff member\'s roles, audits it, and applies on their next reque
         'reason' => 'Covering the verification queue',
     ])->assertOk()
         ->assertJsonPath('data.roles', [['name' => 'operations', 'display_name' => 'Operations'], ['name' => 'verification', 'display_name' => 'Verification']])
-        ->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'buy_request.view', 'customer.view', 'identity.review', 'identity.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.view', 'reference.view']);
+        ->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'buy_request.view', 'customer.view', 'identity.review', 'identity.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'payout_account.verify', 'pricing.view', 'reference.view']);
 
     $audit = AuditLog::query()->where('action', 'authz.staff.roles_changed')->sole();
     expect($audit->entity_id)->toBe($this->ops->staff_id)
@@ -34,7 +34,7 @@ it('replaces a staff member\'s roles, audits it, and applies on their next reque
         ->and($audit->after_json['removed'])->toBe([]);
 
     $this->bearer($opsToken)->getJson('/api/v1/dashboard/identity-documents')->assertOk();
-    $this->bearer($opsToken)->getJson('/api/v1/dashboard/auth/me')->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'buy_request.view', 'customer.view', 'identity.review', 'identity.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.view', 'reference.view']);
+    $this->bearer($opsToken)->getJson('/api/v1/dashboard/auth/me')->assertJsonPath('data.permissions', ['audit.view_own', 'branches.manage', 'buy_request.view', 'customer.view', 'identity.review', 'identity.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'payout_account.verify', 'pricing.view', 'reference.view']);
 });
 
 it('allows an empty role list', function () {
@@ -67,7 +67,7 @@ it('refuses assigning a role that carries a permission the manager lacks', funct
     ])->assertForbidden()->assertJsonPath('code', 'escalation_denied');
 
     expect(AuditLog::query()->where('action', 'authz.escalation_denied')->sole()->after_json['offending_permissions'])
-        ->toEqualCanonicalizing(['customer.view', 'identity.review', 'identity.view']);
+        ->toEqualCanonicalizing(['customer.view', 'identity.review', 'identity.view', 'payout_account.verify']);
 });
 
 it('never changes founder status, whatever the body says', function () {

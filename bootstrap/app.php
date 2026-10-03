@@ -111,6 +111,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 // and its deferred checks have their own SQLSTATE, DH006.
                 'DH005' => DomainApiException::illegalBuyRequestTransition(),
                 'DH006' => DomainApiException::illegalOrderTransition(),
+                // Spec 013: the withdrawal and payout-account guards.
+                'DH007' => DomainApiException::illegalWithdrawalTransition(),
+                'DH008' => DomainApiException::illegalPayoutAccountTransition(),
                 '23505' => str_contains($e->getMessage(), 'one_active_request_per_buyer_listing')
                     ? DomainApiException::alreadyInQueue()
                     : $e,
@@ -126,6 +129,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH004' => DomainApiException::illegalListingTransition(),
                 'DH005' => DomainApiException::illegalBuyRequestTransition(),
                 'DH006' => DomainApiException::illegalOrderTransition(),
+                'DH007' => DomainApiException::illegalWithdrawalTransition(),
+                'DH008' => DomainApiException::illegalPayoutAccountTransition(),
                 default => $e,
             };
         });
