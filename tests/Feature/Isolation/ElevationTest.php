@@ -107,6 +107,9 @@ it('only elevates the pinned unauthenticated auth routes', function () {
         'api.v1.dashboard.auth.login',
         'api.v1.dashboard.auth.mfa.enroll',
         'api.v1.dashboard.auth.mfa.verify',
+        // Spec 013: the withdrawal email link's page finds one row by its token.
+        'api.v1.withdrawal-confirmations.confirm',
+        'api.v1.withdrawal-confirmations.read',
     ]);
 
     foreach (Route::getRoutes()->getRoutes() as $route) {

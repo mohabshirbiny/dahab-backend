@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ShowCustomerWalletAction
 {
-    /** @return array{available: string, held: string, total: string, currency: string} */
+    /** @return array{available: string, held: string, held_on_orders: string, pending_withdrawals: string, total: string, currency: string} */
     public function handle(string $customerId): array
     {
         $row = DB::selectOne("
@@ -25,9 +25,17 @@ final class ShowCustomerWalletAction
             WHERE a.customer_id = ?
         ", [$customerId]);
 
+        // Spec 013 FR-017: withdrawals not yet released are held too; split them out.
+        $pending = (string) DB::selectOne("
+            SELECT COALESCE(SUM(amount), 0)::numeric(18,4)::text AS pending
+            FROM withdrawal WHERE customer_id = ? AND state IN ('requested', 'under_review')
+        ", [$customerId])->pending;
+
         return [
             'available' => $row->available,
             'held' => $row->held,
+            'held_on_orders' => bcsub($row->held, $pending, 4),
+            'pending_withdrawals' => $pending,
             'total' => $row->total,
             'currency' => 'EGP',
         ];

@@ -111,11 +111,20 @@ enum StaffPermission: string
     /** See every buy request across listings (product-owner decision 2026-10-01; spec 012). */
     case BUY_REQUEST_VIEW = 'buy_request.view';
 
+    /** Release a withdrawal (Part 1 §4.2) — spec 013: the queue, take for review, hold, reject, release, export. Never the COO. */
+    case WITHDRAWAL_RELEASE = 'withdrawal.release';
+
+    /** Verify a payout bank account against the ID (Part 1 §4.3; spec 013). */
+    case PAYOUT_ACCOUNT_VERIFY = 'payout_account.verify';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
     /** Any of these opens the inspection results (spec 012 research R18). */
     public const INSPECTIONS_ANY = 'inspection.enter|order.view';
+
+    /** Either of these reads the withdrawals list and a withdrawal (spec 013 FR-012); only withdrawal.release acts. */
+    public const WITHDRAWALS_READ = 'withdrawal.release|wallet.view';
 
     public function label(): string
     {
@@ -152,20 +161,22 @@ enum StaffPermission: string
             self::ORDER_EXTEND_DEADLINE => 'Extend a deadline on request',
             self::ORDER_HANDOVER => 'Confirm handover at the counter',
             self::BUY_REQUEST_VIEW => 'View buy requests',
+            self::WITHDRAWAL_RELEASE => 'Release a withdrawal',
+            self::PAYOUT_ACCOUNT_VERIFY => 'Verify a payout bank account',
         };
     }
 
     public function group(): string
     {
         return match ($this) {
-            self::CUSTOMER_VIEW, self::CUSTOMER_SUSPEND => 'Customers',
+            self::CUSTOMER_VIEW, self::CUSTOMER_SUSPEND, self::PAYOUT_ACCOUNT_VERIFY => 'Customers',
             self::IDENTITY_VIEW, self::IDENTITY_REVIEW => 'Identity',
             self::STAFF_VIEW, self::ROLES_MANAGE => 'Access control',
             self::REFERENCE_VIEW, self::KARATS_TOGGLE, self::KARATS_CREATE, self::BRANCHES_MANAGE => 'Reference data',
             self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
-            self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE => 'Money',
+            self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE, self::WITHDRAWAL_RELEASE => 'Money',
             self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
@@ -238,6 +249,10 @@ enum StaffPermission: string
             self::INSPECTION_ENTER, self::ORDER_HANDOVER => [SeedRole::IGI_BRANCH->value],
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
             self::BUY_REQUEST_VIEW => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
+            // Spec 013 (Part 1 §4.2 "Release a withdrawal": CEO + Finance): wallet-touching, never the COO.
+            self::WITHDRAWAL_RELEASE => [SeedRole::FINANCE->value],
+            // Spec 013 (Part 1 §4.3 "Verify a payout bank account": CEO, Finance, Verification).
+            self::PAYOUT_ACCOUNT_VERIFY => [SeedRole::FINANCE->value, SeedRole::VERIFICATION->value],
         };
     }
 }

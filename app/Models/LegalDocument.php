@@ -22,6 +22,9 @@ class LegalDocument extends Model
     /** Accepted with every buy request (Part 2 §4, spec 011). */
     public const DEPOSIT_AGREEMENT = 'deposit_agreement';
 
+    /** Ticked when adding a payout account (spec 013; acceptance context `payout_account`). */
+    public const PAYOUT_ACCOUNT_DECLARATION = 'payout_account_declaration';
+
     protected $table = 'legal_document';
 
     protected $primaryKey = 'legal_doc_id';

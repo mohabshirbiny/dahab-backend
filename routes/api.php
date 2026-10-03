@@ -9,9 +9,11 @@ use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerI
 use App\Http\Controllers\Api\V1\Customer\ListingController as CustomerListingController;
 use App\Http\Controllers\Api\V1\Customer\ListingQueueController as CustomerListingQueueController;
 use App\Http\Controllers\Api\V1\Customer\OrderController as CustomerOrderController;
+use App\Http\Controllers\Api\V1\Customer\PayoutAccountController as CustomerPayoutAccountController;
 use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
+use App\Http\Controllers\Api\V1\Customer\WithdrawalController as CustomerWithdrawalController;
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
@@ -26,6 +28,7 @@ use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as Dashboard
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController as DashboardOrderController;
+use App\Http\Controllers\Api\V1\Dashboard\PayoutAccountController as DashboardPayoutAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\ReceivingAccountController as DashboardReceivingAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
@@ -33,8 +36,10 @@ use App\Http\Controllers\Api\V1\Dashboard\SettingController as DashboardSettingC
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
 use App\Http\Controllers\Api\V1\Dashboard\TopUpController as DashboardTopUpController;
 use App\Http\Controllers\Api\V1\Dashboard\WalletController as DashboardWalletController;
+use App\Http\Controllers\Api\V1\Dashboard\WithdrawalController as DashboardWithdrawalController;
 use App\Http\Controllers\Api\V1\Market\MarketListingController;
 use App\Http\Controllers\Api\V1\Market\ReferenceController;
+use App\Http\Controllers\Api\V1\Public\WithdrawalConfirmationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -70,6 +75,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     });
 
     // ─── Customer surface ────────────────────────────────────────────────
+    // Spec 013: the withdrawal email link's page. No token: the link's secret is the
+    // key; read has no side effect, confirm needs the customer's tap (research R5).
+    Route::middleware(['throttle:public.withdrawal_confirmations', 'db.elevate:bootstrap'])
+        ->prefix('withdrawal-confirmations')->name('withdrawal-confirmations.')->group(function () {
+            Route::post('/read', [WithdrawalConfirmationController::class, 'read'])->name('read');
+            Route::post('/confirm', [WithdrawalConfirmationController::class, 'confirm'])->name('confirm');
+        });
+
     Route::prefix('customer')->name('customer.')->group(function () {
         Route::prefix('auth')->name('auth.')->group(function () {
             // Six-step registration (docs Part 2 §§1–6). Only `submit` writes to
@@ -223,6 +236,35 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     Route::post('/{order}/relist', [CustomerOrderController::class, 'relist'])
                         ->whereUuid('order')->middleware('idempotent')->name('relist');
                 });
+            });
+
+            // Spec 013: payout accounts. A suspended customer may read; every change
+            // needs the trade gate and an Idempotency-Key (`idempotent` runs last).
+            Route::prefix('payout-accounts')->name('payout-accounts.')->group(function () {
+                Route::middleware('customer.gate:verified')->get('/', [CustomerPayoutAccountController::class, 'index'])->name('index');
+                Route::middleware('customer.gate:trade')->group(function () {
+                    Route::post('/', [CustomerPayoutAccountController::class, 'store'])
+                        ->middleware(['throttle:customer.payout_accounts', 'idempotent'])->name('store');
+                    foreach (['use', 'remove', 'keep'] as $action) {
+                        Route::post("/{account}/{$action}", [CustomerPayoutAccountController::class, $action])
+                            ->whereUuid('account')->middleware('idempotent')->name($action);
+                    }
+                });
+            });
+
+            // Spec 013: withdrawals. Verified gate throughout: a suspended customer may
+            // still withdraw a remaining balance and cancel (Part 1 §2.2).
+            Route::middleware('customer.gate:verified')->prefix('withdrawals')->name('withdrawals.')->group(function () {
+                Route::get('/', [CustomerWithdrawalController::class, 'index'])->name('index');
+                Route::post('/', [CustomerWithdrawalController::class, 'store'])
+                    ->middleware(['throttle:customer.withdrawals', 'idempotent'])->name('store');
+                Route::post('/confirmations', [CustomerWithdrawalController::class, 'requestConfirmation'])
+                    ->middleware(['throttle:customer.withdrawals', 'idempotent'])->name('confirmations.store');
+                Route::get('/confirmations/{confirmation}', [CustomerWithdrawalController::class, 'showConfirmation'])
+                    ->whereUuid('confirmation')->name('confirmations.show');
+                Route::get('/{withdrawal}', [CustomerWithdrawalController::class, 'show'])->whereUuid('withdrawal')->name('show');
+                Route::post('/{withdrawal}/cancel', [CustomerWithdrawalController::class, 'cancel'])
+                    ->whereUuid('withdrawal')->middleware('idempotent')->name('cancel');
             });
         });
     });
@@ -461,6 +503,32 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->middleware('staff.permission:'.StaffPermission::INSPECTIONS_ANY)->name('index');
                 Route::get('/work-list', [DashboardInspectionController::class, 'workList'])
                     ->middleware('staff.permission:'.StaffPermission::WORK_LIST_ANY)->name('work-list');
+            });
+
+        // Spec 013: the Withdrawals page. Reads open with withdrawal.release or wallet.view
+        // (read only); every action and the export need withdrawal.release.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('withdrawals')->name('withdrawals.')->group(function () {
+                Route::get('/', [DashboardWithdrawalController::class, 'index'])
+                    ->middleware('staff.permission:'.StaffPermission::WITHDRAWALS_READ)->name('index');
+                Route::get('/export', [DashboardWithdrawalController::class, 'export'])
+                    ->middleware('staff.permission:withdrawal.release')->name('export');
+                Route::get('/{withdrawal}', [DashboardWithdrawalController::class, 'show'])
+                    ->whereUuid('withdrawal')->middleware('staff.permission:'.StaffPermission::WITHDRAWALS_READ)->name('show');
+                foreach (['review', 'hold', 'unhold', 'release', 'reject'] as $action) {
+                    Route::post("/{withdrawal}/{$action}", [DashboardWithdrawalController::class, $action])
+                        ->whereUuid('withdrawal')->middleware(['staff.permission:withdrawal.release', 'idempotent'])->name($action);
+                }
+            });
+
+        // Spec 013: payout accounts to check (payout_account.verify).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:payout_account.verify'])
+            ->prefix('payout-accounts')->name('payout-accounts.')->group(function () {
+                Route::get('/', [DashboardPayoutAccountController::class, 'index'])->name('index');
+                Route::post('/{account}/verify', [DashboardPayoutAccountController::class, 'verify'])
+                    ->whereUuid('account')->middleware('idempotent')->name('verify');
+                Route::post('/{account}/refuse', [DashboardPayoutAccountController::class, 'refuse'])
+                    ->whereUuid('account')->middleware('idempotent')->name('refuse');
             });
 
         // Spec 012: buy requests across listings, read-only (product-owner decision 2026-10-01).

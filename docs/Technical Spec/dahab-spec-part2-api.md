@@ -462,6 +462,12 @@ Customer's own ledger history (their postings, human-labelled by `event_kind`).
 ### Payout accounts & withdrawals
 Money leaves only to an account in the customer's own name; a payout-account change pauses withdrawals for the setting window (48h) and the email second-check gates every withdrawal (Part 1 §2.4; schema §12).
 
+> **Changed by spec 013** — see [`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md) and [`docs/features/withdrawals.md`](../features/withdrawals.md). Built under `/api/v1/customer/me/*`:
+> - **Payout accounts** — `GET /payout-accounts` (verified; accounts masked, the open pause, the last 20 changes); `POST /payout-accounts` `{bank_name, account_name, account_number_or_iban, declaration_id, declaration_accepted}` (trade gate; an Egyptian IBAN with a valid checksum or 8–20 digits; the `payout_account_declaration` acceptance is recorded with context `payout_account`; `pending_review`; the customer is told on phone and email; nothing is paused); `POST /payout-accounts/{id}/use|remove|keep` (trade gate). Several accounts, **exactly one in use**: making a different one in use — not the first time ever — cancels every withdrawal not yet released (money back) and opens the pause (`withdrawal.account_change_pause_hours`, none at 0); `remove` cancels a request, removes an account, or makes it `removing` while a withdrawal not yet released goes to it (it keeps its in-use flag and takes no new withdrawal); `keep` returns it to active with no pause.
+> - **Withdrawals** (verified gate: a suspended customer may withdraw and cancel) — `POST /withdrawals/confirmations` `{amount, payout_account_id}` (gates first, then the email link, Part 1 §2.4), `GET /withdrawals/confirmations/{id}`, `POST /withdrawals` `{confirmation_id, amount, payout_account_id}` (replaces `email_confirmation_token`), `GET /withdrawals`, `GET /withdrawals/{id}`, `POST /withdrawals/{id}/cancel`. No fee, no minimum or maximum beyond available. Every POST needs an `Idempotency-Key`. The withdrawal reference is `WD-{n}`.
+> - **Errors**: `email_confirmation_required` 403, `withdrawals_paused` 409 (`details.pause_until`), `payout_account_not_active` 409, `insufficient_funds` 409 (`details.available`, `details.shortfall`), `illegal_payout_account_transition` 409, `illegal_withdrawal_transition` 409, `declaration_required` 422, `confirmation_invalid` 422 (the public link page).
+> - The wallet (`GET /customer/me/wallet`) adds `held_on_orders` and `pending_withdrawals` (held = both).
+
 ### `POST /me/payout-accounts`
 - **gate:** `verified` (signed in) · **idempotent:** required · **audited:** no
 - **Body:** `{ "account_name", "bank_name", "account_number_or_iban" }` — `account_name` must match the verified ID (checked by staff, §11).
@@ -491,6 +497,8 @@ Holder cancels before release (`requested/under_review → cancelled`); the held
 Every endpoint here is wallet-touching: the seed gives these permissions to CEO/Finance only (Part 1 §4.2), and role managers may change that from the Dashboard (spec 002). There is no Postgres grant behind them (Part 1 §5.2). By default the COO, though a founder, lacks them and gets `403 permission_denied`.
 
 > **Wallet reads built by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)), permission `wallet.view`: `GET /dashboard/wallets/overview` (available, held, total owed, bank cash, headroom, system total), `GET /dashboard/customers/{customer}/wallet`, `GET /dashboard/wallet-statement` (`view=customer|customers|dahab`, `from`, `to`, `grain=each|day|month`, keyset `cursor`; the one-customer view is audited as `ledger.statement.viewed`) and `GET /dashboard/wallet-statement/export` (CSV, audited as `ledger.statement.exported`). No endpoint in spec 008 moves money.
+
+> **Changed by spec 013** — see [`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md). Built under `/api/v1/dashboard/*`: `GET /withdrawals` (oldest first; `state` csv, default requested,under_review; `held`, `from`, `to`, `q`, `customer_id`; keyset; `meta.figures`; each row with the account, its name check and the *Before you release* signals), `GET /withdrawals/export` (CSV, audited), `GET /withdrawals/{id}` (with its ledger entries), and `POST /withdrawals/{id}/review|hold|unhold|release|reject`, all `withdrawal.release` (reads also `wallet.view`, masked, no action). **Hold** is a flag on an under-review withdrawal (reason, a message the customer is told, a staff note); a held withdrawal is not released (`withdrawal_on_hold` 409); the hold record stays after a reject or cancel. **Release** records the transfer a person sent at the bank (`bank_txn_number` required, `transfer_reference`, `value_date`), posts held −X / bank +X, and accepts an account that is `active` or `removing` (its in-flight withdrawal). The pause is **not** re-checked at release: every open withdrawal is cancelled when the account in use changes. **Reject** works from `requested` or `under_review` (new transition `requested → rejected`), with a reason the customer sees and a note they never see. `released` is final here (no `settled`, no bounce). Every POST is idempotent and audited.
 
 ### `GET /admin/withdrawals?state=requested,under_review`
 The review queue. · **permission:** *View a wallet* / *Release a withdrawal* (CEO/Finance) · **idempotent:** n/a
@@ -663,6 +671,8 @@ Without `audit.view_all`, every read is limited to the caller's own actions. Cus
 
 ### `POST /admin/payout-accounts/{id}/verify`
 Verify a payout account's name against the ID (`active`).
+
+> **Changed by spec 013** — see [`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md). Built as `GET /dashboard/payout-accounts` (default `pending_review`, oldest first, with the customer's verified ID name) and `POST /dashboard/payout-accounts/{id}/verify|refuse` (`payout_account.verify`; idempotent, audited). Verify makes the account the one in use when the customer has none (a change, unless it is their first). Refuse moves it to the new final state `refused` with a reason (`name_mismatch`, `name_shortened`, `not_in_customer_name`, `details_invalid`, `other`) and a staff note.
 - **permission:** *Verify a payout bank account* (CEO/Finance/Verification) · **audited:** yes · **idempotent:** required
 
 ### Access control — roles, permissions, staff roles (built by spec 002)
@@ -707,6 +717,7 @@ These are scheduled workers that drive deadline-based transitions. They are list
 - **Seller-return deadline sweep.** Returned pieces past `seller_return.return_deadline` while still uncollected (`collected_at IS NULL`) → listing `awaiting_seller_return → seller_unclaimed`; a status is shown to the seller ("window passed, not our liability"). Disposition (hand over / compensate) is a **manual decision** when the seller makes contact (decision #3; Part 3). The order stays `cancelled_buyer_nopay` throughout — the afterlife rides on the listing, never the order.
 - **Collection-deadline sweep.** Orders past `collect_deadline` in `ready_to_collect` → listing `sold → uncollected_expired`; the order stays terminal (`completed` once handed over, but here it was never handed over — it remains `ready_to_collect` as the *order* accounting state while the *listing* carries `uncollected_expired`). Fire a buyer notification. **Disposition is a manual decision when the buyer makes contact** (decision #4 — hand over the piece, or refund from `escrow`): the money source for a refund is the escrowed price, which is why §7 keeps escrow on the path. The system provides the state, the notification, and the manual hand-over/refund actions; it does **not** auto-dispose. *(This was OI-2.1; decision #4 resolves the disposition to a manual path. The commercial choice per case — hand over vs refund — is made by an operator, not automated.)*
 - **Withdrawal-pause expiry.** `on_hold_account_change → under_review` once `pause_until` elapses.
+  > **Changed by spec 013** ([`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md)): withdrawals not yet released are **cancelled** at the change, so nothing waits in `on_hold_account_change`. Built as `withdrawals:sweep`, every minute, system actor: for each pause that has ended it stamps `ended_notified_at` and tells the customer once that withdrawals are open again (a pause superseded by a later open one is stamped silently).
 - **Notify-when-free.** When a listing returns to `live` with zero active requests, notify buyers who left with `notify_when_free = true` (they rejoin at the back — locked decision). *Built by spec 011: an after-commit job; `buy_request.free_notified_at` makes it once per leave; a buyer already back in line is skipped.*
 - **Pattern/cap flags.** When transaction counts cross `flag.pattern_txn_threshold`, raise a review flag. ⚠️ **Who receives the alert and by which channel is unresolved** (open-questions §5; Part 1 OI-1.3). **OI-2.2.**
 
@@ -751,6 +762,10 @@ Auth codes are in Part 1 §9. Domain codes introduced above:
 | `invalid_collection_code` | 401 | handover |
 | `proxy_details_missing` | 422 | proxy handover |
 | `email_confirmation_required` | 403 | withdrawal (Part 1 §2.4) |
+| `confirmation_invalid` | 422 | the email link's page: unknown, expired, replaced or used token (spec 013) |
+| `declaration_required` | 422 | add a payout account without the current declaration (spec 013) |
+| `withdrawal_on_hold` | 409 | release while held (spec 013) |
+| `illegal_payout_account_transition` | 409 | any guarded payout-account change — SQLSTATE DH008 (spec 013) |
 | `withdrawals_paused` | 409 | withdrawal within account-change window |
 | `payout_account_not_active` | 409 | withdrawal |
 | `compensation_cap_exceeded` | 403 | Finance over-cap compensation |

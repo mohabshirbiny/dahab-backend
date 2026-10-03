@@ -80,6 +80,8 @@ Failed sign-in throttling mirrors staff (§3.4): a small number of failures, the
 
 A withdrawal request is **not** released on the strength of the session alone. Before a withdrawal enters review, the customer confirms via a one-time link sent to their verified email — *"Your email is the second check whenever you withdraw money."* This is an auth-layer obligation the withdrawal endpoint (Part 2) inherits: no confirmed email token, no withdrawal. It is deliberately independent of the session so that a stolen session on its own cannot drain a wallet.
 
+> **Changed by spec 013** — see [`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md). Built as *confirm, then submit*: `POST /customer/me/withdrawals/confirmations` (amount + the account in use) emails a single-use link valid 30 minutes, tied to the customer, the amount and the account; only the token's HMAC is stored (`withdrawal_confirmation`). The link opens a Customer App page that confirms only on a tap, through the public `POST /withdrawal-confirmations/read|confirm` (no session; a mail scanner opening the link confirms nothing). `POST /customer/me/withdrawals` then needs that confirmation, confirmed, unused and unexpired, for the same amount and account (`email_confirmation_required` 403 otherwise). Email only: there is no SMS code on a withdrawal.
+
 ---
 
 ## 3. Staff authentication and roles
@@ -179,6 +181,8 @@ Note the two founder columns differ only where wallet access is involved. For li
 
 Two important reads of this table:
 
+> **Changed by spec 013** ([`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md)): *Release a withdrawal* is the code `withdrawal.release` (CEO, Finance; never the COO): the Withdrawals queue, take for review, hold / unhold, release, reject and the CSV export; `wallet.view` alone may read the queue (no action, numbers masked). *Verify a payout bank account* (§4.3) is `payout_account.verify` (CEO, Finance, Verification). Both are seeded once and editable from the Dashboard.
+
 > **Changed by spec 009** ([`specs/009-wallet-topup/spec.md`](../../specs/009-wallet-topup/spec.md)): permission codes `topup.match` (*Match an incoming transfer* — the Incoming transfers list, receipt, match, hold, reject and credit by hand) and `topup.accounts.manage` (*Manage Dahab's receiving accounts*, a new row). Both are seeded to CEO and Finance, never the COO, and are editable from the Dashboard (spec 002).
 
 - **The COO is excluded from every wallet-touching action even though the COO is a founder.** The COO cannot view a balance, adjust a wallet, match a transfer, record a bank movement, or close the day (the "CEO only" rows), and cannot release a withdrawal either (that row is CEO + Finance — both may release, but not the COO). This is the wallet-access narrowing made concrete, and §5.2 enforces it by grant so it cannot be bypassed in code.
@@ -242,6 +246,8 @@ RLS is **enabled and forced** (`FORCE ROW LEVEL SECURITY`, because the applicati
 | none | nothing | everything else |
 
 The customer id comes only from the authenticated session, written by the framework (§7), never from request input. The application's database role must be neither superuser nor `BYPASSRLS`; a test enforces this, and another test fails the build if a table with a customer owner column lacks forced RLS and a policy.
+
+> **Changed by spec 013** — see [`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md). `payout_account`, `payout_account_change`, `withdrawal_pause`, `withdrawal` and `withdrawal_confirmation` join forced RLS (owner: the customer). Every customer action touches only the caller's own rows, so no new scope is needed; the public email confirm uses the existing `bootstrap` elevation and finds one row by its token's HMAC.
 
 > **Changed by spec 011** — see [`specs/011-buy-requests/spec.md`](../../specs/011-buy-requests/spec.md). `buy_request` (owner: the buyer) and `"order"` (owners: the seller and the buyer) join forced RLS. A queue operation spans two customers (a buyer's join moves the seller's listing; a seller's accept refunds other buyers), so the buy-request Actions push a non-elevated **`queue`** scope: it reads a listing's line and the pieces a buyer asked for, moves only the caller's own request or the requests on the caller's own listing, flips a listing only between live and reserved, sees no other customer table, and never narrows an elevated caller. A customer's own reads of their requests never use it. This is a recorded deviation from Constitution II (`specs/011-buy-requests/plan.md`), proven by `QueueScopeTest` and `BuyRequestLeakTest`.
 
@@ -330,6 +336,8 @@ Every auth failure returns a stable, machine-readable `error.code` so clients ca
 | `forbidden_role` | 403 | Authenticated but the role lacks this action | Hide the control; log the attempt |
 | `reason_required` | 422 | A reason-mandatory action supplied none | Collect a reason and resubmit |
 | ~~`wallet_access_denied`~~ | 403 | **Retired by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)): wallet access is an ordinary permission since spec 002, so a staff member without `wallet.view` gets the standard `permission_denied` (403), which is audited as `auth.staff.permission_denied` naming `wallet.view` | Should be unreachable in UI; a real one is a bug or an attack |
+
+> **Changed by spec 013** ([`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md)): `email_confirmation_required` (403) is raised by `POST /customer/me/withdrawals`; the link's page answers `confirmation_invalid` (422) for an unknown, expired, replaced or used token.
 
 `password_invalid` and a non-existent phone return the **same** response, to avoid confirming which phone numbers have accounts. A wallet `permission_denied` should never occur through the intended UI — if it does, it is either a bug or a probe, and it is itself an audited event.
 

@@ -28,11 +28,11 @@ it('seeds today\'s access map plus the new access-control permissions for both f
     $this->seed([DashboardRolesAndPermissionsSeeder::class, LocalStaffSeeder::class]);
 
     $expected = [
-        'ceo' => ['audit.view_all', 'audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'inspection.enter', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.handover', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'],
+        'ceo' => ['audit.view_all', 'audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'identity.review', 'identity.view', 'inspection.enter', 'karats.create', 'karats.toggle', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.handover', 'order.price_adjust', 'order.receive', 'order.view', 'payout_account.verify', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view', 'topup.accounts.manage', 'topup.match', 'wallet.view', 'withdrawal.release'],
         'coo' => ['audit.view_own', 'branches.manage', 'buy_request.view', 'customer.suspend', 'karats.create', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.view', 'reference.view', 'roles.manage', 'settings.manage', 'staff.view'],
-        'finance' => ['audit.view_own', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'karats.toggle', 'order.view', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'topup.accounts.manage', 'topup.match', 'wallet.view'],
+        'finance' => ['audit.view_own', 'customer.view', 'gold_price.confirm', 'gold_price.enter', 'karats.toggle', 'order.view', 'payout_account.verify', 'pricing.rates.manage', 'pricing.view', 'reference.view', 'topup.accounts.manage', 'topup.match', 'wallet.view', 'withdrawal.release'],
         'operations' => ['audit.view_own', 'branches.manage', 'buy_request.view', 'listing.request_changes', 'listing.review', 'listing.takedown', 'order.cancel', 'order.change_branch', 'order.extend_deadline', 'order.price_adjust', 'order.receive', 'order.view', 'pricing.view', 'reference.view'],
-        'verification' => ['audit.view_own', 'customer.view', 'identity.review', 'identity.view'],
+        'verification' => ['audit.view_own', 'customer.view', 'identity.review', 'identity.view', 'payout_account.verify'],
         'igi_branch' => ['inspection.enter', 'order.handover', 'order.receive'],
     ];
 
@@ -56,7 +56,7 @@ it('never overwrites role permissions edited from the Dashboard when reseeding',
     $this->seed(DashboardRolesAndPermissionsSeeder::class);
 
     expect($verification->fresh()->permissions->pluck('name')->sort()->values()->all())
-        ->toBe(['audit.view_own', 'customer.view', 'identity.view']);
+        ->toBe(['audit.view_own', 'customer.view', 'identity.view', 'payout_account.verify']);
 });
 
 it('gives a code new to the catalogue to ceo and its seed roles, and removes retired codes', function () {

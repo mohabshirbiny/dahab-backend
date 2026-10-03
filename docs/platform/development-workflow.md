@@ -26,7 +26,8 @@ composer test                     # config:clear + Pest (in-memory SQLite)
 ./vendor/bin/pint                 # format  (pint --test to check only)
 composer swagger:generate         # regenerate storage/api-docs/api-docs.json
 php artisan migrate:fresh --seed  # local DB reset + seeded staff
-php artisan serve                 # http://127.0.0.1:8000
+php artisan serve                 # http://127.0.0.1:8000 (the Dashboard's VITE_API_BASE_URL)
+php artisan serve --port=8010     # http://127.0.0.1:8010 (the Customer App's default API_BASE_URL)
 ```
 
 Also update `postman/Dahab-Backend.postman_collection.json` whenever an endpoint changes (see `postman/README.md`).
@@ -49,11 +50,11 @@ flutter pub get
 flutter analyze
 flutter test                                  # smoke (all routes, 4 widths, EN/AR), flows, pricing
 flutter build web --release
-flutter run -d chrome --web-port 8765 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter run -d chrome --web-port 8765 --dart-define=API_BASE_URL=http://127.0.0.1:8010/api/v1
 ```
 
 Live API test (creates a customer in the local DB; needs a running backend):
-`LIVE_API=http://127.0.0.1:8000/api/v1 flutter test test/live/live_api_test.dart`.
+`LIVE_API=http://127.0.0.1:8010/api/v1 flutter test test/live/live_api_test.dart`.
 
 ## 3. API change checklist
 
@@ -94,7 +95,8 @@ Each project is its own repository. **Never merge them.**
 2. `CORS_ALLOWED_ORIGINS` in backend `.env` must include every frontend origin in use
    (`http://localhost:3000`, `http://localhost:8765`).
 3. Dashboard: `VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1` (`.env.development.local`).
-4. Flutter: defaults to `http://127.0.0.1:8000/api/v1`; for a deploy build pass the production host:
+4. Flutter: defaults to `http://127.0.0.1:8010/api/v1` (run the backend with `php artisan serve --port=8010`, or pass
+   `--dart-define=API_BASE_URL=…`); for a deploy build pass the production host:
    `flutter build web --release --dart-define=API_BASE_URL=<production origin>/api/v1`.
 5. Listing videos are up to 50 MB (spec 010): PHP needs `upload_max_filesize` ≥ 50M and `post_max_size` ≥ 60M
    (`docker/php/uploads.ini` sets them in the image; on Laragon edit `php.ini`), and nginx `client_max_body_size 60m`

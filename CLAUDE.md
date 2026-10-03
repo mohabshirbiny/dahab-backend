@@ -193,7 +193,7 @@ Missing:         anything not found, stated exactly (endpoint / field / permissi
 Action needed:   Backend → … · Dashboard → … · Customer App → …
 ```
 
-## Current state (verified 2026-10-02 — re-verify before relying on it)
+## Current state (verified 2026-10-03 — re-verify before relying on it)
 
 - Backend implements: health, customer registration (6 steps) / login / new-device OTP / refresh / me /
   logout, customer uploads + identity-document submission; staff login + MFA / refresh / me / logout;
@@ -250,15 +250,25 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   request (buyer) and at acceptance (seller) as one `balance_payment` through escrow, the no-pay `deposit_forfeit`,
   the per-minute `orders:sweep` (missed delivery, unanswered adjustment, no-pay, return and collection windows,
   reminders, suspension for repeated cancellations), history in `order_state_change` (guard SQLSTATE DH006
-  `illegal_order_transition`), the audited non-elevated `order` RLS scope. Disputes, invoices and withdrawals are not
-  built. Nothing else yet.
+  `illegal_order_transition`), the audited non-elevated `order` RLS scope;
+  withdrawals (spec 013) — payout accounts (`/customer/me/payout-accounts*`: add with the `payout_account_declaration`,
+  several with exactly one in use, use / remove / keep; an account becoming the one in use — not the first ever — cancels
+  every withdrawal not yet released and opens the `withdrawal.account_change_pause_hours` pause; staff verify or refuse
+  (`/dashboard/payout-accounts*`, `payout_account.verify`, new final state `refused`)), the email second-check
+  (`/customer/me/withdrawals/confirmations*` + the public `/withdrawal-confirmations/read|confirm`, 30-minute single-use
+  link tied to amount and account), withdrawals (`/customer/me/withdrawals*`: submit holds available → held, cancel;
+  `WD-{n}`) and the staff Withdrawals queue (`/dashboard/withdrawals*`, `withdrawal.release` — CEO + Finance, never COO;
+  figures, signals, take for review, hold / unhold, release with the bank record (held → bank), reject, CSV export),
+  guards DH007 / DH008, `trg_withdrawal_money`, `withdrawals:sweep`, the held split (`held_on_orders` +
+  `pending_withdrawals`). Disputes and invoices are not built. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
   (spec 008); Incoming transfers and Controls → Receiving accounts are live (spec 009); Listings to review is live
   (spec 010), with the read-only line, the order box, Cancel acceptance and the Buyers in line / Accepted chips
   (spec 011); Orders, Inspections (work list and results) and Buy requests are live (spec 012); the rest of the
-  Overview and other sections are mock.
+  Overview and other sections are mock. Withdrawals (with Payout accounts to check), the Customer file's payout accounts
+  and the held split are live (spec 013).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -269,8 +279,10 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   accepted on the Orders tab, and the order screen — bring the piece with a countdown, cancel the sale, the
   inspection result, accept/decline a new price, pay the balance with You need a little more → Add funds, the
   collection code, the returned piece with its code and Put it back on the market); the prototype's other order
-  screens, invoices, withdrawals, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`).
-- Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1`; the production host is passed
+  screens, invoices, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`); Bank accounts,
+  Add a bank account, Your details → Payout account, Withdraw with the email step, the `#/withdraw-confirm` page and the
+  wallet's pending withdrawals are live (spec 013).
+- Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8010/api/v1` (the Dashboard's dev env uses `:8000`); the production host is passed
   with `--dart-define` only when building a deploy version.
 
 ---

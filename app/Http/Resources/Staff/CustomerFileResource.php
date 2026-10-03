@@ -4,7 +4,9 @@ namespace App\Http\Resources\Staff;
 
 use App\Models\Customer;
 use App\Models\IdentityDocument;
+use App\Models\PayoutAccount;
 use App\Models\Staff;
+use App\Models\WithdrawalPause;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
@@ -18,6 +20,8 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'joined_at', type: 'string', format: 'date-time'),
             new OA\Property(property: 'documents', type: 'array', description: 'Every identity document, newest first; documents[0] equals latest_document.', items: new OA\Items(ref: '#/components/schemas/StaffCustomerFileDocument')),
             new OA\Property(property: 'suspension', ref: '#/components/schemas/StaffCustomerSuspension', nullable: true),
+            new OA\Property(property: 'payout_accounts', type: 'array', description: 'Spec 013: every payout account, the one in use first; the full number only for payout_account.verify / withdrawal.release', items: new OA\Items(ref: '#/components/schemas/StaffPayoutAccount')),
+            new OA\Property(property: 'withdrawal_pause', nullable: true, description: 'Spec 013: the open withdrawal pause', properties: [new OA\Property(property: 'until', type: 'string', format: 'date-time')], type: 'object'),
         ]),
     ],
 )]
@@ -70,6 +74,10 @@ class CustomerFileResource extends CustomerVerificationResource
                 'suspended_at' => optional($c->suspended_at)->toIso8601String(),
                 'suspended_by' => $this->staffRef($c->suspender),
             ],
+            'payout_accounts' => $c->payoutAccounts
+                ->map(fn (PayoutAccount $a) => StaffPayoutAccountResource::make($a)->resolve($request))->values()->all(),
+            'withdrawal_pause' => ($pause = WithdrawalPause::openFor($c->customer_id)) === null
+                ? null : ['until' => $pause->pause_until->toIso8601String()],
         ];
     }
 

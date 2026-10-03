@@ -442,6 +442,8 @@ Any post-payment refund (uncollected-paid, or a dispute resolved for the buyer a
 
 Full wire contract in Part 2 §8–§9; the logic:
 
+> **Changed by spec 013** — see [`specs/013-withdrawals/spec.md`](../../specs/013-withdrawals/spec.md). As built: several payout accounts, exactly one **in use**; the change that cancels withdrawals not yet released and opens the pause is an account **becoming the one in use** (not the first time ever), not an account being added. A refused account is final (`refused`). The ledger shapes are all `event_kind = withdrawal`, tied to the withdrawal: hold (available −X, held +X; the customer), release (held −X, bank +X; the releasing staff member), return (held −X, available +X; the customer on a cancel or an account change, staff on a reject). The pause is not re-checked at release. The guard is SQLSTATE DH007 and a deferred check (`trg_withdrawal_money`) makes each state carry its money.
+
 - **Request** moves the amount from `cust_available` into a pending hold and creates `withdrawal(requested)`. **No money leaves the bank** until a person releases it. Two gates beyond the session: the **email second-check** (Part 1 §2.4 — `email_confirmation_required` 403 without it) and the **account-change pause** (`withdrawals_paused` 409 if an active `withdrawal_pause` covers now).
 - **Payout-account change** opens a `withdrawal_pause` (`pause_until = now() + withdrawal.account_change_pause_hours`, read from setting) and cancels any in-flight withdrawal; the new account is `pending_review` until Finance/Verification checks the name against the ID. No role can skip the pause (admin-roles §9).
 - **Release** is person-reviewed (`under_review → released`): customer hold `−amount`, `bank +amount` (money leaves; **changed by spec 008**, research R15 — the lines sum to zero and the bank's cash is `−SUM(bank)`). Re-check the pause at release. **Release authority: CEO or Finance** (resolved — both may release; the COO is excluded as a wallet action). Every release is a named, audited action.
@@ -462,7 +464,7 @@ Each runs as a **system staff actor** (attributable in the audit log), obeys the
 | Balance-payment sweep | `order` `awaiting_balance` past `balance_due_deadline` | → `cancelled_buyer_nopay`; deposit forfeiture 50/50; piece → `awaiting_seller_return` + `seller_return` row (§10.1) |
 | Seller-return sweep | `seller_return` past `return_deadline`, `collected_at IS NULL` | listing `awaiting_seller_return → seller_unclaimed`; notify seller (§10.1) |
 | Collection sweep | `order` paid, past `collect_deadline` | listing `sold → uncollected_expired`; notify buyer; await manual disposition (§10.2) |
-| Withdrawal-pause expiry | `withdrawal` `on_hold_account_change`, `pause_until` elapsed | → `under_review` |
+| Withdrawal-pause expiry | `withdrawal` `on_hold_account_change`, `pause_until` elapsed | → `under_review` — **changed by spec 013**: `withdrawals:sweep` tells the customer the pause has ended (nothing waits on hold: open withdrawals are cancelled at the change) |
 | Notify-when-free | listing back to `live` with **zero** active requests | notify buyers who left with `notify_when_free = true` (rejoin at back) |
 | Pattern/cap flag | txn counts crossing `flag.pattern_txn_threshold` | raise review flag (routing = OI-3.4) |
 

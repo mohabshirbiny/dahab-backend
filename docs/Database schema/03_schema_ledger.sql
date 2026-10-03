@@ -85,7 +85,7 @@ CREATE TABLE ledger_transaction (
   listing_id    UUID,   -- FK added in Part 3
   order_id      UUID,   -- FK lt_order_fk added by spec 011; spec 012: one balance_payment and one deposit_forfeit per order (unique indexes one_balance_payment_per_order, one_deposit_forfeit_per_order); a deposit_release may follow an accepted request only once its order is cancelled_staff, cancelled_seller or cancelled_inspection (deposit_release_allowed())
   buy_request_id UUID,  -- FK lt_request_fk added by spec 011 (deferred); one deposit_hold and at most one deposit_release per request (unique indexes)
-  withdrawal_id UUID,   -- FK added in Part 3
+  withdrawal_id UUID,   -- FK lt_withdrawal_fk added by spec 013 (deferred); a withdrawal's entries are a hold (customer available -X, held +X), then one release (held -X, bank +X) or one return (held -X, available +X), all event_kind = withdrawal
   -- Named actor. Customer-initiated events carry the customer; staff
   -- actions carry the staff member. At least one must be present.
   customer_id   UUID REFERENCES customer(customer_id),

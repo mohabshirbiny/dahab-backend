@@ -142,6 +142,20 @@ class AppServiceProvider extends ServiceProvider
             return $this->limit((int) config('dahab-buy-requests.send_per_minute'), 60, 'customer-buy-requests:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
         });
 
+        // Spec 013: payout accounts added and withdrawal steps per customer; the email
+        // link's page per IP.
+        RateLimiter::for('customer.payout_accounts', function (Request $request) {
+            return $this->limit(5, 60, 'customer-payout-accounts:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('customer.withdrawals', function (Request $request) {
+            return $this->limit(10, 60, 'customer-withdrawals:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('public.withdrawal_confirmations', function (Request $request) {
+            return $this->limit(10, 60, 'public-withdrawal-confirmations:'.$request->ip());
+        });
+
         RateLimiter::for('public.market', function (Request $request) {
             return $this->limit((int) config('dahab-listings.market_per_minute'), 60, 'public-market:'.$request->ip());
         });

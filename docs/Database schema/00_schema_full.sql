@@ -148,6 +148,7 @@ CREATE TYPE withdrawal_state AS ENUM (
 CREATE TYPE payout_account_state AS ENUM (
   'pending_review',    -- name being checked against ID
   'active',
+  'refused',           -- spec 013: the name check failed; final
   'removing',          -- scheduled removal after an in-flight withdrawal
   'removed'
 );
@@ -765,7 +766,7 @@ CREATE TABLE ledger_transaction (
   listing_id    UUID,   -- FK added in Part 3
   order_id      UUID,   -- FK lt_order_fk added by spec 011; spec 012: one balance_payment and one deposit_forfeit per order (unique indexes one_balance_payment_per_order, one_deposit_forfeit_per_order); a deposit_release may follow an accepted request only once its order is cancelled_staff, cancelled_seller or cancelled_inspection (deposit_release_allowed())
   buy_request_id UUID,  -- FK lt_request_fk added by spec 011 (deferred); one deposit_hold and at most one deposit_release per request (unique indexes)
-  withdrawal_id UUID,   -- FK added in Part 3
+  withdrawal_id UUID,   -- FK lt_withdrawal_fk added by spec 013 (deferred); a withdrawal's entries are a hold (customer available -X, held +X), then one release (held -X, bank +X) or one return (held -X, available +X), all event_kind = withdrawal
   -- Named actor. Customer-initiated events carry the customer; staff
   -- actions carry the staff member. At least one must be present.
   customer_id   UUID REFERENCES customer(customer_id),
@@ -1712,51 +1713,153 @@ ALTER TABLE seller_return ADD CONSTRAINT seller_return_one_end
 --     payout-account change cancels any in-flight withdrawal and pauses
 --     new withdrawals for the setting window (48h). Every withdrawal is
 --     reviewed by a person before release.
+--     As built by spec 013 (specs/013-withdrawals): several accounts per
+--     customer, exactly one in use; making a different one in use (not the
+--     first time ever) cancels every withdrawal not yet released and opens
+--     the pause; a refused account is final; 'removing' keeps its in-use
+--     flag until its in-flight withdrawals end. The email second-check is a
+--     withdrawal_confirmation row. `on_hold_account_change` and `settled`
+--     are not reached. Migration 2026_10_06_000010_create_withdrawals.php.
 -- ---------------------------------------------------------------------
 CREATE TABLE payout_account (
   payout_account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id  UUID NOT NULL REFERENCES customer(customer_id),
-  account_name TEXT NOT NULL,                   -- must match the ID
-  bank_name    TEXT NOT NULL,
-  account_number_or_iban TEXT NOT NULL,
+  account_name TEXT NOT NULL CHECK (char_length(account_name) BETWEEN 3 AND 120), -- must match the ID
+  bank_name    TEXT NOT NULL CHECK (char_length(bank_name) BETWEEN 2 AND 80),
+  -- spec 013: an Egyptian IBAN (mod-97 checked by the API) or 8-20 digits, spaces removed.
+  account_number_or_iban TEXT NOT NULL CHECK (account_number_or_iban ~ '^(EG[0-9]{27}|[0-9]{8,20})$'),
   state        payout_account_state NOT NULL DEFAULT 'pending_review',
-  name_checked_by UUID REFERENCES staff(staff_id),
+  is_in_use    BOOLEAN NOT NULL DEFAULT FALSE,           -- spec 013: withdrawals go here
+  name_checked_by UUID REFERENCES staff(staff_id),       -- the verifier or the refuser
   name_checked_at TIMESTAMPTZ,
   -- When this account was activated/changed; drives the withdrawal pause.
   activated_at TIMESTAMPTZ,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  refusal_reason TEXT CHECK (refusal_reason IN ('name_mismatch','name_shortened','not_in_customer_name','details_invalid','other')), -- spec 013
+  refusal_note   TEXT CHECK (char_length(refusal_note) <= 1000),   -- staff only
+  removal_requested_at TIMESTAMPTZ,                      -- spec 013
+  removed_at   TIMESTAMPTZ,                              -- spec 013
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT payout_in_use_needs_usable CHECK (NOT is_in_use OR state IN ('active','removing')),
+  CONSTRAINT payout_refusal_shape CHECK ((state = 'refused') = (refusal_reason IS NOT NULL)),
+  CONSTRAINT payout_checked_shape CHECK ((name_checked_by IS NULL) = (name_checked_at IS NULL)),
+  CONSTRAINT payout_active_checked CHECK (state NOT IN ('active','removing','refused') OR name_checked_by IS NOT NULL)
 );
 
 CREATE INDEX idx_payout_customer ON payout_account(customer_id);
+CREATE UNIQUE INDEX one_payout_in_use_per_customer ON payout_account(customer_id) WHERE is_in_use;  -- spec 013
+CREATE INDEX idx_payout_review ON payout_account(created_at, payout_account_id) WHERE state = 'pending_review';
 
 -- A per-customer pause window opened by a payout-account change. The
--- withdrawal service refuses new releases while now() < pause_until.
+-- withdrawal service refuses new requests while now() < pause_until
+-- (spec 013: open withdrawals are cancelled at the change, so release does
+-- not re-check it). withdrawals:sweep stamps ended_notified_at and tells the
+-- customer once the window is over.
 CREATE TABLE withdrawal_pause (
   pause_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id  UUID NOT NULL REFERENCES customer(customer_id),
   opened_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   pause_until  TIMESTAMPTZ NOT NULL,            -- opened_at + setting hours
   triggered_by_account UUID REFERENCES payout_account(payout_account_id),
+  ended_notified_at TIMESTAMPTZ,                -- spec 013
   CONSTRAINT pause_window_valid CHECK (pause_until > opened_at)
 );
 
 CREATE INDEX idx_pause_customer_until ON withdrawal_pause(customer_id, pause_until);
+CREATE INDEX idx_pause_to_announce ON withdrawal_pause(pause_until) WHERE ended_notified_at IS NULL;
+
+-- The history behind the customer's "Recent changes" (spec 013, new):
+-- one row per change, naming exactly one actor. Append-only.
+CREATE TABLE payout_account_change (
+  change_id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  customer_id  UUID NOT NULL REFERENCES customer(customer_id),
+  payout_account_id UUID NOT NULL REFERENCES payout_account(payout_account_id),
+  kind         TEXT NOT NULL CHECK (kind IN ('added','verified','refused','in_use','removal_scheduled','kept','removed','request_cancelled')),
+  actor_customer_id UUID REFERENCES customer(customer_id),
+  actor_staff_id    UUID REFERENCES staff(staff_id),
+  pause_id     UUID REFERENCES withdrawal_pause(pause_id),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  CONSTRAINT payout_change_one_actor CHECK ((actor_customer_id IS NULL) <> (actor_staff_id IS NULL))
+);
+CREATE INDEX idx_payout_change_customer ON payout_account_change(customer_id, change_id DESC);
+CREATE TRIGGER trg_payout_account_change_immutable BEFORE UPDATE OR DELETE ON payout_account_change
+  FOR EACH ROW EXECUTE FUNCTION block_mutation();
 
 CREATE TABLE withdrawal (
   withdrawal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  withdrawal_no BIGINT GENERATED BY DEFAULT AS IDENTITY UNIQUE,   -- spec 013: shown as WD-{n}
   customer_id  UUID NOT NULL REFERENCES customer(customer_id),
   payout_account_id UUID NOT NULL REFERENCES payout_account(payout_account_id),
   amount       NUMERIC(18,4) NOT NULL CHECK (amount > 0),
   state        withdrawal_state NOT NULL DEFAULT 'requested',
-  -- The ledger transaction that moved available -> (out to bank) on release.
-  release_txn_id UUID REFERENCES ledger_transaction(ledger_txn_id),
+  -- The three ledger entries (event_kind = withdrawal), each at most once (spec 013):
+  hold_txn_id    UUID NOT NULL UNIQUE REFERENCES ledger_transaction(ledger_txn_id), -- available -> held
+  release_txn_id UUID UNIQUE REFERENCES ledger_transaction(ledger_txn_id),          -- held -> bank
+  return_txn_id  UUID UNIQUE REFERENCES ledger_transaction(ledger_txn_id),          -- held -> available
   reviewed_by  UUID REFERENCES staff(staff_id),   -- finance/ceo
+  review_started_at TIMESTAMPTZ,
+  -- The hold flag (spec 013): a reason, what the customer is told, a staff note.
+  held_at      TIMESTAMPTZ,
+  held_by      UUID REFERENCES staff(staff_id),
+  hold_reason  TEXT CHECK (hold_reason IN ('name_mismatch','account_changed_recently','identity_pending','money_in_straight_out','other')),
+  hold_message TEXT CHECK (char_length(hold_message) BETWEEN 3 AND 500),
+  hold_note    TEXT CHECK (char_length(hold_note) BETWEEN 3 AND 1000),
+  rejection_reason TEXT CHECK (rejection_reason IN ('account_not_in_name','money_in_straight_out','identity_unconfirmed','customer_request','other')),
+  rejection_note   TEXT CHECK (char_length(rejection_note) BETWEEN 3 AND 1000),
+  -- The transfer a person sent at Dahab's bank, recorded at release (spec 013).
+  bank_txn_number    TEXT CHECK (char_length(bank_txn_number) BETWEEN 3 AND 64),
+  transfer_reference TEXT CHECK (char_length(transfer_reference) <= 64),
+  value_date   DATE,
+  cancelled_by_change BOOLEAN NOT NULL DEFAULT FALSE,
   requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   released_at  TIMESTAMPTZ,
-  settled_at   TIMESTAMPTZ
+  settled_at   TIMESTAMPTZ,
+  ended_at     TIMESTAMPTZ,
+  CONSTRAINT withdrawal_hold_shape CHECK (
+    (held_at IS NULL) = (held_by IS NULL) AND (held_at IS NULL) = (hold_reason IS NULL)
+    AND (held_at IS NULL) = (hold_message IS NULL) AND (held_at IS NULL) = (hold_note IS NULL)
+  ),
+  -- The hold record survives a reject or cancel; "on hold" is under_review
+  -- with held_at set; a held withdrawal is never released.
+  CONSTRAINT withdrawal_hold_state CHECK (held_at IS NULL OR state IN ('under_review','rejected','cancelled')),
+  CONSTRAINT withdrawal_rejection_shape CHECK (
+    (state = 'rejected') = (rejection_reason IS NOT NULL) AND (rejection_reason IS NULL) = (rejection_note IS NULL)
+  ),
+  CONSTRAINT withdrawal_release_shape CHECK (
+    state NOT IN ('released','settled')
+    OR (bank_txn_number IS NOT NULL AND release_txn_id IS NOT NULL AND released_at IS NOT NULL AND reviewed_by IS NOT NULL)
+  ),
+  CONSTRAINT withdrawal_ended_shape CHECK ((state IN ('requested','under_review','on_hold_account_change')) = (ended_at IS NULL))
 );
 
 CREATE INDEX idx_withdrawal_customer_state ON withdrawal(customer_id, state);
+CREATE INDEX idx_withdrawal_queue ON withdrawal(requested_at, withdrawal_id) WHERE state IN ('requested','under_review');
+CREATE INDEX idx_withdrawal_account ON withdrawal(payout_account_id, state);
+CREATE INDEX idx_withdrawal_requested ON withdrawal(requested_at, withdrawal_id);
+
+-- The email second-check (Part 1 §2.4; spec 013, new): single use, tied to
+-- one customer, amount and account, valid 30 minutes. Only the HMAC of the
+-- emailed token is kept. One open (unused, not replaced) per customer.
+CREATE TABLE withdrawal_confirmation (
+  confirmation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id  UUID NOT NULL REFERENCES customer(customer_id),
+  payout_account_id UUID NOT NULL REFERENCES payout_account(payout_account_id),
+  amount       NUMERIC(18,4) NOT NULL CHECK (amount > 0),
+  token_hash   TEXT NOT NULL UNIQUE,
+  expires_at   TIMESTAMPTZ NOT NULL,
+  confirmed_at TIMESTAMPTZ,
+  used_at      TIMESTAMPTZ,
+  replaced_at  TIMESTAMPTZ,
+  withdrawal_id UUID UNIQUE REFERENCES withdrawal(withdrawal_id),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT confirmation_used_after_confirmed CHECK (used_at IS NULL OR confirmed_at IS NOT NULL),
+  CONSTRAINT confirmation_used_shape CHECK ((used_at IS NULL) = (withdrawal_id IS NULL))
+);
+CREATE UNIQUE INDEX one_open_confirmation_per_customer ON withdrawal_confirmation(customer_id)
+  WHERE used_at IS NULL AND replaced_at IS NULL;
+
+-- spec 013: the payout-account declaration ticked when adding an account
+-- (agreement_acceptance context 'payout_account').
+-- INSERT INTO legal_document (code, version, ...) VALUES ('payout_account_declaration', 1, ...);
 
 -- Now wire the ledger's business-object FKs (declared in Part 2).
 ALTER TABLE ledger_transaction
@@ -1764,7 +1867,8 @@ ALTER TABLE ledger_transaction
   ADD CONSTRAINT lt_order_fk      FOREIGN KEY (order_id)       REFERENCES "order"(order_id),
   -- spec 011: deferred, so a join posts the hold before inserting the request it names.
   ADD CONSTRAINT lt_request_fk    FOREIGN KEY (buy_request_id) REFERENCES buy_request(buy_request_id) DEFERRABLE INITIALLY DEFERRED,
-  ADD CONSTRAINT lt_withdrawal_fk FOREIGN KEY (withdrawal_id)  REFERENCES withdrawal(withdrawal_id);
+  -- spec 013: deferred, so a request posts the hold before inserting the withdrawal it names.
+  ADD CONSTRAINT lt_withdrawal_fk FOREIGN KEY (withdrawal_id)  REFERENCES withdrawal(withdrawal_id) DEFERRABLE INITIALLY DEFERRED;
 
 -- Tax invoice, issued automatically at completion, filed with ETA.
 CREATE TABLE tax_invoice (
@@ -2106,11 +2210,42 @@ INSERT INTO withdrawal_transition (from_state, to_state, note) VALUES
   ('requested','under_review','picked up for review'),
   ('under_review','released','approved and sent to bank'),
   ('under_review','rejected','reviewer rejected; funds returned'),
+  ('requested','rejected','reviewer rejected before taking it; funds returned (spec 013)'),
   ('requested','on_hold_account_change','payout account changed; paused'),
   ('on_hold_account_change','under_review','pause window elapsed'),
   ('requested','cancelled','holder cancelled'),
   ('under_review','cancelled','holder cancelled'),
   ('released','settled','confirmed arrived at bank');
+
+-- Payout accounts (added by spec 013) ---------------------------------
+CREATE TABLE payout_account_transition (
+  from_state payout_account_state NOT NULL,
+  to_state   payout_account_state NOT NULL,
+  note       TEXT,
+  PRIMARY KEY (from_state, to_state)
+);
+INSERT INTO payout_account_transition (from_state, to_state, note) VALUES
+  ('pending_review','active','name checked against the ID'),
+  ('pending_review','refused','name check refused'),
+  ('pending_review','removed','customer cancelled the request'),
+  ('active','removing','removal waits for an in-flight withdrawal'),
+  ('active','removed','customer removed it'),
+  ('removing','active','customer kept it after all'),
+  ('removing','removed','its last in-flight withdrawal ended');
+
+-- Guards (spec 013), each with its own SQLSTATE:
+--   assert_withdrawal_transition()     DH007 -> 409 illegal_withdrawal_transition: the move is in
+--     withdrawal_transition; customer, account, amount, number and requested_at never change; the
+--     txn ids are set once; never deleted.
+--   assert_payout_account_transition() DH008 -> 409 illegal_payout_account_transition: the move is in
+--     payout_account_transition; customer, holder, bank, number and created_at never change (a
+--     change is a new account); never deleted.
+--   withdrawal_money_recorded()        deferred (trg_withdrawal_money, AFTER INSERT OR UPDATE):
+--     requested / under_review -> hold_txn_id; released -> release_txn_id and no return;
+--     rejected / cancelled -> return_txn_id and no release; every named txn is a 'withdrawal' entry
+--     of this withdrawal (read in the 'ledger' scope). DH007.
+-- Full bodies: database/migrations/2026_10_06_000010_create_withdrawals.php.
+
 
 -- Optional generic guard: reject an order state change not in the table.
 -- As built (spec 011, spec 012): also refuses a delete and changes to the
@@ -2310,8 +2445,13 @@ CREATE POLICY topup_isolation ON topup FOR ALL
 --     USING      (dahab_rls_elevated() OR <owner predicate>)
 --     WITH CHECK (dahab_rls_elevated() OR <owner predicate>);
 -- Owner predicates planned:
---   payout_account  customer_id = dahab_current_customer_id()
---   withdrawal      customer_id = dahab_current_customer_id()
+--   payout_account, payout_account_change, withdrawal_pause, withdrawal and
+--   withdrawal_confirmation: built by spec 013 (forced RLS) with
+--     USING      (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+--     WITH CHECK (dahab_rls_elevated() OR customer_id = dahab_current_customer_id())
+--   (payout_account_change also requires actor_customer_id = the customer on
+--   a customer's own insert). Staff, withdrawals:sweep and the public email
+--   confirm (bootstrap elevation) act elevated.
 -- CustomerTableIsolationTest fails the build for any table with a
 -- customer_id / actor_customer_id / buyer_id / seller_id column that lacks
 -- forced RLS and a policy.

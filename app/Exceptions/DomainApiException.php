@@ -357,4 +357,52 @@ class DomainApiException extends RuntimeException
     {
         return new self('handover_locked', 429, 'Too many wrong codes. Try again later.', ['retry_after' => $retryAfterSeconds]);
     }
+
+    /** A withdrawal move outside `withdrawal_transition`, or a lost race (spec 013; SQLSTATE DH007). */
+    public static function illegalWithdrawalTransition(): self
+    {
+        return new self('illegal_withdrawal_transition', 409, 'This withdrawal cannot do that now.');
+    }
+
+    /** A payout-account move outside `payout_account_transition`, or a lost race (spec 013; SQLSTATE DH008). */
+    public static function illegalPayoutAccountTransition(): self
+    {
+        return new self('illegal_payout_account_transition', 409, 'This payout account cannot do that now.');
+    }
+
+    /** No confirmed, unused, unexpired email confirmation of this customer for this amount and account (Part 1 §2.4, §9). */
+    public static function emailConfirmationRequired(): self
+    {
+        return new self('email_confirmation_required', 403, 'Confirm this withdrawal from the link we emailed you first.');
+    }
+
+    /** The email link's token is unknown, expired, replaced by a newer link, or already used (spec 013 R5). */
+    public static function confirmationInvalid(): self
+    {
+        return new self('confirmation_invalid', 422, 'This link has expired or was already used. Ask for a new one in the app.');
+    }
+
+    /** The payout-account declaration was not accepted, or is not the current version (spec 013 R14). */
+    public static function declarationRequired(): self
+    {
+        return new self('declaration_required', 422, 'Confirm the account is yours and the name matches your ID.');
+    }
+
+    /** A pause opened by a change of the account in use covers now (Part 2 §8). */
+    public static function withdrawalsPaused(string $pauseUntil): self
+    {
+        return new self('withdrawals_paused', 409, 'Withdrawals are paused after a change of payout account.', ['pause_until' => $pauseUntil]);
+    }
+
+    /** No verified account in use, or it is being removed, or it is not the customer's (Part 2 §8). */
+    public static function payoutAccountNotActive(): self
+    {
+        return new self('payout_account_not_active', 409, 'This payout account cannot receive money now.');
+    }
+
+    /** A held withdrawal is never released (spec 013 Clarifications). */
+    public static function withdrawalOnHold(): self
+    {
+        return new self('withdrawal_on_hold', 409, 'This withdrawal is on hold. Remove the hold before releasing it.');
+    }
 }

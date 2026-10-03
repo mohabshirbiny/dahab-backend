@@ -22,7 +22,7 @@ it('shows a verified customer their available, held and total as 4-place strings
 
     $this->bearer(walletCustomerToken($customer))->getJson('/api/v1/customer/me/wallet')
         ->assertOk()
-        ->assertExactJson(['data' => ['available' => '600.0000', 'held' => '400.0000', 'total' => '1000.0000', 'currency' => 'EGP']]);
+        ->assertExactJson(['data' => ['available' => '600.0000', 'held' => '400.0000', 'held_on_orders' => '400.0000', 'pending_withdrawals' => '0.0000', 'total' => '1000.0000', 'currency' => 'EGP']]);
 });
 
 it('shows a new customer zeros', function () {
