@@ -79,13 +79,13 @@ Each project is its own repository. **Never merge them.**
 | dahab-flutter | **no** (to be added later) | — | — |
 
 - Multi-project feature → the **same branch name** in every affected repo: `feature/<feature-name>`
-  (kebab-case), e.g. `feature/customer-identity-approval` in backend, dashboard and (once it has a repo) flutter.
+  (kebab-case), e.g. `feature/customer-identity-approval` in backend, dashboard and flutter.
 - Create/switch branches **only when asked**. Check `git status` first: uncommitted work exists in some
   repos (e.g. dahab-dashboard) and must not be disturbed.
 - **Never commit or push unless explicitly instructed.** When asked, commit per repo, one focused commit set
   per project; land the Backend first when a frontend depends on a new API.
-- `dahab-flutter` is not under version control — mention this before any Git operation there; `git init`
-  only if the user asks.
+- `dahab-flutter` has its own repository since 2026-10-04 (github.com/mohabshirbiny/dahab-flutter, public):
+  the same branch, commit and push rules apply; nothing secret goes into it.
 - The platform guide and docs live in the Backend repo (`CLAUDE.md`, `docs/platform/`, `docs/features/`),
   so changes to them are tracked there. `D:\laragon\www\CLAUDE.md` is only an untracked pointer.
 

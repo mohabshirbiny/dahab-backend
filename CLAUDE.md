@@ -32,7 +32,7 @@ Backend API (dahab-backend, Laravel 12, /api/v1)
 |---|---|---|---|
 | `dahab-backend/` (this repo) | REST API, **source of truth** | Laravel 12, PHP 8.3+, PostgreSQL 16, Redis, Sanctum, Spatie Permission, Horizon, l5-swagger, Pest 3 | own repo, `main` |
 | `../dahab-dashboard/` | Staff/admin UI | Vue 3 + TS, Vuetify 4, Pinia, Vue Router 5, TanStack Vue Query, Axios, vue-i18n, Tailwind 4, Vite 8 | own repo, `main` |
-| `../dahab-flutter/` | **Customer app** (Flutter Web) | Flutter (Dart ^3.11), go_router, provider, http, shared_preferences | no repo yet (the user will add one later) |
+| `../dahab-flutter/` | **Customer app** (Flutter Web) | Flutter (Dart ^3.11), go_router, provider, http, shared_preferences | own repo, `main` ([github.com/mohabshirbiny/dahab-flutter](https://github.com/mohabshirbiny/dahab-flutter), public) |
 
 `../dahab-pwa/` (an earlier Vue customer PWA) is **out of scope for now** — ignore it unless the user
 brings it back. Unrelated projects in `D:\laragon\www` (VastPay, VastMenu, mysaff, `old dahab code/`, …)
@@ -154,8 +154,8 @@ Projects intentionally not changed: <projects + reason>
 
 Each project keeps its own repository. For a feature touching several projects, use the **same**
 branch name in each affected repo: `feature/<feature-name>` (e.g. `feature/customer-identity-approval`).
-Create/switch branches only when asked. `../dahab-flutter` has no repository yet — skip Git there and
-say so; don't `git init` unless asked. Details: `docs/platform/development-workflow.md`.
+Create/switch branches only when asked. `../dahab-flutter` has its own repository since 2026-10-04 and
+follows the same rules. Details: `docs/platform/development-workflow.md`.
 
 ## Change classification
 

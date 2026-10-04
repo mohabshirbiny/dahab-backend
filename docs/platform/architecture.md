@@ -107,11 +107,12 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
   envelope to `ApiException(status, code, message, fieldErrors, extra)`; network failure → `network_error`.
 - **Base URL**: `--dart-define=API_BASE_URL=…` (`lib/core/config/app_config.dart`); defaults to the local
   backend `http://127.0.0.1:8010/api/v1`. The production host is passed only when building a deploy version.
-- **Live vs mock**: registration (6 steps incl. ID photo), sign-in with device OTP, session restore, refresh,
-  sign-out are live. Catalog, sell, orders, wallet, account data, notifications, admin screens are mock.
-  `services/pricing.dart` holds prototype pricing maths that should become server quotes.
+- **Live vs mock**: see "Current state" in `CLAUDE.md`. In the app, everything still on mock data carries a
+  red MOCK flag (`lib/widgets/mock_flag.dart`: whole screens in `mockScreens`, parts wrapped in `MockMark`);
+  remove the flag in the same task that makes it live. `services/pricing.dart` holds prototype pricing maths
+  that should become server quotes.
 - **Design reference**: `doc/dahab-app-prototype.html`.
-- **Git**: no repository yet (to be added later).
+- **Git**: own repository, `main` — https://github.com/mohabshirbiny/dahab-flutter (public).
 
 ## dahab-pwa — out of scope
 
