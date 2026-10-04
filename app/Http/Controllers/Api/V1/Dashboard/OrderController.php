@@ -6,6 +6,7 @@ use App\Actions\Inspections\RecordInspectionResultAction;
 use App\Actions\Listings\ListListingsForReviewAction;
 use App\Actions\Orders\CancelAcceptanceAction;
 use App\Actions\Orders\Staff\ChangeOrderBranchAction;
+use App\Actions\Orders\Staff\ExportOrdersAction;
 use App\Actions\Orders\Staff\ExtendOrderDeadlineAction;
 use App\Actions\Orders\Staff\HandoverPieceAction;
 use App\Actions\Orders\Staff\HandoverReturnedPieceAction;
@@ -130,6 +131,30 @@ class OrderController extends Controller
             'data' => StaffOrderResource::collection($page['rows'])->resolve($request),
             'meta' => ['per_page' => $perPage, 'next_cursor' => $page['next_cursor'], 'counts' => $page['counts']],
         ]);
+    }
+
+    #[OA\Get(
+        path: '/dashboard/orders/export',
+        operationId: 'dashboardOrdersExport',
+        summary: 'The filtered Orders list as CSV',
+        description: 'Spec 015 FR-018. The list\'s filters (group, past_deadline, branch_id, q), newest first; UTF-8 with BOM; capped at 10,000 rows (X-Export-Truncated); audited as order.list_exported with the filters and the row count. Requires order.view.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Orders'],
+        parameters: [
+            new OA\Parameter(name: 'group', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'past_deadline', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'branch_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'q', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'CSV', content: new OA\MediaType(mediaType: 'text/csv')),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function export(ListOrdersRequest $request, ExportOrdersAction $export): Response
+    {
+        return CompensationController::csv($export->handle($request->user('staff'), $request->group(), $request->pastDeadline(),
+            $request->branchId(), $request->search()), 'orders');
     }
 
     #[OA\Get(

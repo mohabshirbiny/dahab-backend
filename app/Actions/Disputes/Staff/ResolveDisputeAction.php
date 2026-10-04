@@ -122,8 +122,9 @@ final class ResolveDisputeAction
 
             $paid = null;
             if ($compensation !== null) {
-                $paid = $this->compensate->handle($actor, $dispute, $order, $compensation['party'], $compensation['amount'],
-                    $compensation['reason'], $compensation['note'], $ctx);
+                $party = $compensation['party'];
+                $paid = $this->compensate->handle($actor, $party === 'buyer' ? $order->buyer_id : $order->seller_id,
+                    $compensation['amount'], $compensation['reason'], $compensation['note'], $order, $party, $dispute, $ctx);
             }
 
             $before = ['state' => $dispute->state->value, 'assigned_to' => $dispute->assigned_to];

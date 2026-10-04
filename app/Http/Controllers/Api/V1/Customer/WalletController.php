@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Actions\Wallet\ListCustomerWalletHistoryAction;
+use App\Actions\Wallet\ListHeldItemsAction;
 use App\Actions\Wallet\ShowCustomerWalletAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\WalletHistoryRequest;
@@ -54,6 +55,35 @@ class WalletController extends Controller
     public function show(Request $request, ShowCustomerWalletAction $wallet): JsonResponse
     {
         return response()->json(['data' => $wallet->handle($request->user('customer')->customer_id)]);
+    }
+
+    #[OA\Get(
+        path: '/customer/me/wallet/held',
+        operationId: 'customerWalletHeld',
+        summary: 'What each buy request and order holds',
+        description: 'Spec 015 FR-019. The customer\'s own requests and orders that hold money now, from the ledger (the held postings of each request), newest first; an accepted request appears as its order. total = the wallet\'s held_on_orders. Verified customers; a suspended customer may still read.',
+        security: [['customerBearer' => []]],
+        tags: ['Customer Wallet'],
+        responses: [
+            new OA\Response(response: 200, description: 'The held lines', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
+                new OA\Property(property: 'total', type: 'string'),
+                new OA\Property(property: 'items', type: 'array', items: new OA\Items(properties: [
+                    new OA\Property(property: 'type', type: 'string', enum: ['buy_request', 'order']),
+                    new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+                    new OA\Property(property: 'ref', type: 'string', nullable: true, description: 'The order reference; null for a request'),
+                    new OA\Property(property: 'title', type: 'string', nullable: true),
+                    new OA\Property(property: 'title_ar', type: 'string', nullable: true),
+                    new OA\Property(property: 'state', type: 'string'),
+                    new OA\Property(property: 'amount', type: 'string'),
+                ], type: 'object')),
+            ], type: 'object')])),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 403, description: 'verification_required', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function held(Request $request, ListHeldItemsAction $held): JsonResponse
+    {
+        return response()->json(['data' => $held->handle($request->user('customer')->customer_id)]);
     }
 
     #[OA\Get(

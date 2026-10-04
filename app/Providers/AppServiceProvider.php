@@ -12,6 +12,7 @@ use App\Services\Sms\LogSmsSender;
 use App\Services\Sms\SmsSender;
 use App\Support\DatabaseActorEvents;
 use App\Support\Listings\ListingTransitions;
+use App\Support\Wallet\HeldByRequest;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\ChannelManager;
@@ -30,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(GoldPriceFeed::class, ProviderGoldPriceFeed::class);
         // The allowed listing moves are reference data: read once per request (spec 010).
         $this->app->scoped(ListingTransitions::class);
+        // What each buy request holds now, primed once per list (spec 015 research R12).
+        $this->app->scoped(HeldByRequest::class);
     }
 
     public function boot(): void
@@ -125,6 +128,11 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('customer.uploads', function (Request $request) {
             return $this->limit((int) config('dahab-identity.uploads_per_minute'), 60, 'customer-uploads:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        // Spec 015: a staff member's proof uploads (bank movements), 20 a minute.
+        RateLimiter::for('dashboard.uploads', function (Request $request) {
+            return $this->limit(20, 60, 'dashboard-uploads:'.($request->user('staff')?->getAuthIdentifier() ?? $request->ip()));
         });
 
         // Spec 009: transfer notices per customer (research R15).

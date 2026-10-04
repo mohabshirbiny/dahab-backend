@@ -17,6 +17,7 @@ use App\Support\Orders\DeadlinePolicy;
 use App\Support\Orders\OrderSettlement;
 use App\Support\Orders\OrderTimeline;
 use App\Support\Pricing\PricingContext;
+use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use OpenApi\Attributes as OA;
@@ -43,6 +44,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'counterparty_ref', type: 'string', description: 'The other party\'s display reference'),
         new OA\Property(property: 'locked_total_price', type: 'string'),
         new OA\Property(property: 'deposit_amount', type: 'string'),
+        new OA\Property(property: 'deposit_held', type: 'string', nullable: true, description: 'Spec 015: what this order holds in the buyer\'s wallet now, from the ledger; null for the seller'),
         new OA\Property(property: 'deadline', type: 'object', nullable: true, description: '{kind: reach_branch|decision|balance|collect|return, at, overdue}'),
         new OA\Property(property: 'amount_due', type: 'string', nullable: true, description: 'Buyer, awaiting balance'),
         new OA\Property(property: 'final_total', type: 'string', nullable: true, description: 'Buyer: the total on the measured weight'),
@@ -118,6 +120,7 @@ class CustomerOrderResource extends JsonResource
             'counterparty_ref' => $seller ? $o->buyer?->display_ref : $o->seller?->display_ref,
             'locked_total_price' => bcadd((string) $o->locked_total_price, '0', 4),
             'deposit_amount' => bcadd((string) $o->buyRequest->deposit_amount, '0', 4),
+            'deposit_held' => $seller ? null : app(HeldByRequest::class)->of($o->buy_request_id),
             'deadline' => $deadline === null ? null : [
                 'kind' => $deadline['kind']->value,
                 'at' => $deadline['at']->toIso8601String(),

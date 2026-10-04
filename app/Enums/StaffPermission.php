@@ -129,6 +129,15 @@ enum StaffPermission: string
     /** Pay compensation above the caps (Part 1 §4.2 "CEO unlimited"; spec 014 R7). Seeded to no role. */
     case COMPENSATION_UNCAPPED = 'compensation.uncapped';
 
+    /** Adjust a wallet balance directly (Part 1 §4.2 "CEO only"; spec 015). Seeded to no role. */
+    case WALLET_ADJUST = 'wallet.adjust';
+
+    /** Record a bank movement outside the app (Part 1 §4.2; spec 015). Never the COO. */
+    case BANK_RECORD = 'bank.record';
+
+    /** Close the day (Part 1 §4.2; spec 015). Never the COO. */
+    case DAY_CLOSE = 'day.close';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -137,6 +146,15 @@ enum StaffPermission: string
 
     /** Either of these reads the withdrawals list and a withdrawal (spec 013 FR-012); only withdrawal.release acts. */
     public const WITHDRAWALS_READ = 'withdrawal.release|wallet.view';
+
+    /** Spec 015 reads: the code that acts, or wallet.view. */
+    public const COMPENSATION_READ = 'compensation.pay|wallet.view';
+
+    public const ADJUSTMENTS_READ = 'wallet.adjust|wallet.view';
+
+    public const BANK_READ = 'bank.record|wallet.view';
+
+    public const CLOSE_READ = 'day.close|wallet.view';
 
     public function label(): string
     {
@@ -179,6 +197,9 @@ enum StaffPermission: string
             self::ORDER_REFUND => 'Refund a buyer in full',
             self::COMPENSATION_PAY => 'Pay compensation to a wallet, up to the caps',
             self::COMPENSATION_UNCAPPED => 'Pay compensation above the caps',
+            self::WALLET_ADJUST => 'Adjust a wallet balance directly',
+            self::BANK_RECORD => 'Record a bank movement outside the app',
+            self::DAY_CLOSE => 'Close the day',
         };
     }
 
@@ -193,7 +214,8 @@ enum StaffPermission: string
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
             self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE, self::WITHDRAWAL_RELEASE,
-            self::ORDER_REFUND, self::COMPENSATION_PAY, self::COMPENSATION_UNCAPPED => 'Money',
+            self::ORDER_REFUND, self::COMPENSATION_PAY, self::COMPENSATION_UNCAPPED,
+            self::WALLET_ADJUST, self::BANK_RECORD, self::DAY_CLOSE => 'Money',
             self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
@@ -277,6 +299,10 @@ enum StaffPermission: string
             self::ORDER_REFUND, self::COMPENSATION_PAY => [SeedRole::FINANCE->value],
             // "CEO unlimited": no role; the CEO holds every code.
             self::COMPENSATION_UNCAPPED => [],
+            // Spec 015 (Part 1 §4.2): "Adjust a wallet balance directly" is CEO only — no role;
+            // "Record a bank movement" and "Close the day" are CEO + Finance. Never the COO.
+            self::WALLET_ADJUST => [],
+            self::BANK_RECORD, self::DAY_CLOSE => [SeedRole::FINANCE->value],
         };
     }
 }

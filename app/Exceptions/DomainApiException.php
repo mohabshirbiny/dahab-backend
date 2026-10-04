@@ -461,4 +461,16 @@ class DomainApiException extends RuntimeException
     {
         return new self('proxy_details_missing', 422, 'Check the ID of the person collecting against the named proxy first.');
     }
+
+    /** A day can be closed only once it has ended in Cairo (spec 015 FR-014). */
+    public static function dayNotEnded(): self
+    {
+        return new self('day_not_ended', 422, 'This day has not ended yet. It can be closed from midnight.');
+    }
+
+    /** The day is closed and locked; it never changes (spec 015 FR-014, daily_close_no_reopen). */
+    public static function dayAlreadyClosed(): self
+    {
+        return new self('day_already_closed', 409, 'This day is already closed.');
+    }
 }
