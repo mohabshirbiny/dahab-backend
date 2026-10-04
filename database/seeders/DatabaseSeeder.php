@@ -48,6 +48,9 @@ class DatabaseSeeder extends Seeder
         // Disputes, proxy collection and requests for more time, through the real Actions (spec 014); same guard.
         $this->call(LocalDisputeSeeder::class);
 
+        // Compensation, wallet adjustments, bank movements and closed days, through the real Actions (spec 015); same guard.
+        $this->call(LocalFinanceSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

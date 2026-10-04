@@ -29,7 +29,7 @@ class StoreUploadRequest extends FormRequest
         $purpose = UploadPurpose::tryFrom((string) $this->input('purpose')) ?? UploadPurpose::IDENTITY;
 
         return [
-            'purpose' => ['required', Rule::enum(UploadPurpose::class)],
+            'purpose' => ['required', Rule::enum(UploadPurpose::class)->except([UploadPurpose::BANK_MOVEMENT_PROOF])],
             'file' => [
                 'required',
                 'file',

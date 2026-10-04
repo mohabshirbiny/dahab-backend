@@ -169,7 +169,11 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            dashboard withdrawals index/export/show/review/hold/unhold/release/reject (8),
     //            payout-accounts index/verify/refuse (3).
     //            The public withdrawal-confirmations read/confirm carry no principal (ElevationTest).
-    expect($checked)->toBe(151);
+    // spec 015:  customer wallet held (1); dashboard overview (1), compensation index/export/store (3),
+    //            wallet-adjustments store/index (2), uploads (1), bank-movements index/export/proof/store (4),
+    //            bank-book index/export (2), daily-close show/store + daily-closes index (3), orders export (1).
+    //            The public reference gold-prices and quote carry no guard (MarketScopeTest).
+    expect($checked)->toBe(169);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

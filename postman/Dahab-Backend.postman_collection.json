@@ -255,6 +255,22 @@
             "key": "proxy_legal_doc_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "compensation_id",
+            "value": ""
+        },
+        {
+            "key": "adjustment_id",
+            "value": ""
+        },
+        {
+            "key": "proof_upload_token",
+            "value": ""
+        },
+        {
+            "key": "bank_movement_id",
+            "value": ""
         }
     ],
     "item": [
@@ -4056,6 +4072,57 @@
                             "response": []
                         },
                         {
+                            "name": "Export Orders (CSV)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/export?group=open&past_deadline=&branch_id=&q=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "group",
+                                            "value": "open"
+                                        },
+                                        {
+                                            "key": "past_deadline",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "branch_id",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "q",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-018. order.view; the list's filters; audited order.list_exported."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Show Order",
                             "request": {
                                 "method": "GET",
@@ -5719,6 +5786,780 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Overview",
+                    "item": [
+                        {
+                            "name": "Overview",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/overview",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "overview"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-016. Any staff; each section only with its permission."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Finance",
+                    "item": [
+                        {
+                            "name": "List Compensation",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/compensation?from=&to=&reason=&paid_by=&customer_id=&cursor=&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "compensation"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "reason",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "paid_by",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "customer_id",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-001/FR-002. compensation.pay or wallet.view. Newest first; meta.totals and meta.caps (your remaining limit today)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export Compensation (CSV)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/compensation/export",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "compensation",
+                                        "export"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-003. Same filters; audited compensation.list_exported."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Pay Compensation (no dispute)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/compensation",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "compensation"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-004. compensation.pay; the caps per payment and per day unless compensation.uncapped. order_id optional (one of the customer's orders).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"amount\": \"800\",\n  \"reason\": \"wasted_trip\",\n  \"note\": \"Came to the branch while it was closed.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.id) pm.collectionVariables.set('compensation_id', json.data && json.data.id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Adjust Wallet",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/wallet-adjustments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "wallet-adjustments"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-006. wallet.adjust (founders). credit or debit of available against external_equity; a debit never below zero (insufficient_funds).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"direction\": \"credit\",\n  \"amount\": \"150\",\n  \"reason\": \"A top-up matched 150 short; the bank shows the full amount.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.id) pm.collectionVariables.set('adjustment_id', json.data && json.data.id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List Wallet Adjustments",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/wallet-adjustments?from=&to=&customer_id=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "wallet-adjustments"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "customer_id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-006. wallet.adjust or wallet.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Upload Bank Movement Proof",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 015. bank.record. PDF/JPG/PNG \u2264 10 MB; a single-use token for proof_upload_token.",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "bank_movement_proof",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.token) pm.collectionVariables.set('proof_upload_token', json.data && json.data.token);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Record Bank Movement",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/bank-movements",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "bank-movements"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-010. bank.record. kind: capital_in | operating_expense | bank_charge | profit_draw | own_transfer | supplier_refund | other; direction in/out. Remove proof_upload_token to record without proof.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"kind\": \"bank_charge\",\n  \"direction\": \"out\",\n  \"amount\": \"250\",\n  \"occurred_on\": \"2026-10-03\",\n  \"reason\": \"Monthly account fee.\",\n  \"proof_upload_token\": \"{{proof_upload_token}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.id) pm.collectionVariables.set('bank_movement_id', json.data && json.data.id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List Bank Movements",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/bank-movements?from=&to=&kind=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "bank-movements"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "kind",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-011. bank.record or wallet.view. By statement date; meta.totals."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export Bank Movements (CSV)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/bank-movements/export",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "bank-movements",
+                                        "export"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-011. Audited bank.movements_exported."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Bank Movement Proof",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/bank-movements/{{bank_movement_id}}/proof",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "bank-movements",
+                                        "{{bank_movement_id}}",
+                                        "proof"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-010. The decrypted file; audited bank.movement_proof_viewed; 404 without proof."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Bank Book",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/bank-book?from=&to=&cursor=&per_page=50",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "bank-book"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "50"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-011. Every bank posting of the period with its source; meta.summary opening/in/out/closing."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export Bank Book (CSV)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/bank-book/export?from=&to=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "bank-book",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-011. Audited bank.book_exported."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Daily Close \u2014 Day",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/daily-close?date=2026-10-03",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "daily-close"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "date",
+                                            "value": "2026-10-03"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-013. day.close or wallet.view. A past day at midnight Cairo; today live."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Daily Closes \u2014 Recent Days",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/daily-closes?from=&to=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "daily-closes"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-013. Default this month."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Close a Day",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/daily-close",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "daily-close"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-014. day.close. Only an ended day; 0 locks; a non-zero difference locks only with an explanation, else saved.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"date\": \"2026-10-03\",\n  \"bank_balance\": \"3142880\",\n  \"explanation\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""
@@ -6756,6 +7597,40 @@
                                     ]
                                 },
                                 "description": "Spec 009. pending \u2192 cancelled; no money moves. 409 illegal_topup_transition unless pending. Verified gate (a suspended customer may cancel). Idempotency-Key required."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Wallet \u2014 Held per Order",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet/held",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet",
+                                        "held"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-019. Verified. Each request/order holding money; total = held_on_orders."
                             },
                             "response": []
                         }
@@ -9104,6 +9979,82 @@
                                     }
                                 }
                             ]
+                        },
+                        {
+                            "name": "Gold Prices",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/gold-prices",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "gold-prices"
+                                    ]
+                                },
+                                "description": "Spec 015 FR-021. Public. Per enabled karat sellers_get / buyers_pay; price_unavailable when none."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Quote \u2014 What Will I Get",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/quote?category=gold&karat=21&weight_g=10.000&making_per_g=300&asking_price=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "quote"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "category",
+                                            "value": "gold"
+                                        },
+                                        {
+                                            "key": "karat",
+                                            "value": "21"
+                                        },
+                                        {
+                                            "key": "weight_g",
+                                            "value": "10.000"
+                                        },
+                                        {
+                                            "key": "making_per_g",
+                                            "value": "300"
+                                        },
+                                        {
+                                            "key": "asking_price",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 015 FR-021. Public. Indicative seller estimate."
+                            },
+                            "response": []
                         }
                     ]
                 },

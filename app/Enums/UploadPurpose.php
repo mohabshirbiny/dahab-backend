@@ -25,12 +25,16 @@ enum UploadPurpose: string
     /** The front of a collection proxy's ID (Part 2 §3; spec 014 R14): trade-gated. */
     case PROXY_ID = 'proxy_id';
 
+    /** Spec 015: a staff member's proof for a bank movement (PDF/JPG/PNG). Never a customer upload. */
+    case BANK_MOVEMENT_PROOF = 'bank_movement_proof';
+
     /** @return list<string> the accepted file extensions */
     public function allowedMimes(): array
     {
         return match ($this) {
             self::IDENTITY, self::DISPUTE_PHOTO, self::PROXY_ID => config('dahab-identity.allowed_mimes'),
             self::TOPUP_RECEIPT => [...config('dahab-identity.allowed_mimes'), 'pdf'],
+            self::BANK_MOVEMENT_PROOF => config('dahab-finance.proof_mimes'),
             self::LISTING_PHOTO => config('dahab-listings.photo_mimes'),
             self::LISTING_VIDEO => config('dahab-listings.video_mimes'),
             self::LISTING_INVOICE, self::STONE_CERTIFICATE => config('dahab-listings.document_mimes'),
@@ -42,6 +46,7 @@ enum UploadPurpose: string
     {
         return (int) match ($this) {
             self::IDENTITY, self::TOPUP_RECEIPT, self::DISPUTE_PHOTO, self::PROXY_ID => config('dahab-identity.max_upload_kb'),
+            self::BANK_MOVEMENT_PROOF => config('dahab-finance.proof_max_kb'),
             self::LISTING_PHOTO => config('dahab-listings.photo_max_kb'),
             self::LISTING_VIDEO => config('dahab-listings.video_max_kb'),
             self::LISTING_INVOICE, self::STONE_CERTIFICATE => config('dahab-listings.document_max_kb'),
@@ -62,6 +67,12 @@ enum UploadPurpose: string
     public function requiresVerified(): bool
     {
         return $this === self::DISPUTE_PHOTO;
+    }
+
+    /** Uploaded by staff on the Dashboard (spec 015), never through the customer endpoint. */
+    public function isStaffOnly(): bool
+    {
+        return $this === self::BANK_MOVEMENT_PROOF;
     }
 
     /** Listing media is encrypted and served in chunks (spec 010 research R7). */

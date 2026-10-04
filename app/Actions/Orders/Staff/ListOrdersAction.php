@@ -27,11 +27,7 @@ final class ListOrdersAction
             ->when($branchId !== null, fn (Builder $b) => $b->where('order.branch_id', $branchId))
             ->when($q !== null && $q !== '', fn (Builder $b) => $this->search($b, (string) $q));
 
-        $query = $base();
-        $this->group($query, $group);
-        if ($pastDeadline) {
-            $this->pastDeadline($query);
-        }
+        $query = $this->filtered($group, $pastDeadline, $branchId, $q);
 
         $rows = $query
             ->when($cursor !== null, fn (Builder $b) => $b->where(fn (Builder $w) => $w
@@ -65,6 +61,25 @@ final class ListOrdersAction
                 : null,
             'counts' => $counts,
         ];
+    }
+
+    /**
+     * The list's filters as one query, without paging or order (the list and,
+     * since spec 015, its CSV export).
+     *
+     * @return Builder<Order>
+     */
+    public function filtered(string $group, bool $pastDeadline, ?int $branchId, ?string $q): Builder
+    {
+        $query = Order::query()
+            ->when($branchId !== null, fn (Builder $b) => $b->where('order.branch_id', $branchId))
+            ->when($q !== null && $q !== '', fn (Builder $b) => $this->search($b, (string) $q));
+        $this->group($query, $group);
+        if ($pastDeadline) {
+            $this->pastDeadline($query);
+        }
+
+        return $query;
     }
 
     private function group(Builder $query, string $group): void

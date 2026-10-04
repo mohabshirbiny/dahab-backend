@@ -17,10 +17,13 @@ use App\Http\Controllers\Api\V1\Customer\WithdrawalController as CustomerWithdra
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
+use App\Http\Controllers\Api\V1\Dashboard\BankMovementController as DashboardBankMovementController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBranchClosureController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
 use App\Http\Controllers\Api\V1\Dashboard\BuyRequestController as DashboardBuyRequestController;
+use App\Http\Controllers\Api\V1\Dashboard\CompensationController as DashboardCompensationController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
+use App\Http\Controllers\Api\V1\Dashboard\DailyCloseController as DashboardDailyCloseController;
 use App\Http\Controllers\Api\V1\Dashboard\DisputeController as DashboardDisputeController;
 use App\Http\Controllers\Api\V1\Dashboard\ExtensionRequestController as DashboardExtensionRequestController;
 use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPriceController;
@@ -30,13 +33,16 @@ use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as Dashboard
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController as DashboardOrderController;
+use App\Http\Controllers\Api\V1\Dashboard\OverviewController as DashboardOverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PayoutAccountController as DashboardPayoutAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\ReceivingAccountController as DashboardReceivingAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
 use App\Http\Controllers\Api\V1\Dashboard\SettingController as DashboardSettingController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
+use App\Http\Controllers\Api\V1\Dashboard\StaffUploadController as DashboardStaffUploadController;
 use App\Http\Controllers\Api\V1\Dashboard\TopUpController as DashboardTopUpController;
+use App\Http\Controllers\Api\V1\Dashboard\WalletAdjustmentController as DashboardWalletAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\WalletController as DashboardWalletController;
 use App\Http\Controllers\Api\V1\Dashboard\WithdrawalController as DashboardWithdrawalController;
 use App\Http\Controllers\Api\V1\Market\MarketListingController;
@@ -66,6 +72,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/branches', [ReferenceController::class, 'branches'])->name('branches');
             Route::get('/legal-documents/{code}', [ReferenceController::class, 'legalDocument'])
                 ->where('code', '[a-z][a-z0-9_]{1,49}')->name('legal-documents.show');
+            // Spec 015: today's prices and the seller's estimate (indicative; nothing is locked).
+            Route::get('/gold-prices', [ReferenceController::class, 'goldPrices'])->name('gold-prices');
+            Route::get('/quote', [ReferenceController::class, 'quote'])->name('quote');
         });
 
         Route::middleware('db.market')->prefix('market/listings')->name('market.listings.')->group(function () {
@@ -155,6 +164,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware('customer.gate:verified')->prefix('wallet')->name('wallet.')->group(function () {
                 Route::get('/', [CustomerWalletController::class, 'show'])->name('show');
                 Route::get('/transactions', [CustomerWalletController::class, 'transactions'])->name('transactions');
+                // Spec 015: what each buy request and order holds now.
+                Route::get('/held', [CustomerWalletController::class, 'held'])->name('held');
 
                 // Spec 009: a suspended customer may read and cancel their own notices.
                 Route::get('/topups', [CustomerTopUpController::class, 'index'])->name('topups.index');
@@ -489,6 +500,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->prefix('orders')->name('orders.')->group(function () {
                 Route::get('/', [DashboardOrderController::class, 'index'])
                     ->middleware('staff.permission:order.view')->name('index');
+                // Spec 015 FR-018: the list as CSV, same filters and branch scope, audited.
+                Route::get('/export', [DashboardOrderController::class, 'export'])
+                    ->middleware('staff.permission:order.view')->name('export');
                 Route::get('/{order}', [DashboardOrderController::class, 'show'])
                     ->whereUuid('order')->middleware('staff.permission:order.view')->name('show');
                 Route::post('/{order}/cancel', [DashboardOrderController::class, 'cancel'])
@@ -565,6 +579,50 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->whereUuid('withdrawal')->middleware(['staff.permission:withdrawal.release', 'idempotent'])->name($action);
                 }
             });
+
+        // Spec 015: finance operations. Reads open with the acting code or wallet.view;
+        // every POST is idempotent (`idempotent` runs last) and audited.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {
+            Route::get('/overview', [DashboardOverviewController::class, 'show'])->name('overview');
+
+            Route::prefix('compensation')->name('compensation.')->group(function () {
+                Route::get('/', [DashboardCompensationController::class, 'index'])
+                    ->middleware('staff.permission:'.StaffPermission::COMPENSATION_READ)->name('index');
+                Route::get('/export', [DashboardCompensationController::class, 'export'])
+                    ->middleware('staff.permission:'.StaffPermission::COMPENSATION_READ)->name('export');
+                Route::post('/', [DashboardCompensationController::class, 'store'])
+                    ->middleware(['staff.permission:compensation.pay', 'idempotent'])->name('store');
+            });
+
+            Route::post('/customers/{customer}/wallet-adjustments', [DashboardWalletAdjustmentController::class, 'store'])
+                ->whereUuid('customer')->middleware(['staff.permission:wallet.adjust', 'idempotent'])->name('wallet-adjustments.store');
+            Route::get('/wallet-adjustments', [DashboardWalletAdjustmentController::class, 'index'])
+                ->middleware('staff.permission:'.StaffPermission::ADJUSTMENTS_READ)->name('wallet-adjustments.index');
+
+            Route::post('/uploads', [DashboardStaffUploadController::class, 'store'])
+                ->middleware(['staff.permission:bank.record', 'throttle:dashboard.uploads'])->name('uploads.store');
+            Route::prefix('bank-movements')->name('bank-movements.')->group(function () {
+                Route::get('/', [DashboardBankMovementController::class, 'index'])
+                    ->middleware('staff.permission:'.StaffPermission::BANK_READ)->name('index');
+                Route::get('/export', [DashboardBankMovementController::class, 'export'])
+                    ->middleware('staff.permission:'.StaffPermission::BANK_READ)->name('export');
+                Route::get('/{movement}/proof', [DashboardBankMovementController::class, 'proof'])
+                    ->whereUuid('movement')->middleware('staff.permission:'.StaffPermission::BANK_READ)->name('proof');
+                Route::post('/', [DashboardBankMovementController::class, 'store'])
+                    ->middleware(['staff.permission:bank.record', 'idempotent'])->name('store');
+            });
+            Route::get('/bank-book', [DashboardBankMovementController::class, 'book'])
+                ->middleware('staff.permission:'.StaffPermission::BANK_READ)->name('bank-book.index');
+            Route::get('/bank-book/export', [DashboardBankMovementController::class, 'bookExport'])
+                ->middleware('staff.permission:'.StaffPermission::BANK_READ)->name('bank-book.export');
+
+            Route::get('/daily-close', [DashboardDailyCloseController::class, 'show'])
+                ->middleware('staff.permission:'.StaffPermission::CLOSE_READ)->name('daily-close.show');
+            Route::get('/daily-closes', [DashboardDailyCloseController::class, 'index'])
+                ->middleware('staff.permission:'.StaffPermission::CLOSE_READ)->name('daily-closes.index');
+            Route::post('/daily-close', [DashboardDailyCloseController::class, 'store'])
+                ->middleware(['staff.permission:day.close', 'idempotent'])->name('daily-close.store');
+        });
 
         // Spec 013: payout accounts to check (payout_account.verify).
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:payout_account.verify'])

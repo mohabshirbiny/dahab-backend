@@ -12,6 +12,7 @@ use App\Http\Requests\Customer\BuyRequest\SendBuyRequestRequest;
 use App\Http\Resources\Customer\BuyRequestResource;
 use App\Models\BuyRequest;
 use App\Models\Customer;
+use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -89,6 +90,7 @@ class BuyRequestController extends Controller
     {
         $perPage = $request->perPage(20);
         $page = $list->handle($this->customer($request)->customer_id, $request->state(), $request->listingId(), $request->cursor(), $perPage);
+        app(HeldByRequest::class)->prime($page['rows']->pluck('buy_request_id')->all());
 
         return response()->json([
             'data' => BuyRequestResource::collection($page['rows'])->resolve($request),

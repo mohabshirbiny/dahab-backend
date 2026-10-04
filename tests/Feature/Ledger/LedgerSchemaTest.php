@@ -193,8 +193,9 @@ it('refuses deleting a customer who has ledger lines', function () {
 });
 
 it('rolls back without leaving a ledger object behind', function () {
-    // Disputes (spec 014), withdrawals (spec 013), orders (spec 012), buy requests (spec 011) and top-ups (spec 009)
-    // reference the ledger, so they roll back first.
+    // Finance operations (spec 015), disputes (spec 014), withdrawals (spec 013), orders (spec 012), buy requests
+    // (spec 011) and top-ups (spec 009) reference the ledger, so they roll back first.
+    Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_08_000010_create_finance_ops.php', '--force' => true]);
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_07_000010_create_disputes.php', '--force' => true]);
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_06_000010_create_withdrawals.php', '--force' => true]);
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_05_000010_create_orders_lifecycle.php', '--force' => true]);

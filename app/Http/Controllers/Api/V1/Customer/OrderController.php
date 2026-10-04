@@ -20,6 +20,7 @@ use App\Http\Requests\Customer\Order\RequestMoreTimeRequest;
 use App\Http\Resources\Customer\CustomerOrderResource;
 use App\Http\Resources\Customer\DisputeResource;
 use App\Models\Customer;
+use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -65,7 +66,9 @@ class OrderController extends Controller
     public function index(ListOrdersRequest $request, ListOwnOrdersAction $list): JsonResponse
     {
         $perPage = $request->perPage(20);
-        $page = $list->handle($this->customer($request)->customer_id, $request->role(), $request->group(), $request->cursor(), $perPage);
+        $me = $this->customer($request)->customer_id;
+        $page = $list->handle($me, $request->role(), $request->group(), $request->cursor(), $perPage);
+        app(HeldByRequest::class)->prime($page['rows']->where('buyer_id', $me)->pluck('buy_request_id')->all());
 
         return response()->json([
             'data' => CustomerOrderResource::collection($page['rows'])->resolve($request),

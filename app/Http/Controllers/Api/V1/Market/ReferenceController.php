@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1\Market;
 
+use App\Actions\Reference\QuoteAction;
+use App\Actions\Reference\ShowGoldPricesAction;
 use App\Enums\PieceCategory;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reference\QuoteRequest;
 use App\Models\Branch;
 use App\Models\Karat;
 use App\Models\LegalDocument;
@@ -147,5 +150,70 @@ class ReferenceController extends Controller
             'body_en' => $doc->body_en,
             'body_ar' => $doc->body_ar,
         ]]);
+    }
+
+    #[OA\Get(
+        path: '/reference/gold-prices',
+        operationId: 'referenceGoldPrices',
+        summary: 'Today\'s gold prices',
+        description: 'Spec 015 FR-021. Public, limiter public.market, cacheable for 30 s. Per enabled karat what sellers get and what buyers pay per gram (the Part 3 §2 calculator), the time of the price and the feed state (live, manual, stale). Never the provider\'s bid/ask or the adjustments. price_unavailable (409) when no price can be used.',
+        tags: ['Reference'],
+        responses: [
+            new OA\Response(response: 200, description: 'The prices', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
+                new OA\Property(property: 'price_at', type: 'string', format: 'date-time'),
+                new OA\Property(property: 'feed_state', type: 'string', enum: ['live', 'manual', 'stale']),
+                new OA\Property(property: 'karats', type: 'array', items: new OA\Items(properties: [
+                    new OA\Property(property: 'code', type: 'integer', example: 21),
+                    new OA\Property(property: 'label', type: 'string', example: '21K'),
+                    new OA\Property(property: 'sellers_get', type: 'string'),
+                    new OA\Property(property: 'buyers_pay', type: 'string'),
+                ], type: 'object')),
+            ], type: 'object')])),
+            new OA\Response(response: 409, description: 'price_unavailable', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function goldPrices(ShowGoldPricesAction $prices): JsonResponse
+    {
+        return response()->json(['data' => $prices->handle()])->header('Cache-Control', 'public, max-age=30');
+    }
+
+    #[OA\Get(
+        path: '/reference/quote',
+        operationId: 'referenceQuote',
+        summary: 'What a seller would get for a piece today',
+        description: 'Spec 015 FR-021. Public, limiter public.market. The indicative estimate from the Part 3 §2 calculator: gold value, the making charge back, commission (and whether the minimum applied), VAT and the payout. gold needs karat + weight_g (+ making_per_g); gold_with_diamond karat + weight_g + asking_price; diamond asking_price. Nothing is locked. price_unavailable (409) when no gold price can be used.',
+        tags: ['Reference'],
+        parameters: [
+            new OA\Parameter(name: 'category', in: 'query', required: true, schema: new OA\Schema(type: 'string', enum: ['gold', 'gold_with_diamond', 'diamond'])),
+            new OA\Parameter(name: 'karat', in: 'query', required: false, schema: new OA\Schema(type: 'integer', example: 21)),
+            new OA\Parameter(name: 'weight_g', in: 'query', required: false, schema: new OA\Schema(type: 'string', example: '10.000')),
+            new OA\Parameter(name: 'making_per_g', in: 'query', required: false, schema: new OA\Schema(type: 'string', example: '300')),
+            new OA\Parameter(name: 'asking_price', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The estimate', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
+                new OA\Property(property: 'category', type: 'string'),
+                new OA\Property(property: 'rate_per_gram', type: 'string', nullable: true, description: 'What sellers get per gram of this karat'),
+                new OA\Property(property: 'gold_value', type: 'string'),
+                new OA\Property(property: 'making_back', type: 'string'),
+                new OA\Property(property: 'asking_price', type: 'string', nullable: true),
+                new OA\Property(property: 'commission', type: 'string'),
+                new OA\Property(property: 'vat', type: 'string'),
+                new OA\Property(property: 'payout', type: 'string'),
+                new OA\Property(property: 'commission_rate', type: 'string', description: 'Percent'),
+                new OA\Property(property: 'minimum_applied', type: 'boolean'),
+                new OA\Property(property: 'indicative', type: 'boolean'),
+                new OA\Property(property: 'price_at', type: 'string', format: 'date-time', nullable: true),
+            ], type: 'object')])),
+            new OA\Response(response: 409, description: 'price_unavailable', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function quote(QuoteRequest $request, QuoteAction $quote): JsonResponse
+    {
+        return response()->json(['data' => $quote->handle($request->category(), $request->validated('karat') === null ? null : (int) $request->validated('karat'),
+            $request->validated('weight_g'), $request->validated('making_per_g'), $request->validated('asking_price'))])
+            ->header('Cache-Control', 'public, max-age=30');
     }
 }

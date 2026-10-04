@@ -122,6 +122,17 @@ enum AuditEvent: string
     case ORDER_EXTENSION_REQUEST_ACCEPTED = 'order.extension_request_accepted';
     case ORDER_EXTENSION_REQUEST_REFUSED = 'order.extension_request_refused';
 
+    // Spec 015: finance operations and exports.
+    case COMPENSATION_LIST_EXPORTED = 'compensation.list_exported';
+    case WALLET_ADJUSTED = 'wallet.adjusted';
+    case BANK_MOVEMENT_RECORDED = 'bank.movement_recorded';
+    case BANK_MOVEMENT_PROOF_VIEWED = 'bank.movement_proof_viewed';
+    case BANK_BOOK_EXPORTED = 'bank.book_exported';
+    case BANK_MOVEMENTS_EXPORTED = 'bank.movements_exported';
+    case DAY_CLOSED = 'day.closed';
+    case DAY_SAVED = 'day.saved';
+    case ORDER_LIST_EXPORTED = 'order.list_exported';
+
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
     {
@@ -236,6 +247,15 @@ enum AuditEvent: string
             self::ORDER_EXTENSION_REQUESTED => 'Seller asked for more time',
             self::ORDER_EXTENSION_REQUEST_ACCEPTED => 'Request for more time accepted',
             self::ORDER_EXTENSION_REQUEST_REFUSED => 'Request for more time refused',
+            self::COMPENSATION_LIST_EXPORTED => 'Compensation list exported',
+            self::WALLET_ADJUSTED => 'Wallet adjusted directly',
+            self::BANK_MOVEMENT_RECORDED => 'Bank movement recorded',
+            self::BANK_MOVEMENT_PROOF_VIEWED => 'Bank movement proof opened',
+            self::BANK_BOOK_EXPORTED => 'Bank book exported',
+            self::BANK_MOVEMENTS_EXPORTED => 'Bank movements exported',
+            self::DAY_CLOSED => 'Day closed',
+            self::DAY_SAVED => 'Day saved, not closed',
+            self::ORDER_LIST_EXPORTED => 'Orders exported',
         };
     }
 
@@ -264,6 +284,9 @@ enum AuditEvent: string
             self::PAYOUT_ACCOUNT_ADDED, self::PAYOUT_ACCOUNT_VERIFIED, self::PAYOUT_ACCOUNT_REFUSED, self::PAYOUT_ACCOUNT_IN_USE_CHANGED, self::PAYOUT_ACCOUNT_REMOVAL_SCHEDULED, self::PAYOUT_ACCOUNT_KEPT, self::PAYOUT_ACCOUNT_REMOVED => AuditCategory::ACCOUNTS,
             self::WITHDRAWAL_EMAIL_CONFIRMED, self::WITHDRAWAL_REQUESTED, self::WITHDRAWAL_CANCELLED, self::WITHDRAWAL_TAKEN_FOR_REVIEW, self::WITHDRAWAL_HELD, self::WITHDRAWAL_UNHELD, self::WITHDRAWAL_RELEASED, self::WITHDRAWAL_REJECTED, self::WITHDRAWAL_LIST_EXPORTED, self::WITHDRAWAL_PAUSE_ENDED,
             self::COMPENSATION_PAID => AuditCategory::MONEY,
+            self::COMPENSATION_LIST_EXPORTED, self::WALLET_ADJUSTED, self::BANK_MOVEMENT_RECORDED, self::BANK_MOVEMENT_PROOF_VIEWED,
+            self::BANK_BOOK_EXPORTED, self::BANK_MOVEMENTS_EXPORTED, self::DAY_CLOSED, self::DAY_SAVED => AuditCategory::MONEY,
+            self::ORDER_LIST_EXPORTED => AuditCategory::ORDERS,
         };
     }
 

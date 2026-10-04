@@ -19,4 +19,7 @@ return [
     'handover_lock_minutes' => 15,
 
     'code_length' => 6,
+
+    // The CSV export of the Orders list (spec 015 FR-018).
+    'export_cap' => 10000,
 ];
