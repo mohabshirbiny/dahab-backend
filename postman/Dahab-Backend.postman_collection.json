@@ -220,6 +220,41 @@
         {
             "key": "withdrawal_id",
             "value": ""
+        },
+        {
+            "key": "dispute_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "dispute_photo_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "assignee_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "extension_request_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "dispute_photo_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "proxy_id_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "proxy_legal_doc_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -4335,10 +4370,10 @@
                                         "handover"
                                     ]
                                 },
-                                "description": "Spec 012 FR-020. Against the buyer's code (Customer › Orders › Pay Balance saves collection_code); check their ID at the counter. ready_to_collect → completed, no money. Requires order.handover (ceo, igi_branch), branch-scoped. 422 invalid_collection_code (details.attempts_left), 429 handover_locked after five.",
+                                "description": "Spec 012 FR-020. Against the buyer's code (Customer › Orders › Pay Balance saves collection_code); check their ID at the counter. ready_to_collect → completed, no money. Requires order.handover (ceo, igi_branch), branch-scoped. 422 invalid_collection_code (details.attempts_left), 429 handover_locked after five. Spec 014: collector buyer (default) | proxy; with proxy, proxy_id_checked must be true (the ID checked against Open Proxy ID) — else 422 proxy_details_missing, no attempt counted. A frozen (disputed) order answers 409 order_frozen.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"code\": \"{{collection_code}}\"\n}",
+                                    "raw": "{\n  \"code\": \"{{collection_code}}\",\n  \"collector\": \"buyer\",\n  \"proxy_id_checked\": false\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -4552,6 +4587,602 @@
                                     ]
                                 },
                                 "description": "Spec 012 FR-023. Buy requests across listings, soonest reply deadline first; state queued | accepted | ended; listing_id; near_expiry (within 6 h); branch_id. Display references only. Read-only. Requires buy_request.view (ceo, coo, operations)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Hand Over To Proxy",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/handover",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "handover"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-019. The person the buyer named collects: the code plus your confirmation that their ID matches the named proxy. Records collected_by_proxy and who checked.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"code\": \"{{collection_code}}\",\n  \"collector\": \"proxy\",\n  \"proxy_id_checked\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Open Proxy ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/proxy-id",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "proxy-id"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-020. The decrypted front of the proxy's ID (no-store); audited (order.proxy_id_viewed). order.handover or order.view. 404 when none is named."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Extension Requests",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/extension-requests?state=waiting&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "extension-requests"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "waiting"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 014 FR-024, FR-027. state=waiting (default) | accepted | refused | lapsed | all; month=YYYY-MM. order.extend_deadline or order.view. Saves extension_request_id (first row)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.length) pm.collectionVariables.set('extension_request_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Accept Extension Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/extension-requests/{{extension_request_id}}/accept",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "extension-requests",
+                                        "{{extension_request_id}}",
+                                        "accept"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-024. hours 6 | 12 | 24 | 48 working hours added to the current reach-branch deadline at the order's branch; written as a staff extension linked to the request; both parties told. order.extend_deadline.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"hours\": 12,\n  \"note\": \"Extended — please bring the piece first thing tomorrow.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Refuse Extension Request",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/extension-requests/{{extension_request_id}}/refuse",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "extension-requests",
+                                        "{{extension_request_id}}",
+                                        "refuse"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-024. The deadline stays; the seller is told with your note. order.extend_deadline.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"note\": \"The buyer has waited long enough; please bring it today.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Disputes",
+                    "description": "Spec 014 US2: the Disputes queue, one dispute with its order, photos, pass on, resolve. Every request needs dispute.handle (ceo, coo, operations, finance); a resolution against the sale needs order.refund, compensation needs compensation.pay (capped unless compensation.uncapped), suspend_seller needs customer.suspend.",
+                    "item": [
+                        {
+                            "name": "List Disputes",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/disputes?state=unresolved&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "disputes"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "unresolved"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 014 FR-008. Oldest first; state=unresolved (default) | open | passed_on | resolved; assigned=me; q=DSP-… or DH-…; cursor. meta.counts {open, passed_on}. Saves dispute_id (first row)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.length) pm.collectionVariables.set('dispute_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Show Dispute",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/disputes/{{dispute_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "disputes",
+                                        "{{dispute_id}}"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-008. The customer's words, photo ids, history with staff notes, compensation paid, the order (StaffOrder detail: ledger, timeline) and can (compensation_caps: null when uncapped). Saves dispute_photo_id (first photo)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.photos && json.data.photos.length) pm.collectionVariables.set('dispute_photo_id', json.data.photos[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Open Dispute Photo",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/disputes/{{dispute_id}}/photos/{{dispute_photo_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "disputes",
+                                        "{{dispute_id}}",
+                                        "photos",
+                                        "{{dispute_photo_id}}"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-008. The decrypted image (no-store); each view audited (dispute.photo_viewed)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "List Dispute Assignees",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/dispute-assignees",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "dispute-assignees"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-009. Active staff holding dispute.handle, except you. Saves assignee_id (first)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.length) pm.collectionVariables.set('assignee_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Pass On Dispute",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/disputes/{{dispute_id}}/pass-on",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "disputes",
+                                        "{{dispute_id}}",
+                                        "pass-on"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-009. The dispute stays open (passed_on) and becomes theirs; the note is staff-only; nothing is sent to the customer. 422 assignee_not_eligible; 409 illegal_dispute_transition.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"assignee_id\": \"{{assignee_id}}\",\n  \"note\": \"Please call the seller about the scale photos.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Resolve Dispute — Resume",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/disputes/{{dispute_id}}/resolve",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "disputes",
+                                        "{{dispute_id}}",
+                                        "resolve"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-010, FR-011. Every dispute ends with a reply to its raiser. resume: back to the frozen-from state; every running deadline gets back exactly the frozen time (extension rows naming the dispute).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"outcome\": \"resume\",\n  \"reply\": \"We weighed it again with IGI and the result stands. The order is moving again.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Resolve Dispute — Against The Sale, With Compensation",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/disputes/{{dispute_id}}/resolve",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "disputes",
+                                        "{{dispute_id}}",
+                                        "resolve"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-013–FR-016. against_sale (before payment only; order.refund): cancelled at inspection, the deposit refunded in full, the piece returned — 409 dispute_outcome_not_allowed on a paid order. compensation (compensation.pay): 403 compensation_cap_exceeded (details.per_payment, left_today). suspend_seller (customer.suspend) only with against_sale.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"outcome\": \"against_sale\",\n  \"reply\": \"The piece was not what the listing said. Your deposit is back in your wallet.\",\n  \"compensation\": {\n    \"party\": \"buyer\",\n    \"amount\": \"500.00\",\n    \"reason\": \"wasted_trip\",\n    \"note\": \"The buyer travelled to IGI for nothing.\"\n  },\n  \"suspend_seller\": {\n    \"reason\": \"piece_misrepresented\",\n    \"note\": \"Plated piece listed as solid gold.\"\n  }\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
                             },
                             "response": []
                         }
@@ -7358,6 +7989,335 @@
                                 }
                             },
                             "response": []
+                        },
+                        {
+                            "name": "Upload Dispute Photo",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 014. purpose dispute_photo: JPEG, PNG or WebP, encrypted on the private disk; verified customers (a suspended customer may). Saves dispute_photo_token (single use).",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "dispute_photo",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('dispute_photo_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Report A Problem",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/disputes",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "disputes"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-001–FR-007. Buyer or seller, from at_inspection | weight_adjust_pending | awaiting_balance | ready_to_collect: the order freezes (disputed). One per party per order (409 dispute_already_raised); 409 order_frozen while the other side's is open. 0–5 photo tokens. Throttle customer.disputes (5/min).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"disagree_inspection\",\n  \"detail\": \"I weighed it at home and it was 10 grams exactly; please weigh it again.\",\n  \"photo_tokens\": [\n    \"{{dispute_photo_token}}\"\n  ]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Ask For More Time",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/extension-requests",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "extension-requests"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-022. The seller, while awaiting delivery and before the deadline: a reason and a line (Dahab picks the time). 409 extension_request_pending | deadline_not_running.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"branch_closed\",\n  \"detail\": \"The branch was closed when I went yesterday evening.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Upload Proxy ID",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Spec 014. purpose proxy_id: the front of the person's ID; trade gate. Saves proxy_id_token (single use).",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "proxy_id",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('proxy_id_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Name A Proxy",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/proxy",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "proxy"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-018. The buyer, ready to collect, not collected: name as on their ID, phone, their ID photo, and the current collection_proxy_authorisation (Market › Reference › Collection Proxy Authorisation saves its id). They get one SMS without the code. Trade gate. 422 declaration_required.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"Ahmed Samir Hassan\",\n  \"phone\": \"+201001234567\",\n  \"id_upload_token\": \"{{proxy_id_token}}\",\n  \"authorisation_id\": {{proxy_legal_doc_id}},\n  \"authorisation_accepted\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Remove Proxy",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/proxy/remove",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "proxy",
+                                        "remove"
+                                    ]
+                                },
+                                "description": "Spec 014 FR-018. Before collection; only the buyer can collect again."
+                            },
+                            "response": []
                         }
                     ]
                 },
@@ -8100,6 +9060,46 @@
                                             "    const d = pm.response.json().data;",
                                             "    if (d && d.id) pm.collectionVariables.set('deposit_legal_doc_id', d && d.id);",
                                             "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Collection Proxy Authorisation",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/legal-documents/collection_proxy_authorisation",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "legal-documents",
+                                        "collection_proxy_authorisation"
+                                    ]
+                                },
+                                "description": "Spec 014. The current text (EN/AR) the buyer accepts when naming someone else to collect. Saves proxy_legal_doc_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.legal_doc_id) pm.collectionVariables.set('proxy_legal_doc_id', json.data.legal_doc_id);"
                                         ]
                                     }
                                 }

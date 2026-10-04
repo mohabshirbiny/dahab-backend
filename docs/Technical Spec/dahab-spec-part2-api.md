@@ -103,6 +103,8 @@ Upload an ID or passport for review. Storage is an encrypted object; the row hol
 - **As built:** `POST /api/v1/customer/me/identity-documents`, body `{ doc_kind, upload_token }`; `201 { data: { document_id, doc_kind, status: "pending", created_at } }`. An unsupported `doc_kind` is `422 unsupported_doc_kind` (its own code, not `validation_failed`); an unknown / expired / already-used / another customer's token is `422 upload_token_invalid`. One pending document per customer; a rejected customer may resubmit. Creating a document does not touch `customer.is_verified`. `Idempotency-Key` is not implemented yet (no idempotency layer exists in the codebase).
 
 ### `POST /me/uploads`
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). New purposes: `dispute_photo` (images; verified customers, **not** trade-gated — a suspended customer may report a problem) and `proxy_id` (images; trade gate). Both stored encrypted on the private disk.
 Returns a pre-signed URL for a private object (ID image, listing photo, invoice, proxy ID). The bucket is not public; every ID-document *view* is later logged (Part 1 §5.4).
 - **gate:** none (signed in) · **idempotent:** n/a
 - **Body:** `{ "purpose": "identity"|"listing_photo"|"listing_invoice"|"stone_certificate"|"proxy_id", "content_type" }`
@@ -321,6 +323,8 @@ Only an admin can change the branch after acceptance; the deadline **keeps runni
 - **Errors:** `branch_not_in_options` (409), `order_not_open` (409).
 
 ### Admin: extend a deadline on request
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). The seller asks first: `POST /customer/me/orders/{order}/extension-requests` `{ reason: travelling|emergency|branch_closed|other, detail (10–1000) }` on an order `awaiting_delivery` before its deadline (one waiting per order, `extension_request_pending` 409). Staff answer from Orders: `GET /dashboard/extension-requests`, `POST /dashboard/extension-requests/{request}/accept` `{ hours: 6|12|24|48, note }` (the new deadline from the working-hours resolver, written through this extend, linked to the request) or `/refuse` `{ note }`; `order.extend_deadline`. A waiting request lapses when the order leaves `awaiting_delivery`. *I already sold it elsewhere* is the seller cancel.
 ### `POST /admin/orders/{id}/extend-deadline`
 - **permission:** *Extend a deadline on request* (CEO/COO/Operations) · **audited:** yes · **reason:** required · **idempotent:** required
 - **Body:** `{ "which": "reach_branch"|"balance"|"collect", "new_deadline": "…", "reason": "…" }`
@@ -423,6 +427,8 @@ Buyer pays the remaining balance; **this is now the settlement event.** The fina
 - **Errors:** `insufficient_funds` (409), `balance_deadline_passed` (409 → the no-pay cancellation path runs as a job, §10), `illegal_order_transition` (409).
 
 ### `POST /igi/orders/{id}/handover`  (counter confirmation — physical only)
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). As built: `POST /dashboard/orders/{order}/handover` `{ code, collector: buyer|proxy, proxy_id_checked }`. The proxy is named beforehand by the buyer (`POST /customer/me/orders/{order}/proxy` `{ name, phone, id_upload_token, authorisation_id, authorisation_accepted }` on a ready-to-collect order — the acceptance of `collection_proxy_authorisation` with context `collection_proxy`; `/proxy/remove`). `collector = proxy` without a named proxy or without `proxy_id_checked: true` → `proxy_details_missing` (422), no attempt counted; the buyer may still collect in person. The proxy gets one SMS without the code; staff view the ID at `GET /dashboard/orders/{order}/proxy-id` (audited).
 IGI confirms the physical handover at the counter against the collection code and, for a proxy, the collector's ID (Part 1 §3.4; schema `collection`). **This event moves no money** — settlement already happened at `pay-balance`.
 - **permission:** IGI; branch-scoped · **audited:** yes (actor = IGI branch account; `handover_by`) · **idempotent:** required
 - **Body:** `{ "collection_code": "…", "is_proxy": false }` or, for proxy, `{ "collection_code", "is_proxy": true, "proxy_name", "proxy_phone", "proxy_id_upload_token" }`
@@ -533,6 +539,8 @@ Approve and send to bank (`under_review → released`). **Every withdrawal is re
 - **Errors:** `illegal_topup_transition` (409), `verification_required` (403), validation (422).
 
 ### `POST /admin/compensation`
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). Built only as part of `POST /dashboard/disputes/{dispute}/resolve` (`compensation: { party, amount, reason, note }`), not as a stand-alone endpoint; reasons `igi_delay|dahab_mistake|wasted_trip|dispute_settlement|goodwill`; caps per staff member per Cairo day unless `compensation.uncapped`; `compensation_cap_exceeded` (403) carries `details.per_payment` and `details.left_today`.
 Pay goodwill/dispute compensation into a wallet (`event_kind = compensation`).
 - **permission:** *Pay compensation* — CEO unlimited; **Finance up to the caps** `compensation.cap_per_payment_egp` / `compensation.cap_per_day_egp` (Part 1 §4.2; settings). Over-cap from Finance → `compensation_cap_exceeded` (403).
 - **audited:** yes · **reason:** required · **idempotent:** required
@@ -696,6 +704,8 @@ Create / disable / enable staff accounts is a later feature (spec 002 FR-080); p
 - `POST /admin/founder/freeze` / `/unfreeze` — either founder freezes the other instantly (`no_self_freeze`); unfreeze needs **both** confirmations (`unfreeze_confirm_1/2`).
 
 ### Disputes & legal
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). As built: a party (buyer or seller) opens `POST /customer/me/orders/{order}/disputes` `{ reason, detail (10–2000), photo_tokens (0–5) }` from `at_inspection | weight_adjust_pending | awaiting_balance | ready_to_collect`; the order moves to `disputed` and every other order action answers `order_frozen` (409). One dispute per party per order (`dispute_already_raised` 409). Staff (`dispute.handle`): `GET /dashboard/disputes`, `GET /dashboard/disputes/{dispute}`, its photos, `GET /dashboard/dispute-assignees`, `POST …/pass-on` `{ assignee_id, note }` (nothing sent to the customer), `POST …/resolve` `{ outcome: resume|against_sale, reply, compensation?, suspend_seller? }`. Resume returns to the frozen-from state and gives every running deadline back the frozen time; against the sale (needs `order.refund`; refused `dispute_outcome_not_allowed` on a paid order) cancels at inspection, refunds the deposit and returns the piece. Guard DH009 `illegal_dispute_transition`.
 ### `POST /admin/disputes/{id}/resolve` · `/pass-on`
 Resolve (needs a reply, `resolved_needs_reply` CHECK) or pass to a named colleague. · **permission:** handle disputes (Operations/founders) · **audited:** yes · **reason:** required
 ### `POST /admin/case-files`
@@ -724,6 +734,8 @@ These are scheduled workers that drive deadline-based transitions. They are list
 ---
 
 ## 12. Consolidated domain error codes
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). New codes: `order_frozen` (409, `details.dispute_ref` for the raiser and staff), `dispute_already_raised` (409), `dispute_outcome_not_allowed` (409), `illegal_dispute_transition` (409, DH009), `assignee_not_eligible` (422), `extension_request_pending` (409), `illegal_extension_request_transition` (409, DH010). `compensation_cap_exceeded` and `proxy_details_missing` are now built.
 
 Auth codes are in Part 1 §9. Domain codes introduced above:
 

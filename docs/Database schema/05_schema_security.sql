@@ -151,26 +151,101 @@ CREATE TABLE promo_code_use (
 -- ---------------------------------------------------------------------
 -- 16. Disputes
 -- ---------------------------------------------------------------------
+-- Changed by spec 014 (specs/014-disputes): a party (buyer or seller) opens a
+-- dispute on an order at_inspection / weight_adjust_pending / awaiting_balance /
+-- ready_to_collect; the order freezes into 'disputed'. One dispute per party per
+-- order, never two unresolved. Resolution: 'resume' (back to frozen_from, every
+-- running deadline pushed by the frozen time) or, before payment only,
+-- 'against_sale' (cancelled_inspection, deposit refunded, piece returned).
+CREATE SEQUENCE dispute_no_seq;
+
 CREATE TABLE dispute (
   dispute_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  dispute_ref  TEXT UNIQUE NOT NULL,
+  dispute_no   BIGINT UNIQUE NOT NULL DEFAULT nextval('dispute_no_seq'),   -- spec 014
+  dispute_ref  TEXT UNIQUE NOT NULL,             -- 'DSP-' || dispute_no (set by trigger, spec 014)
   order_id     UUID NOT NULL REFERENCES "order"(order_id),
   raised_by    UUID NOT NULL REFERENCES customer(customer_id),
-  reason       TEXT NOT NULL,
-  detail       TEXT,
+  raised_as    TEXT NOT NULL CHECK (raised_as IN ('buyer','seller')),       -- spec 014; matches the order (trigger)
+  reason       TEXT NOT NULL CHECK (reason IN ('not_as_listed','disagree_inspection','money_wrong',
+                 'other_side_unresponsive','not_theirs_to_sell','other')),   -- spec 014
+  detail       TEXT NOT NULL CHECK (char_length(detail) BETWEEN 10 AND 2000), -- spec 014: required
   state        TEXT NOT NULL DEFAULT 'open'
                  CHECK (state IN ('open','passed_on','resolved')),
   assigned_to  UUID REFERENCES staff(staff_id),
+  passed_on_at TIMESTAMPTZ,                                                  -- spec 014
+  frozen_from  order_state NOT NULL CHECK (frozen_from IN
+                 ('at_inspection','weight_adjust_pending','awaiting_balance','ready_to_collect')), -- spec 014
+  frozen_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),               -- spec 014
+  outcome      TEXT CHECK (outcome IN ('resume','against_sale')),            -- spec 014
   -- A dispute cannot be closed silently: resolution needs a reply or a
   -- named colleague it was passed to.
-  resolution_reply TEXT,
+  resolution_reply TEXT CHECK (resolution_reply IS NULL OR char_length(resolution_reply) BETWEEN 10 AND 2000),
   resolved_by  UUID REFERENCES staff(staff_id),
   opened_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   resolved_at  TIMESTAMPTZ,
+  release_txn_id UUID REFERENCES ledger_transaction(ledger_txn_id),          -- spec 014: deposit refund on against_sale
   CONSTRAINT resolved_needs_reply CHECK (
-    state <> 'resolved' OR (resolution_reply IS NOT NULL AND resolved_by IS NOT NULL)
-  )
+    state <> 'resolved' OR (resolution_reply IS NOT NULL AND resolved_by IS NOT NULL AND resolved_at IS NOT NULL)
+  ),
+  CONSTRAINT dispute_outcome_when_resolved CHECK ((state = 'resolved') = (outcome IS NOT NULL)),       -- spec 014
+  CONSTRAINT dispute_against_sale_before_payment CHECK (
+    outcome IS DISTINCT FROM 'against_sale' OR frozen_from <> 'ready_to_collect'),                     -- spec 014
+  CONSTRAINT dispute_buyer_only_reason CHECK (reason <> 'not_theirs_to_sell' OR raised_as = 'buyer'),  -- spec 014
+  CONSTRAINT dispute_one_per_party UNIQUE (order_id, raised_by)                                        -- spec 014
 );
+CREATE UNIQUE INDEX uq_dispute_one_unresolved ON dispute(order_id) WHERE state <> 'resolved';      -- spec 014
+CREATE INDEX idx_dispute_queue    ON dispute(state, opened_at);
+CREATE INDEX idx_dispute_assigned ON dispute(assigned_to) WHERE state = 'passed_on';
+CREATE INDEX idx_dispute_raiser   ON dispute(raised_by);
+ALTER TABLE order_deadline_extension
+  ADD CONSTRAINT order_deadline_extension_dispute_fk FOREIGN KEY (dispute_id) REFERENCES dispute(dispute_id);  -- spec 014
+
+-- Spec 014: 0-5 private photos per dispute (upload purpose 'dispute_photo',
+-- encrypted on the private disk). Append-only.
+CREATE TABLE dispute_photo (
+  photo_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dispute_id   UUID NOT NULL REFERENCES dispute(dispute_id),
+  storage_ref  TEXT NOT NULL,
+  mime         TEXT NOT NULL,
+  position     SMALLINT NOT NULL CHECK (position BETWEEN 1 AND 5),
+  UNIQUE (dispute_id, position)
+);
+
+-- Spec 014: the dispute's history (opened / passed_on / resolved), exactly one
+-- actor per row; pass-on notes are staff-only. Append-only; a deferred check
+-- requires a row for every dispute state change in the same transaction.
+CREATE TABLE dispute_change (
+  change_id    BIGSERIAL PRIMARY KEY,
+  dispute_id   UUID NOT NULL REFERENCES dispute(dispute_id),
+  kind         TEXT NOT NULL CHECK (kind IN ('opened','passed_on','resolved')),
+  actor_customer_id UUID REFERENCES customer(customer_id),
+  actor_staff_id    UUID REFERENCES staff(staff_id),
+  assigned_to  UUID REFERENCES staff(staff_id),
+  note         TEXT CHECK (note IS NULL OR char_length(note) BETWEEN 10 AND 2000),
+  at           TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  txid         BIGINT NOT NULL DEFAULT txid_current(),
+  CONSTRAINT dispute_change_one_actor CHECK ((actor_customer_id IS NULL) <> (actor_staff_id IS NULL))
+);
+
+-- Spec 014: compensation paid within a dispute resolution (ledger kind
+-- 'compensation': external_equity -> the customer's available). Caps
+-- compensation.cap_per_payment_egp / cap_per_day_egp per staff member per Cairo
+-- day unless the payer holds compensation.uncapped. Append-only; a deferred
+-- check ties each row to its matching entry.
+CREATE TABLE compensation (
+  compensation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dispute_id   UUID NOT NULL REFERENCES dispute(dispute_id),
+  order_id     UUID NOT NULL REFERENCES "order"(order_id),
+  customer_id  UUID NOT NULL REFERENCES customer(customer_id),
+  party        TEXT NOT NULL CHECK (party IN ('buyer','seller')),
+  amount       NUMERIC(18,4) NOT NULL CHECK (amount > 0),
+  reason       TEXT NOT NULL CHECK (reason IN ('igi_delay','dahab_mistake','wasted_trip','dispute_settlement','goodwill')),
+  note         TEXT NOT NULL CHECK (char_length(note) BETWEEN 10 AND 1000),
+  paid_by      UUID NOT NULL REFERENCES staff(staff_id),
+  ledger_txn_id UUID NOT NULL UNIQUE REFERENCES ledger_transaction(ledger_txn_id),
+  paid_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX idx_compensation_payer_day ON compensation(paid_by, paid_at);
 
 -- Case file assembly for law enforcement (built on request, audited).
 CREATE TABLE case_file (
@@ -244,7 +319,10 @@ INSERT INTO order_transition (from_state, to_state, note) VALUES
   ('disputed','ready_to_collect','dispute resolved, resume'),
   ('awaiting_delivery','cancelled_staff','staff cancelled the acceptance; deposit refunded (spec 011)'),
   ('awaiting_balance','weight_adjust_pending','corrected result needs the buyer''s approval (spec 012)'),
-  ('awaiting_balance','cancelled_inspection','corrected result: karat mismatch / counterfeit (spec 012)');
+  ('awaiting_balance','cancelled_inspection','corrected result: karat mismatch / counterfeit (spec 012)'),
+  ('weight_adjust_pending','disputed','dispute opened (spec 014)'),
+  ('disputed','weight_adjust_pending','dispute resolved, resume (spec 014)'),
+  ('disputed','at_inspection','dispute resolved, resume (spec 014)');
 
 CREATE TABLE listing_transition (
   from_state   listing_state NOT NULL,
@@ -353,6 +431,44 @@ INSERT INTO payout_account_transition (from_state, to_state, note) VALUES
 --     rejected / cancelled -> return_txn_id and no release; every named txn is a 'withdrawal' entry
 --     of this withdrawal (read in the 'ledger' scope). DH007.
 -- Full bodies: database/migrations/2026_10_06_000010_create_withdrawals.php.
+
+-- Disputes and requests for more time (added by spec 014) ----------------
+CREATE TABLE dispute_transition (
+  from_state TEXT NOT NULL,
+  to_state   TEXT NOT NULL,
+  note       TEXT,
+  PRIMARY KEY (from_state, to_state)
+);
+INSERT INTO dispute_transition (from_state, to_state, note) VALUES
+  ('open','passed_on','passed to a named colleague'),
+  ('passed_on','passed_on','passed on again'),
+  ('open','resolved','resolved with a reply'),
+  ('passed_on','resolved','resolved with a reply');
+
+CREATE TABLE extension_request_transition (
+  from_state TEXT NOT NULL,
+  to_state   TEXT NOT NULL,
+  note       TEXT,
+  PRIMARY KEY (from_state, to_state)
+);
+INSERT INTO extension_request_transition (from_state, to_state, note) VALUES
+  ('waiting','accepted','staff extended the reach-branch deadline'),
+  ('waiting','refused','staff refused'),
+  ('waiting','lapsed','the order left awaiting_delivery unanswered');
+
+-- Guards (spec 014):
+--   dispute_guard()            DH009 -> 409 illegal_dispute_transition: a state change is in
+--     dispute_transition; a resolved dispute never changes; order, raiser, raised_as, reason,
+--     detail, frozen_from, frozen_at, opened_at never change; ref = 'DSP-' || dispute_no;
+--     raised_as matches the order's buyer/seller; never deleted.
+--   extension_request_guard()  DH010 -> 409 illegal_extension_request_transition: along
+--     extension_request_transition; final states never change; never deleted.
+--   dispute_change_recorded()  deferred: each dispute insert / state change has its
+--     dispute_change row in the same transaction. DH009.
+--   compensation_recorded()    deferred: each compensation row's ledger_txn_id is a
+--     'compensation' entry crediting exactly that amount to that customer. DH009.
+--   dispute_photo, dispute_change, compensation: block_mutation() on UPDATE / DELETE.
+-- Full bodies: database/migrations/2026_10_07_000010_create_disputes.php.
 
 
 -- Optional generic guard: reject an order state change not in the table.
@@ -657,6 +773,20 @@ CREATE POLICY customer_queue_read ON customer FOR SELECT
 --     customer_order_read (the other party of my order; display_ref only by
 --       the Resources)
 -- (Full DDL: database/migrations/2026_10_05_000010_create_orders_lifecycle.php.)
+
+-- Disputes, compensation, requests for more time (added by spec 014) ----
+-- Readable by the customer each row belongs to, not by the other party of the
+-- order (analysis C2): the other party reads the order's state and history.
+--   dispute:          USING (elevated OR raised_by = me)
+--                     WITH CHECK (elevated OR ('order' scope AND raised_by = me AND my order))
+--   dispute_photo:    USING (elevated OR its dispute raised_by = me)
+--                     WITH CHECK (elevated OR ('order' scope AND its dispute raised_by = me))
+--   dispute_change:   USING (elevated OR its dispute raised_by = me)
+--                     WITH CHECK (elevated OR ('order' scope AND actor_customer_id = me AND kind = 'opened'))
+--   compensation:     USING (elevated OR customer_id = me)   WITH CHECK (elevated)
+--   order_extension_request: USING (elevated OR seller_id = me)
+--                     WITH CHECK (elevated OR ('order' scope AND seller_id = me AND my order))
+--   dispute_transition, extension_request_transition: lookups, no RLS.
 
 -- Listings (added by spec 010) --------------------------------------------
 -- A seller sees and changes only their own listings and what hangs off them;
