@@ -24,14 +24,15 @@ it('lists the codes of a category', function () {
     expect(AuditEvent::codesIn(AuditCategory::PRICING))->toBe([
         'pricing.setting.changed', 'pricing.adjustment.changed', 'pricing.manual_price.entered', 'pricing.manual_price.confirmed',
     ])
-        // Spec 008: the wallet statement reads; spec 009: top-ups and receiving accounts; spec 013: withdrawals.
+        // Spec 008: the wallet statement reads; spec 009: top-ups and receiving accounts; spec 013: withdrawals;
+        // spec 014: compensation.
         ->and(AuditEvent::codesIn(AuditCategory::MONEY))->toBe([
             'ledger.statement.viewed', 'ledger.statement.exported',
             'topup.matched', 'topup.credited_by_hand', 'topup.held', 'topup.unheld', 'topup.rejected', 'topup.list_exported',
             'receiving_account.created', 'receiving_account.updated',
             'withdrawal.email_confirmed', 'withdrawal.requested', 'withdrawal.cancelled', 'withdrawal.taken_for_review',
             'withdrawal.held', 'withdrawal.unheld', 'withdrawal.released', 'withdrawal.rejected', 'withdrawal.list_exported',
-            'withdrawal.pause_ended',
+            'withdrawal.pause_ended', 'compensation.paid',
         ])
         ->and(AuditEvent::AUDIT_LOG_EXPORTED->category())->toBe(AuditCategory::SYSTEM);
 });

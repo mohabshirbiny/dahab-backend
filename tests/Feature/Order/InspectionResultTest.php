@@ -58,7 +58,7 @@ it('passes within tolerance: awaiting the balance in 10 calendar days, figures o
         ->assertJsonPath('data.stage', 'pay')
         ->assertJsonPath('data.amount_due', '43948.6875')
         ->assertJsonPath('data.final_total', '55074.9375')
-        ->assertJsonPath('data.actions', ['pay']);
+        ->assertJsonPath('data.actions', ['pay', 'report_problem']);
 
     Bus::assertDispatched(NotifyCustomerJob::class, fn ($job) => $job->customerId === $this->buyer->customer_id
         && $job->notification->event === OrderEvent::RESULT_PASSED && $job->notification->amount === '55074.9375');
@@ -77,7 +77,7 @@ it('asks the buyer on a weight outside tolerance, at the price on the measured w
         ->assertJsonPath('data.stage', 'decide')
         ->assertJsonPath('data.inspection.new_price', '53962.3125')
         ->assertJsonPath('data.inspection.decision_needed', true)
-        ->assertJsonPath('data.actions', ['decide']);
+        ->assertJsonPath('data.actions', ['decide', 'report_problem']);
 });
 
 it('cancels on any karat difference: the buyer refunded, the seller suspended, the piece returned', function () {
@@ -121,7 +121,7 @@ it('waits for staff to price a stone regrade', function () {
 
     Orders::show($this, Orders::buyer($order), $order->refresh())->assertOk()
         ->assertJsonPath('data.inspection.price_pending', true)
-        ->assertJsonPath('data.actions', []);
+        ->assertJsonPath('data.actions', ['report_problem']);
 });
 
 it('needs the measured karat and weight for gold, and never takes an outcome from the client', function () {

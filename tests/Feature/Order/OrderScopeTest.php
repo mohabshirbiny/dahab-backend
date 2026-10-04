@@ -90,15 +90,20 @@ it('is pushed only by the customer order Actions, which never elevate and always
     $files = collect(File::allFiles(app_path()))
         ->map(fn ($f) => [str_replace('\\', '/', substr($f->getPathname(), strlen(base_path()) + 1)), (string) file_get_contents($f->getPathname())]);
 
+    // Spec 014: opening a dispute is a customer order Action too (it freezes the order).
+    $customerPaths = ['app/Actions/Orders/Customer/', 'app/Actions/Disputes/Customer/'];
+    $isCustomerPath = fn (string $path) => collect($customerPaths)->contains(fn ($p) => str_starts_with($path, $p));
+
     $pushers = $files->filter(fn ($f) => str_contains($f[1], 'DatabaseActor::order('))->map(fn ($f) => $f[0])->values()->all();
     foreach ($pushers as $path) {
-        expect(str_starts_with($path, 'app/Actions/Orders/Customer/'))->toBeTrue("{$path} pushes the order scope");
+        expect($isCustomerPath($path))->toBeTrue("{$path} pushes the order scope");
     }
 
-    foreach ($files->filter(fn ($f) => str_starts_with($f[0], 'app/Actions/Orders/Customer/')) as [$path, $code]) {
+    foreach ($files->filter(fn ($f) => $isCustomerPath($f[0])) as [$path, $code]) {
         expect(str_contains($code, 'DatabaseActor::elevate('))->toBeFalse("{$path} elevates in a customer path");
         if (str_contains($code, 'DatabaseActor::order(fn () => DB::transaction')) {
-            expect(str_contains($code, 'AuditEvent::ORDER_'))->toBeTrue("{$path} writes under the order scope without an audit row");
+            expect(str_contains($code, 'AuditEvent::ORDER_') || str_contains($code, 'AuditEvent::DISPUTE_'))
+                ->toBeTrue("{$path} writes under the order scope without an audit row");
         }
     }
 });

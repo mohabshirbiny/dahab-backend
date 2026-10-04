@@ -49,7 +49,7 @@ it('sets the price, starts the buyer\'s clock and tells both', function () {
 
     Orders::show($this, Orders::buyer($order), $order)->assertOk()
         ->assertJsonPath('data.inspection.new_price', '108000.0000')
-        ->assertJsonPath('data.actions', ['decide']);
+        ->assertJsonPath('data.actions', ['decide', 'report_problem']);
 
     Bus::assertDispatched(NotifyCustomerJob::class, fn ($job) => $job->customerId === $order->buyer_id && $job->notification->event === OrderEvent::PRICE_PROPOSED);
 });

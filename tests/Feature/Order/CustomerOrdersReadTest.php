@@ -33,7 +33,7 @@ it('shows the seller their sale with the branch, the deadline and the cancel act
         ->assertJsonPath('data.deposit_amount', '11126.2500')
         ->assertJsonPath('data.deadline.kind', 'reach_branch')
         ->assertJsonPath('data.amount_due', null)
-        ->assertJsonPath('data.actions', ['cancel'])
+        ->assertJsonPath('data.actions', ['cancel', 'ask_more_time'])
         ->assertJsonPath('data.timeline.0.event', 'accepted');
 
     expect($res->json('data.branch.name_en'))->not->toBeNull()
