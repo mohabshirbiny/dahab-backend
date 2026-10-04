@@ -69,6 +69,8 @@ final class ListOwnOrdersAction
             'seller:customer_id,display_ref', 'buyer:customer_id,display_ref',
             'inspections', 'decisions', 'collection', 'sellerReturn',
             'stateChanges', 'branchChanges', 'extensions',
+            // Spec 014: row security returns only the caller's own dispute and requests.
+            'disputes', 'extensionRequests',
         ]));
     }
 }

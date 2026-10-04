@@ -109,6 +109,18 @@ enum AuditEvent: string
     case WITHDRAWAL_REJECTED = 'withdrawal.rejected';
     case WITHDRAWAL_LIST_EXPORTED = 'withdrawal.list_exported';
     case WITHDRAWAL_PAUSE_ENDED = 'withdrawal.pause_ended';
+    // Spec 014: disputes, compensation, proxy collection, requests for more time.
+    case DISPUTE_OPENED = 'dispute.opened';
+    case DISPUTE_PASSED_ON = 'dispute.passed_on';
+    case DISPUTE_RESOLVED = 'dispute.resolved';
+    case DISPUTE_PHOTO_VIEWED = 'dispute.photo_viewed';
+    case COMPENSATION_PAID = 'compensation.paid';
+    case ORDER_PROXY_NAMED = 'order.proxy_named';
+    case ORDER_PROXY_REMOVED = 'order.proxy_removed';
+    case ORDER_PROXY_ID_VIEWED = 'order.proxy_id_viewed';
+    case ORDER_EXTENSION_REQUESTED = 'order.extension_requested';
+    case ORDER_EXTENSION_REQUEST_ACCEPTED = 'order.extension_request_accepted';
+    case ORDER_EXTENSION_REQUEST_REFUSED = 'order.extension_request_refused';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -213,6 +225,17 @@ enum AuditEvent: string
             self::WITHDRAWAL_REJECTED => 'Withdrawal rejected',
             self::WITHDRAWAL_LIST_EXPORTED => 'Withdrawals list exported',
             self::WITHDRAWAL_PAUSE_ENDED => 'Withdrawal pause ended',
+            self::DISPUTE_OPENED => 'Problem reported, order frozen',
+            self::DISPUTE_PASSED_ON => 'Dispute passed to a colleague',
+            self::DISPUTE_RESOLVED => 'Dispute resolved',
+            self::DISPUTE_PHOTO_VIEWED => 'Dispute photo opened',
+            self::COMPENSATION_PAID => 'Compensation paid to a wallet',
+            self::ORDER_PROXY_NAMED => 'Someone else named to collect',
+            self::ORDER_PROXY_REMOVED => 'Person named to collect removed',
+            self::ORDER_PROXY_ID_VIEWED => "Collector's ID opened",
+            self::ORDER_EXTENSION_REQUESTED => 'Seller asked for more time',
+            self::ORDER_EXTENSION_REQUEST_ACCEPTED => 'Request for more time accepted',
+            self::ORDER_EXTENSION_REQUEST_REFUSED => 'Request for more time refused',
         };
     }
 
@@ -234,9 +257,13 @@ enum AuditEvent: string
             self::ORDER_CANCELLED, self::ORDER_RECEIVED, self::ORDER_BRANCH_CHANGED, self::ORDER_DEADLINE_EXTENDED,
             self::ORDER_PRICE_PROPOSED, self::ORDER_HANDED_OVER, self::ORDER_HANDOVER_FAILED, self::ORDER_RETURN_HANDED_OVER,
             self::INSPECTION_RESULT_RECORDED, self::ORDER_SELLER_CANCELLED, self::ORDER_DECIDED, self::ORDER_PAID,
-            self::ORDER_RELISTED, self::ORDER_FORFEITED, self::ORDER_WINDOW_PASSED => AuditCategory::ORDERS,
+            self::ORDER_RELISTED, self::ORDER_FORFEITED, self::ORDER_WINDOW_PASSED,
+            self::DISPUTE_OPENED, self::DISPUTE_PASSED_ON, self::DISPUTE_RESOLVED, self::DISPUTE_PHOTO_VIEWED,
+            self::ORDER_PROXY_NAMED, self::ORDER_PROXY_REMOVED, self::ORDER_PROXY_ID_VIEWED,
+            self::ORDER_EXTENSION_REQUESTED, self::ORDER_EXTENSION_REQUEST_ACCEPTED, self::ORDER_EXTENSION_REQUEST_REFUSED => AuditCategory::ORDERS,
             self::PAYOUT_ACCOUNT_ADDED, self::PAYOUT_ACCOUNT_VERIFIED, self::PAYOUT_ACCOUNT_REFUSED, self::PAYOUT_ACCOUNT_IN_USE_CHANGED, self::PAYOUT_ACCOUNT_REMOVAL_SCHEDULED, self::PAYOUT_ACCOUNT_KEPT, self::PAYOUT_ACCOUNT_REMOVED => AuditCategory::ACCOUNTS,
-            self::WITHDRAWAL_EMAIL_CONFIRMED, self::WITHDRAWAL_REQUESTED, self::WITHDRAWAL_CANCELLED, self::WITHDRAWAL_TAKEN_FOR_REVIEW, self::WITHDRAWAL_HELD, self::WITHDRAWAL_UNHELD, self::WITHDRAWAL_RELEASED, self::WITHDRAWAL_REJECTED, self::WITHDRAWAL_LIST_EXPORTED, self::WITHDRAWAL_PAUSE_ENDED => AuditCategory::MONEY,
+            self::WITHDRAWAL_EMAIL_CONFIRMED, self::WITHDRAWAL_REQUESTED, self::WITHDRAWAL_CANCELLED, self::WITHDRAWAL_TAKEN_FOR_REVIEW, self::WITHDRAWAL_HELD, self::WITHDRAWAL_UNHELD, self::WITHDRAWAL_RELEASED, self::WITHDRAWAL_REJECTED, self::WITHDRAWAL_LIST_EXPORTED, self::WITHDRAWAL_PAUSE_ENDED,
+            self::COMPENSATION_PAID => AuditCategory::MONEY,
         };
     }
 

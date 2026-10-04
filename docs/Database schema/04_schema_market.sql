@@ -409,7 +409,9 @@ CREATE TABLE order_branch_change (
 CREATE TABLE order_deadline_extension (
   extension_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id     UUID NOT NULL REFERENCES "order"(order_id),
-  which        TEXT NOT NULL CHECK (which IN ('reach_branch','balance','collect')),
+  -- spec 014: 'decision' = the buyer's price-decision window, pushed only when a
+  -- dispute frozen at weight_adjust_pending resumes (the frozen time given back).
+  which        TEXT NOT NULL CHECK (which IN ('reach_branch','balance','collect','decision')),
   old_deadline TIMESTAMPTZ NOT NULL,
   new_deadline TIMESTAMPTZ NOT NULL,
   granted_by   UUID NOT NULL REFERENCES staff(staff_id),
@@ -417,6 +419,42 @@ CREATE TABLE order_deadline_extension (
   granted_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT extension_moves_forward CHECK (new_deadline > old_deadline)
 );
+-- spec 014: why an extension was written, when it was not a plain staff grant.
+-- dispute_id = the frozen time given back on resume; extension_request_id = the
+-- seller's request for more time, accepted. Never both.
+ALTER TABLE order_deadline_extension
+  ADD COLUMN dispute_id UUID,             -- FK to dispute added in 05 §16
+  ADD COLUMN extension_request_id UUID,   -- FK to order_extension_request below
+  ADD CONSTRAINT extension_single_cause CHECK (dispute_id IS NULL OR extension_request_id IS NULL);
+
+-- spec 014: the seller asks for more time to reach the branch (reason + a line);
+-- staff accept with 6 / 12 / 24 / 48 working hours (written through the extend
+-- above) or refuse; a waiting request lapses when the order leaves
+-- awaiting_delivery. One waiting per order. Guard DH010 (05 §18).
+CREATE TABLE order_extension_request (
+  request_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id     UUID NOT NULL REFERENCES "order"(order_id),
+  seller_id    UUID NOT NULL REFERENCES customer(customer_id),
+  reason       TEXT NOT NULL CHECK (reason IN ('travelling','emergency','branch_closed','other')),
+  detail       TEXT NOT NULL CHECK (char_length(detail) BETWEEN 10 AND 1000),
+  deadline_at_request TIMESTAMPTZ NOT NULL,
+  state        TEXT NOT NULL DEFAULT 'waiting' CHECK (state IN ('waiting','accepted','refused','lapsed')),
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  answered_by  UUID REFERENCES staff(staff_id),
+  answered_at  TIMESTAMPTZ,
+  answer_note  TEXT CHECK (answer_note IS NULL OR char_length(answer_note) BETWEEN 10 AND 1000),
+  hours_granted SMALLINT CHECK (hours_granted IN (6,12,24,48)),
+  extension_id UUID REFERENCES order_deadline_extension(extension_id),
+  CONSTRAINT extension_request_hours CHECK ((state = 'accepted') = (hours_granted IS NOT NULL)),
+  CONSTRAINT extension_request_link  CHECK ((state = 'accepted') = (extension_id IS NOT NULL)),
+  CONSTRAINT extension_request_answer CHECK (
+    state NOT IN ('accepted','refused') OR (answered_by IS NOT NULL AND answered_at IS NOT NULL AND answer_note IS NOT NULL))
+);
+CREATE UNIQUE INDEX uq_extension_request_waiting ON order_extension_request(order_id) WHERE state = 'waiting';
+CREATE INDEX idx_extension_request_queue ON order_extension_request(state, requested_at);
+ALTER TABLE order_deadline_extension
+  ADD CONSTRAINT order_deadline_extension_request_fk
+  FOREIGN KEY (extension_request_id) REFERENCES order_extension_request(request_id);
 
 -- Seller cancellation record (counts toward suspension threshold).
 -- spec 012: one per order; by_sweep = the reach-branch deadline passed; the
@@ -531,6 +569,20 @@ CREATE TABLE collection (
     NOT is_proxy OR (proxy_name IS NOT NULL AND proxy_id_storage_ref IS NOT NULL)
   )
 );
+-- spec 014: the buyer names the proxy before the counter (customer endpoint);
+-- is_proxy = a proxy is authorised now (cleared on removal). The handover with
+-- collector = proxy requires the ID check and records it. Proxy fields never
+-- change once collected_at is set (trigger). The seller's payload never
+-- carries them.
+ALTER TABLE collection
+  ADD COLUMN proxy_acceptance_id UUID REFERENCES agreement_acceptance(acceptance_id),
+  ADD COLUMN proxy_named_at TIMESTAMPTZ,
+  ADD COLUMN collected_by_proxy BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN proxy_id_checked_by UUID REFERENCES staff(staff_id),
+  ADD CONSTRAINT proxy_named_with_acceptance CHECK (
+    NOT is_proxy OR (proxy_phone IS NOT NULL AND proxy_acceptance_id IS NOT NULL AND proxy_named_at IS NOT NULL)),
+  ADD CONSTRAINT proxy_collection_checked CHECK (
+    NOT collected_by_proxy OR (is_proxy AND proxy_id_checked_by IS NOT NULL AND collected_at IS NOT NULL));
 
 -- Return of a piece to the seller after the buyer failed to pay the
 -- balance. The seller collects the physical piece and receives 50% of the

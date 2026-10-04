@@ -33,6 +33,13 @@ class OrderStateChange extends Model
 
     public const NOTE_CORRECTED = 'corrected_result';
 
+    /** Spec 014: frozen by a dispute, resumed, or ended against the sale. Never the dispute's reference (analysis C2). */
+    public const NOTE_DISPUTE_OPENED = 'dispute_opened';
+
+    public const NOTE_DISPUTE_RESUMED = 'dispute_resumed';
+
+    public const NOTE_DISPUTE_AGAINST_SALE = 'dispute_against_sale';
+
     protected $table = 'order_state_change';
 
     protected $primaryKey = 'change_id';

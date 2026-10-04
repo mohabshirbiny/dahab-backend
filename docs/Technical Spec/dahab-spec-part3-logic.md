@@ -54,6 +54,8 @@ Working time accrues only inside a branch's open intervals, skipping closures.
 
 ### 1.4 Extensions
 
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). Two more causes of an extension row: a dispute resumed (`dispute_id`; the running deadline pushed by exactly the frozen time, `which` may now be `decision` for the buyer's price-decision window) and a seller's request accepted (`extension_request_id`; 6, 12, 24 or 48 working hours from the current deadline via the resolver).
+
 An admin extension writes `order_deadline_extension` (`which ∈ reach_branch|balance|collect`) and the new instant must move forward (`extension_moves_forward` CHECK). The resolver is **not** re-run on an extension — the admin supplies the explicit new instant (Part 2 `extend-deadline`). A branch change (`order_branch_change`) keeps the clock running (locked decision) and only extends if the admin explicitly sets `extend_to`.
 
 ---
@@ -433,6 +435,8 @@ Collection-deadline sweep (§12): the buyer paid in full at `pay-balance`, so th
 > The commercial answer per case (hand over vs refund, and on what terms) is an **operator** decision, not automated. The legal framing of "not our liability" after the window still needs the clinic (open-questions §1) — **OI-3.5**. The system provides: the state, the notification, and the two manual actions.
 
 ### 10.3 Refunds and the escrow source
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). A dispute resolved against the sale is allowed only **before payment** (frozen from `at_inspection`, `weight_adjust_pending` or `awaiting_balance`): the deposit is refunded in full (`deposit_release`, the resolver as actor) and the piece returns to the seller, as an inspection cancel. A paid order can only be resumed, optionally with compensation; the post-payment refund from escrow is not built.
 
 Any post-payment refund (uncollected-paid, or a dispute resolved for the buyer after payment) draws from `escrow` as the clean origin. Because settlement was an instantaneous pass-through, a refund is a deliberate reversal the money service constructs (not an automatic un-doing) — it posts from `escrow`/`dahab_*`/seller as the resolution directs, always balanced, always with a named actor and reason. Disputes freeze the order (`disputed`) so no deadline runs and no money moves until resolved (Part 2; schema `dispute`).
 

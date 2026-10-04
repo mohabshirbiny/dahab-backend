@@ -199,6 +199,21 @@ const OPENAPI_DASHBOARD_ORDER_PATHS = [
     'get /dashboard/orders',
     'get /dashboard/inspections',
     'get /dashboard/buy-requests',
+    // spec 014: sellers' requests for more time, the proxy's ID.
+    'get /dashboard/extension-requests',
+    'post /dashboard/extension-requests/{extensionRequest}/accept',
+    'post /dashboard/extension-requests/{extensionRequest}/refuse',
+    'get /dashboard/orders/{order}/proxy-id',
+];
+
+// spec 014: the Disputes page.
+const OPENAPI_DASHBOARD_DISPUTE_PATHS = [
+    'get /dashboard/disputes',
+    'get /dashboard/disputes/{dispute}',
+    'get /dashboard/disputes/{dispute}/photos/{photo}',
+    'get /dashboard/dispute-assignees',
+    'post /dashboard/disputes/{dispute}/pass-on',
+    'post /dashboard/disputes/{dispute}/resolve',
 ];
 
 // spec 012: the buyer's and the seller's orders.
@@ -209,6 +224,11 @@ const OPENAPI_CUSTOMER_ORDER_PATHS = [
     'post /customer/me/orders/{order}/decision',
     'post /customer/me/orders/{order}/pay-balance',
     'post /customer/me/orders/{order}/relist',
+    // spec 014: report a problem, ask for more time, someone else collects.
+    'post /customer/me/orders/{order}/disputes',
+    'post /customer/me/orders/{order}/extension-requests',
+    'post /customer/me/orders/{order}/proxy',
+    'post /customer/me/orders/{order}/proxy/remove',
 ];
 
 // spec 013: payout accounts and withdrawals, the staff queue, and the email link's public page.
@@ -310,6 +330,7 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_CUSTOMER_BUY_REQUEST_PATHS,
         ...OPENAPI_DASHBOARD_ORDER_PATHS,
         ...OPENAPI_CUSTOMER_ORDER_PATHS,
+        ...OPENAPI_DASHBOARD_DISPUTE_PATHS,
         ...OPENAPI_CUSTOMER_WITHDRAWAL_PATHS,
         ...OPENAPI_DASHBOARD_WITHDRAWAL_PATHS,
         ...OPENAPI_WITHDRAWAL_CONFIRMATION_PATHS,
@@ -458,6 +479,7 @@ it('tags each surface separately', function () {
         'Customer Buy Requests' => OPENAPI_CUSTOMER_BUY_REQUEST_PATHS,
         'Dashboard Orders' => OPENAPI_DASHBOARD_ORDER_PATHS,
         'Customer Orders' => OPENAPI_CUSTOMER_ORDER_PATHS,
+        'Dashboard Disputes' => OPENAPI_DASHBOARD_DISPUTE_PATHS,
         'Market' => OPENAPI_MARKET_PATHS,
         'Reference' => OPENAPI_REFERENCE_PATHS,
     ] as $tag => $paths) {
@@ -509,6 +531,9 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'AddPayoutAccountRequest', 'RequestWithdrawalConfirmationRequest', 'SubmitWithdrawalRequest',
         'WithdrawalConfirmationTokenRequest', 'RefusePayoutAccountRequest', 'HoldWithdrawalRequest',
         'ReleaseWithdrawalRequest', 'RejectWithdrawalRequest',
+        'CustomerDispute', 'StaffDispute', 'StaffExtensionRequest',
+        'OpenDisputeRequest', 'RequestMoreTimeRequest', 'NameProxyRequest', 'PassOnDisputeRequest', 'ResolveDisputeRequest',
+        'AcceptExtensionRequestRequest', 'RefuseExtensionRequestRequest',
     ]);
 
     $ops = documentedOperations($doc);

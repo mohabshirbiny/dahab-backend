@@ -63,6 +63,13 @@ through the HTTP API, documented in [`api-contract.md`](api-contract.md).
   Every customer action touches only the caller's own rows, so there is no new database scope. The email link's page is
   the one public write (`/api/v1/withdrawal-confirmations/*`, `db.elevate:bootstrap`, a token whose HMAC finds one row).
   `withdrawals:sweep` (every minute) tells customers when their withdrawal pause has ended.
+- **Disputes and freeze (spec 014)**: a report freezes the order in `disputed` (`MovesOrder::assertNotFrozen` in every
+  order action; sweeps skip the state). Resolving resumes the order and gives each running deadline back the frozen
+  time (`order_deadline_extension` rows with `which` = the deadline and `dispute_id`), or cancels against the sale
+  (`cancelled_inspection`, deposit released through `DepositLedger`). Compensation is its own ledger kind
+  (`external_equity` → customer available) under per-person caps with an advisory lock. Dispute rows are visible to
+  their raiser only (forced RLS), photos and the proxy's ID are encrypted and every staff view is audited. Guards
+  DH009 (`dispute_transition`) and DH010 (`extension_request_transition`) follow the order guard's pattern.
 - **Customer data isolation (spec 003)**: every customer-owned table has **forced** row-level security.
   `App\Support\DatabaseActor` binds the scope (`customer` · `staff` · `bootstrap` · `system` · `maintenance`)
   per request, queued job or CLI migrate/seed, and restores it afterwards; no scope sees no customer rows.

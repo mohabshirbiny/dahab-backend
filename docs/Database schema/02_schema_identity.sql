@@ -163,6 +163,9 @@ CREATE TABLE agreement_acceptance (
   legal_doc_id  SMALLINT NOT NULL REFERENCES legal_document(legal_doc_id),
   -- Context of the tick: 'signup','list_piece','buy_request','payout_account',
   -- 'collection_proxy','first_sale_offer'... one row per tick.
+  -- spec 014: 'collection_proxy' accepts the legal document
+  -- 'collection_proxy_authorisation' (v1 seeded by the disputes migration).
+  -- The acceptance a proxy was named under is collection.proxy_acceptance_id.
   context       TEXT NOT NULL,
   accepted_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   ip_address    INET,

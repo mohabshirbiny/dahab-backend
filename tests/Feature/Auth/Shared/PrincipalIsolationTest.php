@@ -169,7 +169,7 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            dashboard withdrawals index/export/show/review/hold/unhold/release/reject (8),
     //            payout-accounts index/verify/refuse (3).
     //            The public withdrawal-confirmations read/confirm carry no principal (ElevationTest).
-    expect($checked)->toBe(137);
+    expect($checked)->toBe(151);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

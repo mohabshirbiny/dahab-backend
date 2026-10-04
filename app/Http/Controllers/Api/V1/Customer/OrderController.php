@@ -2,15 +2,23 @@
 
 namespace App\Http\Controllers\Api\V1\Customer;
 
+use App\Actions\Disputes\Customer\OpenDisputeAction;
 use App\Actions\Orders\Customer\CancelOrderBySellerAction;
 use App\Actions\Orders\Customer\DecideAdjustmentAction;
 use App\Actions\Orders\Customer\ListOwnOrdersAction;
+use App\Actions\Orders\Customer\NameProxyAction;
 use App\Actions\Orders\Customer\PayBalanceAction;
 use App\Actions\Orders\Customer\RelistReturnedPieceAction;
+use App\Actions\Orders\Customer\RemoveProxyAction;
+use App\Actions\Orders\Customer\RequestMoreTimeAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\Order\DecideAdjustmentRequest;
 use App\Http\Requests\Customer\Order\ListOrdersRequest;
+use App\Http\Requests\Customer\Order\NameProxyRequest;
+use App\Http\Requests\Customer\Order\OpenDisputeRequest;
+use App\Http\Requests\Customer\Order\RequestMoreTimeRequest;
 use App\Http\Resources\Customer\CustomerOrderResource;
+use App\Http\Resources\Customer\DisputeResource;
 use App\Models\Customer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -199,13 +207,132 @@ class OrderController extends Controller
         return $this->respond($request, $order, $list);
     }
 
+    #[OA\Post(
+        path: '/customer/me/orders/{order}/disputes',
+        operationId: 'customerOpenDispute',
+        summary: 'Report a problem — freezes the order (buyer or seller)',
+        description: 'Spec 014 FR-001–FR-007. From at_inspection, weight_adjust_pending, awaiting_balance or ready_to_collect: the order becomes disputed at once — no deadline runs, the sweep leaves it alone, and every other action on it answers order_frozen until Dahab resolves it with a reply. One dispute per party per order. 0–5 photos (upload purpose dispute_photo). Both parties are told the order is on hold; the other party never sees what you wrote. Audited (dispute.opened). Verified customers — a suspended customer may report a problem. Idempotent.',
+        security: [['customerBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/OpenDisputeRequest')),
+        tags: ['Customer Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 201, description: 'Your dispute', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CustomerDispute')])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found (not your order)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_order_transition | order_frozen | dispute_already_raised | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed | upload_token_invalid | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function openDispute(OpenDisputeRequest $request, string $order, OpenDisputeAction $open): JsonResponse
+    {
+        $dispute = $open->handle($this->customer($request), $order, $request->reason(), trim((string) $request->validated('detail')),
+            $request->photoTokens(), $request->attributes->get('context'));
+        $dispute->load(['order:order_id,order_ref', 'photos']);
+
+        return response()->json(['data' => (new DisputeResource($dispute))->resolve($request)], 201);
+    }
+
+    #[OA\Post(
+        path: '/customer/me/orders/{order}/extension-requests',
+        operationId: 'customerRequestMoreTime',
+        summary: 'Ask for more time to bring the piece (seller)',
+        description: 'Spec 014 FR-022. While the order waits for delivery and before the reach-branch deadline: a reason and a line — Dahab chooses the time (6, 12, 24 or 48 working hours) or refuses, and you are told by SMS and email. The deadline keeps running meanwhile; one request at a time. If you already sold it elsewhere, cancel the sale instead (POST …/cancel). Audited (order.extension_requested). Verified customers. Idempotent.',
+        security: [['customerBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/RequestMoreTimeRequest')),
+        tags: ['Customer Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 201, description: 'The order, with extension_request', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CustomerOrder')])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found (not your sale)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_order_transition | deadline_not_running | extension_request_pending | order_frozen | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function requestMoreTime(RequestMoreTimeRequest $request, string $order, RequestMoreTimeAction $ask, ListOwnOrdersAction $list): JsonResponse
+    {
+        $ask->handle($this->customer($request), $order, $request->reason(), trim((string) $request->validated('detail')), $request->attributes->get('context'));
+
+        return $this->respond($request, $order, $list, 201);
+    }
+
+    #[OA\Post(
+        path: '/customer/me/orders/{order}/proxy',
+        operationId: 'customerNameProxy',
+        summary: 'Name someone else to collect (buyer)',
+        description: 'Spec 014 FR-018. On a ready-to-collect order not yet collected: their full name as on their ID, their phone, a photo of the front of their ID (upload purpose proxy_id), and your acceptance of the current collection_proxy_authorisation. Dahab does not verify the relationship. They get one SMS telling them where to go and to bring their ID — never the code: share your collection code with them yourself. Naming again replaces them. Audited (order.proxy_named). Trade gate. Idempotent.',
+        security: [['customerBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/NameProxyRequest')),
+        tags: ['Customer Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The order, with proxy', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CustomerOrder')])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required | account_suspended', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found (not your purchase)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_order_transition | order_frozen | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'declaration_required | upload_token_invalid | validation_failed | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function nameProxy(NameProxyRequest $request, string $order, NameProxyAction $name, ListOwnOrdersAction $list): JsonResponse
+    {
+        $name->handle($this->customer($request), $order, (string) $request->validated('name'), (string) $request->validated('phone'),
+            (string) $request->validated('id_upload_token'), (int) $request->validated('authorisation_id'), $request->attributes->get('context'));
+
+        return $this->respond($request, $order, $list);
+    }
+
+    #[OA\Post(
+        path: '/customer/me/orders/{order}/proxy/remove',
+        operationId: 'customerRemoveProxy',
+        summary: 'Remove the person named to collect (buyer)',
+        description: 'Spec 014 FR-018. Before collection: only you can collect again. Audited (order.proxy_removed). Verified customers. Idempotent.',
+        security: [['customerBearer' => []]],
+        tags: ['Customer Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The order', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CustomerOrder')])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_order_transition (none named, or collected) | order_frozen | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function removeProxy(Request $request, string $order, RemoveProxyAction $remove, ListOwnOrdersAction $list): JsonResponse
+    {
+        $remove->handle($this->customer($request), $order, $request->attributes->get('context'));
+
+        return $this->respond($request, $order, $list);
+    }
+
     private function customer(Request $request): Customer
     {
         return $request->user('customer');
     }
 
-    private function respond(Request $request, string $orderId, ListOwnOrdersAction $list): JsonResponse
+    private function respond(Request $request, string $orderId, ListOwnOrdersAction $list, int $status = 200): JsonResponse
     {
-        return response()->json(['data' => CustomerOrderResource::make($list->show($orderId))->withCode()->resolve($request)]);
+        return response()->json(['data' => CustomerOrderResource::make($list->show($orderId))->withCode()->resolve($request)], $status);
     }
 }

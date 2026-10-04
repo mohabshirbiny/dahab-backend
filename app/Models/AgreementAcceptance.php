@@ -22,6 +22,9 @@ class AgreementAcceptance extends Model
     /** Spec 013: the payout-account declaration, ticked when adding an account. */
     public const CONTEXT_PAYOUT_ACCOUNT = 'payout_account';
 
+    /** Spec 014: the proxy authorisation, ticked when naming someone else to collect. */
+    public const CONTEXT_COLLECTION_PROXY = 'collection_proxy';
+
     protected $table = 'agreement_acceptance';
 
     protected $primaryKey = 'acceptance_id';

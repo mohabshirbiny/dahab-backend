@@ -28,6 +28,10 @@ use Illuminate\Support\Facades\DB;
  * payment). A piece past its collection window (`uncollected_expired`) goes
  * back to `sold` first. A wrong code is counted and committed before the
  * refusal, and audited; five lock the handover for fifteen minutes.
+ * Spec 014: when the buyer named someone else and that person collects
+ * (`collector = proxy`), staff must confirm they checked the person's ID
+ * against the named proxy first (`proxy_details_missing`, no attempt counted);
+ * the buyer may still collect in person.
  */
 final class HandoverPieceAction
 {
@@ -39,20 +43,25 @@ final class HandoverPieceAction
         private readonly RecordAuditLogAction $audit,
     ) {}
 
-    public function handle(Staff $actor, string $orderId, string $code, ?RequestContext $ctx = null): Order
+    public function handle(Staff $actor, string $orderId, string $code, ?RequestContext $ctx = null, bool $byProxy = false, bool $proxyIdChecked = false): Order
     {
         $this->branches->guard($actor, $orderId, $ctx);
 
-        $outcome = DB::transaction(function () use ($actor, $orderId, $code, $ctx) {
+        $outcome = DB::transaction(function () use ($actor, $orderId, $code, $ctx, $byProxy, $proxyIdChecked) {
             $listingId = Order::query()->whereKey($orderId)->value('listing_id');
             $listing = $this->lockListing($listingId);
             $order = $this->lockOrder($orderId);
+            $this->assertNotFrozen($order);
             $this->branches->assertCanActAt($actor, $order->branch_id);
             $collection = OrderCollection::query()->where('order_id', $orderId)->lockForUpdate()->first();
 
             if ($order->state !== OrderState::READY_TO_COLLECT || $collection === null || $collection->collected_at !== null
                 || ! in_array($listing->state, [ListingState::SOLD, ListingState::UNCOLLECTED_EXPIRED], true)) {
                 throw DomainApiException::illegalOrderTransition();
+            }
+
+            if ($byProxy && (! $collection->is_proxy || ! $proxyIdChecked)) {
+                throw DomainApiException::proxyDetailsMissing();
             }
 
             $this->codes->assertNotLocked($collection);
@@ -66,7 +75,7 @@ final class HandoverPieceAction
                 'handover_by' => $actor->staff_id,
                 'failed_attempts' => 0,
                 'locked_until' => null,
-            ])->save();
+            ] + ($byProxy ? ['collected_by_proxy' => true, 'proxy_id_checked_by' => $actor->staff_id] : []))->save();
 
             $late = $listing->state === ListingState::UNCOLLECTED_EXPIRED;
             if ($late) {
@@ -77,7 +86,8 @@ final class HandoverPieceAction
             $this->audit->execute(
                 AuditEvent::ORDER_HANDED_OVER,
                 'success',
-                ['order_ref' => $order->order_ref, 'state' => OrderState::COMPLETED->value, 'after_window' => $late, 'branch_id' => $order->branch_id],
+                ['order_ref' => $order->order_ref, 'state' => OrderState::COMPLETED->value, 'after_window' => $late, 'branch_id' => $order->branch_id,
+                    'collector' => $byProxy ? 'proxy' : 'buyer', 'proxy_name' => $byProxy ? $collection->proxy_name : null],
                 'order',
                 $order->order_id,
                 $ctx,

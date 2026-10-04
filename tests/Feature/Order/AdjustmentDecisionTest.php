@@ -47,7 +47,7 @@ it('accepts: awaiting the balance on the new price, the decision recorded, the s
     decideAdjustment($this, $this->buyer, $this->order, true, $this->result->inspection_id)->assertOk()
         ->assertJsonPath('data.state', 'awaiting_balance')
         ->assertJsonPath('data.amount_due', '42836.0625')
-        ->assertJsonPath('data.actions', ['pay']);
+        ->assertJsonPath('data.actions', ['pay', 'report_problem']);
 
     $decision = SettlementDecision::query()->sole();
     expect($decision->buyer_accepted)->toBeTrue()

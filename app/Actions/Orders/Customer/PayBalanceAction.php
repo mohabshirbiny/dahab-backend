@@ -57,6 +57,7 @@ final class PayBalanceAction
         return DatabaseActor::order(fn () => DB::transaction(function () use ($buyer, $order, $ctx) {
             $listing = $this->lockListing($order->listing_id);
             $order = $this->lockOrder($order->order_id);
+            $this->assertNotFrozen($order);
 
             if ($order->state !== OrderState::AWAITING_BALANCE || $listing->state !== ListingState::SETTLING) {
                 throw DomainApiException::illegalOrderTransition();

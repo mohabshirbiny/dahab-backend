@@ -100,7 +100,6 @@ it('validates the upload', function (array $payload) {
     'no file' => [fn () => ['purpose' => 'identity']],
     'no purpose' => [fn () => ['file' => idImage()]],
     'unknown purpose' => [fn () => ['purpose' => 'selfie', 'file' => idImage()]],
-    'purpose without a consumer yet' => [fn () => ['purpose' => 'proxy_id', 'file' => idImage()]],
     'a pdf' => [fn () => ['purpose' => 'identity', 'file' => UploadedFile::fake()->create('id.pdf', 100, 'application/pdf')]],
     'a script renamed to jpg' => [fn () => ['purpose' => 'identity', 'file' => realFile('<?php echo 1;', 'id.jpg')]],
     'text renamed to png' => [fn () => ['purpose' => 'identity', 'file' => realFile('not an image at all', 'id.png')]],

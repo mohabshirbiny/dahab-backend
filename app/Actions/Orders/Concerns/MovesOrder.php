@@ -2,10 +2,14 @@
 
 namespace App\Actions\Orders\Concerns;
 
+use App\Enums\DisputeState;
+use App\Enums\ExtensionRequestState;
 use App\Enums\OrderState;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
+use App\Models\Dispute;
 use App\Models\Order;
+use App\Models\OrderExtensionRequest;
 use App\Models\OrderStateChange;
 use App\Models\Staff;
 use App\Support\Orders\OrderTransitions;
@@ -18,6 +22,9 @@ use LogicException;
  * against `order_transition`, apply the extra columns, change the state and
  * write the `order_state_change` row naming the actor. The database repeats
  * both checks (trg_order_transition, trg_order_change_recorded — DH006).
+ * Spec 014: a frozen (`disputed`) order refuses every action but the dispute's
+ * own (`assertNotFrozen`), and leaving `awaiting_delivery` lapses a waiting
+ * request for more time.
  */
 trait MovesOrder
 {
@@ -29,6 +36,24 @@ trait MovesOrder
         }
 
         return Order::query()->whereKey($orderId)->lockForUpdate()->firstOrFail();
+    }
+
+    /**
+     * Spec 014 FR-004 (research R3): called right after the lock by every order
+     * action except the dispute's own. The dispute's reference goes only to who
+     * may read it — its raiser and staff (row-level security hides it from the
+     * other party).
+     */
+    private function assertNotFrozen(Order $order): void
+    {
+        if ($order->state !== OrderState::DISPUTED) {
+            return;
+        }
+
+        $ref = Dispute::query()->where('order_id', $order->order_id)
+            ->where('state', '<>', DisputeState::RESOLVED->value)->value('dispute_ref');
+
+        throw DomainApiException::orderFrozen($ref);
     }
 
     /**
@@ -47,6 +72,13 @@ trait MovesOrder
         $order->forceFill($set);
         $order->state = $to;
         $order->save();
+
+        // Spec 014 FR-026: a request for more time no one answered ends with the wait.
+        if ($from === OrderState::AWAITING_DELIVERY) {
+            OrderExtensionRequest::query()->where('order_id', $order->order_id)
+                ->where('state', ExtensionRequestState::WAITING->value)
+                ->update(['state' => ExtensionRequestState::LAPSED->value]);
+        }
 
         OrderStateChange::query()->create([
             'order_id' => $order->order_id,

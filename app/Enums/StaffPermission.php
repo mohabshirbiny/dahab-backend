@@ -117,6 +117,18 @@ enum StaffPermission: string
     /** Verify a payout bank account against the ID (Part 1 §4.3; spec 013). */
     case PAYOUT_ACCOUNT_VERIFY = 'payout_account.verify';
 
+    /** Handle disputes and freeze orders (Part 1 §4.1 "Freeze an order during a dispute"; spec 014). */
+    case DISPUTE_HANDLE = 'dispute.handle';
+
+    /** Refund a buyer in full (Part 1 §4.2) — spec 014: resolve a dispute against the sale. Never the COO. */
+    case ORDER_REFUND = 'order.refund';
+
+    /** Pay compensation to a wallet, up to the caps (Part 1 §4.2; spec 014). Never the COO. */
+    case COMPENSATION_PAY = 'compensation.pay';
+
+    /** Pay compensation above the caps (Part 1 §4.2 "CEO unlimited"; spec 014 R7). Seeded to no role. */
+    case COMPENSATION_UNCAPPED = 'compensation.uncapped';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -163,6 +175,10 @@ enum StaffPermission: string
             self::BUY_REQUEST_VIEW => 'View buy requests',
             self::WITHDRAWAL_RELEASE => 'Release a withdrawal',
             self::PAYOUT_ACCOUNT_VERIFY => 'Verify a payout bank account',
+            self::DISPUTE_HANDLE => 'Handle disputes and freeze orders',
+            self::ORDER_REFUND => 'Refund a buyer in full',
+            self::COMPENSATION_PAY => 'Pay compensation to a wallet, up to the caps',
+            self::COMPENSATION_UNCAPPED => 'Pay compensation above the caps',
         };
     }
 
@@ -176,11 +192,12 @@ enum StaffPermission: string
             self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
-            self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE, self::WITHDRAWAL_RELEASE => 'Money',
+            self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE, self::WITHDRAWAL_RELEASE,
+            self::ORDER_REFUND, self::COMPENSATION_PAY, self::COMPENSATION_UNCAPPED => 'Money',
             self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
-            self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW => 'Orders',
+            self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW, self::DISPUTE_HANDLE => 'Orders',
         };
     }
 
@@ -253,6 +270,13 @@ enum StaffPermission: string
             self::WITHDRAWAL_RELEASE => [SeedRole::FINANCE->value],
             // Spec 013 (Part 1 §4.3 "Verify a payout bank account": CEO, Finance, Verification).
             self::PAYOUT_ACCOUNT_VERIFY => [SeedRole::FINANCE->value, SeedRole::VERIFICATION->value],
+            // Spec 014 (Part 1 §4.1 "Freeze an order during a dispute": CEO, COO, Operations) plus
+            // Finance, so the people who move the money can act on a dispute (analysis C1).
+            self::DISPUTE_HANDLE => [SeedRole::COO->value, SeedRole::OPERATIONS->value, SeedRole::FINANCE->value],
+            // Spec 014 (Part 1 §4.2 "Refund a buyer in full", "Pay compensation"): wallet-touching, never the COO.
+            self::ORDER_REFUND, self::COMPENSATION_PAY => [SeedRole::FINANCE->value],
+            // "CEO unlimited": no role; the CEO holds every code.
+            self::COMPENSATION_UNCAPPED => [],
         };
     }
 }

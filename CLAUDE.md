@@ -260,7 +260,22 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `WD-{n}`) and the staff Withdrawals queue (`/dashboard/withdrawals*`, `withdrawal.release` — CEO + Finance, never COO;
   figures, signals, take for review, hold / unhold, release with the bank record (held → bank), reject, CSV export),
   guards DH007 / DH008, `trg_withdrawal_money`, `withdrawals:sweep`, the held split (`held_on_orders` +
-  `pending_withdrawals`). Disputes and invoices are not built. Nothing else yet.
+  `pending_withdrawals`);
+  disputes (spec 014) — a party reports a problem on their order (`/customer/me/orders/{id}/disputes`, six reasons, up to
+  five photos with `purpose=dispute_photo`, one per party per order, 5 a minute) from `at_inspection`,
+  `weight_adjust_pending`, `awaiting_balance` or `ready_to_collect`: the order freezes in `disputed` (every action and
+  sweep refuses `order_frozen`; a waiting request for more time lapses); staff work the Disputes queue
+  (`/dashboard/disputes*`, `dispute.handle`: list with counts, detail with the order, photos audited per view, pass on to
+  a named colleague, resolve with a reply — resume, giving every running deadline back the frozen time, or, before
+  payment and with `order.refund`, against the sale: deposit released, piece returned to its seller; optional
+  compensation (`compensation.pay`, per-payment and per-day caps unless `compensation.uncapped`, `external_equity` →
+  available) and seller suspension); guards DH009 (dispute) / DH010 (extension request); the seller's request for more
+  time (`/customer/me/orders/{id}/extension-requests`, answered in `/dashboard/extension-requests*` with
+  `order.extend_deadline`: 6/12/24/48 working hours through the spec 012 extend action, or refused); the buyer names
+  someone else to collect (`/customer/me/orders/{id}/proxy|proxy/remove`, `purpose=proxy_id`, the
+  `collection_proxy_authorisation` accepted; the handover takes `collector: proxy` + `proxy_id_checked`,
+  `proxy_details_missing` 422; `GET /dashboard/orders/{id}/proxy-id` audited). Staff approval of customer messages was
+  deferred (no source defines it). Invoices are not built. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -268,7 +283,10 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   (spec 010), with the read-only line, the order box, Cancel acceptance and the Buyers in line / Accepted chips
   (spec 011); Orders, Inspections (work list and results) and Buy requests are live (spec 012); the rest of the
   Overview and other sections are mock. Withdrawals (with Payout accounts to check), the Customer file's payout accounts
-  and the held split are live (spec 013).
+  and the held split are live (spec 013). Disputes and reports is live for disputes (queue, detail with the order, photos,
+  Pass on, Resolve with compensation and suspension; listing reports are not built), and Orders shows the frozen
+  banner, Requests for more time with Answer, the person named to collect with their ID, and the proxy handover
+  (spec 014).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -281,7 +299,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   collection code, the returned piece with its code and Put it back on the market); the prototype's other order
   screens, invoices, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`); Bank accounts,
   Add a bank account, Your details → Payout account, Withdraw with the email step, the `#/withdraw-confirm` page and the
-  wallet's pending withdrawals are live (spec 013).
+  wallet's pending withdrawals are live (spec 013); Report a problem with photos, the order on hold with your report and
+  Dahab's answer, Ask for more time and Someone else collects are live on the order screen (spec 014; the prototype's
+  standalone Inspection, Pay and Collection-code screens were removed: their routes open the live order).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8010/api/v1` (the Dashboard's dev env uses `:8000`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

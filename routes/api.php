@@ -21,6 +21,8 @@ use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBr
 use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
 use App\Http\Controllers\Api\V1\Dashboard\BuyRequestController as DashboardBuyRequestController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
+use App\Http\Controllers\Api\V1\Dashboard\DisputeController as DashboardDisputeController;
+use App\Http\Controllers\Api\V1\Dashboard\ExtensionRequestController as DashboardExtensionRequestController;
 use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPriceController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Dashboard\InspectionController as DashboardInspectionController;
@@ -230,11 +232,22 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->whereUuid('order')->middleware('idempotent')->name('decision');
                     Route::post('/{order}/pay-balance', [CustomerOrderController::class, 'payBalance'])
                         ->whereUuid('order')->middleware('idempotent')->name('pay-balance');
+                    // Spec 014: report a problem (a suspended customer may), ask for more time,
+                    // withdraw the person named to collect.
+                    Route::post('/{order}/disputes', [CustomerOrderController::class, 'openDispute'])
+                        ->whereUuid('order')->middleware(['throttle:customer.disputes', 'idempotent'])->name('disputes.store');
+                    Route::post('/{order}/extension-requests', [CustomerOrderController::class, 'requestMoreTime'])
+                        ->whereUuid('order')->middleware('idempotent')->name('extension-requests.store');
+                    Route::post('/{order}/proxy/remove', [CustomerOrderController::class, 'removeProxy'])
+                        ->whereUuid('order')->middleware('idempotent')->name('proxy.remove');
                 });
 
                 Route::middleware('customer.gate:trade')->group(function () {
                     Route::post('/{order}/relist', [CustomerOrderController::class, 'relist'])
                         ->whereUuid('order')->middleware('idempotent')->name('relist');
+                    // Spec 014: naming someone else to collect completes a trade (trade gate).
+                    Route::post('/{order}/proxy', [CustomerOrderController::class, 'nameProxy'])
+                        ->whereUuid('order')->middleware('idempotent')->name('proxy.store');
                 });
             });
 
@@ -492,8 +505,40 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->whereUuid('order')->middleware(['staff.permission:order.change_branch', 'idempotent'])->name('change-branch');
                 Route::post('/{order}/extend-deadline', [DashboardOrderController::class, 'extendDeadline'])
                     ->whereUuid('order')->middleware(['staff.permission:order.extend_deadline', 'idempotent'])->name('extend-deadline');
+                // Spec 014: the ID photo of the person named to collect.
+                Route::get('/{order}/proxy-id', [DashboardOrderController::class, 'proxyId'])
+                    ->whereUuid('order')->middleware('staff.permission:order.handover|order.view')->name('proxy-id');
                 Route::post('/{order}/seller-return/handover', [DashboardOrderController::class, 'sellerReturnHandover'])
                     ->whereUuid('order')->middleware(['staff.permission:order.handover', 'idempotent'])->name('seller-return.handover');
+            });
+
+        // Spec 014: the Disputes page. Every route needs dispute.handle; the resolve Action
+        // also checks order.refund / compensation.pay / customer.suspend for the fields that
+        // need them. Every POST is idempotent and audited.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:dispute.handle'])
+            ->group(function () {
+                Route::get('/dispute-assignees', [DashboardDisputeController::class, 'assignees'])->name('dispute-assignees.index');
+                Route::prefix('disputes')->name('disputes.')->group(function () {
+                    Route::get('/', [DashboardDisputeController::class, 'index'])->name('index');
+                    Route::get('/{dispute}', [DashboardDisputeController::class, 'show'])->whereUuid('dispute')->name('show');
+                    Route::get('/{dispute}/photos/{photo}', [DashboardDisputeController::class, 'photo'])
+                        ->whereUuid(['dispute', 'photo'])->name('photos.show');
+                    Route::post('/{dispute}/pass-on', [DashboardDisputeController::class, 'passOn'])
+                        ->whereUuid('dispute')->middleware('idempotent')->name('pass-on');
+                    Route::post('/{dispute}/resolve', [DashboardDisputeController::class, 'resolve'])
+                        ->whereUuid('dispute')->middleware('idempotent')->name('resolve');
+                });
+            });
+
+        // Spec 014: sellers' requests for more time, answered in Orders.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('extension-requests')->name('extension-requests.')->group(function () {
+                Route::get('/', [DashboardExtensionRequestController::class, 'index'])
+                    ->middleware('staff.permission:order.extend_deadline|order.view')->name('index');
+                Route::post('/{extensionRequest}/accept', [DashboardExtensionRequestController::class, 'accept'])
+                    ->whereUuid('extensionRequest')->middleware(['staff.permission:order.extend_deadline', 'idempotent'])->name('accept');
+                Route::post('/{extensionRequest}/refuse', [DashboardExtensionRequestController::class, 'refuse'])
+                    ->whereUuid('extensionRequest')->middleware(['staff.permission:order.extend_deadline', 'idempotent'])->name('refuse');
             });
 
         // Spec 012: the branch work list and the inspection results — never a price or a name.

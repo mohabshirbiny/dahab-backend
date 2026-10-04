@@ -40,6 +40,7 @@ final class ProposePriceAction
             $listingId = Order::query()->findOrFail($orderId, ['order_id', 'listing_id'])->listing_id;
             $listing = $this->lockListing($listingId);
             $order = $this->lockOrder($orderId);
+            $this->assertNotFrozen($order);
 
             if ($order->state !== OrderState::WEIGHT_ADJUST_PENDING || $order->proposed_price !== null
                 || $order->latestInspection()?->outcome !== InspectionOutcome::STONE_REGRADE) {

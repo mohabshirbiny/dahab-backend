@@ -132,6 +132,8 @@ The service resolves every privileged endpoint against the staff member's effect
 
 ### 4.1 Listings and orders
 
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). "Freeze an order during a dispute" is the code `dispute.handle` *Handle disputes and freeze orders* — the Disputes queue, detail, photos, pass on and resolve — seeded to CEO, COO, Operations **and Finance** (Finance so the people who move the money can act on a dispute; analysis C1). A customer's dispute freezes the order itself; staff do not freeze an order without one. "Check the ID of someone collecting for another" is `order.handover` (the counter confirms the proxy's ID when the proxy collects); no separate code.
+
 > **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). New catalogue codes, editable from the Dashboard (the CEO holds every code): `order.view` *View orders* (COO, Finance, Operations — amounts on orders are not a wallet), `order.receive` *Mark a piece received at the branch* (COO, Operations, IGI), `inspection.enter` *Enter an inspection result* (IGI), `order.price_adjust` *Propose a new price after a regrade* (COO, Operations), `order.change_branch` *Change the inspection branch on an open order* (COO, Operations), `order.extend_deadline` *Extend a deadline on request* (COO, Operations), `order.handover` *Confirm handover at the counter* (IGI), `buy_request.view` *View buy requests* (COO, Operations). "Check the ID of someone collecting for another" is not built (proxy collection is out of scope).
 
 | Action | CEO | COO | Finance | Operations | Verification | IGI |
@@ -155,6 +157,8 @@ The service resolves every privileged endpoint against the staff member's effect
 Note the two founder columns differ only where wallet access is involved. For listings/orders they are identical. "Approve a piece for market makers" is CEO+Finance, **not** COO — it is a money-adjacent approval (it waives commission), so it follows the wallet-access narrowing.
 
 ### 4.2 Money
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). *Refund a buyer in full* is `order.refund` (CEO, Finance) and is used only to resolve a dispute against the sale before payment (the deposit refunded in full). *Pay compensation to a wallet* is `compensation.pay` (CEO, Finance), held to `compensation.cap_per_payment_egp` and `compensation.cap_per_day_egp` per staff member per Cairo day; `compensation.uncapped` (seeded to no role — the CEO holds every code) lifts both caps, so "Finance up to cap" needs no role name. Compensation is paid only inside a dispute resolution in this spec. Never the COO.
 
 | Action | CEO | COO | Finance | Operations | Verification | IGI |
 |---|---|---|---|---|---|---|
@@ -224,6 +228,8 @@ authorize(staff, action):
 ## 5. Data isolation: row-level security and grants
 
 ### 5.1 Customer row-level security
+
+> **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). Five new tables under forced RLS, each readable only by the customer the row belongs to (not by the other party of the order): `dispute`, `dispute_photo`, `dispute_change` (the raiser), `compensation` (the customer paid), `order_extension_request` (the seller). Customers write them only in the non-elevated `order` scope; `compensation` only elevated.
 
 > **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). The eight tables of the order's life (`order_state_change`, `order_branch_change`, `order_deadline_extension`, `seller_cancellation`, `inspection_result`, `settlement_decision`, `collection`, `seller_return`) join forced RLS: a customer sees only rows of orders they are a party to. A party's action that reaches the other party's rows (the seller's cancel refunds the buyer; the buyer's payment pays the seller and marks the seller's listing sold) runs in a new non-elevated **`order`** scope, pushed only by `app/Actions/Orders/Customer/*`, and **audited** with the customer as actor (`order.seller_cancelled`, `order.decided`, `order.paid`, `order.relisted`). No customer path elevates: the automatic suspension at the cancellation threshold is a separate sweep pass by the system actor. A recorded deviation from Constitution II like `queue`, proven by `OrderScopeTest`, `OrderIsolationTest` and the leak tests.
 

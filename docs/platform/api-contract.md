@@ -87,7 +87,11 @@ deliberately not enabled.
   `inspection.enter|order.receive|order.handover`, the inspection results with `inspection.enter|order.view`); and — since
   spec 013 — `withdrawal.release` (the Withdrawals queue and every action on it, the export; CEO, Finance, never COO; the
   list and a withdrawal also open read-only, numbers masked, with `wallet.view`) and `payout_account.verify` (verify or refuse
-  a payout account; CEO, Finance, Verification).
+  a payout account; CEO, Finance, Verification); and — since spec 014 — `dispute.handle` (the Disputes queue, detail, photos,
+  pass on and resolve; CEO, COO, Operations, Finance), `order.refund` (resolve a dispute against the sale; CEO, Finance),
+  `compensation.pay` (compensation within a resolution, up to the caps; CEO, Finance) and `compensation.uncapped` (lifts the
+  caps; no role — the CEO holds every code); the extension requests use `order.extend_deadline` (`order.view` reads), the
+  proxy ID `order.handover` or `order.view`, *Suspend the seller* on a resolution `customer.suspend`.
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -135,6 +139,11 @@ Customer App localises the code itself. Since spec 009 a `topup` row's `referenc
 Amounts people type (top-up notices, matches) are accepted with at most 2 decimals and returned with 4.
 A top-up's `expected_amount` is a display-only estimate (claim minus the provider fee snapshotted on the notice when it
 was filed, `notice_fee_percent`); it never decides what is credited — staff credit what actually arrived.
+
+Since spec 014 an order's `state` can be `disputed` (frozen: no deadline runs, no money moves, every other action answers
+`order_frozen`). The customer order shape adds `frozen`, `dispute` (only the caller's own), `dispute_outcome`
+(`resumed|cancelled`, from the order's history), `extension_request` (seller only) and `proxy` (buyer only, phone masked);
+the upload `purpose` gains `dispute_photo` (verified, not trade-gated) and `proxy_id` (trade).
 
 Since spec 013 a `withdrawal` history row's `reference` is its number `WD-{n}`, and every wallet figure that shows `held`
 also shows its split: `held_on_orders` + `pending_withdrawals` (withdrawals requested or under review) = `held`. A payout
@@ -200,7 +209,10 @@ machine-readable value clients must switch on**; `message` is human text and may
   `handover_locked` 429, `order_not_open` 409, `deadline_not_running` 409, `deadline_must_move_forward` 422; from spec 013:
   `email_confirmation_required` 403, `confirmation_invalid` 422, `declaration_required` 422, `withdrawals_paused` 409,
   `payout_account_not_active` 409, `withdrawal_on_hold` 409, `illegal_withdrawal_transition` 409 (SQLSTATE DH007),
-  `illegal_payout_account_transition` 409 (SQLSTATE DH008), …).
+  `illegal_payout_account_transition` 409 (SQLSTATE DH008); from spec 014: `order_frozen` 409 (any order action while the order is
+  `disputed`), `dispute_already_raised` 409, `dispute_outcome_not_allowed` 409, `illegal_dispute_transition` 409 (SQLSTATE DH009),
+  `assignee_not_eligible` 422, `extension_request_pending` 409, `illegal_extension_request_transition` 409 (SQLSTATE DH010),
+  `compensation_cap_exceeded` 403, `proxy_details_missing` 422, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -209,7 +221,8 @@ machine-readable value clients must switch on**; `message` is human text and may
   `price_moved` `{ current_price, deposit_amount }`; since spec 012 `insufficient_funds` on pay-balance
   `{ amount_due, available, shortfall }`, `invalid_collection_code` `{ attempts_left }`, `handover_locked`
   `{ retry_after }` (seconds); since spec 013 `insufficient_funds` on a withdrawal `{ available, shortfall }` and
-  `withdrawals_paused` `{ pause_until }`.
+  `withdrawals_paused` `{ pause_until }`; since spec 014 `order_frozen` `{ dispute_ref }` (only to the customer who raised the
+  dispute, and to staff) and `compensation_cap_exceeded` `{ per_payment, left_today }`.
 
 ## Idempotency
 
@@ -242,7 +255,8 @@ and since spec 013 every payout-account and withdrawal write: `POST /customer/me
 `POST /customer/me/payout-accounts/{id}/use|remove|keep`, `POST /customer/me/withdrawals/confirmations`,
 `POST /customer/me/withdrawals`, `POST /customer/me/withdrawals/{id}/cancel`, `POST /dashboard/withdrawals/{id}/review|hold|unhold|release|reject`
 and `POST /dashboard/payout-accounts/{id}/verify|refuse`. The public `POST /withdrawal-confirmations/confirm` has no key: its
-token is single use.
+token is single use. Since spec 014: `POST /customer/me/orders/{id}/disputes|extension-requests|proxy|proxy/remove`,
+`POST /dashboard/disputes/{id}/pass-on|resolve` and `POST /dashboard/extension-requests/{id}/accept|refuse`.
 
 ## Status codes in use
 
@@ -256,7 +270,7 @@ Named limiters on sensitive routes (`throttle:auth.customer.login`, `auth.custom
 `auth.customer.register.otp`, `auth.customer.register.documents`, `auth.otp.verify`, `auth.staff.login`,
 `auth.staff.mfa`, `auth.refresh`, `customer.uploads` (20/min since spec 010), `customer.topups`, `customer.listings`,
 `customer.buy_requests` (10/min, spec 011), `public.market`, and since spec 013 `customer.payout_accounts` (5/min),
-`customer.withdrawals` (10/min), `public.withdrawal_confirmations` (10/min per IP)) plus the default API throttle. Identity lockouts
+`customer.withdrawals` (10/min), `public.withdrawal_confirmations` (10/min per IP), and since spec 014 `customer.disputes` (5/min)) plus the default API throttle. Identity lockouts
 return **429 `account_locked`**.
 
 ## CORS

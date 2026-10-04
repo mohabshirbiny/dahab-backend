@@ -76,7 +76,7 @@ function perfWithdrawalsCommitted(Closure $work): void
         DatabaseActor::reset();
         DatabaseActor::elevate('maintenance', function () {
             $keep = ['migrations', 'karat', 'karat_price_adjustment', 'legal_document', 'listing_transition', 'buy_request_transition',
-                'order_transition', 'withdrawal_transition', 'payout_account_transition', 'piece_type', 'setting', 'staff', 'branch'];
+                'order_transition', 'withdrawal_transition', 'payout_account_transition', 'dispute_transition', 'extension_request_transition', 'piece_type', 'setting', 'staff', 'branch'];
             $tables = collect(DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'"))->pluck('tablename')
                 ->reject(fn ($t) => in_array($t, $keep, true))->map(fn ($t) => '"'.$t.'"')->implode(', ');
             DB::statement("TRUNCATE {$tables} CASCADE");

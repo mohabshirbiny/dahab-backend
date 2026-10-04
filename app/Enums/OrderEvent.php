@@ -31,4 +31,12 @@ enum OrderEvent: string
     case COLLECTION_WINDOW_PASSED = 'collection_window_passed';
     case REACH_REMINDER = 'reach_reminder';
     case BALANCE_REMINDER = 'balance_reminder';
+    // Spec 014.
+    case DISPUTE_OPENED = 'dispute_opened';
+    case DISPUTE_RESOLVED = 'dispute_resolved';
+    case DISPUTE_RESUMED = 'dispute_resumed';
+    case DISPUTE_CANCELLED = 'dispute_cancelled';
+    case COMPENSATION_PAID = 'compensation_paid';
+    case EXTENSION_REFUSED = 'extension_refused';
+    case PROXY_NAMED = 'proxy_named';
 }

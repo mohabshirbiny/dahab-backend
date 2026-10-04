@@ -82,6 +82,7 @@ final class CancelOrderBySellerAction
     /** The listing and the order arrive locked, in that order (research R4). */
     private function cancel(Listing $listing, Order $order, ?Customer $seller, ?Staff $system, ?RequestContext $ctx): Order
     {
+        $this->assertNotFrozen($order);
         if ($order->state !== OrderState::AWAITING_DELIVERY || $listing->state !== ListingState::ACCEPTED) {
             throw DomainApiException::illegalOrderTransition();
         }

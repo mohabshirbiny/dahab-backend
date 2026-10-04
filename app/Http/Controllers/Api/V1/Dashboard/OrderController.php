@@ -13,6 +13,7 @@ use App\Actions\Orders\Staff\ListOrdersAction;
 use App\Actions\Orders\Staff\ProposePriceAction;
 use App\Actions\Orders\Staff\ReceivePieceAction;
 use App\Actions\Orders\Staff\ShowOrderAction;
+use App\Actions\Orders\Staff\ViewProxyIdAction;
 use App\Enums\StaffPermission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Order\CancelOrderRequest;
@@ -29,6 +30,7 @@ use App\Http\Resources\Staff\StaffOrderResource;
 use App\Http\Resources\Staff\WorkListItemResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use OpenApi\Attributes as OA;
 
 /**
@@ -270,7 +272,7 @@ class OrderController extends Controller
         path: '/dashboard/orders/{order}/handover',
         operationId: 'dashboardHandoverPiece',
         summary: 'Hand a paid piece to its buyer',
-        description: 'Spec 012 FR-020, FR-021, research R10. Against the buyer\'s 6-digit code (check their ID at the counter): ready_to_collect → completed, no money (settlement happened at payment); a piece past its collection window (uncollected_expired) goes back to sold first. A wrong code answers 422 invalid_collection_code with attempts_left (audited); the fifth locks the handover for 15 minutes (429 handover_locked, retry_after). Branch-scoped. Audited (order.handed_over). Idempotent. Requires order.handover.',
+        description: 'Spec 012 FR-020, FR-021, research R10. Against the buyer\'s 6-digit code (check their ID at the counter): ready_to_collect → completed, no money (settlement happened at payment); a piece past its collection window (uncollected_expired) goes back to sold first. A wrong code answers 422 invalid_collection_code with attempts_left (audited); the fifth locks the handover for 15 minutes (429 handover_locked, retry_after). Spec 014: when the buyer named someone else and that person collects, send collector = proxy and proxy_id_checked = true (their ID checked against the named proxy, GET /dashboard/orders/{order}/proxy-id); otherwise 422 proxy_details_missing, no attempt counted. A frozen (disputed) order answers 409 order_frozen. Branch-scoped. Audited (order.handed_over). Idempotent. Requires order.handover.',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/HandoverRequest')),
         tags: ['Dashboard Orders'],
@@ -282,14 +284,15 @@ class OrderController extends Controller
             new OA\Response(response: 200, description: 'StaffOrder (with order.view) or WorkListItem', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'object')])),
             new OA\Response(response: 403, description: 'forbidden | wrong_branch (both audited)', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 409, description: 'illegal_order_transition | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 422, description: 'invalid_collection_code (details: attempts_left) | validation_failed', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_order_transition | order_frozen | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'invalid_collection_code (details: attempts_left) | proxy_details_missing | validation_failed', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 429, description: 'handover_locked (details: retry_after seconds)', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]
     public function handover(HandoverRequest $request, string $order, HandoverPieceAction $handover, ShowOrderAction $show): JsonResponse
     {
-        $handover->handle($request->user('staff'), $order, (string) $request->validated('code'), $request->attributes->get('context'));
+        $handover->handle($request->user('staff'), $order, (string) $request->validated('code'), $request->attributes->get('context'),
+            $request->byProxy(), $request->boolean('proxy_id_checked'));
 
         return $this->respond($request, $order, $show);
     }
@@ -351,6 +354,33 @@ class OrderController extends Controller
     }
 
     /** The order for holders of order.view; the money-free work-list item otherwise (Part 1 §3.4). */
+    #[OA\Get(
+        path: '/dashboard/orders/{order}/proxy-id',
+        operationId: 'dashboardOrderProxyId',
+        summary: 'Open the ID photo of the person named to collect',
+        description: 'Spec 014 FR-020. The decrypted front of the proxy\'s ID, never cached, to check at the counter; each view is audited (order.proxy_id_viewed). 404 when no proxy is named. Requires order.handover or order.view.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Orders'],
+        parameters: [new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        responses: [
+            new OA\Response(response: 200, description: 'The image', content: new OA\MediaType(mediaType: 'image/*')),
+            new OA\Response(response: 403, description: 'permission_denied (audited)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found (no proxy)', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function proxyId(Request $request, string $order, ViewProxyIdAction $view): Response
+    {
+        $image = $view->handle($request->user('staff'), $order, $request->attributes->get('context'));
+
+        return response($image['bytes'], 200, [
+            'Content-Type' => $image['mime'],
+            'Content-Disposition' => 'inline; filename="proxy-id"',
+            'Cache-Control' => 'no-store, private',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; sandbox",
+        ]);
+    }
+
     private function respond(Request $request, string $orderId, ShowOrderAction $show): JsonResponse
     {
         $order = $show->handle($orderId);

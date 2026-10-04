@@ -7,6 +7,7 @@ use App\Enums\StaffPermission;
 use App\Exceptions\AuthApiException;
 use App\Models\AuditLog;
 use App\Models\Customer;
+use App\Models\Dispute;
 use App\Models\IdentityDocument;
 use App\Models\Staff;
 use App\Support\Audit\AuditCursor;
@@ -37,13 +38,18 @@ final class ListCustomerActivityAction
 
         $customer = Customer::query()->findOrFail($customerId);
         $documents = IdentityDocument::query()->where('customer_id', $customer->customer_id)->pluck('document_id')->all();
+        // Spec 014 FR-017: the disputes they raised — opened (they acted) and how each ended.
+        $disputes = Dispute::query()->where('raised_by', $customer->customer_id)->pluck('dispute_id')->all();
 
         $base = $this->query->visibleTo($viewer)
             ->where(fn (Builder $q) => $q
                 ->where('actor_customer_id', $customer->customer_id)
                 ->orWhere(fn (Builder $s) => $s->where('entity_type', 'customer')->where('entity_id', $customer->customer_id))
                 ->when($documents !== [], fn (Builder $w) => $w->orWhere(fn (Builder $d) => $d
-                    ->where('entity_type', 'identity_document')->whereIn('entity_id', $documents))))
+                    ->where('entity_type', 'identity_document')->whereIn('entity_id', $documents)))
+                ->when($disputes !== [], fn (Builder $w) => $w->orWhere(fn (Builder $d) => $d
+                    ->where('entity_type', 'dispute')->whereIn('entity_id', $disputes)
+                    ->whereIn('action', [AuditEvent::DISPUTE_OPENED->value, AuditEvent::DISPUTE_RESOLVED->value]))))
             ->where('action', '!=', AuditEvent::TOKEN_ROTATED->value)
             ->orderByDesc('created_at')->orderByDesc('audit_id');
 

@@ -42,6 +42,7 @@ final class ChangeOrderBranchAction
             $listingId = Order::query()->findOrFail($orderId, ['order_id', 'listing_id'])->listing_id;
             $listing = $this->lockListing($listingId);
             $order = $this->lockOrder($orderId);
+            $this->assertNotFrozen($order);
 
             if ($order->state !== OrderState::AWAITING_DELIVERY) {
                 throw DomainApiException::orderNotOpen();
