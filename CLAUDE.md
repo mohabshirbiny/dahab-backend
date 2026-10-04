@@ -275,7 +275,18 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   someone else to collect (`/customer/me/orders/{id}/proxy|proxy/remove`, `purpose=proxy_id`, the
   `collection_proxy_authorisation` accepted; the handover takes `collector: proxy` + `proxy_id_checked`,
   `proxy_details_missing` 422; `GET /dashboard/orders/{id}/proxy-id` audited). Staff approval of customer messages was
-  deferred (no source defines it). Invoices are not built. Nothing else yet.
+  deferred (no source defines it); finance operations (spec 015) — the Compensation page (`/dashboard/compensation*`:
+  every payment, totals, the viewer's caps, CSV, and paying outside a dispute under `compensation.pay`, same caps; a
+  compensation's dispute/order/party are now optional), the wallet adjustment (`POST /dashboard/customers/{id}/wallet-adjustments`,
+  `wallet.adjust` — no role, founders: kind `reversal` without a reversed entry, available ± against `external_equity`, never
+  below zero, `wallet_adjustment` row; `GET /dashboard/wallet-adjustments`), the bank book (`bank.record`: staff proof upload
+  `POST /dashboard/uploads`, `POST /dashboard/bank-movements` with the design's seven kinds — bank ↔ `external_equity`, own
+  transfers are records only; reads `bank-movements*`, `bank-book*` with `bank.record|wallet.view`), the daily close
+  (`day.close`: `GET|POST /dashboard/daily-close`, `GET /dashboard/daily-closes`; the typed statement balance against the
+  ledger's bank cash at midnight Cairo, only ended days, 0 locks, a difference locks only with an explanation, a locked day
+  never changes), `GET /dashboard/overview` (sections by permission), `GET /dashboard/orders/export`, `deposit_held` on buy
+  requests and orders and `GET /customer/me/wallet/held`, and the public `GET /reference/gold-prices` and `/reference/quote`.
+  Guards DH011. Invoices are not built. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -286,7 +297,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   and the held split are live (spec 013). Disputes and reports is live for disputes (queue, detail with the order, photos,
   Pass on, Resolve with compensation and suspension; listing reports are not built), and Orders shows the frozen
   banner, Requests for more time with Answer, the person named to collect with their ID, and the proxy handover
-  (spec 014).
+  (spec 014). Compensation, Bank movements and Daily closing are live, the Customer file has Adjust (wallet.adjust), the
+  Orders list exports to CSV, and the whole Overview is live — no mock figure left on it (spec 015).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -301,7 +313,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Add a bank account, Your details → Payout account, Withdraw with the email step, the `#/withdraw-confirm` page and the
   wallet's pending withdrawals are live (spec 013); Report a problem with photos, the order on hold with your report and
   Dahab's answer, Ask for more time and Someone else collects are live on the order screen (spec 014; the prototype's
-  standalone Inspection, Pay and Collection-code screens were removed: their routes open the live order).
+  standalone Inspection, Pay and Collection-code screens were removed: their routes open the live order); the rate strip,
+  the splash rate cards, the home calculator and the sell estimate read the backend's prices and quote, and Held on open
+  orders lists what each request and order holds (spec 015).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8010/api/v1` (the Dashboard's dev env uses `:8000`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

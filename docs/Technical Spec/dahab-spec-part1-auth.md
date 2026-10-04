@@ -158,6 +158,8 @@ Note the two founder columns differ only where wallet access is involved. For li
 
 ### 4.2 Money
 
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). *Adjust a wallet balance directly* is `wallet.adjust`, seeded to no role (the founders hold every code — "CEO only" needs no role name). *Record a bank movement outside the app* is `bank.record` and *Close the day* is `day.close`, both seeded to Finance (and the founders). *Pay compensation to a wallet* (`compensation.pay`) may now also pay outside a dispute, from the Compensation page, under the same caps. Reads: the compensation list `compensation.pay` or `wallet.view`; wallet adjustments `wallet.adjust` or `wallet.view`; the bank book `bank.record` or `wallet.view`; the daily close `day.close` or `wallet.view`. Never the COO by seed.
+
 > **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). *Refund a buyer in full* is `order.refund` (CEO, Finance) and is used only to resolve a dispute against the sale before payment (the deposit refunded in full). *Pay compensation to a wallet* is `compensation.pay` (CEO, Finance), held to `compensation.cap_per_payment_egp` and `compensation.cap_per_day_egp` per staff member per Cairo day; `compensation.uncapped` (seeded to no role — the CEO holds every code) lifts both caps, so "Finance up to cap" needs no role name. Compensation is paid only inside a dispute resolution in this spec. Never the COO.
 
 | Action | CEO | COO | Finance | Operations | Verification | IGI |
@@ -228,6 +230,8 @@ authorize(staff, action):
 ## 5. Data isolation: row-level security and grants
 
 ### 5.1 Customer row-level security
+
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). `wallet_adjustment` joins forced RLS (readable by the customer it belongs to, written only elevated); `compensation` rows may now have no dispute or order. `bank_movement` and `daily_close` hold no customer data and are not under RLS.
 
 > **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). Five new tables under forced RLS, each readable only by the customer the row belongs to (not by the other party of the order): `dispute`, `dispute_photo`, `dispute_change` (the raiser), `compensation` (the customer paid), `order_extension_request` (the seller). Customers write them only in the non-elevated `order` scope; `compensation` only elevated.
 

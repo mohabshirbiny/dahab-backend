@@ -140,6 +140,8 @@ The decrypted file of a public media item of a publicly visible listing, streame
 ### Reference data for the apps (spec 010)
 Unauthenticated, limiter `public.market`: `GET /reference/karats` (enabled karats), `GET /reference/piece-types?category=` (enabled types, EN/AR names, typical weights), `GET /reference/branches` (enabled branches, EN/AR name and address), `GET /reference/legal-documents/{code}` (the current version of a legal text, e.g. `ownership_declaration`).
 
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). Two more public reads, same limiter, `Cache-Control: max-age=30`: `GET /reference/gold-prices` → `{ price_at, feed_state: live|manual|stale, karats: [{ code, label, sellers_get, buyers_pay }] }` for enabled karats (never the provider's bid/ask or the adjustments), and `GET /reference/quote?category=gold|gold_with_diamond|diamond&karat&weight_g&making_per_g&asking_price` → the seller's indicative estimate from the Part 3 §2 calculator (`gold_value`, `making_back`, `asking_price`, `commission`, `vat`, `payout`, `commission_rate`, `minimum_applied`, `indicative: true`, `price_at`). No usable price → `price_unavailable` (409).
+
 ---
 
 ## 3. Selling — listing a piece
@@ -447,6 +449,8 @@ Wallet **balances** for the customer are their own (RLS-scoped) read. This is di
 
 > **Built by spec 008** ([`specs/008-ledger-core/spec.md`](../../specs/008-ledger-core/spec.md)). As-built paths are under the customer surface: `GET /customer/me/wallet` → `{ available, held, total, currency }` and `GET /customer/me/wallet/transactions` (one row per ledger entry touching the customer: `kind`, `created_at`, `available_change`, `held_change`, `available_after`, `held_after`, `reference`; newest first, keyset `cursor`). The running balance is **available**: a hold is money out of available, a release money in, with held shown beside it. `POST /me/wallet/topup` was built by spec 009 as the endpoints below.
 
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). `GET /customer/me/wallet/held` (gate `verified`) lists what each buy request and order holds: `{ total, items: [{ type: buy_request|order, id, ref, title, state, amount }] }`, amounts from the ledger (the request's deposit postings on `cust_held`), `total` = the wallet's `held_on_orders`. Buy requests and orders carry `deposit_held` (null for the seller of an order). A wallet adjustment appears in the history as `kind = reversal` (*Correction*); a compensation as `compensation`.
+
 ### `GET /me/wallet`
 - **gate:** `verified` (spec 002; RLS to own rows) · **idempotent:** n/a
 - **200:** `{ "available": "…", "held": "…" }` — read from `customer_wallet` (derived from the ledger; never a stored balance).
@@ -546,6 +550,8 @@ Pay goodwill/dispute compensation into a wallet (`event_kind = compensation`).
 - **audited:** yes · **reason:** required · **idempotent:** required
 - **Ledger:** `external_equity −amount`, customer `cust_available +amount`.
 
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). Also built stand-alone: `GET /dashboard/compensation` (`compensation.pay` or `wallet.view`; `from`, `to` Cairo dates — default the last 30 days — `reason`, `paid_by`, `customer_id`, keyset; `meta.totals.period|this_month`, `meta.caps.per_payment|per_day|uncapped|left_today` for the viewer), `GET /dashboard/compensation/export` (CSV, audited `compensation.list_exported`) and `POST /dashboard/compensation` `{ customer_id, amount, reason, note, order_id? }` (`compensation.pay`; no dispute; the same caps under the same per-payer lock; an order must be the customer's; a customer not verified → `verification_required`; the customer is told by SMS + email).
+
 ### `POST /admin/orders/{id}/refund`
 Refund a buyer in full (dispute/quality). · **permission:** *Refund a buyer* (CEO/Finance) · **audited:** yes · **reason:** required · **idempotent:** required
 
@@ -554,16 +560,24 @@ Direct wallet adjustment — **CEO only** (matrix). The narrowest, most sensitiv
 - **permission:** *Adjust a wallet balance directly* (CEO only) · **audited:** yes · **reason:** required · **idempotent:** required
 - **Ledger:** a reversible `compensation`/`reversal`-kind transaction; never an in-place balance edit (there are no stored balances to edit).
 
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). Built as `POST /dashboard/customers/{customer}/wallet-adjustments` `{ direction: credit|debit, amount, reason (10–1000) }` (`wallet.adjust`): one entry of kind `reversal` with no reversed entry, `cust_available ±amount` against `external_equity ∓amount`, the staff member as actor, and an append-only `wallet_adjustment` row; a debit never takes available below zero (`insufficient_funds` 409); the customer is told by SMS + email (without the reason). `GET /dashboard/wallet-adjustments` (`wallet.adjust` or `wallet.view`) lists them.
+
 ### `POST /admin/bank-movements`
 Record a bank movement outside the app (capital, rent, fees, profit draw) with proof (schema §17).
 - **permission:** *Record a bank movement* (CEO/Finance) · **audited:** yes · **reason:** required · **idempotent:** required
 - **Body:** `{ "kind": "capital_in"|"rent"|"bank_charge"|"profit_draw", "amount", "occurred_on", "reason", "proof_ref" }`
 - **Ledger:** `external_equity` ↔ `bank` (`event_kind = external_bank_movement`).
 
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). Built as `POST /dashboard/bank-movements` `{ kind, direction: in|out, amount, occurred_on, reason (10–500), proof_upload_token? }` (`bank.record`). Kinds are the Dashboard design's seven: `capital_in | operating_expense | bank_charge | profit_draw | own_transfer | supplier_refund | other` (rent is an operating expense). Money in posts `bank −X`, `external_equity +X`; out the reverse; `own_transfer` is a record with no entry. `occurred_on` may be any past day, a closed one included — the entry posts now. Proof: `POST /dashboard/uploads` (`bank.record`, `purpose=bank_movement_proof`, PDF/JPG/PNG ≤ 10 MB, encrypted) returns a token; `GET /dashboard/bank-movements/{id}/proof` is audited. Reads (`bank.record` or `wallet.view`): `GET /dashboard/bank-movements` (+ `/export`) and `GET /dashboard/bank-book` (+ `/export`) — every bank posting of a Cairo period (top-ups matched or credited by hand, withdrawals released, movements, reversals) with opening, in, out and closing cash.
+
 ### `POST /admin/daily-close`
 Close the day: snapshot bank balance, customer liability, Dahab wallet, and the difference; lock when clean (schema §18; `daily_close_no_reopen` blocks reopening a locked day).
 - **permission:** *Close the day* (CEO/Finance) · **audited:** yes · **idempotent:** required
 - **Note:** reads `solvency_check` (Part 1 §5.2 / ledger view) — the headline "bank minus what is owed to customers" figure.
+
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). Built as `GET /dashboard/daily-close?date=` (the day's books — today live, a past day at midnight Cairo — and its stored close), `GET /dashboard/daily-closes` (recent days, days closed, the last difference) — both `day.close` or `wallet.view` — and `POST /dashboard/daily-close` `{ date, bank_balance, explanation? }` (`day.close`). `bank_balance` is typed from the statements (all of Dahab's accounts); the books are the ledger's bank cash at the day's end; `difference = bank_balance − books_bank`. Only an ended day (`day_not_ended` 422). 0 locks; a non-zero difference locks only with an explanation (10–1000), otherwise the day is saved unlocked and can be closed again; a locked day → `day_already_closed` (409). Audited `day.closed` / `day.saved`.
+>
+> Also by spec 015: `GET /dashboard/overview` (any active staff; each section only with its permission — earnings this month `wallet.view`; orders by state, held now and this month `order.view`; needs-a-decision rows each with their acting code) and `GET /dashboard/orders/export` (`order.view`, the list's filters and branch scope, CSV, audited `order.list_exported`).
 
 ---
 
@@ -734,6 +748,8 @@ These are scheduled workers that drive deadline-based transitions. They are list
 ---
 
 ## 12. Consolidated domain error codes
+
+> **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). New codes: `day_not_ended` (422), `day_already_closed` (409). SQLSTATE DH011 (a wallet adjustment or bank movement without its matching entry) is an integrity failure, never expected.
 
 > **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). New codes: `order_frozen` (409, `details.dispute_ref` for the raiser and staff), `dispute_already_raised` (409), `dispute_outcome_not_allowed` (409), `illegal_dispute_transition` (409, DH009), `assignee_not_eligible` (422), `extension_request_pending` (409), `illegal_extension_request_transition` (409, DH010). `compensation_cap_exceeded` and `proxy_details_missing` are now built.
 

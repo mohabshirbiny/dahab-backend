@@ -91,7 +91,12 @@ deliberately not enabled.
   pass on and resolve; CEO, COO, Operations, Finance), `order.refund` (resolve a dispute against the sale; CEO, Finance),
   `compensation.pay` (compensation within a resolution, up to the caps; CEO, Finance) and `compensation.uncapped` (lifts the
   caps; no role — the CEO holds every code); the extension requests use `order.extend_deadline` (`order.view` reads), the
-  proxy ID `order.handover` or `order.view`, *Suspend the seller* on a resolution `customer.suspend`.
+  proxy ID `order.handover` or `order.view`, *Suspend the seller* on a resolution `customer.suspend`; and — since spec 015 —
+  `wallet.adjust` (adjust a customer's wallet; no role — the founders hold every code), `bank.record` (record a bank movement,
+  the proof upload; Finance) and `day.close` (close a day; Finance); `compensation.pay` also pays outside a dispute. Reads:
+  compensation `compensation.pay|wallet.view`, adjustments `wallet.adjust|wallet.view`, bank book and movements
+  `bank.record|wallet.view`, the daily close `day.close|wallet.view`; `GET /dashboard/overview` needs no code and returns only
+  the sections the viewer's codes allow.
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -212,7 +217,7 @@ machine-readable value clients must switch on**; `message` is human text and may
   `illegal_payout_account_transition` 409 (SQLSTATE DH008); from spec 014: `order_frozen` 409 (any order action while the order is
   `disputed`), `dispute_already_raised` 409, `dispute_outcome_not_allowed` 409, `illegal_dispute_transition` 409 (SQLSTATE DH009),
   `assignee_not_eligible` 422, `extension_request_pending` 409, `illegal_extension_request_transition` 409 (SQLSTATE DH010),
-  `compensation_cap_exceeded` 403, `proxy_details_missing` 422, …).
+  `compensation_cap_exceeded` 403, `proxy_details_missing` 422; from spec 015: `day_not_ended` 422, `day_already_closed` 409, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -256,7 +261,9 @@ and since spec 013 every payout-account and withdrawal write: `POST /customer/me
 `POST /customer/me/withdrawals`, `POST /customer/me/withdrawals/{id}/cancel`, `POST /dashboard/withdrawals/{id}/review|hold|unhold|release|reject`
 and `POST /dashboard/payout-accounts/{id}/verify|refuse`. The public `POST /withdrawal-confirmations/confirm` has no key: its
 token is single use. Since spec 014: `POST /customer/me/orders/{id}/disputes|extension-requests|proxy|proxy/remove`,
-`POST /dashboard/disputes/{id}/pass-on|resolve` and `POST /dashboard/extension-requests/{id}/accept|refuse`.
+`POST /dashboard/disputes/{id}/pass-on|resolve` and `POST /dashboard/extension-requests/{id}/accept|refuse`. Since spec 015:
+`POST /dashboard/compensation`, `POST /dashboard/customers/{id}/wallet-adjustments`, `POST /dashboard/bank-movements` and
+`POST /dashboard/daily-close` (the staff upload `POST /dashboard/uploads` returns a single-use token, like the customer's).
 
 ## Status codes in use
 
@@ -270,7 +277,7 @@ Named limiters on sensitive routes (`throttle:auth.customer.login`, `auth.custom
 `auth.customer.register.otp`, `auth.customer.register.documents`, `auth.otp.verify`, `auth.staff.login`,
 `auth.staff.mfa`, `auth.refresh`, `customer.uploads` (20/min since spec 010), `customer.topups`, `customer.listings`,
 `customer.buy_requests` (10/min, spec 011), `public.market`, and since spec 013 `customer.payout_accounts` (5/min),
-`customer.withdrawals` (10/min), `public.withdrawal_confirmations` (10/min per IP), and since spec 014 `customer.disputes` (5/min)) plus the default API throttle. Identity lockouts
+`customer.withdrawals` (10/min), `public.withdrawal_confirmations` (10/min per IP), and since spec 014 `customer.disputes` (5/min), and since spec 015 `dashboard.uploads` (20/min per staff member)) plus the default API throttle. Identity lockouts
 return **429 `account_locked`**.
 
 ## CORS
@@ -296,3 +303,15 @@ Each frontend's dev origin must be listed (Dashboard Vite :3000, Flutter web :87
 3. Search **both** frontends (Dashboard for `/dashboard/*`, Flutter for `/customer/*`) for the path, fields (both casings),
    enum values and permission strings; update or report every consumer.
 4. Update this file if a convention (not just an endpoint) changed.
+
+## CSV exports and public price reads (spec 015)
+
+- Every staff CSV export (`/dashboard/wallet-statement/export`, `/topups/export`, `/withdrawals/export`, `/audit-log/export`,
+  and since spec 015 `/orders/export`, `/compensation/export`, `/bank-movements/export`, `/bank-book/export`) takes the same
+  filters as its list, is UTF-8 with a BOM, neutralises spreadsheet formulas, stops at a configured row cap with a closing
+  line (and `X-Export-Truncated: true`), and is audited with the filters and the row count.
+- Staff uploads (spec 015): `POST /dashboard/uploads` (multipart `purpose`, `file`) → `{ token, expires_in }`; the token is
+  single use, tied to the staff member and the purpose (`bank_movement_proof`), and is passed to the POST that uses it.
+- Public price reads (spec 015): `GET /reference/gold-prices` and `GET /reference/quote` are unauthenticated, limited by
+  `public.market`, cacheable for 30 s, and answer `price_unavailable` (409) when no usable price exists. Figures are
+  indicative; nothing is locked until a buy request.

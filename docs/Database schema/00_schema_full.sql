@@ -2179,20 +2179,27 @@ CREATE TABLE dispute_change (
 -- compensation.cap_per_payment_egp / cap_per_day_egp per staff member per Cairo
 -- day unless the payer holds compensation.uncapped. Append-only; a deferred
 -- check ties each row to its matching entry.
+-- Changed by spec 015: compensation may also be paid outside a dispute (the
+-- Compensation page, same permission and caps): dispute, order and party are
+-- optional; a dispute payment still names its order and party.
 CREATE TABLE compensation (
   compensation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  dispute_id   UUID NOT NULL REFERENCES dispute(dispute_id),
-  order_id     UUID NOT NULL REFERENCES "order"(order_id),
+  dispute_id   UUID REFERENCES dispute(dispute_id),
+  order_id     UUID REFERENCES "order"(order_id),
   customer_id  UUID NOT NULL REFERENCES customer(customer_id),
-  party        TEXT NOT NULL CHECK (party IN ('buyer','seller')),
+  party        TEXT CHECK (party IN ('buyer','seller')),
   amount       NUMERIC(18,4) NOT NULL CHECK (amount > 0),
   reason       TEXT NOT NULL CHECK (reason IN ('igi_delay','dahab_mistake','wasted_trip','dispute_settlement','goodwill')),
   note         TEXT NOT NULL CHECK (char_length(note) BETWEEN 10 AND 1000),
   paid_by      UUID NOT NULL REFERENCES staff(staff_id),
   ledger_txn_id UUID NOT NULL UNIQUE REFERENCES ledger_transaction(ledger_txn_id),
-  paid_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+  paid_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  -- spec 015
+  CONSTRAINT compensation_dispute_needs_order CHECK (dispute_id IS NULL OR order_id IS NOT NULL),
+  CONSTRAINT compensation_party_with_order CHECK ((order_id IS NULL) = (party IS NULL))
 );
 CREATE INDEX idx_compensation_payer_day ON compensation(paid_by, paid_at);
+CREATE INDEX idx_compensation_paid_at ON compensation(paid_at, compensation_id);  -- spec 015: the list
 
 -- Case file assembly for law enforcement (built on request, audited).
 CREATE TABLE case_file (
@@ -2207,31 +2214,97 @@ CREATE TABLE case_file (
 -- 17. Reconciliation (daily close)
 --     External bank movements (capital, rent, fees, profit) are recorded
 --     by hand with proof. Each day is compared and, when clean, locked.
+--
+--     As built by spec 015 (specs/015-finance-ops):
+--     * bank_movement.kind is the Dashboard design's seven; rent is an
+--       operating expense. amount is signed (+ into the bank, - out). Each
+--       movement is one 'external_bank_movement' entry bank <-> external_equity
+--       (money in: bank -X, external_equity +X; out: the reverse — the bank
+--       sign rule of 03), except own_transfer (between Dahab's own accounts),
+--       which is a record only. Proof is an optional staff upload, encrypted.
+--     * daily_close: bank_balance is TYPED from the statements (the closing
+--       balance across all of Dahab's accounts); books_bank is the ledger's
+--       bank cash at the day's end (midnight Africa/Cairo); difference =
+--       bank_balance - books_bank. A day is closed only after it ended. 0
+--       locks it; a non-zero difference locks it only with an explanation,
+--       otherwise the row is saved unlocked and may be closed again.
+--     * wallet_adjustment: the CEO's (wallet.adjust) correction of one
+--       customer's available balance — ledger kind 'reversal' with no reversed
+--       entry, cust_available +/-X against external_equity -/+X.
 -- ---------------------------------------------------------------------
+CREATE SEQUENCE bank_movement_no_seq;
+
 CREATE TABLE bank_movement (
   movement_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  kind         TEXT NOT NULL,                    -- 'capital_in','rent','bank_charge','profit_draw'
-  amount       NUMERIC(18,4) NOT NULL,           -- signed
-  occurred_on  DATE NOT NULL,
-  reason       TEXT NOT NULL,
-  proof_ref    TEXT,                             -- attached document
-  recorded_by  UUID NOT NULL REFERENCES staff(staff_id),  -- ceo/finance
-  ledger_txn_id UUID REFERENCES ledger_transaction(ledger_txn_id),
-  recorded_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  movement_no  BIGINT NOT NULL UNIQUE DEFAULT nextval('bank_movement_no_seq'),  -- shown BM-{n}
+  kind         TEXT NOT NULL CHECK (kind IN ('capital_in','operating_expense','bank_charge',
+                 'profit_draw','own_transfer','supplier_refund','other')),
+  amount       NUMERIC(18,4) NOT NULL CHECK (amount <> 0),   -- signed: + in, - out
+  occurred_on  DATE NOT NULL,                    -- the date on the bank statement
+  reason       TEXT NOT NULL CHECK (char_length(reason) BETWEEN 10 AND 500),
+  proof_ref    TEXT,                             -- encrypted staff upload
+  proof_mime   TEXT,
+  recorded_by  UUID NOT NULL REFERENCES staff(staff_id),  -- bank.record
+  ledger_txn_id UUID UNIQUE REFERENCES ledger_transaction(ledger_txn_id),
+  recorded_at  TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  CONSTRAINT bank_movement_entry_unless_own_transfer CHECK ((kind = 'own_transfer') = (ledger_txn_id IS NULL)),
+  CONSTRAINT bank_movement_proof_pair CHECK ((proof_ref IS NULL) = (proof_mime IS NULL))
 );
+CREATE INDEX idx_bank_movement_recorded ON bank_movement(recorded_at, movement_id);
+CREATE INDEX idx_bank_movement_occurred ON bank_movement(occurred_on);
+CREATE TRIGGER trg_bank_movement_immutable BEFORE UPDATE OR DELETE ON bank_movement
+  FOR EACH ROW EXECUTE FUNCTION block_mutation();
 
 CREATE TABLE daily_close (
   close_date   DATE PRIMARY KEY,
-  bank_balance NUMERIC(18,4) NOT NULL,
+  bank_balance NUMERIC(18,4) NOT NULL,           -- typed from the statements
+  books_bank   NUMERIC(18,4) NOT NULL,           -- ledger bank cash at the cut-off (spec 015)
+  customer_available NUMERIC(18,4) NOT NULL,     -- spec 015
+  customer_held      NUMERIC(18,4) NOT NULL,     -- spec 015
   customer_liability NUMERIC(18,4) NOT NULL,
-  dahab_wallet NUMERIC(18,4) NOT NULL,
+  dahab_wallet NUMERIC(18,4) NOT NULL,           -- commission + spread
+  escrow       NUMERIC(18,4) NOT NULL,           -- spec 015
+  vat_payable  NUMERIC(18,4) NOT NULL,           -- spec 015
+  movements_in  NUMERIC(18,4) NOT NULL,          -- hand-recorded, dated that day (spec 015)
+  movements_out NUMERIC(18,4) NOT NULL,
   difference   NUMERIC(18,4) NOT NULL,
+  explanation  TEXT CHECK (explanation IS NULL OR char_length(explanation) BETWEEN 10 AND 1000),
   is_locked    BOOLEAN NOT NULL DEFAULT FALSE,
+  saved_by     UUID NOT NULL REFERENCES staff(staff_id),   -- spec 015
+  saved_at     TIMESTAMPTZ NOT NULL,
   closed_by    UUID REFERENCES staff(staff_id),
-  closed_at    TIMESTAMPTZ
+  closed_at    TIMESTAMPTZ,
+  CONSTRAINT daily_close_locked_named CHECK (NOT is_locked OR (closed_by IS NOT NULL AND closed_at IS NOT NULL)),
+  CONSTRAINT daily_close_explained CHECK (NOT is_locked OR difference = 0 OR explanation IS NOT NULL),
+  CONSTRAINT daily_close_difference CHECK (difference = bank_balance - books_bank),
+  CONSTRAINT daily_close_liability CHECK (customer_liability = customer_available + customer_held)
 );
 CREATE TRIGGER daily_close_no_reopen BEFORE UPDATE OR DELETE ON daily_close
   FOR EACH ROW WHEN (OLD.is_locked) EXECUTE FUNCTION block_mutation();
+
+-- Spec 015: a staff correction of a customer's wallet. Append-only; forced RLS
+-- (the customer reads their own rows, writes are elevated).
+CREATE TABLE wallet_adjustment (
+  adjustment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id  UUID NOT NULL REFERENCES customer(customer_id),
+  direction    TEXT NOT NULL CHECK (direction IN ('credit','debit')),
+  amount       NUMERIC(18,4) NOT NULL CHECK (amount > 0),
+  reason       TEXT NOT NULL CHECK (char_length(reason) BETWEEN 10 AND 1000),
+  customer_status TEXT NOT NULL,                 -- the customer's status at the time
+  adjusted_by  UUID NOT NULL REFERENCES staff(staff_id),
+  ledger_txn_id UUID NOT NULL UNIQUE REFERENCES ledger_transaction(ledger_txn_id),
+  adjusted_at  TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX idx_wallet_adjustment_at ON wallet_adjustment(adjusted_at, adjustment_id);
+CREATE INDEX idx_wallet_adjustment_customer ON wallet_adjustment(customer_id, adjusted_at);
+CREATE TRIGGER trg_wallet_adjustment_immutable BEFORE UPDATE OR DELETE ON wallet_adjustment
+  FOR EACH ROW EXECUTE FUNCTION block_mutation();
+-- Deferred checks (SQLSTATE DH011): wallet_adjustment_recorded() — the entry is
+-- 'reversal' with no reversed entry, the staff actor is adjusted_by, and it
+-- posts +amount (credit) / -amount (debit) to this customer's cust_available;
+-- bank_movement_recorded() — the entry is 'external_bank_movement', the staff
+-- actor is recorded_by, bank -amount and external_equity +amount.
+-- Full bodies: database/migrations/2026_10_08_000010_create_finance_ops.php.
 
 -- ---------------------------------------------------------------------
 -- 18. State-machine transition tables (machine-readable + guard rails)
@@ -2414,6 +2487,8 @@ INSERT INTO extension_request_transition (from_state, to_state, note) VALUES
 --     dispute_change row in the same transaction. DH009.
 --   compensation_recorded()    deferred: each compensation row's ledger_txn_id is a
 --     'compensation' entry crediting exactly that amount to that customer. DH009.
+--     Changed by spec 015: the party check runs only when an order is named, and
+--     the entry's order matches the row's (both may be null).
 --   dispute_photo, dispute_change, compensation: block_mutation() on UPDATE / DELETE.
 -- Full bodies: database/migrations/2026_10_07_000010_create_disputes.php.
 
@@ -2731,6 +2806,8 @@ CREATE POLICY customer_queue_read ON customer FOR SELECT
 --   dispute_change:   USING (elevated OR its dispute raised_by = me)
 --                     WITH CHECK (elevated OR ('order' scope AND actor_customer_id = me AND kind = 'opened'))
 --   compensation:     USING (elevated OR customer_id = me)   WITH CHECK (elevated)
+--   wallet_adjustment (spec 015): USING (elevated OR customer_id = me)   WITH CHECK (elevated)
+--   bank_movement, daily_close (spec 015): no customer data, no RLS; staff by permission.
 --   order_extension_request: USING (elevated OR seller_id = me)
 --                     WITH CHECK (elevated OR ('order' scope AND seller_id = me AND my order))
 --   dispute_transition, extension_request_transition: lookups, no RLS.
