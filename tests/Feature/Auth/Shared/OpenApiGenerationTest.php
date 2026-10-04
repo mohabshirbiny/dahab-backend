@@ -129,6 +129,8 @@ const OPENAPI_DASHBOARD_AUDIT_PATHS = [
 const OPENAPI_CUSTOMER_WALLET_PATHS = [
     'get /customer/me/wallet',
     'get /customer/me/wallet/transactions',
+    // spec 015: what each buy request and order holds.
+    'get /customer/me/wallet/held',
 ];
 
 const OPENAPI_DASHBOARD_WALLET_PATHS = [
@@ -186,6 +188,8 @@ const OPENAPI_CUSTOMER_BUY_REQUEST_PATHS = [
 
 const OPENAPI_DASHBOARD_ORDER_PATHS = [
     'post /dashboard/orders/{order}/cancel',
+    // spec 015: the list as CSV.
+    'get /dashboard/orders/export',
     // spec 012: the order's life after acceptance, staff side.
     'get /dashboard/orders/{order}',
     'post /dashboard/orders/{order}/receive',
@@ -286,6 +290,32 @@ const OPENAPI_REFERENCE_PATHS = [
     'get /reference/piece-types',
     'get /reference/branches',
     'get /reference/legal-documents/{code}',
+    // spec 015: today's prices and the seller's quote.
+    'get /reference/gold-prices',
+    'get /reference/quote',
+];
+
+// spec 015: finance operations.
+const OPENAPI_DASHBOARD_FINANCE_PATHS = [
+    'get /dashboard/compensation',
+    'post /dashboard/compensation',
+    'get /dashboard/compensation/export',
+    'post /dashboard/customers/{customer}/wallet-adjustments',
+    'get /dashboard/wallet-adjustments',
+    'post /dashboard/uploads',
+    'get /dashboard/bank-movements',
+    'post /dashboard/bank-movements',
+    'get /dashboard/bank-movements/export',
+    'get /dashboard/bank-movements/{movement}/proof',
+    'get /dashboard/bank-book',
+    'get /dashboard/bank-book/export',
+    'get /dashboard/daily-close',
+    'post /dashboard/daily-close',
+    'get /dashboard/daily-closes',
+];
+
+const OPENAPI_DASHBOARD_OVERVIEW_PATHS = [
+    'get /dashboard/overview',
 ];
 
 function documentedOperations(array $doc): array
@@ -336,6 +366,8 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_WITHDRAWAL_CONFIRMATION_PATHS,
         ...OPENAPI_MARKET_PATHS,
         ...OPENAPI_REFERENCE_PATHS,
+        ...OPENAPI_DASHBOARD_FINANCE_PATHS,
+        ...OPENAPI_DASHBOARD_OVERVIEW_PATHS,
     ]);
 });
 
@@ -480,6 +512,8 @@ it('tags each surface separately', function () {
         'Dashboard Orders' => OPENAPI_DASHBOARD_ORDER_PATHS,
         'Customer Orders' => OPENAPI_CUSTOMER_ORDER_PATHS,
         'Dashboard Disputes' => OPENAPI_DASHBOARD_DISPUTE_PATHS,
+        'Dashboard Finance' => OPENAPI_DASHBOARD_FINANCE_PATHS,
+        'Dashboard Overview' => OPENAPI_DASHBOARD_OVERVIEW_PATHS,
         'Market' => OPENAPI_MARKET_PATHS,
         'Reference' => OPENAPI_REFERENCE_PATHS,
     ] as $tag => $paths) {
@@ -534,6 +568,8 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'CustomerDispute', 'StaffDispute', 'StaffExtensionRequest',
         'OpenDisputeRequest', 'RequestMoreTimeRequest', 'NameProxyRequest', 'PassOnDisputeRequest', 'ResolveDisputeRequest',
         'AcceptExtensionRequestRequest', 'RefuseExtensionRequestRequest',
+        'StaffCompensation', 'PayCompensationRequest', 'StaffWalletAdjustment', 'AdjustWalletRequest',
+        'StaffBankMovement', 'RecordBankMovementRequest', 'StaffDailyClose', 'CloseDayRequest',
     ]);
 
     $ops = documentedOperations($doc);
