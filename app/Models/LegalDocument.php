@@ -25,6 +25,9 @@ class LegalDocument extends Model
     /** Ticked when adding a payout account (spec 013; acceptance context `payout_account`). */
     public const PAYOUT_ACCOUNT_DECLARATION = 'payout_account_declaration';
 
+    /** Ticked when naming someone else to collect (spec 014; acceptance context `collection_proxy`). */
+    public const COLLECTION_PROXY_AUTHORISATION = 'collection_proxy_authorisation';
+
     protected $table = 'legal_document';
 
     protected $primaryKey = 'legal_doc_id';

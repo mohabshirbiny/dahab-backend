@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $granted_by
  * @property string $reason
  * @property CarbonImmutable $granted_at
+ * @property string|null $dispute_id spec 014: the frozen time given back on resume
+ * @property string|null $extension_request_id spec 014: the seller's request, accepted
  */
 class OrderDeadlineExtension extends Model
 {

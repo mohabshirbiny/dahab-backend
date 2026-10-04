@@ -20,6 +20,8 @@ final class ShowOrderAction
         'seller:customer_id,display_ref', 'buyer:customer_id,display_ref',
         'inspections', 'decisions', 'collection', 'sellerReturn',
         'stateChanges', 'branchChanges', 'extensions',
+        // Spec 014: the disputes, the seller's requests for more time.
+        'disputes', 'extensionRequests',
     ];
 
     public function handle(string $orderId): Order

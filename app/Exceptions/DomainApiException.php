@@ -405,4 +405,60 @@ class DomainApiException extends RuntimeException
     {
         return new self('withdrawal_on_hold', 409, 'This withdrawal is on hold. Remove the hold before releasing it.');
     }
+
+    /** The order is frozen by an open dispute (spec 014 FR-004). The ref is given only to the raiser and staff. */
+    public static function orderFrozen(?string $disputeRef = null): self
+    {
+        return new self('order_frozen', 409, 'This order is on hold while Dahab looks into a problem.',
+            $disputeRef === null ? [] : ['dispute_ref' => $disputeRef]);
+    }
+
+    /** Each party raises at most one dispute per order (spec 014 Clarification). */
+    public static function disputeAlreadyRaised(): self
+    {
+        return new self('dispute_already_raised', 409, 'You have already reported a problem on this order.');
+    }
+
+    /** "Against the sale" is allowed only before payment (spec 014 FR-013). */
+    public static function disputeOutcomeNotAllowed(): self
+    {
+        return new self('dispute_outcome_not_allowed', 409, 'A paid order cannot be cancelled from a dispute. Resume it, with compensation if needed.');
+    }
+
+    /** A dispute move outside `dispute_transition`, a change to a resolved dispute, or a lost race (SQLSTATE DH009). */
+    public static function illegalDisputeTransition(): self
+    {
+        return new self('illegal_dispute_transition', 409, 'This dispute cannot do that now.');
+    }
+
+    /** Passed to oneself, to an inactive colleague, or to one without `dispute.handle` (spec 014 FR-009). */
+    public static function assigneeNotEligible(): self
+    {
+        return new self('assignee_not_eligible', 422, 'Choose an active colleague who handles disputes.');
+    }
+
+    /** A request for more time is already waiting on this order (spec 014 FR-022). */
+    public static function extensionRequestPending(): self
+    {
+        return new self('extension_request_pending', 409, 'Your request for more time is already waiting for an answer.');
+    }
+
+    /** A request move outside `extension_request_transition`, or a lost race (SQLSTATE DH010). */
+    public static function illegalExtensionRequestTransition(): self
+    {
+        return new self('illegal_extension_request_transition', 409, 'This request has already been answered.');
+    }
+
+    /** Over the per-payment or the per-day compensation cap (Part 2 §9; spec 014 FR-015). */
+    public static function compensationCapExceeded(string $perPayment, string $leftToday): self
+    {
+        return new self('compensation_cap_exceeded', 403, 'This is over your compensation limit.',
+            ['per_payment' => $perPayment, 'left_today' => $leftToday]);
+    }
+
+    /** The proxy collects but none is named, or their ID was not checked (Part 2 §7; spec 014 FR-019). */
+    public static function proxyDetailsMissing(): self
+    {
+        return new self('proxy_details_missing', 422, 'Check the ID of the person collecting against the named proxy first.');
+    }
 }

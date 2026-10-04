@@ -74,6 +74,7 @@ final class RecordInspectionResultAction
             $listingId = Order::query()->whereKey($orderId)->value('listing_id');
             $listing = $this->lockListing($listingId);
             $order = $this->lockOrder($orderId);
+            $this->assertNotFrozen($order);
             $this->branches->assertCanActAt($actor, $order->branch_id);
 
             if ($listing->category !== PieceCategory::DIAMOND && (($input['measured_karat'] ?? null) === null || ($input['measured_weight_g'] ?? null) === null)) {

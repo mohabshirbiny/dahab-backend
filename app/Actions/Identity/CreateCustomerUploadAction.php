@@ -28,6 +28,9 @@ final class CreateCustomerUploadAction
             UploadPurpose::LISTING_VIDEO,
             UploadPurpose::LISTING_INVOICE,
             UploadPurpose::STONE_CERTIFICATE => $this->storage->storeChunkedAt('listing-media', $actor->customer_id, $file),
+            // Spec 014: private images, encrypted whole like identity documents.
+            UploadPurpose::DISPUTE_PHOTO => $this->storage->storeAt('dispute-photos', $actor->customer_id, $file),
+            UploadPurpose::PROXY_ID => $this->storage->storeAt('proxy-ids', $actor->customer_id, $file),
         };
 
         return $this->tokens->issue($actor->customer_id, $purpose, $ref, $file->getMimeType());

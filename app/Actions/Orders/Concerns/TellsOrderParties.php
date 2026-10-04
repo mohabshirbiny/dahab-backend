@@ -33,13 +33,14 @@ trait TellsOrderParties
         ?string $amount = null,
         ?CarbonImmutable $deadline = null,
         ?string $code = null,
+        ?string $message = null,
     ): void {
         $listing->loadMissing('pieceType');
         $order->loadMissing('branch');
 
         $this->orderOutbox[] = [$customerId, new OrderNotification(
             $event, $order->order_ref, $listing->title(), $listing->title(arabic: true),
-            $amount, $deadline?->toIso8601String(), $order->branch?->name_en, $order->branch?->name_ar, $code,
+            $amount, $deadline?->toIso8601String(), $order->branch?->name_en, $order->branch?->name_ar, $code, $message,
         )];
     }
 

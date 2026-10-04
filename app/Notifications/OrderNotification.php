@@ -32,6 +32,7 @@ class OrderNotification extends Notification implements ShouldQueue
         public readonly ?string $branch = null,
         public readonly ?string $branchAr = null,
         public readonly ?string $code = null,
+        public readonly ?string $message = null,
     ) {}
 
     /** @return array<int, string> */
@@ -161,6 +162,31 @@ class OrderNotification extends Notification implements ShouldQueue
             OrderEvent::BALANCE_REMINDER => $arabic
                 ? "ادفع الباقي ({$money}) لـ ({$t}) قبل {$when}. طلب {$r}."
                 : "Pay the balance ({$money}) for ({$t}) before {$when}. Order {$r}.",
+            // Spec 014. The other party is never told what the dispute says.
+            OrderEvent::DISPUTE_OPENED => $arabic
+                ? "الطلب {$r} ({$t}) متوقف لحد ما دهب تراجع مشكلة. مفيش فلوس بتتحرك ومفيش ميعاد بيجري عليك."
+                : "Order {$r} ({$t}) is on hold while Dahab looks into a problem. No money moves and no deadline runs against you.",
+            OrderEvent::DISPUTE_RESOLVED => $arabic
+                ? "رد دهب على المشكلة في الطلب {$r}: {$this->message}"
+                : "Dahab's reply on order {$r}: {$this->message}",
+            OrderEvent::DISPUTE_RESUMED => $arabic
+                ? "الطلب {$r} ({$t}) رجع يمشي بعد المراجعة."
+                : "Order {$r} ({$t}) is moving again after Dahab's review.",
+            OrderEvent::DISPUTE_CANCELLED => ($arabic
+                ? "البيعة ({$t}) اتلغت بعد مراجعة دهب. طلب {$r}."
+                : "The sale of ({$t}) is cancelled after Dahab's review. Order {$r}.")
+                .($this->amount === null ? '' : ($arabic
+                    ? " عربونك ({$money}) رجع لمحفظتك."
+                    : " Your deposit ({$money}) is back in your wallet.")),
+            OrderEvent::COMPENSATION_PAID => $arabic
+                ? "تعويض من دهب ({$money}) وصل محفظتك. طلب {$r}."
+                : "Compensation from Dahab ({$money}) is in your wallet. Order {$r}.",
+            OrderEvent::EXTENSION_REFUSED => $arabic
+                ? "طلب الوقت الإضافي للطلب {$r} ماتقبلش. الميعاد زي ما هو: {$when}. {$this->message}"
+                : "Your request for more time on order {$r} was not accepted. The deadline stays {$when}. {$this->message}",
+            OrderEvent::PROXY_NAMED => $arabic
+                ? "{$this->message} يقدر يستلم ({$t}) بالنيابة عنك من {$b}. ابعتله كود الاستلام بنفسك. طلب {$r}."
+                : "{$this->message} can now collect ({$t}) for you at {$b}. Share your collection code with them yourself. Order {$r}.",
         };
     }
 }

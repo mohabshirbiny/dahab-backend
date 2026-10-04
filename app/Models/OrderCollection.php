@@ -19,6 +19,14 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonImmutable|null $locked_until
  * @property CarbonImmutable|null $collected_at
  * @property string|null $handover_by
+ * @property bool $is_proxy
+ * @property string|null $proxy_name
+ * @property string|null $proxy_phone
+ * @property string|null $proxy_id_storage_ref
+ * @property string|null $proxy_acceptance_id
+ * @property CarbonImmutable|null $proxy_named_at
+ * @property bool $collected_by_proxy
+ * @property string|null $proxy_id_checked_by
  */
 class OrderCollection extends Model
 {
@@ -29,7 +37,7 @@ class OrderCollection extends Model
     protected $primaryKey = 'collection_id';
 
     /** @var list<string> */
-    protected $hidden = ['code_hash', 'code_encrypted'];
+    protected $hidden = ['code_hash', 'code_encrypted', 'proxy_id_storage_ref'];
 
     protected function casts(): array
     {
@@ -39,6 +47,14 @@ class OrderCollection extends Model
             'locked_until' => 'immutable_datetime',
             'collected_at' => 'immutable_datetime',
             'is_proxy' => 'boolean',
+            'proxy_named_at' => 'immutable_datetime',
+            'collected_by_proxy' => 'boolean',
         ];
+    }
+
+    /** Spec 014: a proxy is named now and the piece is not yet collected. */
+    public function hasProxy(): bool
+    {
+        return $this->is_proxy && $this->proxy_name !== null;
     }
 }

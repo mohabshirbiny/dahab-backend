@@ -107,7 +107,8 @@ final class OrderTimeline
         return match ($change->to_state) {
             OrderState::AWAITING_DELIVERY => $change->from_state === null ? 'accepted' : null,
             OrderState::AT_INSPECTION => 'received',
-            OrderState::READY_TO_COLLECT => 'paid',
+            // Spec 014: resuming a paid order after a dispute is not a second payment.
+            OrderState::READY_TO_COLLECT => $change->from_state === OrderState::DISPUTED ? null : 'paid',
             OrderState::COMPLETED => 'collected',
             OrderState::CANCELLED_BUYER_NOPAY => 'forfeited',
             OrderState::CANCELLED_SELLER, OrderState::CANCELLED_STAFF, OrderState::CANCELLED_INSPECTION => 'cancelled',
@@ -125,6 +126,7 @@ final class OrderTimeline
             OrderState::CANCELLED_BUYER_NOPAY => 'no_pay',
             OrderState::CANCELLED_INSPECTION => match (true) {
                 $change->note === OrderStateChange::NOTE_NO_ANSWER => 'no_answer',
+                $change->note === OrderStateChange::NOTE_DISPUTE_AGAINST_SALE => 'dispute',
                 $change->from_state === OrderState::WEIGHT_ADJUST_PENDING && $change->actor_customer_id !== null => 'declined',
                 default => 'inspection',
             },

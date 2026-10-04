@@ -44,7 +44,7 @@ final class ListOrdersAction
         $more = $rows->count() > $perPage;
         $rows = $rows->take($perPage)->values();
         $rows->load(['listing.pieceType', 'listing.photos', 'branch', 'buyRequest', 'seller:customer_id,display_ref',
-            'buyer:customer_id,display_ref', 'sellerReturn', 'collection']);
+            'buyer:customer_id,display_ref', 'sellerReturn', 'collection', 'extensionRequests']);
 
         $counts = [];
         foreach (array_diff(self::GROUPS, ['all', 'closed']) as $g) {

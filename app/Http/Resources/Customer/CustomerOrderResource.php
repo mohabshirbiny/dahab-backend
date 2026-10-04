@@ -2,12 +2,15 @@
 
 namespace App\Http\Resources\Customer;
 
+use App\Actions\Disputes\Customer\OpenDisputeAction;
+use App\Enums\ExtensionRequestState;
 use App\Enums\InspectionOutcome;
 use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
 use App\Enums\OrderState;
 use App\Http\Resources\ListingMediaResource;
 use App\Models\Branch;
+use App\Models\Dispute;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Support\Orders\DeadlinePolicy;
@@ -47,8 +50,13 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'inspection', type: 'object', nullable: true),
         new OA\Property(property: 'collection', type: 'object', nullable: true),
         new OA\Property(property: 'seller_return', type: 'object', nullable: true),
-        new OA\Property(property: 'cancel', type: 'object', nullable: true, description: '{state, at, reason_kind: seller|deadline_missed|staff|inspection|declined|no_answer|no_pay}'),
-        new OA\Property(property: 'actions', type: 'array', items: new OA\Items(type: 'string', enum: ['cancel', 'decide', 'pay', 'relist'])),
+        new OA\Property(property: 'cancel', type: 'object', nullable: true, description: '{state, at, reason_kind: seller|deadline_missed|staff|inspection|declined|no_answer|no_pay|dispute}'),
+        new OA\Property(property: 'actions', type: 'array', items: new OA\Items(type: 'string', enum: ['cancel', 'decide', 'pay', 'relist', 'report_problem', 'ask_more_time', 'name_proxy']), description: 'Spec 014 adds report_problem, ask_more_time (seller), name_proxy (buyer)'),
+        new OA\Property(property: 'frozen', type: 'boolean', description: 'Spec 014: on hold by a dispute (state disputed)'),
+        new OA\Property(property: 'dispute', ref: '#/components/schemas/CustomerDispute', nullable: true, description: 'Spec 014: your own dispute on this order, if you raised one; never the other party\'s'),
+        new OA\Property(property: 'dispute_outcome', type: 'string', enum: ['resumed', 'cancelled'], nullable: true, description: 'Spec 014: from the order history, once a dispute on it was resolved (either party)'),
+        new OA\Property(property: 'extension_request', type: 'object', nullable: true, description: 'Spec 014, the seller only: {state: waiting|accepted|refused|lapsed, reason, detail, hours_granted, answer_note, requested_at, answered_at}'),
+        new OA\Property(property: 'proxy', type: 'object', nullable: true, description: 'Spec 014, the buyer only: {name, phone_masked, named_at}'),
         new OA\Property(property: 'timeline', type: 'array', items: new OA\Items(type: 'object')),
         new OA\Property(property: 'collection_code', type: 'string', nullable: true, description: 'Detail only, the buyer, while ready to collect'),
         new OA\Property(property: 'return_code', type: 'string', nullable: true, description: 'Detail only, the seller, while the return is open'),
@@ -153,8 +161,18 @@ class CustomerOrderResource extends JsonResource
                 'at' => $cancelChange->changed_at->toIso8601String(),
                 'reason_kind' => OrderTimeline::cancelKind($cancelChange),
             ],
-            'actions' => self::actions($o, $seller, $listing),
+            'actions' => self::actions($o, $seller, $listing, $me),
             'timeline' => OrderTimeline::build($o, forStaff: false),
+            // Spec 014. Row security returns only the caller's own dispute and requests.
+            'frozen' => $o->state === OrderState::DISPUTED,
+            'dispute' => ($own = self::ownDispute($o, $me)) === null ? null : (new DisputeResource($own))->resolve($request),
+            'dispute_outcome' => self::disputeOutcome($o),
+            'extension_request' => $seller ? self::extensionRequest($o) : null,
+            'proxy' => ! $seller && $collection !== null && $collection->is_proxy ? [
+                'name' => $collection->proxy_name,
+                'phone_masked' => self::maskPhone((string) $collection->proxy_phone),
+                'named_at' => $collection->proxy_named_at?->toIso8601String(),
+            ] : null,
         ];
 
         if ($this->withCode) {
@@ -167,19 +185,66 @@ class CustomerOrderResource extends JsonResource
     }
 
     /** @return list<string> what the caller may do now */
-    private static function actions(Order $o, bool $seller, Listing $listing): array
+    private static function actions(Order $o, bool $seller, Listing $listing, string $me): array
     {
+        // Spec 014: each party reports at most one problem per order, from the four freezable states.
+        $report = in_array($o->state, OpenDisputeAction::FREEZABLE, true) && self::ownDispute($o, $me) === null ? 'report_problem' : null;
+
         if ($seller) {
+            $waiting = ($o->relationLoaded('extensionRequests') ? $o->extensionRequests : $o->extensionRequests()->get())
+                ->contains(fn ($r) => $r->state === ExtensionRequestState::WAITING);
+
             return array_values(array_filter([
                 $o->state === OrderState::AWAITING_DELIVERY ? 'cancel' : null,
                 $o->sellerReturn?->isOpen() && $listing->state === ListingState::AWAITING_SELLER_RETURN ? 'relist' : null,
+                $report,
+                $o->state === OrderState::AWAITING_DELIVERY && $o->reach_branch_deadline?->isFuture() && ! $waiting ? 'ask_more_time' : null,
             ]));
         }
 
         return array_values(array_filter([
             $o->state === OrderState::WEIGHT_ADJUST_PENDING && $o->decision_due_deadline !== null ? 'decide' : null,
             $o->state === OrderState::AWAITING_BALANCE && $o->balance_due_deadline?->isFuture() ? 'pay' : null,
+            $report,
+            $o->state === OrderState::READY_TO_COLLECT && $o->collection !== null && $o->collection->collected_at === null ? 'name_proxy' : null,
         ]));
+    }
+
+    /** The caller's own dispute (row security already hides the other side's). */
+    private static function ownDispute(Order $o, string $me): ?Dispute
+    {
+        $all = $o->relationLoaded('disputes') ? $o->disputes : $o->disputes()->get();
+
+        return $all->first(fn (Dispute $d) => $d->raised_by === $me)?->setRelation('order', $o);
+    }
+
+    /** Spec 014: resumed or cancelled, read from the order's own history (never the dispute rows). */
+    private static function disputeOutcome(Order $o): ?string
+    {
+        $last = $o->stateChanges->filter(fn ($c) => $c->from_state === OrderState::DISPUTED)->last();
+
+        return $last === null ? null : ($last->to_state === OrderState::CANCELLED_INSPECTION ? 'cancelled' : 'resumed');
+    }
+
+    /** @return array<string, mixed>|null the seller's latest request for more time */
+    private static function extensionRequest(Order $o): ?array
+    {
+        $r = ($o->relationLoaded('extensionRequests') ? $o->extensionRequests : $o->extensionRequests()->get())->last();
+
+        return $r === null ? null : [
+            'state' => $r->state->value,
+            'reason' => $r->reason->value,
+            'detail' => $r->detail,
+            'hours_granted' => $r->hours_granted,
+            'answer_note' => $r->answer_note,
+            'requested_at' => $r->requested_at->toIso8601String(),
+            'answered_at' => $r->answered_at?->toIso8601String(),
+        ];
+    }
+
+    private static function maskPhone(string $phone): string
+    {
+        return strlen($phone) <= 7 ? $phone : substr($phone, 0, 4).str_repeat('•', strlen($phone) - 7).substr($phone, -3);
     }
 
     /** @return array<string, mixed> */

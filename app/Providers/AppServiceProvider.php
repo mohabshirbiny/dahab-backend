@@ -152,6 +152,11 @@ class AppServiceProvider extends ServiceProvider
             return $this->limit(10, 60, 'customer-withdrawals:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
         });
 
+        // Spec 014: problems reported per customer.
+        RateLimiter::for('customer.disputes', function (Request $request) {
+            return $this->limit(5, 60, 'customer-disputes:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         RateLimiter::for('public.withdrawal_confirmations', function (Request $request) {
             return $this->limit(10, 60, 'public-withdrawal-confirmations:'.$request->ip());
         });

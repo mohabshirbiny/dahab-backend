@@ -158,6 +158,18 @@ class Order extends Model
         return $this->hasOne(SellerCancellation::class, 'order_id', 'order_id');
     }
 
+    /** Spec 014: at most two (one per party), never two unresolved. Staff read them all. */
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class, 'order_id', 'order_id')->orderBy('opened_at');
+    }
+
+    /** Spec 014: the seller's requests for more time, oldest first. */
+    public function extensionRequests(): HasMany
+    {
+        return $this->hasMany(OrderExtensionRequest::class, 'order_id', 'order_id')->orderBy('requested_at');
+    }
+
     /** The result that counts: the newest one no other result supersedes (Part 3 §7.3). */
     public function latestInspection(): ?InspectionResult
     {

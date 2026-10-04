@@ -45,6 +45,9 @@ class DatabaseSeeder extends Seeder
         // Payout accounts and withdrawals in each state, through the real Actions (spec 013); same guard.
         $this->call(LocalWithdrawalSeeder::class);
 
+        // Disputes, proxy collection and requests for more time, through the real Actions (spec 014); same guard.
+        $this->call(LocalDisputeSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

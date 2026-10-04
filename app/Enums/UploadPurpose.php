@@ -4,8 +4,7 @@ namespace App\Enums;
 
 /**
  * What a customer upload is for (docs Part 2, `POST /me/uploads`). Only the
- * purposes that have a consumer are listed; proxy IDs join when their
- * endpoint exists.
+ * purposes that have a consumer are listed.
  */
 enum UploadPurpose: string
 {
@@ -20,11 +19,17 @@ enum UploadPurpose: string
     case LISTING_INVOICE = 'listing_invoice';
     case STONE_CERTIFICATE = 'stone_certificate';
 
+    /** A photo attached to a dispute (spec 014 R13): verified customers, not trade-gated. */
+    case DISPUTE_PHOTO = 'dispute_photo';
+
+    /** The front of a collection proxy's ID (Part 2 §3; spec 014 R14): trade-gated. */
+    case PROXY_ID = 'proxy_id';
+
     /** @return list<string> the accepted file extensions */
     public function allowedMimes(): array
     {
         return match ($this) {
-            self::IDENTITY => config('dahab-identity.allowed_mimes'),
+            self::IDENTITY, self::DISPUTE_PHOTO, self::PROXY_ID => config('dahab-identity.allowed_mimes'),
             self::TOPUP_RECEIPT => [...config('dahab-identity.allowed_mimes'), 'pdf'],
             self::LISTING_PHOTO => config('dahab-listings.photo_mimes'),
             self::LISTING_VIDEO => config('dahab-listings.video_mimes'),
@@ -36,17 +41,27 @@ enum UploadPurpose: string
     public function maxKilobytes(): int
     {
         return (int) match ($this) {
-            self::IDENTITY, self::TOPUP_RECEIPT => config('dahab-identity.max_upload_kb'),
+            self::IDENTITY, self::TOPUP_RECEIPT, self::DISPUTE_PHOTO, self::PROXY_ID => config('dahab-identity.max_upload_kb'),
             self::LISTING_PHOTO => config('dahab-listings.photo_max_kb'),
             self::LISTING_VIDEO => config('dahab-listings.video_max_kb'),
             self::LISTING_INVOICE, self::STONE_CERTIFICATE => config('dahab-listings.document_max_kb'),
         };
     }
 
-    /** Identity uploads stay open to unverified customers; everything else needs the trade gate. */
+    /**
+     * Identity uploads stay open to unverified customers; a dispute photo needs a
+     * verified customer, suspended or not (spec 014 FR-005); everything else needs
+     * the trade gate.
+     */
     public function requiresTrade(): bool
     {
-        return $this !== self::IDENTITY;
+        return ! in_array($this, [self::IDENTITY, self::DISPUTE_PHOTO], true);
+    }
+
+    /** Needs a verified customer but not the trade gate (spec 014). */
+    public function requiresVerified(): bool
+    {
+        return $this === self::DISPUTE_PHOTO;
     }
 
     /** Listing media is encrypted and served in chunks (spec 010 research R7). */

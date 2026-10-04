@@ -48,6 +48,7 @@ final class CancelAcceptanceAction
 
             $listing = $this->lockListing($listingId);
             $order = Order::query()->whereKey($orderId)->lockForUpdate()->firstOrFail();
+            $this->assertNotFrozen($order);
 
             if ($order->state !== OrderState::AWAITING_DELIVERY || $listing->state !== ListingState::ACCEPTED) {
                 throw DomainApiException::orderNotCancellable();

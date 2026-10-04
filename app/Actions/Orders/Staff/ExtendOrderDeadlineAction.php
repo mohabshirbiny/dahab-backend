@@ -34,14 +34,16 @@ final class ExtendOrderDeadlineAction
 
     public function __construct(private readonly RecordAuditLogAction $audit) {}
 
-    public function handle(Staff $actor, string $orderId, DeadlineKind $which, CarbonImmutable $newDeadline, string $reason, ?RequestContext $ctx = null): Order
+    /** @param  string|null  $extensionRequestId  spec 014: the seller's request this extension answers */
+    public function handle(Staff $actor, string $orderId, DeadlineKind $which, CarbonImmutable $newDeadline, string $reason, ?RequestContext $ctx = null, ?string $extensionRequestId = null): Order
     {
         $reason = trim($reason);
 
-        return DB::transaction(function () use ($actor, $orderId, $which, $newDeadline, $reason, $ctx) {
+        return DB::transaction(function () use ($actor, $orderId, $which, $newDeadline, $reason, $ctx, $extensionRequestId) {
             $listingId = Order::query()->findOrFail($orderId, ['order_id', 'listing_id'])->listing_id;
             $listing = $this->lockListing($listingId);
             $order = $this->lockOrder($orderId);
+            $this->assertNotFrozen($order);
 
             [$state, $column, $reminder] = match ($which) {
                 DeadlineKind::REACH_BRANCH => [OrderState::AWAITING_DELIVERY, 'reach_branch_deadline', 'reach_reminder_sent_at'],
@@ -69,6 +71,7 @@ final class ExtendOrderDeadlineAction
                 'new_deadline' => $newDeadline,
                 'granted_by' => $actor->staff_id,
                 'reason' => $reason,
+                'extension_request_id' => $extensionRequestId,
             ]);
 
             if ($which === DeadlineKind::COLLECT && $listing->state === ListingState::UNCOLLECTED_EXPIRED) {

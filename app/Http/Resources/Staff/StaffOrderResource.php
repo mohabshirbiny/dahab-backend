@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Staff;
 
+use App\Enums\ExtensionRequestState;
 use App\Enums\OrderState;
 use App\Enums\StaffPermission;
 use App\Http\Resources\Customer\CustomerOrderResource;
@@ -23,7 +24,7 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Schema(
     schema: 'StaffOrder',
-    description: 'An order for staff (spec 012). Money as 4-dp strings. The detail adds settlement, inspections, decision, collection, seller_return, branch_changes, extensions, ledger, timeline and can.',
+    description: 'An order for staff (spec 012). Money as 4-dp strings. The detail adds settlement, inspections, decision, collection, seller_return, branch_changes, extensions, ledger, timeline and can. Spec 014: frozen and has_waiting_extension on every row; the detail adds disputes, extension_request, collection.proxy and can.handle_dispute | answer_extension | view_proxy_id.',
     required: ['id', 'order_ref', 'state', 'group', 'listing_state', 'piece', 'seller', 'buyer', 'branch', 'value', 'held', 'paid', 'deadline', 'accepted_at'],
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
@@ -40,6 +41,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'paid', type: 'string', nullable: true),
         new OA\Property(property: 'deadline', type: 'object', nullable: true, description: '{kind, at, overdue}'),
         new OA\Property(property: 'accepted_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'frozen', type: 'boolean', description: 'Spec 014: disputed'),
+        new OA\Property(property: 'has_waiting_extension', type: 'boolean', description: 'Spec 014: the seller asked for more time and is waiting'),
     ],
 )]
 class StaffOrderResource extends JsonResource
@@ -60,7 +63,10 @@ class StaffOrderResource extends JsonResource
         $o = $this->resource;
         $deadline = app(DeadlinePolicy::class)->running($o, $o->sellerReturn);
         $deposit = bcadd((string) $o->buyRequest->deposit_amount, '0', 4);
-        $held = $o->state->isOpen() && ! in_array($o->state, [OrderState::READY_TO_COLLECT, OrderState::DISPUTED], true);
+        // The deposit is held until payment; a dispute frozen after payment holds nothing (spec 014).
+        $held = $o->state->isOpen() && $o->state !== OrderState::READY_TO_COLLECT
+            && ! ($o->state === OrderState::DISPUTED && $o->final_buyer_total !== null);
+        $requests = $o->relationLoaded('extensionRequests') ? $o->extensionRequests : $o->extensionRequests()->get();
 
         $data = [
             'id' => $o->order_id,
@@ -81,6 +87,8 @@ class StaffOrderResource extends JsonResource
                 'overdue' => $deadline['overdue'],
             ],
             'accepted_at' => $o->accepted_at->toIso8601String(),
+            'frozen' => $o->state === OrderState::DISPUTED,
+            'has_waiting_extension' => $requests->contains(fn ($r) => $r->state === ExtensionRequestState::WAITING),
         ];
 
         if (! $this->detail) {
@@ -118,6 +126,14 @@ class StaffOrderResource extends JsonResource
                 'handover_by' => $o->collection->handover_by,
                 'failed_attempts' => $o->collection->failed_attempts,
                 'locked_until' => $o->collection->locked_until?->toIso8601String(),
+                // Spec 014: the person the buyer named; the ID photo through GET …/proxy-id.
+                'proxy' => ! $o->collection->is_proxy && ! $o->collection->collected_by_proxy ? null : [
+                    'name' => $o->collection->proxy_name,
+                    'phone' => $o->collection->proxy_phone,
+                    'named_at' => $o->collection->proxy_named_at?->toIso8601String(),
+                    'has_id_photo' => $o->collection->is_proxy,
+                    'collected_by_proxy' => $o->collection->collected_by_proxy,
+                ],
             ],
             'seller_return' => $o->sellerReturn === null ? null : [
                 'return_deadline' => $o->sellerReturn->return_deadline->toIso8601String(),
@@ -130,6 +146,17 @@ class StaffOrderResource extends JsonResource
             'cancel_reason' => $o->cancel_reason,
             'ledger' => $o->getAttribute('ledger_entries') ?? [],
             'timeline' => OrderTimeline::build($o, forStaff: true),
+            // Spec 014.
+            'disputes' => ($o->relationLoaded('disputes') ? $o->disputes : $o->disputes()->get())->map(fn ($d) => [
+                'id' => $d->dispute_id,
+                'ref' => $d->dispute_ref,
+                'raised_as' => $d->raised_as,
+                'reason' => $d->reason->value,
+                'state' => $d->state->value,
+                'outcome' => $d->outcome?->value,
+                'opened_at' => $d->opened_at->toIso8601String(),
+            ])->values()->all(),
+            'extension_request' => ($last = $requests->last()) === null ? null : ExtensionRequestResource::shape($last, withOrder: false),
             'can' => self::can($o, $request->user('staff')),
         ];
     }
@@ -156,6 +183,13 @@ class StaffOrderResource extends JsonResource
             'return_handover' => $return !== null && $return->collected_at === null && $return->relisted_at === null
                 && $here && $has(StaffPermission::ORDER_HANDOVER),
             'cancel' => $o->state === OrderState::AWAITING_DELIVERY && $has(StaffPermission::ORDER_CANCEL),
+            // Spec 014.
+            'handle_dispute' => $o->state === OrderState::DISPUTED && $has(StaffPermission::DISPUTE_HANDLE),
+            'answer_extension' => $o->state === OrderState::AWAITING_DELIVERY && $has(StaffPermission::ORDER_EXTEND_DEADLINE)
+                && ($o->relationLoaded('extensionRequests') ? $o->extensionRequests : $o->extensionRequests()->get())
+                    ->contains(fn ($r) => $r->state === ExtensionRequestState::WAITING),
+            'view_proxy_id' => $o->collection !== null && $o->collection->is_proxy
+                && ($has(StaffPermission::ORDER_HANDOVER) || $has(StaffPermission::ORDER_VIEW)),
         ];
     }
 }
