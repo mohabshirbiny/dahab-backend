@@ -138,6 +138,12 @@ enum StaffPermission: string
     /** Close the day (Part 1 §4.2; spec 015). Never the COO. */
     case DAY_CLOSE = 'day.close';
 
+    /** Read tax invoices, credit notes, their PDFs and the export (spec 016 Clarifications). Never the COO. */
+    case INVOICE_VIEW = 'invoice.view';
+
+    /** Issue or correct a tax invoice — a credit note (Part 1 §4.2; spec 016). Never the COO. */
+    case INVOICE_CORRECT = 'invoice.correct';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -200,6 +206,8 @@ enum StaffPermission: string
             self::WALLET_ADJUST => 'Adjust a wallet balance directly',
             self::BANK_RECORD => 'Record a bank movement outside the app',
             self::DAY_CLOSE => 'Close the day',
+            self::INVOICE_VIEW => 'View tax invoices and credit notes',
+            self::INVOICE_CORRECT => 'Issue or correct a tax invoice',
         };
     }
 
@@ -215,7 +223,8 @@ enum StaffPermission: string
             self::AUDIT_VIEW_ALL, self::AUDIT_VIEW_OWN => 'Audit',
             self::WALLET_VIEW, self::TOPUP_MATCH, self::TOPUP_ACCOUNTS_MANAGE, self::WITHDRAWAL_RELEASE,
             self::ORDER_REFUND, self::COMPENSATION_PAY, self::COMPENSATION_UNCAPPED,
-            self::WALLET_ADJUST, self::BANK_RECORD, self::DAY_CLOSE => 'Money',
+            self::WALLET_ADJUST, self::BANK_RECORD, self::DAY_CLOSE,
+            self::INVOICE_VIEW, self::INVOICE_CORRECT => 'Money',
             self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
@@ -303,6 +312,9 @@ enum StaffPermission: string
             // "Record a bank movement" and "Close the day" are CEO + Finance. Never the COO.
             self::WALLET_ADJUST => [],
             self::BANK_RECORD, self::DAY_CLOSE => [SeedRole::FINANCE->value],
+            // Spec 016 (Part 1 §4.2 "Issue or correct a tax invoice": CEO + Finance; reading the
+            // same people, Clarifications). Never the COO.
+            self::INVOICE_VIEW, self::INVOICE_CORRECT => [SeedRole::FINANCE->value],
         };
     }
 }

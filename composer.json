@@ -12,6 +12,7 @@
         "laravel/horizon": "^5.49",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.10.1",
+        "mpdf/mpdf": "^8.2",
         "pragmarx/google2fa": "^8.0",
         "predis/predis": "^3.6",
         "spatie/laravel-permission": "^8.3"

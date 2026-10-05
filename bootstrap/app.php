@@ -118,6 +118,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 // indexes answer a lost race with the same code the Action gives.
                 'DH009' => DomainApiException::illegalDisputeTransition(),
                 'DH010' => DomainApiException::illegalExtensionRequestTransition(),
+                // Spec 016: the credit-note cap answers like the Action; any other DH012
+                // (an invoice or credit note not matching its entry) is a bug — a 500.
+                'DH012' => match (true) {
+                    str_contains($e->getMessage(), 'credit_exceeds_invoice') => DomainApiException::creditExceedsInvoice(),
+                    str_contains($e->getMessage(), 'invoice_not_creditable') => DomainApiException::invoiceNotCreditable(),
+                    default => $e,
+                },
                 '23505' => match (true) {
                     str_contains($e->getMessage(), 'one_active_request_per_buyer_listing') => DomainApiException::alreadyInQueue(),
                     str_contains($e->getMessage(), 'dispute_one_per_party') => DomainApiException::disputeAlreadyRaised(),

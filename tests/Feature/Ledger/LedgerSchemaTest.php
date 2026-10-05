@@ -68,7 +68,7 @@ it('defines exactly the documented account and event kinds', function () {
     ])->and($values('ledger_event_kind'))->toBe([
         'topup', 'deposit_hold', 'deposit_release', 'deposit_forfeit', 'settlement_seller', 'first_sale_payout',
         'commission', 'spread', 'vat', 'balance_payment', 'withdrawal', 'compensation', 'external_bank_movement',
-        'weight_adjustment', 'reversal',
+        'weight_adjustment', 'reversal', 'credit_note',
     ]);
 });
 
@@ -193,8 +193,9 @@ it('refuses deleting a customer who has ledger lines', function () {
 });
 
 it('rolls back without leaving a ledger object behind', function () {
-    // Finance operations (spec 015), disputes (spec 014), withdrawals (spec 013), orders (spec 012), buy requests
+    // Tax invoices (spec 016), finance operations (spec 015), disputes (spec 014), withdrawals (spec 013), orders (spec 012), buy requests
     // (spec 011) and top-ups (spec 009) reference the ledger, so they roll back first.
+    Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_09_000010_create_tax_invoices.php', '--force' => true]);
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_08_000010_create_finance_ops.php', '--force' => true]);
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_07_000010_create_disputes.php', '--force' => true]);
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_06_000010_create_withdrawals.php', '--force' => true]);

@@ -170,6 +170,12 @@ class Order extends Model
         return $this->hasMany(OrderExtensionRequest::class, 'order_id', 'order_id')->orderBy('requested_at');
     }
 
+    /** Spec 016: the tax invoices issued at payment, one per party (RLS: a customer sees their own only). */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(TaxInvoice::class, 'order_id', 'order_id');
+    }
+
     /** The result that counts: the newest one no other result supersedes (Part 3 §7.3). */
     public function latestInspection(): ?InspectionResult
     {

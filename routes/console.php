@@ -24,5 +24,9 @@ Schedule::command('orders:sweep')->everyMinute()->withoutOverlapping();
 // once that their pause has ended.
 Schedule::command('withdrawals:sweep')->everyMinute()->withoutOverlapping();
 
+// Tax invoice and credit note PDFs still missing (spec 016 FR-023a): those
+// issued while Dahab's details were incomplete, or whose job gave up.
+Schedule::command('invoices:render-pending')->everyFiveMinutes()->withoutOverlapping();
+
 // Expired Idempotency-Key records (spec 007 research R2; kept 24 h).
 Schedule::command('idempotency:prune')->hourly()->withoutOverlapping();

@@ -314,7 +314,7 @@ CREATE TABLE "order" (
 -- number never resets.
 -- As built by spec 012 (specs/012-orders): every state of the life after
 -- acceptance is reached except 'disputed' (disputes are a later spec);
--- tax_invoice is not created yet. The tables below §9–§11 exist as shown.
+-- tax_invoice is built by spec 016 (see below). The tables below §9–§11 exist as shown.
 CREATE SEQUENCE order_ref_seq;
 CREATE INDEX idx_order_listing ON "order"(listing_id);
 
@@ -791,17 +791,75 @@ ALTER TABLE ledger_transaction
   -- spec 013: deferred, so a request posts the hold before inserting the withdrawal it names.
   ADD CONSTRAINT lt_withdrawal_fk FOREIGN KEY (withdrawal_id)  REFERENCES withdrawal(withdrawal_id) DEFERRABLE INITIALLY DEFERRED;
 
--- Tax invoice, issued automatically at completion, filed with ETA.
+-- Tax invoice. As built by spec 016 (specs/016-tax-invoices): issued
+-- automatically inside the pay-balance settlement (Part 2 §7), never at
+-- handover and never by hand; one per order per party; NOT filed with the
+-- Egyptian Tax Authority (Part 4 §4 is not integrated: eta_reference stays
+-- NULL). Seller: net = the commission posted, vat = the VAT posted.
+-- Buyer: net = gross = the buyer total, VAT 0. party_role is TEXT + CHECK
+-- (the party_role enum type above was never created by the build).
+-- Guards on SQLSTATE DH012 (bodies in
+-- database/migrations/2026_10_09_000010_create_tax_invoices.php):
+--   tax_document_guard()      append-only; issuer, party, storage_ref and
+--                             document_at may go from NULL to a value once
+--   tax_invoice_reconciled()  deferred: the invoice equals its order's
+--                             settlement columns and ledger lines
+-- Forced RLS: a customer reads their own; written only by the buyer's payment
+-- (scope 'order') or an elevated scope.
 CREATE TABLE tax_invoice (
-  invoice_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id     UUID NOT NULL REFERENCES "order"(order_id),
-  party_role   party_role NOT NULL,             -- one to each side
-  customer_id  UUID NOT NULL REFERENCES customer(customer_id),
-  net_amount   NUMERIC(18,4) NOT NULL,
-  vat_amount   NUMERIC(18,4) NOT NULL,
-  gross_amount NUMERIC(18,4) NOT NULL,
-  eta_reference TEXT,                            -- e-invoicing system id
-  issued_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  storage_ref  TEXT,
-  UNIQUE (order_id, party_role)
+  invoice_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_no    TEXT NOT NULL UNIQUE,          -- order_ref || '-S' | '-B'
+  order_id      UUID NOT NULL REFERENCES "order"(order_id),
+  party_role    TEXT NOT NULL CHECK (party_role IN ('seller','buyer')),  -- one to each side
+  customer_id   UUID NOT NULL REFERENCES customer(customer_id),
+  net_amount    NUMERIC(18,4) NOT NULL CHECK (net_amount > 0),
+  vat_amount    NUMERIC(18,4) NOT NULL CHECK (vat_amount >= 0),
+  gross_amount  NUMERIC(18,4) NOT NULL,
+  vat_rate      NUMERIC(6,3) NOT NULL CHECK (vat_rate >= 0),  -- vat.pct at settlement (0 for the buyer)
+  lines         JSONB NOT NULL,                -- snapshot: piece, weight, rate, gold value, making, totals
+  issuer        JSONB,                         -- Dahab's details (config/dahab-invoices.php), set once
+  party         JSONB,                         -- {full_name, display_ref}, set once by the document job
+  eta_reference TEXT,                          -- e-invoicing system id (NULL: not integrated)
+  issued_at     TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  storage_ref   TEXT,                          -- encrypted bilingual PDF, set once
+  document_at   TIMESTAMPTZ,
+  CONSTRAINT tax_invoice_one_per_party UNIQUE (order_id, party_role),
+  CONSTRAINT invoice_gross CHECK (gross_amount = net_amount + vat_amount),
+  CONSTRAINT invoice_vat_on_seller_only CHECK (party_role = 'seller' OR (vat_amount = 0 AND vat_rate = 0)),
+  CONSTRAINT invoice_no_matches_party CHECK (right(invoice_no, 2) = CASE party_role WHEN 'seller' THEN '-S' ELSE '-B' END),
+  CONSTRAINT invoice_storage_pair CHECK ((storage_ref IS NULL) = (document_at IS NULL))
 );
+CREATE INDEX idx_tax_invoice_issued ON tax_invoice(issued_at DESC, invoice_id);
+CREATE INDEX idx_tax_invoice_customer ON tax_invoice(customer_id, issued_at DESC);
+
+-- Credit note (spec 016). A registered invoice is never edited; a correction
+-- is a credit note against a SELLER invoice, by hand (invoice.correct), with
+-- a reason, refunding Dahab's commission and VAT in one balanced
+-- 'credit_note' ledger entry. Numbered 'CN-' || year (Cairo) || '-' ||
+-- lpad(nextval('credit_note_no_seq'), 6) — never resets. Guards (DH012):
+--   credit_note_cap()       before insert, invoice row locked: a seller
+--                           invoice only; the sum never above its gross
+--   credit_note_recorded()  deferred: the exact refund entry exists
+--   tax_document_guard()    append-only; issuer, storage_ref, document_at once
+-- Forced RLS: a customer reads their own; written only by an elevated scope.
+CREATE SEQUENCE credit_note_no_seq;
+CREATE TABLE credit_note (
+  credit_note_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  credit_note_no TEXT NOT NULL UNIQUE,
+  invoice_id     UUID NOT NULL REFERENCES tax_invoice(invoice_id),
+  customer_id    UUID NOT NULL REFERENCES customer(customer_id),
+  net_amount     NUMERIC(18,4) NOT NULL CHECK (net_amount > 0),
+  vat_amount     NUMERIC(18,4) NOT NULL CHECK (vat_amount >= 0),   -- round½↑(gross × rate / (100 + rate), 4)
+  gross_amount   NUMERIC(18,4) NOT NULL CHECK (gross_amount > 0),
+  reason         TEXT NOT NULL CHECK (char_length(reason) BETWEEN 10 AND 1000),
+  issued_by      UUID NOT NULL REFERENCES staff(staff_id),
+  ledger_txn_id  UUID NOT NULL UNIQUE REFERENCES ledger_transaction(ledger_txn_id),
+  issuer         JSONB,
+  issued_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  storage_ref    TEXT,
+  document_at    TIMESTAMPTZ,
+  CONSTRAINT credit_note_gross CHECK (gross_amount = net_amount + vat_amount),
+  CONSTRAINT credit_note_storage_pair CHECK ((storage_ref IS NULL) = (document_at IS NULL))
+);
+CREATE INDEX idx_credit_note_issued ON credit_note(issued_at DESC, credit_note_id);
+CREATE INDEX idx_credit_note_invoice ON credit_note(invoice_id);

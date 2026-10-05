@@ -45,6 +45,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'locked_total_price', type: 'string'),
         new OA\Property(property: 'deposit_amount', type: 'string'),
         new OA\Property(property: 'deposit_held', type: 'string', nullable: true, description: 'Spec 015: what this order holds in the buyer\'s wallet now, from the ledger; null for the seller'),
+        new OA\Property(property: 'invoice', type: 'object', nullable: true, description: 'Spec 016: {id, number} of your own tax invoice for this order once the balance is paid; null before (and for orders paid before spec 016)'),
         new OA\Property(property: 'deadline', type: 'object', nullable: true, description: '{kind: reach_branch|decision|balance|collect|return, at, overdue}'),
         new OA\Property(property: 'amount_due', type: 'string', nullable: true, description: 'Buyer, awaiting balance'),
         new OA\Property(property: 'final_total', type: 'string', nullable: true, description: 'Buyer: the total on the measured weight'),
@@ -121,6 +122,8 @@ class CustomerOrderResource extends JsonResource
             'locked_total_price' => bcadd((string) $o->locked_total_price, '0', 4),
             'deposit_amount' => bcadd((string) $o->buyRequest->deposit_amount, '0', 4),
             'deposit_held' => $seller ? null : app(HeldByRequest::class)->of($o->buy_request_id),
+            // Spec 016: the caller's own tax invoice, once the balance is paid (none for orders paid before spec 016).
+            'invoice' => ($inv = $o->invoices->firstWhere('customer_id', $me)) === null ? null : ['id' => $inv->invoice_id, 'number' => $inv->invoice_no],
             'deadline' => $deadline === null ? null : [
                 'kind' => $deadline['kind']->value,
                 'at' => $deadline['at']->toIso8601String(),
