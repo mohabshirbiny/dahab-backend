@@ -153,7 +153,10 @@ CREATE TYPE ledger_event_kind AS ENUM (
   'compensation',          -- goodwill / dispute compensation to a wallet
   'external_bank_movement',-- capital, rent, fees, profit draw (manual)
   'weight_adjustment',     -- settlement delta after weight correction
-  'reversal'               -- correcting reversal of a prior event
+  'reversal',              -- correcting reversal of a prior event
+  'credit_note'            -- spec 016: a credit note refunds commission + VAT
+                           -- to the seller (dahab_commission -net,
+                           -- vat_payable -vat, cust_available +gross)
 );
 
 -- Changed by spec 002 (product-owner decision 2026-09-26): staff roles are

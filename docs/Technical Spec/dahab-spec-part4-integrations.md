@@ -70,3 +70,5 @@ Not yet specified (inspection contract, certificate costs — Part 3 OI-3.2).
 ## 4. Egyptian Tax Authority e-invoicing
 
 Not yet specified (automatic e-invoicing at `pay-balance`).
+
+> **Changed by spec 016** — see [`specs/016-tax-invoices/spec.md`](../../specs/016-tax-invoices/spec.md). Not integrated. Spec 016 issues the tax invoices and credit notes inside Dahab (numbers, bilingual PDFs, the ledger reconciliation) but sends nothing to the Tax Authority: `tax_invoice.eta_reference` stays NULL, and no screen, document or response states a filing or registration status. Filing, the registration status and resending are this section's future work.

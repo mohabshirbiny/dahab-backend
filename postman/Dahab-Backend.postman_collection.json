@@ -271,6 +271,18 @@
         {
             "key": "bank_movement_id",
             "value": ""
+        },
+        {
+            "key": "invoice_id",
+            "value": ""
+        },
+        {
+            "key": "buyer_invoice_id",
+            "value": ""
+        },
+        {
+            "key": "credit_note_id",
+            "value": ""
         }
     ],
     "item": [
@@ -6560,6 +6572,365 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Invoices",
+                    "description": "Spec 016: tax invoices issued automatically at pay-balance (DH-YYYY-NNNNNN-S / -B) and credit notes (CN-YYYY-NNNNNN). Nothing is filed with the Tax Authority.",
+                    "item": [
+                        {
+                            "name": "List Invoices",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/invoices?from=&to=&party=&status=&q=&cursor=&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "invoices"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "party",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "q",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 016 FR-010/FR-011. invoice.view. Newest first; party seller|buyer; status issued|partly_credited|credited (from credit notes, never a Tax Authority status); q = invoice number (starts with the order ref) or customer ref/name; meta.figures.month and .period. Saves invoice_id (a seller invoice) and buyer_invoice_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data) {",
+                                            "  const s = json.data.find(r => r.party === 'seller'); if (s) pm.collectionVariables.set('invoice_id', s.id);",
+                                            "  const b = json.data.find(r => r.party === 'buyer'); if (b) pm.collectionVariables.set('buyer_invoice_id', b.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Export Invoices (CSV)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "text/csv",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/invoices/export?from=&to=&party=&status=&q=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "invoices",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "party",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "q",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 016 FR-013. invoice.view. Same filters; CSV with BOM; X-Export-Truncated at the cap; audited invoices.exported."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Show Invoice",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/invoices/{{invoice_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "invoices",
+                                        "{{invoice_id}}"
+                                    ]
+                                },
+                                "description": "Spec 016 FR-012. invoice.view. Lines, Dahab's details (null until configured), party_details, creditable, credit notes."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Invoice PDF",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/pdf",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/invoices/{{invoice_id}}/pdf",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "invoices",
+                                        "{{invoice_id}}",
+                                        "pdf"
+                                    ]
+                                },
+                                "description": "Spec 016 FR-012/FR-024. invoice.view. The bilingual PDF; audited invoice.document_viewed; 409 document_not_ready while it is being prepared."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Issue Credit Note",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/invoices/{{invoice_id}}/credit-notes",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "invoices",
+                                        "{{invoice_id}}",
+                                        "credit-notes"
+                                    ]
+                                },
+                                "description": "Spec 016 FR-018 to FR-020. invoice.correct. A seller invoice only (buyer: 409 invoice_not_creditable); amount = gross to credit, > 0, at most 2 dp, never above what is left (422 credit_exceeds_invoice, details.remaining); reason 10 to 1000 characters. One balanced credit_note entry (dahab_commission -net, vat_payable -vat, seller available +gross); numbered CN-YYYY-NNNNNN; the seller is told by SMS + email. Saves credit_note_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"amount\": \"300.00\",\n  \"reason\": \"Commission was overstated after a weight correction.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data.id) pm.collectionVariables.set('credit_note_id', json.data.id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "List Credit Notes",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/credit-notes?from=&to=&q=&cursor=&per_page=25",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "credit-notes"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "q",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "25"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 016 FR-014. invoice.view. Newest first; from/to; q = credit note or invoice number, reason, customer ref/name."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Credit Note PDF",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/pdf",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/credit-notes/{{credit_note_id}}/pdf",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "credit-notes",
+                                        "{{credit_note_id}}",
+                                        "pdf"
+                                    ]
+                                },
+                                "description": "Spec 016 FR-024. invoice.view. The bilingual PDF; audited credit_note.document_viewed."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""
@@ -7343,7 +7714,7 @@
                                         }
                                     ]
                                 },
-                                "description": "One row per ledger entry, newest first: kind, available_change, held_change, available_after, held_after, reference. A hold is money out of available. Page with cursor = meta.next_cursor."
+                                "description": "One row per ledger entry, newest first: kind, available_change, held_change, available_after, held_after, reference. A hold is money out of available. Page with cursor = meta.next_cursor. Spec 016: invoice_id (your own invoice) on balance_payment and credit_note rows; kind credit_note = an invoice correction."
                             },
                             "response": []
                         },
@@ -9715,6 +10086,155 @@
                                     ]
                                 },
                                 "description": "Spec 013 FR-010. requested / under_review → cancelled; the money returns to available. 409 illegal_withdrawal_transition."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Invoices",
+                    "description": "Spec 016: the customer's own tax invoices and credit notes.",
+                    "item": [
+                        {
+                            "name": "My Invoices",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/invoices?role=&cursor=&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "invoices"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "role",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 016 FR-015. Verified; a suspended customer may read. role = seller (pieces you sold) | buyer. Not audited. Saves invoice_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data[0]) pm.collectionVariables.set('invoice_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "My Invoice",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/invoices/{{invoice_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "invoices",
+                                        "{{invoice_id}}"
+                                    ]
+                                },
+                                "description": "Spec 016 FR-015. Lines, Dahab's details, credit notes. Another customer's invoice: 404."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "My Invoice PDF",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/pdf",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/invoices/{{invoice_id}}/pdf",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "invoices",
+                                        "{{invoice_id}}",
+                                        "pdf"
+                                    ]
+                                },
+                                "description": "Spec 016 FR-023. The bilingual PDF; 409 document_not_ready while it is being prepared."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "My Credit Note PDF",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/pdf",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/credit-notes/{{credit_note_id}}/pdf",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "credit-notes",
+                                        "{{credit_note_id}}",
+                                        "pdf"
+                                    ]
+                                },
+                                "description": "Spec 016. A credit note on one of your invoices, as a bilingual PDF."
                             },
                             "response": []
                         }

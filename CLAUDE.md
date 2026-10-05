@@ -286,7 +286,15 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   ledger's bank cash at midnight Cairo, only ended days, 0 locks, a difference locks only with an explanation, a locked day
   never changes), `GET /dashboard/overview` (sections by permission), `GET /dashboard/orders/export`, `deposit_held` on buy
   requests and orders and `GET /customer/me/wallet/held`, and the public `GET /reference/gold-prices` and `/reference/quote`.
-  Guards DH011. Invoices are not built. Nothing else yet.
+  Guards DH011; tax invoices and credit notes (spec 016) — the pay-balance settlement issues `DH-YYYY-NNNNNN-S` to the
+  seller (net = the commission posted, its VAT) and `-B` to the buyer (the price paid, VAT 0) in the same transaction
+  (`tax_invoice`, one per order and party, reconciled with the ledger by a deferred DH012 check; no backfill of earlier
+  orders); a bilingual PDF per document (mPDF) made after commit and healed by `invoices:render-pending`, stored encrypted;
+  Dahab's details from `config/dahab-invoices.php` (empty until filled: documents wait); credit notes `CN-YYYY-NNNNNN` on
+  a seller invoice by hand (`invoice.correct`, one balanced `credit_note` entry giving commission and VAT back, never above
+  what is left, SMS + email to the seller); reads `invoice.view` (`/dashboard/invoices*`, `/dashboard/credit-notes*`, export,
+  audited PDFs) and the customer's own (`/customer/me/invoices*`, `invoice` on orders, `invoice_id` on wallet movements).
+  Nothing is filed with the Tax Authority (Part 4 §4 not integrated). Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -298,7 +306,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Pass on, Resolve with compensation and suspension; listing reports are not built), and Orders shows the frozen
   banner, Requests for more time with Answer, the person named to collect with their ID, and the proxy handover
   (spec 014). Compensation, Bank movements and Daily closing are live, the Customer file has Adjust (wallet.adjust), the
-  Orders list exports to CSV, and the whole Overview is live — no mock figure left on it (spec 015).
+  Orders list exports to CSV, and the whole Overview is live — no mock figure left on it (spec 015). Invoices is live:
+  figures, invoices with their status from credit notes, export, credit notes, detail and PDF, Issue a credit note (spec 016).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -309,14 +318,15 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   accepted on the Orders tab, and the order screen — bring the piece with a countdown, cancel the sale, the
   inspection result, accept/decline a new price, pay the balance with You need a little more → Add funds, the
   collection code, the returned piece with its code and Put it back on the market); the prototype's other order
-  screens, invoices, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`); Bank accounts,
+  screens, notifications, etc. run on mock repositories (`lib/services/mock_repositories.dart`); Bank accounts,
   Add a bank account, Your details → Payout account, Withdraw with the email step, the `#/withdraw-confirm` page and the
   wallet's pending withdrawals are live (spec 013); Report a problem with photos, the order on hold with your report and
   Dahab's answer, Ask for more time and Someone else collects are live on the order screen (spec 014; the prototype's
   standalone Inspection, Pay and Collection-code screens were removed: their routes open the live order); the rate strip,
   the splash rate cards, the home calculator and the sell estimate read the backend's prices and quote, and Held on open
-  orders lists what each request and order holds (spec 015).
-- Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8010/api/v1` (the Dashboard's dev env uses `:8000`); the production host is passed
+  orders lists what each request and order holds (spec 015); Transactions and invoices and the invoice screen with its PDF and
+  credit notes are live, with View invoice on a paid order and Open the invoice on the wallet line (spec 016).
+- Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 
 ---

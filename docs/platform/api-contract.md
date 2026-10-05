@@ -96,7 +96,8 @@ deliberately not enabled.
   the proof upload; Finance) and `day.close` (close a day; Finance); `compensation.pay` also pays outside a dispute. Reads:
   compensation `compensation.pay|wallet.view`, adjustments `wallet.adjust|wallet.view`, bank book and movements
   `bank.record|wallet.view`, the daily close `day.close|wallet.view`; `GET /dashboard/overview` needs no code and returns only
-  the sections the viewer's codes allow.
+  the sections the viewer's codes allow. Since spec 016: `invoice.view` (invoices, credit notes, their PDFs, the export) and
+  `invoice.correct` (issue a credit note) — both Finance (founders hold every code), never the COO.
   Roles (`app/Enums/StaffRole.php`): `ceo`, `coo`, `finance`, `operations`, `verification`, `igi_branch`.
 - Frontends gate UI on the **permission strings** from `GET /dashboard/auth/me`, never on role names.
   A new permission is a contract change: update `StaffPermission`, seeders, the route, and the Dashboard's
@@ -217,7 +218,8 @@ machine-readable value clients must switch on**; `message` is human text and may
   `illegal_payout_account_transition` 409 (SQLSTATE DH008); from spec 014: `order_frozen` 409 (any order action while the order is
   `disputed`), `dispute_already_raised` 409, `dispute_outcome_not_allowed` 409, `illegal_dispute_transition` 409 (SQLSTATE DH009),
   `assignee_not_eligible` 422, `extension_request_pending` 409, `illegal_extension_request_transition` 409 (SQLSTATE DH010),
-  `compensation_cap_exceeded` 403, `proxy_details_missing` 422; from spec 015: `day_not_ended` 422, `day_already_closed` 409, …).
+  `compensation_cap_exceeded` 403, `proxy_details_missing` 422; from spec 015: `day_not_ended` 422, `day_already_closed` 409; from spec 016: `invoice_not_creditable` 409,
+  `credit_exceeds_invoice` 422 (`details.remaining`), `document_not_ready` 409, SQLSTATE DH012, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -264,6 +266,7 @@ token is single use. Since spec 014: `POST /customer/me/orders/{id}/disputes|ext
 `POST /dashboard/disputes/{id}/pass-on|resolve` and `POST /dashboard/extension-requests/{id}/accept|refuse`. Since spec 015:
 `POST /dashboard/compensation`, `POST /dashboard/customers/{id}/wallet-adjustments`, `POST /dashboard/bank-movements` and
 `POST /dashboard/daily-close` (the staff upload `POST /dashboard/uploads` returns a single-use token, like the customer's).
+Since spec 016: `POST /dashboard/invoices/{id}/credit-notes`.
 
 ## Status codes in use
 
@@ -307,7 +310,8 @@ Each frontend's dev origin must be listed (Dashboard Vite :3000, Flutter web :87
 ## CSV exports and public price reads (spec 015)
 
 - Every staff CSV export (`/dashboard/wallet-statement/export`, `/topups/export`, `/withdrawals/export`, `/audit-log/export`,
-  and since spec 015 `/orders/export`, `/compensation/export`, `/bank-movements/export`, `/bank-book/export`) takes the same
+  and since spec 015 `/orders/export`, `/compensation/export`, `/bank-movements/export`, `/bank-book/export`; since spec 016
+  `/invoices/export`) takes the same
   filters as its list, is UTF-8 with a BOM, neutralises spreadsheet formulas, stops at a configured row cap with a closing
   line (and `X-Export-Truncated: true`), and is audited with the filters and the row count.
 - Staff uploads (spec 015): `POST /dashboard/uploads` (multipart `purpose`, `file`) → `{ token, expires_in }`; the token is
@@ -315,3 +319,14 @@ Each frontend's dev origin must be listed (Dashboard Vite :3000, Flutter web :87
 - Public price reads (spec 015): `GET /reference/gold-prices` and `GET /reference/quote` are unauthenticated, limited by
   `public.market`, cacheable for 30 s, and answer `price_unavailable` (409) when no usable price exists. Figures are
   indicative; nothing is locked until a buy request.
+
+## Documents and tax invoices (spec 016)
+
+- Binary documents: `GET …/pdf` answers `200 application/pdf` with `Content-Disposition: attachment; filename="<number>.pdf"`,
+  or `409 document_not_ready` while the document is being generated (it is built after the money transaction commits). Staff
+  views are audited; a customer's own downloads are not.
+- Customer surface: `/customer/me/invoices*` and `/customer/me/credit-notes/{id}/pdf` (gate `verified`); the customer order
+  carries `invoice {id, number} | null` (the caller's own invoice); wallet movements carry `invoice_id` and may have the kind
+  `credit_note` — consumers must keep a fallback label for unknown kinds.
+- Dashboard surface: `/dashboard/invoices*`, `/dashboard/credit-notes*`. Invoice status (`issued | partly_credited | credited`)
+  is derived from the credit notes. No Tax Authority status exists in any response (not integrated).

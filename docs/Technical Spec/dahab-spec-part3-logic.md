@@ -112,6 +112,8 @@ For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed aski
 
 ### 2.5 Commission and VAT
 
+> **Changed by spec 016** — see [`specs/016-tax-invoices/spec.md`](../../specs/016-tax-invoices/spec.md). As built (spec 005 calculator, spec 012 settlement), VAT is **added on top** of the commission (`vat = vat.pct × commission`; seller proceeds = seller gross − commission − VAT), so the seller's tax invoice shows net = commission, VAT, gross = commission + VAT. The blueprint's worked example and the customer prototype describe the commission as *VAT included* (e.g. 336 = 294.74 + 41.26) — that wording disagrees with this section and with the build; reported, the invoice follows the build. No rounding residue arises at settlement as built (proceeds and spread are derived by subtraction).
+
 - **Gold:** `commission = max(commission.gold_pct × (making_charge_per_g × W), commission.minimum_egp)`.
 - **Diamond / gold-with-diamond:** `commission = max(commission.stone_pct × value_above_gold, commission.minimum_egp)`, where `value_above_gold` is the whole asking price (pure diamond) or `asking_price − gold_value` (gold-with-diamond).
 - **Minimum commission** (`commission.minimum_egp`, 200) is never broken, "not even by a promo code" (blueprint §3) — except a market-maker code waives commission entirely by design (§8); the minimum floors a *charged* commission, it does not force a charge onto a waived one.

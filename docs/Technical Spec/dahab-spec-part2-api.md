@@ -428,6 +428,8 @@ Buyer pays the remaining balance; **this is now the settlement event.** The fina
 - **200:** `{ "state": "ready_to_collect", "collect_deadline", "buyer_total", "seller_proceeds" }` (the plaintext collection code is delivered to the buyer over their own channel, not returned in a list response).
 - **Errors:** `insufficient_funds` (409), `balance_deadline_passed` (409 → the no-pay cancellation path runs as a job, §10), `illegal_order_transition` (409).
 
+> **Changed by spec 016** — see [`specs/016-tax-invoices/spec.md`](../../specs/016-tax-invoices/spec.md). As built, the same transaction issues `DH-YYYY-NNNNNN-S` to the seller (net = the commission posted, VAT = the VAT posted, gross = their sum, the VAT rate in force) and `DH-YYYY-NNNNNN-B` to the buyer (net = gross = the buyer total, VAT 0), each with a snapshot of the settlement lines; a deferred check (SQLSTATE DH012) ties every invoice to its order's settlement and ledger lines, and `UNIQUE (order_id, party_role)` stops a second one. The bilingual PDF is generated **after** commit (a job, healed every five minutes by `invoices:render-pending`); Dahab's details come from `config/dahab-invoices.php` and a missing detail never blocks the payment. Nothing is filed with the Tax Authority (`eta_reference` NULL; Part 4 §4). Orders paid before spec 016 have no invoice (no backfill). `order.paid` carries `invoice_numbers`.
+
 ### `POST /igi/orders/{id}/handover`  (counter confirmation — physical only)
 
 > **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). As built: `POST /dashboard/orders/{order}/handover` `{ code, collector: buyer|proxy, proxy_id_checked }`. The proxy is named beforehand by the buyer (`POST /customer/me/orders/{order}/proxy` `{ name, phone, id_upload_token, authorisation_id, authorisation_accepted }` on a ready-to-collect order — the acceptance of `collection_proxy_authorisation` with context `collection_proxy`; `/proxy/remove`). `collector = proxy` without a named proxy or without `proxy_id_checked: true` → `proxy_details_missing` (422), no attempt counted; the buyer may still collect in person. The proxy gets one SMS without the code; staff view the ID at `GET /dashboard/orders/{order}/proxy-id` (audited).
@@ -578,6 +580,12 @@ Close the day: snapshot bank balance, customer liability, Dahab wallet, and the 
 > **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). Built as `GET /dashboard/daily-close?date=` (the day's books — today live, a past day at midnight Cairo — and its stored close), `GET /dashboard/daily-closes` (recent days, days closed, the last difference) — both `day.close` or `wallet.view` — and `POST /dashboard/daily-close` `{ date, bank_balance, explanation? }` (`day.close`). `bank_balance` is typed from the statements (all of Dahab's accounts); the books are the ledger's bank cash at the day's end; `difference = bank_balance − books_bank`. Only an ended day (`day_not_ended` 422). 0 locks; a non-zero difference locks only with an explanation (10–1000), otherwise the day is saved unlocked and can be closed again; a locked day → `day_already_closed` (409). Audited `day.closed` / `day.saved`.
 >
 > Also by spec 015: `GET /dashboard/overview` (any active staff; each section only with its permission — earnings this month `wallet.view`; orders by state, held now and this month `order.view`; needs-a-decision rows each with their acting code) and `GET /dashboard/orders/export` (`order.view`, the list's filters and branch scope, CSV, audited `order.list_exported`).
+
+---
+
+### Tax invoices and credit notes (built by spec 016)
+
+> **Changed by spec 016** — see [`specs/016-tax-invoices/spec.md`](../../specs/016-tax-invoices/spec.md). Staff (`invoice.view`): `GET /dashboard/invoices` (Cairo `from`/`to`, default last 30 days, ≤ 366 days; `party`, `status` = `issued|partly_credited|credited`, `q`; keyset; `meta.figures.month|period` = issued count, net invoiced (seller net), VAT collected (seller VAT − credit-note VAT), credit notes count and amount), `GET /dashboard/invoices/export` (CSV, audited `invoices.exported`), `GET /dashboard/invoices/{invoice}`, `GET /dashboard/invoices/{invoice}/pdf` (audited `invoice.document_viewed`), `GET /dashboard/credit-notes`, `GET /dashboard/credit-notes/{creditNote}/pdf` (audited `credit_note.document_viewed`). `POST /dashboard/invoices/{invoice}/credit-notes` (`invoice.correct`, idempotent, audited `credit_note.issued`): `{ amount, reason (10–1000) }` on a **seller** invoice only, never above what is left; one balanced `credit_note` entry — `dahab_commission −net`, `vat_payable −vat`, seller `cust_available +gross` (VAT = round½↑(gross × rate / (100 + rate), 4)); numbered `CN-YYYY-NNNNNN`; the seller told by SMS and email. Customer (gate `verified`; a suspended customer may read; not audited): `GET /customer/me/invoices` (`role=seller|buyer`), `GET /customer/me/invoices/{invoice}`, `GET /customer/me/invoices/{invoice}/pdf`, `GET /customer/me/credit-notes/{creditNote}/pdf`; the customer order carries `invoice {id, number}`; wallet movements carry `invoice_id` and the new kind `credit_note`. A PDF not generated yet answers `document_not_ready` (409).
 
 ---
 
@@ -748,6 +756,8 @@ These are scheduled workers that drive deadline-based transitions. They are list
 ---
 
 ## 12. Consolidated domain error codes
+
+> **Changed by spec 016** — see [`specs/016-tax-invoices/spec.md`](../../specs/016-tax-invoices/spec.md). New codes: `invoice_not_creditable` (409 — a credit note on a buyer invoice), `credit_exceeds_invoice` (422, `details.remaining`), `document_not_ready` (409). SQLSTATE DH012 (tax-invoice and credit-note guards): the credit cap answers the two codes above; any other DH012 is an integrity failure (500, logged).
 
 > **Changed by spec 015** — see [`specs/015-finance-ops/spec.md`](../../specs/015-finance-ops/spec.md). New codes: `day_not_ended` (422), `day_already_closed` (409). SQLSTATE DH011 (a wallet adjustment or bank movement without its matching entry) is an integrity failure, never expected.
 
