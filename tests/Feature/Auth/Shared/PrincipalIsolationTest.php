@@ -173,7 +173,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            wallet-adjustments store/index (2), uploads (1), bank-movements index/export/proof/store (4),
     //            bank-book index/export (2), daily-close show/store + daily-closes index (3), orders export (1).
     //            The public reference gold-prices and quote carry no guard (MarketScopeTest).
-    expect($checked)->toBe(169);
+    // spec 016:  customer invoices index/show/pdf + credit-notes pdf (4); dashboard invoices
+    //            index/export/show/pdf/credit-notes store (5), credit-notes index/pdf (2).
+    expect($checked)->toBe(180);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

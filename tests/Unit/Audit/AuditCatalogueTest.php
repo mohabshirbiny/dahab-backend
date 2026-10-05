@@ -25,7 +25,7 @@ it('lists the codes of a category', function () {
         'pricing.setting.changed', 'pricing.adjustment.changed', 'pricing.manual_price.entered', 'pricing.manual_price.confirmed',
     ])
         // Spec 008: the wallet statement reads; spec 009: top-ups and receiving accounts; spec 013: withdrawals;
-        // spec 014: compensation; spec 015: finance operations.
+        // spec 014: compensation; spec 015: finance operations; spec 016: tax invoices.
         ->and(AuditEvent::codesIn(AuditCategory::MONEY))->toBe([
             'ledger.statement.viewed', 'ledger.statement.exported',
             'topup.matched', 'topup.credited_by_hand', 'topup.held', 'topup.unheld', 'topup.rejected', 'topup.list_exported',
@@ -35,6 +35,7 @@ it('lists the codes of a category', function () {
             'withdrawal.pause_ended', 'compensation.paid',
             'compensation.list_exported', 'wallet.adjusted', 'bank.movement_recorded', 'bank.movement_proof_viewed',
             'bank.book_exported', 'bank.movements_exported', 'day.closed', 'day.saved',
+            'credit_note.issued', 'invoice.document_viewed', 'credit_note.document_viewed', 'invoices.exported',
         ])
         ->and(AuditEvent::AUDIT_LOG_EXPORTED->category())->toBe(AuditCategory::SYSTEM);
 });

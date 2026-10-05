@@ -318,6 +318,21 @@ const OPENAPI_DASHBOARD_OVERVIEW_PATHS = [
     'get /dashboard/overview',
 ];
 
+// Spec 016: tax invoices and credit notes.
+const OPENAPI_INVOICE_PATHS = [
+    'get /customer/me/invoices',
+    'get /customer/me/invoices/{invoice}',
+    'get /customer/me/invoices/{invoice}/pdf',
+    'get /customer/me/credit-notes/{creditNote}/pdf',
+    'get /dashboard/invoices',
+    'get /dashboard/invoices/export',
+    'get /dashboard/invoices/{invoice}',
+    'get /dashboard/invoices/{invoice}/pdf',
+    'post /dashboard/invoices/{invoice}/credit-notes',
+    'get /dashboard/credit-notes',
+    'get /dashboard/credit-notes/{creditNote}/pdf',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -368,6 +383,7 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_REFERENCE_PATHS,
         ...OPENAPI_DASHBOARD_FINANCE_PATHS,
         ...OPENAPI_DASHBOARD_OVERVIEW_PATHS,
+        ...OPENAPI_INVOICE_PATHS,
     ]);
 });
 
@@ -570,6 +586,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'AcceptExtensionRequestRequest', 'RefuseExtensionRequestRequest',
         'StaffCompensation', 'PayCompensationRequest', 'StaffWalletAdjustment', 'AdjustWalletRequest',
         'StaffBankMovement', 'RecordBankMovementRequest', 'StaffDailyClose', 'CloseDayRequest',
+        'StaffInvoice', 'StaffCreditNote', 'InvoiceFigures', 'IssueCreditNoteRequest', 'CustomerInvoice', 'CustomerCreditNote',
     ]);
 
     $ops = documentedOperations($doc);
