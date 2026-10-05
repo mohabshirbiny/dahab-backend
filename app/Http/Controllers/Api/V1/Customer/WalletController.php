@@ -25,16 +25,17 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'CustomerWalletMovement',
-    required: ['id', 'kind', 'created_at', 'available_change', 'held_change', 'available_after', 'held_after', 'reference'],
+    required: ['id', 'kind', 'created_at', 'available_change', 'held_change', 'available_after', 'held_after', 'reference', 'invoice_id'],
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
-        new OA\Property(property: 'kind', type: 'string', enum: ['topup', 'deposit_hold', 'deposit_release', 'deposit_forfeit', 'settlement_seller', 'first_sale_payout', 'commission', 'spread', 'vat', 'balance_payment', 'withdrawal', 'compensation', 'external_bank_movement', 'weight_adjustment', 'reversal'], description: 'The app shows its own en/ar wording for each kind'),
+        new OA\Property(property: 'kind', type: 'string', enum: ['topup', 'deposit_hold', 'deposit_release', 'deposit_forfeit', 'settlement_seller', 'first_sale_payout', 'commission', 'spread', 'vat', 'balance_payment', 'withdrawal', 'compensation', 'external_bank_movement', 'weight_adjustment', 'reversal', 'credit_note'], description: 'The app shows its own en/ar wording for each kind'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'available_change', type: 'string', example: '-400.0000', description: 'A hold is money out of available'),
         new OA\Property(property: 'held_change', type: 'string', example: '400.0000'),
         new OA\Property(property: 'available_after', type: 'string', example: '600.0000'),
         new OA\Property(property: 'held_after', type: 'string', example: '400.0000'),
         new OA\Property(property: 'reference', type: 'string', nullable: true, description: 'The related top-up (TOP-{n}) or withdrawal (WD-{n}, spec 013) number; null otherwise'),
+        new OA\Property(property: 'invoice_id', type: 'string', format: 'uuid', nullable: true, description: 'Spec 016: your own tax invoice for a settlement (balance_payment) or the invoice a credit note corrects (credit_note); null otherwise'),
     ],
 )]
 class WalletController extends Controller

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\BuyRequestController as CustomerBuyRequestController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
+use App\Http\Controllers\Api\V1\Customer\InvoiceController as CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\Customer\ListingController as CustomerListingController;
 use App\Http\Controllers\Api\V1\Customer\ListingQueueController as CustomerListingQueueController;
 use App\Http\Controllers\Api\V1\Customer\OrderController as CustomerOrderController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBr
 use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
 use App\Http\Controllers\Api\V1\Dashboard\BuyRequestController as DashboardBuyRequestController;
 use App\Http\Controllers\Api\V1\Dashboard\CompensationController as DashboardCompensationController;
+use App\Http\Controllers\Api\V1\Dashboard\CreditNoteController as DashboardCreditNoteController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DailyCloseController as DashboardDailyCloseController;
 use App\Http\Controllers\Api\V1\Dashboard\DisputeController as DashboardDisputeController;
@@ -29,6 +31,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ExtensionRequestController as Dashboar
 use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPriceController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Dashboard\InspectionController as DashboardInspectionController;
+use App\Http\Controllers\Api\V1\Dashboard\InvoiceController as DashboardInvoiceController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
@@ -289,6 +292,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/{withdrawal}', [CustomerWithdrawalController::class, 'show'])->whereUuid('withdrawal')->name('show');
                 Route::post('/{withdrawal}/cancel', [CustomerWithdrawalController::class, 'cancel'])
                     ->whereUuid('withdrawal')->middleware('idempotent')->name('cancel');
+            });
+
+            // Spec 016: the customer's own tax invoices and credit notes (verified;
+            // a suspended customer may read). Not audited.
+            Route::middleware('customer.gate:verified')->group(function () {
+                Route::prefix('invoices')->name('invoices.')->group(function () {
+                    Route::get('/', [CustomerInvoiceController::class, 'index'])->name('index');
+                    Route::get('/{invoice}', [CustomerInvoiceController::class, 'show'])->whereUuid('invoice')->name('show');
+                    Route::get('/{invoice}/pdf', [CustomerInvoiceController::class, 'pdf'])->whereUuid('invoice')->name('pdf');
+                });
+                Route::get('/credit-notes/{creditNote}/pdf', [CustomerInvoiceController::class, 'creditNotePdf'])
+                    ->whereUuid('creditNote')->name('credit-notes.pdf');
             });
         });
     });
@@ -677,6 +692,22 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::delete('/{closure}', [DashboardBranchClosureController::class, 'destroy'])
                     ->whereNumber('closure')
                     ->middleware('staff.permission:branches.manage')->name('destroy');
+            });
+        });
+
+        // Spec 016: tax invoices and credit notes (invoice.view reads; invoice.correct issues a credit note).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:invoice.view'])->group(function () {
+            Route::prefix('invoices')->name('invoices.')->group(function () {
+                Route::get('/', [DashboardInvoiceController::class, 'index'])->name('index');
+                Route::get('/export', [DashboardInvoiceController::class, 'export'])->name('export');
+                Route::get('/{invoice}', [DashboardInvoiceController::class, 'show'])->whereUuid('invoice')->name('show');
+                Route::get('/{invoice}/pdf', [DashboardInvoiceController::class, 'pdf'])->whereUuid('invoice')->name('pdf');
+                Route::post('/{invoice}/credit-notes', [DashboardInvoiceController::class, 'storeCreditNote'])->whereUuid('invoice')
+                    ->middleware(['staff.permission:invoice.correct', 'idempotent'])->name('credit-notes.store');
+            });
+            Route::prefix('credit-notes')->name('credit-notes.')->group(function () {
+                Route::get('/', [DashboardCreditNoteController::class, 'index'])->name('index');
+                Route::get('/{creditNote}/pdf', [DashboardCreditNoteController::class, 'pdf'])->whereUuid('creditNote')->name('pdf');
             });
         });
     });

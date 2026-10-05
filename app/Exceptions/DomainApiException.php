@@ -473,4 +473,23 @@ class DomainApiException extends RuntimeException
     {
         return new self('day_already_closed', 409, 'This day is already closed.');
     }
+
+    /** A credit note on a buyer invoice: Dahab charged the buyer nothing to correct (spec 016 Clarifications). */
+    public static function invoiceNotCreditable(): self
+    {
+        return new self('invoice_not_creditable', 409, 'Only a seller invoice can be credited.');
+    }
+
+    /** The credit notes on an invoice never add up to more than it (spec 016 FR-019). */
+    public static function creditExceedsInvoice(?string $remaining = null): self
+    {
+        return new self('credit_exceeds_invoice', 422, 'The credit note is larger than what is left of the invoice.',
+            $remaining === null ? [] : ['remaining' => $remaining]);
+    }
+
+    /** The PDF is built after the payment or credit note commits (spec 016 FR-023a). */
+    public static function documentNotReady(): self
+    {
+        return new self('document_not_ready', 409, 'This document is being prepared. Try again in a few minutes.');
+    }
 }

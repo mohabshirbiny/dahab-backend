@@ -11,6 +11,8 @@ use App\Services\Sms\HttpSmsSender;
 use App\Services\Sms\LogSmsSender;
 use App\Services\Sms\SmsSender;
 use App\Support\DatabaseActorEvents;
+use App\Support\Invoices\Documents\MpdfTaxDocumentRenderer;
+use App\Support\Invoices\Documents\TaxDocumentRenderer;
 use App\Support\Listings\ListingTransitions;
 use App\Support\Wallet\HeldByRequest;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -29,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerSmsSender();
         // The gold price provider (spec 005, Part 4 §1); tests fake its HTTP.
         $this->app->bind(GoldPriceFeed::class, ProviderGoldPriceFeed::class);
+        // Spec 016: the bilingual tax-document PDF (tests may bind a fake).
+        $this->app->bind(TaxDocumentRenderer::class, MpdfTaxDocumentRenderer::class);
         // The allowed listing moves are reference data: read once per request (spec 010).
         $this->app->scoped(ListingTransitions::class);
         // What each buy request holds now, primed once per list (spec 015 research R12).

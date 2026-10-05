@@ -15,7 +15,8 @@ use Illuminate\Notifications\Notification;
  * R14): compensation paid from the Compensation page (a dispute payment keeps
  * using OrderNotification), or a staff correction. SMS plus email, in the
  * customer's language, only after the change commits (NotifyCustomerJob).
- * A correction never carries the staff member's reason.
+ * A correction never carries the staff member's reason. Spec 016: a credit
+ * note names the invoice it corrects (`reference`).
  */
 class WalletNotification extends Notification implements ShouldQueue
 {
@@ -29,6 +30,7 @@ class WalletNotification extends Notification implements ShouldQueue
         public readonly ?string $direction = null,
         public readonly ?string $reason = null,
         public readonly ?string $reasonAr = null,
+        public readonly ?string $reference = null,
     ) {}
 
     /** @return array<int, string> */
@@ -71,6 +73,9 @@ class WalletNotification extends Notification implements ShouldQueue
             WalletEvent::WALLET_ADJUSTED => $this->direction === 'credit'
                 ? ($arabic ? "دهب صححت محفظتك وضافت {$money} لرصيدك المتاح." : "Dahab corrected your wallet: {$money} was added to your available balance.")
                 : ($arabic ? "دهب صححت محفظتك وخصمت {$money} من رصيدك المتاح." : "Dahab corrected your wallet: {$money} was taken from your available balance."),
+            WalletEvent::CREDIT_NOTE_ISSUED => $arabic
+                ? "دهب صححت الفاتورة {$this->reference} وضافت {$money} لمحفظتك."
+                : "Dahab corrected invoice {$this->reference}: {$money} was added to your wallet.",
         };
     }
 }

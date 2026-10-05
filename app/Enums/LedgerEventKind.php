@@ -25,6 +25,7 @@ enum LedgerEventKind: string
     case EXTERNAL_BANK_MOVEMENT = 'external_bank_movement';
     case WEIGHT_ADJUSTMENT = 'weight_adjustment';
     case REVERSAL = 'reversal';
+    case CREDIT_NOTE = 'credit_note';
 
     /** No default arm: a new case must get a label. */
     public function staffLabel(): string
@@ -45,6 +46,7 @@ enum LedgerEventKind: string
             self::EXTERNAL_BANK_MOVEMENT => 'Bank movement',
             self::WEIGHT_ADJUSTMENT => 'Weight adjustment',
             self::REVERSAL => 'Correction (reversal)',
+            self::CREDIT_NOTE => 'Invoice correction (credit note)',
         };
     }
 }

@@ -51,6 +51,9 @@ class DatabaseSeeder extends Seeder
         // Compensation, wallet adjustments, bank movements and closed days, through the real Actions (spec 015); same guard.
         $this->call(LocalFinanceSeeder::class);
 
+        // A credit note on a tax invoice issued by the orders above, through the real Action (spec 016); same guard.
+        $this->call(LocalInvoiceSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

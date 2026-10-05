@@ -71,6 +71,8 @@ final class ListOwnOrdersAction
             'stateChanges', 'branchChanges', 'extensions',
             // Spec 014: row security returns only the caller's own dispute and requests.
             'disputes', 'extensionRequests',
+            // Spec 016: row security returns only the caller's own tax invoice.
+            'invoices',
         ]));
     }
 }

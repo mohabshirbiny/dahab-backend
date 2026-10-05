@@ -18,10 +18,12 @@ use App\Models\Order;
 use App\Models\OrderCollection;
 use App\Support\BuyRequests\DepositLedger;
 use App\Support\DatabaseActor;
+use App\Support\Invoices\IssueTaxInvoices;
 use App\Support\Orders\CollectionCodes;
 use App\Support\Orders\DeadlinePolicy;
 use App\Support\Orders\OrderSettlement;
 use App\Support\Pricing\Money;
+use App\Support\Pricing\PricingContext;
 use App\Support\RequestContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +35,9 @@ use Illuminate\Support\Facades\DB;
  * scope, listing locked first: the figures recomputed on the IGI weight, one
  * balanced `balance_payment` through escrow to the seller and Dahab, the
  * order ready to collect, the listing sold, a collection code issued. The
- * seller is told they were paid; the buyer gets the code.
+ * seller is told they were paid; the buyer gets the code. Spec 016: the same
+ * transaction issues both tax invoices (seller `-S`, buyer `-B`); their PDFs
+ * are generated after commit.
  */
 final class PayBalanceAction
 {
@@ -45,6 +49,8 @@ final class PayBalanceAction
         private readonly DeadlinePolicy $deadlines,
         private readonly DepositLedger $deposits,
         private readonly RecordAuditLogAction $audit,
+        private readonly PricingContext $pricing,
+        private readonly IssueTaxInvoices $invoices,
     ) {}
 
     public function handle(Customer $buyer, string $orderId, ?RequestContext $ctx = null): Order
@@ -67,7 +73,9 @@ final class PayBalanceAction
             }
 
             $request = BuyRequest::query()->whereKey($order->buy_request_id)->firstOrFail();
-            $figures = $this->settlement->compute($order, $listing, $request, $order->latestInspection());
+            // Read the commission and VAT settings once: the invoice records the VAT rate the settlement used.
+            $rates = $this->pricing->rates();
+            $figures = $this->settlement->compute($order, $listing, $request, $order->latestInspection(), $rates);
 
             try {
                 $txn = $this->settlement->post($order, $figures);
@@ -89,6 +97,8 @@ final class PayBalanceAction
             ]);
             $listing = $this->moveListing($listing, ListingState::SOLD, $buyer, null, ListingStateChange::NOTE_BALANCE_PAID);
 
+            $invoices = $this->invoices->issue($order, $listing, $request, $figures, $rates);
+
             $code = $this->codes->issue();
             OrderCollection::query()->create([
                 'order_id' => $order->order_id,
@@ -101,7 +111,8 @@ final class PayBalanceAction
                 'success',
                 ['order_ref' => $order->order_ref, 'state' => OrderState::READY_TO_COLLECT->value,
                     'buyer_total' => $figures->buyerTotal, 'balance' => $figures->balance, 'seller_proceeds' => $figures->proceeds,
-                    'settlement_txn_id' => $txn->ledger_txn_id, 'seller_id' => $order->seller_id],
+                    'settlement_txn_id' => $txn->ledger_txn_id, 'seller_id' => $order->seller_id,
+                    'invoice_numbers' => array_column($invoices, 'number')],
                 'order',
                 $order->order_id,
                 $ctx,

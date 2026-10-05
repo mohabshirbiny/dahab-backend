@@ -132,6 +132,11 @@ enum AuditEvent: string
     case DAY_CLOSED = 'day.closed';
     case DAY_SAVED = 'day.saved';
     case ORDER_LIST_EXPORTED = 'order.list_exported';
+    // Spec 016: tax invoices and credit notes.
+    case CREDIT_NOTE_ISSUED = 'credit_note.issued';
+    case INVOICE_DOCUMENT_VIEWED = 'invoice.document_viewed';
+    case CREDIT_NOTE_DOCUMENT_VIEWED = 'credit_note.document_viewed';
+    case INVOICES_EXPORTED = 'invoices.exported';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -256,6 +261,10 @@ enum AuditEvent: string
             self::DAY_CLOSED => 'Day closed',
             self::DAY_SAVED => 'Day saved, not closed',
             self::ORDER_LIST_EXPORTED => 'Orders exported',
+            self::CREDIT_NOTE_ISSUED => 'Credit note issued',
+            self::INVOICE_DOCUMENT_VIEWED => 'Tax invoice opened',
+            self::CREDIT_NOTE_DOCUMENT_VIEWED => 'Credit note opened',
+            self::INVOICES_EXPORTED => 'Tax invoices exported',
         };
     }
 
@@ -285,7 +294,9 @@ enum AuditEvent: string
             self::WITHDRAWAL_EMAIL_CONFIRMED, self::WITHDRAWAL_REQUESTED, self::WITHDRAWAL_CANCELLED, self::WITHDRAWAL_TAKEN_FOR_REVIEW, self::WITHDRAWAL_HELD, self::WITHDRAWAL_UNHELD, self::WITHDRAWAL_RELEASED, self::WITHDRAWAL_REJECTED, self::WITHDRAWAL_LIST_EXPORTED, self::WITHDRAWAL_PAUSE_ENDED,
             self::COMPENSATION_PAID => AuditCategory::MONEY,
             self::COMPENSATION_LIST_EXPORTED, self::WALLET_ADJUSTED, self::BANK_MOVEMENT_RECORDED, self::BANK_MOVEMENT_PROOF_VIEWED,
-            self::BANK_BOOK_EXPORTED, self::BANK_MOVEMENTS_EXPORTED, self::DAY_CLOSED, self::DAY_SAVED => AuditCategory::MONEY,
+            self::BANK_BOOK_EXPORTED, self::BANK_MOVEMENTS_EXPORTED, self::DAY_CLOSED, self::DAY_SAVED,
+            self::CREDIT_NOTE_ISSUED, self::INVOICE_DOCUMENT_VIEWED, self::CREDIT_NOTE_DOCUMENT_VIEWED,
+            self::INVOICES_EXPORTED => AuditCategory::MONEY,
             self::ORDER_LIST_EXPORTED => AuditCategory::ORDERS,
         };
     }
