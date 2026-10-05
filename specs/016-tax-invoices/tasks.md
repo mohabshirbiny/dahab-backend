@@ -151,6 +151,8 @@ User stories (spec.md): **US1** invoices issued at payment (P1) · **US2** Finan
 - Flutter: two flows (`switching the account in use…`, `withdraw in Arabic`) fail on `main` too since 2026-10-05 10:00 —
   a hard-coded pause end in the fixture; left alone (separate task suggested). The invoice list row shows the invoice total.
 - CLAUDE.md said Flutter's `API_BASE_URL` defaults to `:8010`; the code (and the user) say `:8000` — corrected.
+- After the review the product owner kept the demo issuer details in `config/dahab-invoices.php` (committed); they must be
+  replaced with the real ones before production.
 
 ## Dependencies & execution order
 

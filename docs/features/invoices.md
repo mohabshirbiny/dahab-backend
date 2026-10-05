@@ -86,5 +86,5 @@ credit note* `DModal`), types / services / composables / errors; the navigation 
 ## Follow-ups
 
 - Egyptian Tax Authority e-invoicing (filing, `eta_reference`, a registration status).
-- Dahab's real legal and tax details in `config/dahab-invoices.php` (empty until filled).
+- Dahab's real legal and tax details in `config/dahab-invoices.php` (it holds demo values for local testing, kept on purpose).
 - Market-maker and first-sale-advance invoices (those flows are not built); tax-record retention.

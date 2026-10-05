@@ -5,8 +5,10 @@
  *
  * `issuer` is Dahab's legal identity printed on every invoice and credit
  * note. The product owner chose a PHP configuration file, not environment
- * variables (spec 016 Clarifications). No document in docs/ gives these
- * values, so they ship empty: until all six are filled, payments and credit
+ * variables (spec 016 Clarifications). No document in docs/ gives the real
+ * values: the ones below are DEMO values for local testing (kept on purpose by
+ * the product owner, 2026-10-05) and must be replaced with Dahab's real legal
+ * details before production. When any of the six is empty, payments and credit
  * notes still go through and their PDFs wait (`document_not_ready`); the
  * scheduled `invoices:render-pending` builds them once the details are
  * complete. Each document keeps the copy it was made with. Never copy these

@@ -290,7 +290,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   seller (net = the commission posted, its VAT) and `-B` to the buyer (the price paid, VAT 0) in the same transaction
   (`tax_invoice`, one per order and party, reconciled with the ledger by a deferred DH012 check; no backfill of earlier
   orders); a bilingual PDF per document (mPDF) made after commit and healed by `invoices:render-pending`, stored encrypted;
-  Dahab's details from `config/dahab-invoices.php` (empty until filled: documents wait); credit notes `CN-YYYY-NNNNNN` on
+  Dahab's details from `config/dahab-invoices.php` (demo values for now — replace before production; empty details make documents wait); credit notes `CN-YYYY-NNNNNN` on
   a seller invoice by hand (`invoice.correct`, one balanced `credit_note` entry giving commission and VAT back, never above
   what is left, SMS + email to the seller); reads `invoice.view` (`/dashboard/invoices*`, `/dashboard/credit-notes*`, export,
   audited PDFs) and the customer's own (`/customer/me/invoices*`, `invoice` on orders, `invoice_id` on wallet movements).
