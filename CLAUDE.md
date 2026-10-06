@@ -294,7 +294,20 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   a seller invoice by hand (`invoice.correct`, one balanced `credit_note` entry giving commission and VAT back, never above
   what is left, SMS + email to the seller); reads `invoice.view` (`/dashboard/invoices*`, `/dashboard/credit-notes*`, export,
   audited PDFs) and the customer's own (`/customer/me/invoices*`, `invoice` on orders, `invoice_id` on wallet movements).
-  Nothing is filed with the Tax Authority (Part 4 §4 not integrated). Nothing else yet.
+  Nothing is filed with the Tax Authority (Part 4 §4 not integrated); the customer account (spec 017) — phone change by a
+  code to the new number and email change by a single-use link on the public page (`/customer/me/phone-change*`,
+  `/email-change`, `/contact-changes/email/read|confirm`): the old contact told, withdrawals not yet released cancelled and
+  a withdrawal pause opened (`trigger_kind` `phone_change|email_change`), open withdrawal links stopped by an email change;
+  password change and the customer's own sessions with sign-out of a device (`/customer/me/password`, `/sessions*`; tokens
+  now record their device); a new-device sign-in alert; the in-app inbox (`customer_notification`, `/customer/me/notifications*`)
+  written by an `inbox` notification channel for every customer notice except codes and confirmation links (EN + AR text,
+  type, params, link; collection codes masked); saved pieces (`/customer/me/saved-pieces*`, setting `saved.max_per_customer`
+  200); `/reference/legal-documents` and `/reference/support-contacts` (`config/dahab-support.php`, demo values); closing an
+  account (`/customer/me/account/close-check|close`, status `closed`, final, blockers incl. `piece_at_branch`, nothing
+  deleted, sign-in `403 account_closed`, guard DH013); listing reports (`/customer/me/listing-reports`, `RPT-n`; staff
+  `/dashboard/listing-reports*` with `listing_report.handle`, take-down also `listing.takedown`; sweep
+  `listing-reports:close-gone`); the Customer file's notifications (`/dashboard/customers/{id}/notifications`). Guards
+  DH013–DH015. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -308,6 +321,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   (spec 014). Compensation, Bank movements and Daily closing are live, the Customer file has Adjust (wallet.adjust), the
   Orders list exports to CSV, and the whole Overview is live — no mock figure left on it (spec 015). Invoices is live:
   figures, invoices with their status from credit notes, export, credit notes, detail and PDF, Issue a credit note (spec 016).
+  Disputes and reports has the Listing reports view (Dismiss, Take the piece down), the Customer file shows what the
+  customer was sent, the closure and the pause trigger, Users has a Closed tab, Settings lists `saved.max_per_customer` (spec 017).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -325,7 +340,10 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   standalone Inspection, Pay and Collection-code screens were removed: their routes open the live order); the rate strip,
   the splash rate cards, the home calculator and the sell estimate read the backend's prices and quote, and Held on open
   orders lists what each request and order holds (spec 015); Transactions and invoices and the invoice screen with its PDF and
-  credit notes are live, with View invoice on a paid order and Open the invoice on the wallet line (spec 016).
+  credit notes are live, with View invoice on a paid order and Open the invoice on the wallet line (spec 016). Change phone
+  (code) and email (link, `#/email-confirm`), the password and devices, the inbox with the bell count, notification settings
+  (always-on rows), saved pieces and Save, Report this listing, Terms and privacy with the published documents, Contact us and
+  Close my account are live (spec 017); Help's FAQ is still mock (spec 019).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

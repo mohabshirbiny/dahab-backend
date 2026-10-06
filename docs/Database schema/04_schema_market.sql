@@ -863,3 +863,41 @@ CREATE TABLE credit_note (
 );
 CREATE INDEX idx_credit_note_issued ON credit_note(issued_at DESC, credit_note_id);
 CREATE INDEX idx_credit_note_invoice ON credit_note(invoice_id);
+
+-- =====================================================================
+-- spec 017 — the customer account (specs/017-customer-account/data-model.md)
+-- =====================================================================
+
+-- What opened a withdrawal pause; a contact change names no payout account.
+ALTER TABLE withdrawal_pause
+  ADD COLUMN trigger_kind TEXT NOT NULL DEFAULT 'payout_account'
+    CHECK (trigger_kind IN ('payout_account','phone_change','email_change')),
+  ADD CONSTRAINT withdrawal_pause_trigger_account CHECK (trigger_kind = 'payout_account' OR triggered_by_account IS NULL);
+
+-- Closing an account withdraws every piece not in a sale; a draft has no listed_at.
+INSERT INTO listing_transition (from_state, to_state, note) VALUES
+  ('draft','withdrawn','account closed'), ('in_review','withdrawn','account closed'),
+  ('changes_requested','withdrawn','account closed'), ('suspended_hold','withdrawn','account closed');
+-- listing_listed_shape: listed_at IS NOT NULL OR state IN ('draft','in_review','changes_requested','rejected','withdrawn')
+
+-- Listing reports: the seller never sees the reporter. Leaves open once (DH015).
+CREATE SEQUENCE listing_report_no_seq;
+CREATE TABLE listing_report (
+  report_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_no   BIGINT NOT NULL UNIQUE DEFAULT nextval('listing_report_no_seq'),   -- RPT-n
+  listing_id  UUID NOT NULL REFERENCES listing(listing_id),
+  reporter_id UUID NOT NULL REFERENCES customer(customer_id),
+  reason      TEXT NOT NULL CHECK (reason IN ('photos_not_genuine','price_or_weight_wrong',
+                'description_mismatch','not_theirs_to_sell','off_platform_dealing','other')),
+  note        TEXT CHECK (char_length(note) <= 1000),
+  state       TEXT NOT NULL DEFAULT 'open' CHECK (state IN ('open','dismissed','actioned','listing_gone')),
+  handled_by  UUID REFERENCES staff(staff_id),
+  handled_at  TIMESTAMPTZ,
+  staff_note  TEXT CHECK (char_length(staff_note) <= 1000),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT listing_report_handled CHECK ((state = 'open') = (handled_at IS NULL)),
+  CONSTRAINT listing_report_staff CHECK (state NOT IN ('dismissed','actioned') OR handled_by IS NOT NULL),
+  CONSTRAINT listing_report_dismiss_note CHECK (state <> 'dismissed' OR staff_note IS NOT NULL)
+);
+CREATE UNIQUE INDEX uq_listing_report_open ON listing_report (listing_id, reporter_id) WHERE state = 'open';
+-- Forced RLS: the reporter inserts and reads their own; staff elevated.

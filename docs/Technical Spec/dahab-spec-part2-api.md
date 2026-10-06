@@ -589,6 +589,10 @@ Close the day: snapshot bank balance, customer liability, Dahab wallet, and the 
 
 ---
 
+### The customer account, the inbox, saved pieces, listing reports (built by spec 017)
+
+> **Changed by spec 017** — see [`specs/017-customer-account/spec.md`](../../specs/017-customer-account/spec.md) and [`contracts/account-api.md`](../../specs/017-customer-account/contracts/account-api.md). Customer (every state, as the spec allows): `POST /customer/me/phone-change`, `POST /customer/me/phone-change/{id}/confirm`, `POST /customer/me/email-change`, `POST /customer/me/password`, `GET /customer/me/sessions`, `POST /customer/me/sessions/{id}/sign-out`; the inbox `GET /customer/me/notifications` (keyset, `unread`), `GET …/unread-count`, `POST …/{id}/read`, `POST …/read-all`; saved pieces `GET|POST /customer/me/saved-pieces`, `DELETE /customer/me/saved-pieces/{listing}` (at most the setting `saved.max_per_customer`, 200); `GET /customer/me/account/close-check`, `POST /customer/me/account/close`; `POST /customer/me/listing-reports` (trade gate). Public: `POST /contact-changes/email/read|confirm`, `GET /reference/legal-documents`, `GET /reference/support-contacts`. Dashboard: `GET /dashboard/listing-reports`, `GET /dashboard/listing-reports/{id}`, `POST …/{id}/dismiss`, `POST …/{id}/take-down` (`listing_report.handle`; take-down also `listing.takedown`, running the take-down above), `GET /dashboard/customers/{id}/notifications` (`customer.view`). Every customer notification of specs 001–016 except codes and confirmation links also writes an inbox item (type, params, link, both texts); the collection code is masked there.
+
 ## 10. Admin — rates, settings & operating controls
 
 ### `PATCH /admin/settings/{key}`
@@ -755,6 +759,8 @@ These are scheduled workers that drive deadline-based transitions. They are list
 
 ---
 
+> **Changed by spec 017** — see [`specs/017-customer-account/spec.md`](../../specs/017-customer-account/spec.md). The sweep `listing-reports:close-gone` (every five minutes) closes the open reports of a piece that left the market as `listing_gone` and tells each reporter.
+
 ## 12. Consolidated domain error codes
 
 > **Changed by spec 016** — see [`specs/016-tax-invoices/spec.md`](../../specs/016-tax-invoices/spec.md). New codes: `invoice_not_creditable` (409 — a credit note on a buyer invoice), `credit_exceeds_invoice` (422, `details.remaining`), `document_not_ready` (409). SQLSTATE DH012 (tax-invoice and credit-note guards): the credit cap answers the two codes above; any other DH012 is an integrity failure (500, logged).
@@ -811,6 +817,8 @@ Auth codes are in Part 1 §9. Domain codes introduced above:
 | `wallet_access_denied` | 403 | non-CEO/Finance wallet path (Part 1 §5.2) |
 
 ---
+
+> **Changed by spec 017** — see [`specs/017-customer-account/spec.md`](../../specs/017-customer-account/spec.md). New codes: `contact_taken` 409, `same_contact` 422, `change_code_invalid` 422, `change_code_locked` 429, `change_link_invalid` 410, `current_password_wrong` 422, `current_session` 422, `account_closed` 403/409 (SQLSTATE DH013), `account_has_open_items` 409, `listing_not_saveable` 422, `saved_limit_reached` 422, `listing_not_reportable` 422, `report_already_open` 409, `report_not_open` 409 (SQLSTATE DH015), `notification_immutable` 409 (SQLSTATE DH014).
 
 ## Open items raised in Part 2 (decide before build)
 

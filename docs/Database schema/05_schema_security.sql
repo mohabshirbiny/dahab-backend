@@ -1049,3 +1049,5 @@ CREATE INDEX idx_one_time_token_actor_staff    ON one_time_token(actor_staff_id)
 -- issued. tokenable_type is App\Models\Customer or App\Models\Staff, and the
 -- `customer` / `staff` guards only resolve tokens owned by their own model.
 -- Revocation deletes rows; revoked_at is reserved and not written.
+
+-- spec 017: one_time_token purpose gains 'email_change' (the email-change link, 30 minutes, payload {new_email}).

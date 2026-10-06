@@ -441,3 +441,5 @@ CREATE TABLE price_feed_status (
 
 -- gold_price, setting_history and karat_price_adjustment_history refuse
 -- UPDATE and DELETE with a trigger (same pattern as audit_log).
+
+-- spec 017: setting saved.max_per_customer = 200 (count, operations, 1..1000) — most pieces one customer may keep in Saved.
