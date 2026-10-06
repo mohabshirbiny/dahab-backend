@@ -47,7 +47,7 @@ it('tells the seller their piece is live, by SMS and email', function () {
         $sms = $n->toSms($listing->seller)->content;
         $mail = $n->toMail($listing->seller);
 
-        return $channels === ['mail', 'sms']
+        return $channels === ['inbox', 'mail', 'sms']
             && $n->decision === ListingDecision::APPROVED
             && $n->message === null
             && str_contains($sms, 'Gold ring, 21K') && str_contains($sms, 'live')
@@ -75,7 +75,7 @@ it('sends the reason of a rejection', function () {
     staffDecides($this, $listing, 'reject', ['reason' => 'The photos are taken from another website.'])->assertOk();
 
     Notification::assertSentTo($listing->seller, ListingDecisionNotification::class, function (ListingDecisionNotification $n, array $channels) use ($listing) {
-        return $channels === ['sms']
+        return $channels === ['inbox', 'sms']
             && $n->decision === ListingDecision::REJECTED
             && str_contains($n->toSms($listing->seller)->content, 'The photos are taken from another website.');
     });
@@ -99,7 +99,7 @@ it('texts only when the seller has no email, in their language', function () {
     Notification::assertSentTo($listing->seller, ListingDecisionNotification::class, function (ListingDecisionNotification $n, array $channels) use ($listing) {
         $sms = $n->toSms($listing->seller)->content;
 
-        return $channels === ['sms'] && str_contains($sms, 'اتنشرت') && str_contains($sms, '21K') && ! str_contains($sms, 'Gold ring');
+        return $channels === ['inbox', 'sms'] && str_contains($sms, 'اتنشرت') && str_contains($sms, '21K') && ! str_contains($sms, 'Gold ring');
     });
 });
 

@@ -40,7 +40,7 @@ it('tells the customer what was credited, by SMS and email', function () {
         $sms = $n->toSms($topUp->customer)->content;
         $mail = implode(' ', $n->toMail($topUp->customer)->introLines);
 
-        return $channels === ['mail', 'sms']
+        return $channels === ['inbox', 'mail', 'sms']
             && str_contains($sms, '19,900.00') && str_contains($sms, 'TOP-'.$topUp->topup_no)
             && str_contains($mail, '19,900.00')
             && ! str_contains($sms.$mail, 'Fee taken.');
@@ -53,7 +53,7 @@ it('texts only when the customer has no email, in their language', function () {
     $this->postJson("/api/v1/dashboard/topups/{$topUp->topup_id}/match", ['amount' => '20000', 'receiving_account_id' => $this->account->receiving_account_id], TopUps::key())->assertOk();
 
     Notification::assertSentTo($topUp->customer, TopUpCreditedNotification::class, function (TopUpCreditedNotification $n, array $channels) use ($topUp) {
-        return $channels === ['sms'] && str_contains($n->toSms($topUp->customer)->content, 'محفظتك');
+        return $channels === ['inbox', 'sms'] && str_contains($n->toSms($topUp->customer)->content, 'محفظتك');
     });
 });
 
@@ -65,7 +65,7 @@ it('tells the customer the plain reason of a rejection, never the note', functio
     Notification::assertSentTo($topUp->customer, TopUpRejectedNotification::class, function (TopUpRejectedNotification $n, array $channels) use ($topUp) {
         $text = $n->toSms($topUp->customer)->content.' '.implode(' ', $n->toMail($topUp->customer)->introLines);
 
-        return $channels === ['mail', 'sms']
+        return $channels === ['inbox', 'mail', 'sms']
             && str_contains($text, 'We did not receive this transfer')
             && ! str_contains($text, 'Internal');
     });

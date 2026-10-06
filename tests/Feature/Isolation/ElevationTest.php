@@ -94,6 +94,9 @@ it('only elevates the pinned unauthenticated auth routes', function () {
         ->map(fn ($r) => $r->getName())->sort()->values()->all();
 
     expect($elevated)->toBe([
+        // Spec 017: the email-change link's page finds one row by its token.
+        'api.v1.contact-changes.email.confirm',
+        'api.v1.contact-changes.email.read',
         'api.v1.customer.auth.login',
         'api.v1.customer.auth.otp.resend',
         'api.v1.customer.auth.otp.verify',

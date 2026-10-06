@@ -333,6 +333,35 @@ const OPENAPI_INVOICE_PATHS = [
     'get /dashboard/credit-notes/{creditNote}/pdf',
 ];
 
+// Spec 017: the customer account, the inbox, saved pieces, closing, listing reports.
+const OPENAPI_ACCOUNT_PATHS = [
+    'post /customer/me/phone-change',
+    'post /customer/me/phone-change/{challenge}/confirm',
+    'post /customer/me/email-change',
+    'post /customer/me/password',
+    'get /customer/me/sessions',
+    'post /customer/me/sessions/{session}/sign-out',
+    'get /customer/me/notifications',
+    'get /customer/me/notifications/unread-count',
+    'post /customer/me/notifications/{notification}/read',
+    'post /customer/me/notifications/read-all',
+    'get /customer/me/saved-pieces',
+    'post /customer/me/saved-pieces',
+    'delete /customer/me/saved-pieces/{listing}',
+    'get /customer/me/account/close-check',
+    'post /customer/me/account/close',
+    'post /customer/me/listing-reports',
+    'post /contact-changes/email/read',
+    'post /contact-changes/email/confirm',
+    'get /reference/legal-documents',
+    'get /reference/support-contacts',
+    'get /dashboard/listing-reports',
+    'get /dashboard/listing-reports/{report}',
+    'post /dashboard/listing-reports/{report}/dismiss',
+    'post /dashboard/listing-reports/{report}/take-down',
+    'get /dashboard/customers/{customer}/notifications',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -383,6 +412,7 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_REFERENCE_PATHS,
         ...OPENAPI_DASHBOARD_FINANCE_PATHS,
         ...OPENAPI_DASHBOARD_OVERVIEW_PATHS,
+        ...OPENAPI_ACCOUNT_PATHS,
         ...OPENAPI_INVOICE_PATHS,
     ]);
 });
@@ -587,6 +617,8 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffCompensation', 'PayCompensationRequest', 'StaffWalletAdjustment', 'AdjustWalletRequest',
         'StaffBankMovement', 'RecordBankMovementRequest', 'StaffDailyClose', 'CloseDayRequest',
         'StaffInvoice', 'StaffCreditNote', 'InvoiceFigures', 'IssueCreditNoteRequest', 'CustomerInvoice', 'CustomerCreditNote',
+        'CustomerSession', 'RequestPhoneChangeRequest', 'ConfirmPhoneChangeRequest', 'RequestEmailChangeRequest', 'ChangePasswordRequest',
+        'InboxItem', 'SavedPiece', 'CloseBlocker', 'StaffListingReport',
     ]);
 
     $ops = documentedOperations($doc);
@@ -624,7 +656,7 @@ it('stays in step with the registered routes', function () {
     $ops = documentedOperations(generatedOpenApi());
 
     $registered = collect(Route::getRoutes()->getRoutes())
-        ->filter(fn ($r) => preg_match('#^api/v1/(customer|dashboard|market|reference|withdrawal-confirmations)/#', $r->uri()))
+        ->filter(fn ($r) => preg_match('#^api/v1/(customer|dashboard|market|reference|withdrawal-confirmations|contact-changes)/#', $r->uri()))
         ->flatMap(fn ($r) => collect($r->methods())
             ->reject(fn ($m) => in_array($m, ['HEAD', 'OPTIONS'], true))
             ->map(fn ($m) => strtolower($m).' /'.substr($r->uri(), strlen('api/v1/'))))

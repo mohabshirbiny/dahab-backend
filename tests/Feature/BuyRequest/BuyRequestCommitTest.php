@@ -133,7 +133,7 @@ function brCommitted(Closure $test): void
         DatabaseActor::reset();
         DatabaseActor::push('maintenance');
         // TRUNCATE skips the row-level no-delete triggers.
-        DB::statement('TRUNCATE "order", buy_request, agreement_acceptance, listing_state_change, listing_queue_seq, listing_ownership_declaration, listing_branch_option, listing_media, listing, gold_price, ledger_posting, ledger_transaction, account, audit_log CASCADE');
+        DB::statement('TRUNCATE customer_notification, "order", buy_request, agreement_acceptance, listing_state_change, listing_queue_seq, listing_ownership_declaration, listing_branch_option, listing_media, listing, gold_price, ledger_posting, ledger_transaction, account, audit_log CASCADE');
         DB::table('branch_hours')->whereIn('branch_id', $branchIds)->delete();
         DB::table('branch')->whereIn('branch_id', $branchIds)->delete();
         DB::table('customer')->whereIn('customer_id', $customers)->delete();
