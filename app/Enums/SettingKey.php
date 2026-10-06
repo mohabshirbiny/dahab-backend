@@ -37,6 +37,9 @@ enum SettingKey: string
     /** Spec 011: how far the confirmed price may be from the fresh one before a buy request is refused. */
     case BUYREQUEST_PRICE_TOLERANCE_PCT = 'buyrequest.price_tolerance_pct';
 
+    /** Spec 017: most pieces one customer may keep in Saved (user decision 2026-10-06). */
+    case SAVED_MAX_PER_CUSTOMER = 'saved.max_per_customer';
+
     /** Money and price rules (Finance + CEO) or operations (founders) — research R1. */
     public function group(): SettingGroup
     {
@@ -64,7 +67,7 @@ enum SettingKey: string
             self::DEADLINE_FREE_RELIST_WORKING_HOURS, self::WITHDRAWAL_ACCOUNT_CHANGE_PAUSE_HOURS,
             self::MARKETMAKER_MIN_LIST_AGE_DAYS, self::SUSPENSION_CANCELLATIONS_THRESHOLD,
             self::FLAG_PATTERN_TXN_THRESHOLD, self::MANUALPRICE_PENDING_EXPIRY_HOURS,
-            self::PRICEFEED_STALE_AFTER_MINUTES => true,
+            self::PRICEFEED_STALE_AFTER_MINUTES, self::SAVED_MAX_PER_CUSTOMER => true,
             default => false,
         };
     }
@@ -77,7 +80,8 @@ enum SettingKey: string
             self::DEADLINE_SELLER_REPLY_HOURS, self::DEADLINE_REACH_BRANCH_WORKING_HOURS,
             self::DEADLINE_BUYER_PAY_DAYS, self::DEADLINE_COLLECT_WEEKS, self::DEADLINE_SELLER_RETURN_WEEKS,
             self::SUSPENSION_CANCELLATIONS_THRESHOLD, self::FLAG_PATTERN_TXN_THRESHOLD,
-            self::MANUALPRICE_PENDING_EXPIRY_HOURS, self::PRICEFEED_STALE_AFTER_MINUTES => '1',
+            self::MANUALPRICE_PENDING_EXPIRY_HOURS, self::PRICEFEED_STALE_AFTER_MINUTES,
+            self::SAVED_MAX_PER_CUSTOMER => '1',
             default => '0',
         };
     }
@@ -92,6 +96,7 @@ enum SettingKey: string
             self::BUYREQUEST_PRICE_TOLERANCE_PCT => '100',
             self::MANUALPRICE_PENDING_EXPIRY_HOURS => '168',
             self::PRICEFEED_STALE_AFTER_MINUTES => '1440',
+            self::SAVED_MAX_PER_CUSTOMER => '1000',
             default => null,
         };
     }

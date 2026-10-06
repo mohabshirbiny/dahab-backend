@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\GoldPriceFeed;
 use App\Exceptions\AuthApiException;
 use App\Models\PersonalAccessToken;
+use App\Notifications\Channels\InboxChannel;
 use App\Notifications\Channels\SmsChannel;
 use App\Services\PriceFeed\ProviderGoldPriceFeed;
 use App\Services\Sms\HttpSmsSender;
@@ -72,6 +73,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Notification::resolved(function (ChannelManager $service) {
             $service->extend('sms', fn ($app) => $app->make(SmsChannel::class));
+            $service->extend('inbox', fn ($app) => $app->make(InboxChannel::class));
         });
     }
 
@@ -167,6 +169,31 @@ class AppServiceProvider extends ServiceProvider
         // Spec 014: problems reported per customer.
         RateLimiter::for('customer.disputes', function (Request $request) {
             return $this->limit(5, 60, 'customer-disputes:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        // Spec 017 (research R10): contact changes, password, sign-outs, reports.
+        RateLimiter::for('customer.contact_change', function (Request $request) {
+            return $this->limit(3, 3600, 'customer-contact-change:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('customer.contact_confirm', function (Request $request) {
+            return $this->limit(5, 900, 'customer-contact-confirm:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('customer.password_change', function (Request $request) {
+            return $this->limit(5, 900, 'customer-password-change:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('customer.session_sign_out', function (Request $request) {
+            return $this->limit(10, 60, 'customer-session-sign-out:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('customer.listing_reports', function (Request $request) {
+            return $this->limit(10, 86400, 'customer-listing-reports:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('public.email_change', function (Request $request) {
+            return $this->limit(10, 60, 'public-email-change:'.$request->ip());
         });
 
         RateLimiter::for('public.withdrawal_confirmations', function (Request $request) {

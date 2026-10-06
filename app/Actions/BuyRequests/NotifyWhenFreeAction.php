@@ -4,6 +4,7 @@ namespace App\Actions\BuyRequests;
 
 use App\Enums\BuyRequestEvent;
 use App\Enums\BuyRequestState;
+use App\Enums\InboxLinkKind;
 use App\Enums\ListingState;
 use App\Models\BuyRequest;
 use App\Models\Customer;
@@ -47,6 +48,7 @@ final class NotifyWhenFreeAction
                 if (! isset($told[$request->buyer_id])) {
                     $told[$request->buyer_id] = true;
                     $notification = new BuyRequestNotification(BuyRequestEvent::FREE_AGAIN, $listing->title(), $listing->title(arabic: true));
+                    $notification->linkTo(InboxLinkKind::LISTING, $listing->listing_id);
                     DB::afterCommit(fn () => Customer::query()->find($request->buyer_id)?->notifyNow($notification));
                 }
             }

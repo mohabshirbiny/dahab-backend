@@ -23,7 +23,15 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'suspension', ref: '#/components/schemas/StaffCustomerSuspension', nullable: true),
             new OA\Property(property: 'disputes_raised', type: 'integer', description: 'Spec 014: disputes this customer raised (the basis for a repeated_disputes suspension)'),
             new OA\Property(property: 'payout_accounts', type: 'array', description: 'Spec 013: every payout account, the one in use first; the full number only for payout_account.verify / withdrawal.release', items: new OA\Items(ref: '#/components/schemas/StaffPayoutAccount')),
-            new OA\Property(property: 'withdrawal_pause', nullable: true, description: 'Spec 013: the open withdrawal pause', properties: [new OA\Property(property: 'until', type: 'string', format: 'date-time')], type: 'object'),
+            new OA\Property(property: 'withdrawal_pause', nullable: true, description: 'Spec 013: the open withdrawal pause; spec 017: what opened it', properties: [
+                new OA\Property(property: 'until', type: 'string', format: 'date-time'),
+                new OA\Property(property: 'trigger_kind', type: 'string', enum: ['payout_account', 'phone_change', 'email_change']),
+            ], type: 'object'),
+            new OA\Property(property: 'closure', nullable: true, description: 'Spec 017: the customer closed the account', properties: [
+                new OA\Property(property: 'closed_at', type: 'string', format: 'date-time'),
+                new OA\Property(property: 'reason', type: 'string', enum: ['finished', 'fees_too_high', 'too_slow_to_sell', 'data_trust', 'something_went_wrong', 'other']),
+                new OA\Property(property: 'note', type: 'string', nullable: true),
+            ], type: 'object'),
         ]),
     ],
 )]
@@ -79,7 +87,12 @@ class CustomerFileResource extends CustomerVerificationResource
             'payout_accounts' => $c->payoutAccounts
                 ->map(fn (PayoutAccount $a) => StaffPayoutAccountResource::make($a)->resolve($request))->values()->all(),
             'withdrawal_pause' => ($pause = WithdrawalPause::openFor($c->customer_id)) === null
-                ? null : ['until' => $pause->pause_until->toIso8601String()],
+                ? null : ['until' => $pause->pause_until->toIso8601String(), 'trigger_kind' => $pause->trigger_kind->value],
+            'closure' => $c->closed_at === null ? null : [
+                'closed_at' => $c->closed_at->toIso8601String(),
+                'reason' => $c->closed_reason?->value,
+                'note' => $c->closed_note,
+            ],
             'disputes_raised' => Dispute::query()->where('raised_by', $c->customer_id)->count(),
         ];
     }

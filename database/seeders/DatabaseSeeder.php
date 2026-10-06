@@ -54,6 +54,9 @@ class DatabaseSeeder extends Seeder
         // A credit note on a tax invoice issued by the orders above, through the real Action (spec 016); same guard.
         $this->call(LocalInvoiceSeeder::class);
 
+        // Saved pieces and an open listing report, through the real Actions (spec 017); same guard.
+        $this->call(LocalAccountSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

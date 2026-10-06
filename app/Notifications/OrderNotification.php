@@ -4,6 +4,9 @@ namespace App\Notifications;
 
 use App\Enums\OrderEvent;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
@@ -16,9 +19,9 @@ use Illuminate\Notifications\Notification;
  * email when the customer has one, in their language, only after the change
  * commits (sent through NotifyCustomerJob). Never names the other party.
  */
-class OrderNotification extends Notification implements ShouldQueue
+class OrderNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -44,7 +47,7 @@ class OrderNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -188,5 +191,17 @@ class OrderNotification extends Notification implements ShouldQueue
                 ? "{$this->message} يقدر يستلم ({$t}) بالنيابة عنك من {$b}. ابعتله كود الاستلام بنفسك. طلب {$r}."
                 : "{$this->message} can now collect ({$t}) for you at {$b}. Share your collection code with them yourself. Order {$r}.",
         };
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        // The collection / return code is never kept in the inbox (staff read it in the
+        // Customer file): the order screen shows it to its owner.
+        $masked = new self($this->event, $this->orderRef, $this->title, $this->titleAr, $this->amount, $this->deadline,
+            $this->branch, $this->branchAr, $this->code === null ? null : '••••••', $this->message);
+        $masked->inboxLinkKind = $this->inboxLinkKind;
+        $masked->inboxLinkId = $this->inboxLinkId;
+
+        return $masked->inboxMessage($customer, 'order.'.$this->event->value, params: ['order_ref' => $this->orderRef]);
     }
 }

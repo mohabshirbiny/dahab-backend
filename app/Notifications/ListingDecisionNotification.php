@@ -4,6 +4,9 @@ namespace App\Notifications;
 
 use App\Enums\ListingDecision;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -16,9 +19,9 @@ use Illuminate\Notifications\Notification;
  * reason). SMS, plus email when the customer has one, in their language,
  * sent after the change commits. A failed message never undoes the decision.
  */
-class ListingDecisionNotification extends Notification implements ShouldQueue
+class ListingDecisionNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -38,7 +41,7 @@ class ListingDecisionNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -91,5 +94,10 @@ class ListingDecisionNotification extends Notification implements ShouldQueue
                 ? "قطعتك ({$title}) اتشالت من السوق:"
                 : "Your piece ({$title}) was taken off the market:",
         };
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'listing.'.$this->decision->value);
     }
 }

@@ -22,7 +22,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'full_name', type: 'string', nullable: true),
         new OA\Property(property: 'preferred_lang', type: 'string', enum: ['ar', 'en']),
         new OA\Property(property: 'governorate', type: 'string', nullable: true),
-        new OA\Property(property: 'status', type: 'string', enum: ['pending_verification', 'active', 'rejected', 'suspended']),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending_verification', 'active', 'rejected', 'suspended', 'closed']),
         new OA\Property(property: 'is_verified', type: 'boolean', description: 'Legacy flag; derived from status'),
         new OA\Property(property: 'is_suspended', type: 'boolean', description: 'Legacy flag; derived from status'),
         new OA\Property(property: 'suspended_reason', type: 'string', nullable: true),

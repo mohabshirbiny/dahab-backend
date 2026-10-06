@@ -8,6 +8,7 @@ enum AuthErrorCode: string
     case UNAUTHENTICATED = 'unauthenticated';
     case INVALID_CREDENTIALS = 'invalid_credentials';
     case ACCOUNT_SUSPENDED = 'account_suspended';
+    case ACCOUNT_CLOSED = 'account_closed';
     case ACCOUNT_FROZEN = 'account_frozen';
     case ACCOUNT_LOCKED = 'account_locked';
     case PERMISSION_DENIED = 'permission_denied';

@@ -2,7 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use App\Support\TopUpMoney;
 use Illuminate\Bus\Queueable;
@@ -16,9 +20,9 @@ use Illuminate\Notifications\Notification;
  * customer has one. Dispatched only after the credit commits. Never carries
  * a staff note.
  */
-class TopUpCreditedNotification extends Notification implements ShouldQueue
+class TopUpCreditedNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -37,7 +41,7 @@ class TopUpCreditedNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -61,5 +65,10 @@ class TopUpCreditedNotification extends Notification implements ShouldQueue
         return SmsMessage::make($notifiable->preferred_lang === 'ar'
             ? "أضفنا {$amount} جنيه إلى محفظتك في ".config('app.name')." ({$this->number})."
             : "We added {$amount} EGP to your ".config('app.name')." wallet ({$this->number}).");
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'topup.credited', InboxLinkKind::WALLET, null, ['number' => $this->number]);
     }
 }

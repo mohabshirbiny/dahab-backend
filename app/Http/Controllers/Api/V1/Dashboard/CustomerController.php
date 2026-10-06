@@ -8,14 +8,17 @@ use App\Actions\Customers\ReinstateCustomerAction;
 use App\Actions\Customers\SuspendCustomerAction;
 use App\Actions\Dashboard\ListCustomersForVerificationAction;
 use App\Actions\Dashboard\ShowCustomerVerificationDetailsAction;
+use App\Actions\Notifications\InboxAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Customers\CustomerActivityRequest;
 use App\Http\Requests\Dashboard\Customers\ReinstateCustomerRequest;
 use App\Http\Requests\Dashboard\Customers\SuspendCustomerRequest;
 use App\Http\Requests\Dashboard\ListCustomersRequest;
+use App\Http\Resources\Customer\InboxItemResource;
 use App\Http\Resources\Staff\CustomerFileResource;
 use App\Http\Resources\Staff\CustomerSessionResource;
 use App\Http\Resources\Staff\CustomerVerificationResource;
+use App\Models\Customer;
 use App\Support\RequestContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,7 +48,7 @@ class CustomerController extends Controller
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Customers'],
         parameters: [
-            new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['pending_verification', 'active', 'rejected', 'suspended'], default: 'pending_verification')),
+            new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['pending_verification', 'active', 'rejected', 'suspended', 'closed'], default: 'pending_verification')),
             new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 50, default: 25)),
             new OA\Parameter(name: 'q', in: 'query', required: false, description: 'Display reference or E.164 phone; exact match (spec 007)', schema: new OA\Schema(type: 'string', minLength: 1, maxLength: 32)),
         ],
@@ -243,6 +246,41 @@ class CustomerController extends Controller
                 'total' => $sessions->total(),
                 'last_page' => $sessions->lastPage(),
             ],
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/dashboard/customers/{customer}/notifications',
+        operationId: 'dashboardCustomerNotifications',
+        summary: 'What the customer was sent, as their inbox shows it',
+        description: 'Spec 017 FR-035. customer.view; read-only, newest first, keyset paged. Codes and confirmation links never reach the inbox.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Customers'],
+        parameters: [
+            new OA\Parameter(name: 'customer', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'cursor', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Items', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/InboxItem')),
+                new OA\Property(property: 'meta', properties: [
+                    new OA\Property(property: 'next_cursor', type: 'string', nullable: true),
+                    new OA\Property(property: 'unread_count', type: 'integer'),
+                ], type: 'object'),
+            ])),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function notifications(Request $request, string $customer, InboxAction $inbox): JsonResponse
+    {
+        $request->validate(['cursor' => ['sometimes', 'string', 'max:200']]);
+        Customer::query()->findOrFail($customer);
+        $page = $inbox->page($customer, $request->query('cursor'));
+
+        return response()->json([
+            'data' => InboxItemResource::collection($page['items'])->resolve($request),
+            'meta' => ['next_cursor' => $page['next_cursor'], 'unread_count' => $page['unread_count']],
         ]);
     }
 }

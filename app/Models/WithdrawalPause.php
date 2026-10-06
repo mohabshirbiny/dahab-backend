@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PauseTrigger;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonImmutable $pause_until
  * @property string|null $triggered_by_account
  * @property CarbonImmutable|null $ended_notified_at
+ * @property PauseTrigger $trigger_kind what opened it (spec 017)
  */
 class WithdrawalPause extends Model
 {
@@ -38,6 +40,7 @@ class WithdrawalPause extends Model
     {
         return [
             'opened_at' => 'immutable_datetime',
+            'trigger_kind' => PauseTrigger::class,
             'pause_until' => 'immutable_datetime',
             'ended_notified_at' => 'immutable_datetime',
         ];

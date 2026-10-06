@@ -2,7 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,9 +14,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /** Sent from ReviewIdentityDocumentAction on `reject` after commit. */
-class CustomerVerificationRejectedNotification extends Notification implements ShouldQueue
+class CustomerVerificationRejectedNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -33,7 +37,7 @@ class CustomerVerificationRejectedNotification extends Notification implements S
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -66,5 +70,10 @@ class CustomerVerificationRejectedNotification extends Notification implements S
         return SmsMessage::make($arabic
             ? "{$appName}: تم رفض طلب التسجيل. راجع بريدك للتفاصيل."
             : "{$appName}: your registration was rejected. Check your inbox for details.");
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'account.verification_rejected', InboxLinkKind::ACCOUNT);
     }
 }

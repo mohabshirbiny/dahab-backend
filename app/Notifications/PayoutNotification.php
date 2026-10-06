@@ -2,8 +2,12 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Enums\PayoutEvent;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
@@ -21,9 +25,9 @@ use Illuminate\Notifications\Notification;
  * acted themselves: terms §9.3, "you are told on your current number and email
  * when the account changes" — a hijacked session must not change it silently.
  */
-class PayoutNotification extends Notification implements ShouldQueue
+class PayoutNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -48,7 +52,7 @@ class PayoutNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -130,5 +134,14 @@ class PayoutNotification extends Notification implements ShouldQueue
                 ? 'فترة إيقاف السحب خلصت. تقدر تسحب تاني.'
                 : 'The withdrawal pause has ended. You can withdraw again.',
         };
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        $money = in_array($this->event, [PayoutEvent::WITHDRAWAL_RELEASED, PayoutEvent::WITHDRAWAL_REJECTED,
+            PayoutEvent::WITHDRAWAL_HELD, PayoutEvent::WITHDRAWALS_CANCELLED_BY_CHANGE], true);
+
+        return $this->inboxMessage($customer, 'payout.'.$this->event->value,
+            $money ? InboxLinkKind::WALLET : InboxLinkKind::ACCOUNT, null, array_filter(['number' => $this->number]));
     }
 }

@@ -3,7 +3,11 @@
 namespace App\Notifications;
 
 use App\Enums\BuyRequestEvent;
+use App\Enums\InboxLinkKind;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
@@ -17,9 +21,9 @@ use Illuminate\Notifications\Notification;
  * change commits (sent through NotifyCustomerJob). Never names the other
  * party: the seller never learns who the buyer is, nor the buyer the seller.
  */
-class BuyRequestNotification extends Notification implements ShouldQueue
+class BuyRequestNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -44,7 +48,7 @@ class BuyRequestNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -123,5 +127,14 @@ class BuyRequestNotification extends Notification implements ShouldQueue
                 ? "دهب لغت البيعة {$this->orderRef} على ({$t}): {$this->reason}".($this->amount === null ? '' : " {$refund}")
                 : "Dahab cancelled sale {$this->orderRef} on ({$t}): {$this->reason}".($this->amount === null ? '' : " {$refund}"),
         };
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        $refund = in_array($this->event, [BuyRequestEvent::DECLINED, BuyRequestEvent::NOT_CHOSEN, BuyRequestEvent::EXPIRED,
+            BuyRequestEvent::PIECE_WITHDRAWN, BuyRequestEvent::SELLER_SUSPENDED], true);
+
+        return $this->inboxMessage($customer, 'buy_request.'.$this->event->value,
+            $refund ? InboxLinkKind::WALLET : InboxLinkKind::NONE, null, array_filter(['order_ref' => $this->orderRef]));
     }
 }

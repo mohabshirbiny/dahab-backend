@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Str;
 
 /**
  * Tell one customer something, by id (spec 011 research R13). A buyer's
@@ -25,7 +26,10 @@ class NotifyCustomerJob implements ShouldQueue
     public function __construct(
         public readonly string $customerId,
         public readonly Notification $notification,
-    ) {}
+    ) {
+        // Fixed before the job is queued, so a retry writes the same inbox item (spec 017 R5).
+        $this->notification->id ??= (string) Str::uuid();
+    }
 
     public function handle(): void
     {

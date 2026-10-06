@@ -144,6 +144,9 @@ enum StaffPermission: string
     /** Issue or correct a tax invoice — a credit note (Part 1 §4.2; spec 016). Never the COO. */
     case INVOICE_CORRECT = 'invoice.correct';
 
+    /** Work the listing reports: read, dismiss; take down also needs listing.takedown (spec 017 FR-053). */
+    case LISTING_REPORT_HANDLE = 'listing_report.handle';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -208,6 +211,7 @@ enum StaffPermission: string
             self::DAY_CLOSE => 'Close the day',
             self::INVOICE_VIEW => 'View tax invoices and credit notes',
             self::INVOICE_CORRECT => 'Issue or correct a tax invoice',
+            self::LISTING_REPORT_HANDLE => 'Handle listing reports',
         };
     }
 
@@ -225,7 +229,8 @@ enum StaffPermission: string
             self::ORDER_REFUND, self::COMPENSATION_PAY, self::COMPENSATION_UNCAPPED,
             self::WALLET_ADJUST, self::BANK_RECORD, self::DAY_CLOSE,
             self::INVOICE_VIEW, self::INVOICE_CORRECT => 'Money',
-            self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN => 'Listings',
+            self::LISTING_REVIEW, self::LISTING_REQUEST_CHANGES, self::LISTING_TAKEDOWN,
+            self::LISTING_REPORT_HANDLE => 'Listings',
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
             self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW, self::DISPUTE_HANDLE => 'Orders',
@@ -315,6 +320,8 @@ enum StaffPermission: string
             // Spec 016 (Part 1 §4.2 "Issue or correct a tax invoice": CEO + Finance; reading the
             // same people, Clarifications). Never the COO.
             self::INVOICE_VIEW, self::INVOICE_CORRECT => [SeedRole::FINANCE->value],
+            // Spec 017: the roles that hold listing.takedown (approved in clarify).
+            self::LISTING_REPORT_HANDLE => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
         };
     }
 }

@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
  * | active                          | pass                      | pass                      |
  * | suspended                       | pass (own-data reads)     | 403 account_suspended     |
  * | pending_verification / rejected | 403 verification_required | 403 verification_required |
+ * | closed (spec 017)               | 403 account_closed        | 403 account_closed        |
  *
  * Routes open to unverified customers are listed in App\Http\CustomerRouteAccess.
  */
@@ -57,6 +58,7 @@ final class EnsureCustomerStanding
             CustomerStatus::ACTIVE => null,
             CustomerStatus::SUSPENDED => $level === 'trade' ? throw AuthApiException::accountSuspended() : null,
             CustomerStatus::PENDING_VERIFICATION, CustomerStatus::REJECTED => throw DomainApiException::verificationRequired(),
+            CustomerStatus::CLOSED => throw AuthApiException::accountClosed(),
         };
     }
 }

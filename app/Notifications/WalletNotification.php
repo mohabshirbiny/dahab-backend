@@ -2,8 +2,12 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Enums\WalletEvent;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,9 +22,9 @@ use Illuminate\Notifications\Notification;
  * A correction never carries the staff member's reason. Spec 016: a credit
  * note names the invoice it corrects (`reference`).
  */
-class WalletNotification extends Notification implements ShouldQueue
+class WalletNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -42,7 +46,7 @@ class WalletNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -77,5 +81,10 @@ class WalletNotification extends Notification implements ShouldQueue
                 ? "دهب صححت الفاتورة {$this->reference} وضافت {$money} لمحفظتك."
                 : "Dahab corrected invoice {$this->reference}: {$money} was added to your wallet.",
         };
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'wallet.'.$this->event->value, InboxLinkKind::WALLET);
     }
 }

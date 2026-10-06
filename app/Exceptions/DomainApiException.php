@@ -487,6 +487,87 @@ class DomainApiException extends RuntimeException
             $remaining === null ? [] : ['remaining' => $remaining]);
     }
 
+    // --- Spec 017: the customer account (research R11) ---
+
+    /** The new phone or email belongs to another customer. */
+    public static function contactTaken(): self
+    {
+        return new self('contact_taken', 409, 'This number or address is already used by another account.');
+    }
+
+    public static function sameContact(): self
+    {
+        return new self('same_contact', 422, 'This is already your number or address.');
+    }
+
+    public static function changeCodeInvalid(int $triesLeft): self
+    {
+        return new self('change_code_invalid', 422, 'This code is wrong or has expired.', ['tries_left' => $triesLeft]);
+    }
+
+    public static function changeCodeLocked(): self
+    {
+        return new self('change_code_locked', 429, 'Too many wrong codes. Ask for a new one.');
+    }
+
+    public static function changeLinkInvalid(): self
+    {
+        return new self('change_link_invalid', 410, 'This link has expired or was already used.');
+    }
+
+    public static function currentPasswordWrong(): self
+    {
+        return new self('current_password_wrong', 422, 'Your current password is not right.');
+    }
+
+    public static function currentSession(): self
+    {
+        return new self('current_session', 422, 'This is the device you are using. Sign out instead.');
+    }
+
+    /** Raised by guard DH013 when a closed customer would get a new row. */
+    public static function accountClosed(): self
+    {
+        return new self('account_closed', 409, 'This account is closed.');
+    }
+
+    /** @param  list<array{code: string, count: int}>  $blockers */
+    public static function accountHasOpenItems(array $blockers): self
+    {
+        return new self('account_has_open_items', 409, 'Finish or cancel what is in progress before closing the account.', ['blockers' => $blockers]);
+    }
+
+    public static function listingNotSaveable(): self
+    {
+        return new self('listing_not_saveable', 422, 'Only a piece on the market can be saved.');
+    }
+
+    public static function savedLimitReached(int $limit): self
+    {
+        return new self('saved_limit_reached', 422, 'You have saved as many pieces as you can.', ['limit' => $limit]);
+    }
+
+    public static function listingNotReportable(): self
+    {
+        return new self('listing_not_reportable', 422, 'This piece cannot be reported.');
+    }
+
+    public static function reportAlreadyOpen(): self
+    {
+        return new self('report_already_open', 409, 'You already reported this piece. We are looking at it.');
+    }
+
+    public static function reportNotOpen(): self
+    {
+        return new self('report_not_open', 409, 'This report was already handled.');
+    }
+
+    /** Guard DH014: an inbox item only gets read. A bug if reached through the API. */
+    public static function notificationImmutable(): self
+    {
+        return new self('notification_immutable', 409, 'This notification cannot change.');
+    }
+
     /** The PDF is built after the payment or credit note commits (spec 016 FR-023a). */
     public static function documentNotReady(): self
     {

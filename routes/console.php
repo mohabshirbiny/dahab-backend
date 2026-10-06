@@ -28,5 +28,8 @@ Schedule::command('withdrawals:sweep')->everyMinute()->withoutOverlapping();
 // issued while Dahab's details were incomplete, or whose job gave up.
 Schedule::command('invoices:render-pending')->everyFiveMinutes()->withoutOverlapping();
 
+// Spec 017: listing reports of pieces that left the market, closed and their reporters told.
+Schedule::command('listing-reports:close-gone')->everyFiveMinutes()->withoutOverlapping();
+
 // Expired Idempotency-Key records (spec 007 research R2; kept 24 h).
 Schedule::command('idempotency:prune')->hourly()->withoutOverlapping();

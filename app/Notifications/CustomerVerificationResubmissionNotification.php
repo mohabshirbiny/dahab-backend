@@ -2,7 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,9 +14,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /** Sent from ReviewIdentityDocumentAction on `request_resubmission` after commit. */
-class CustomerVerificationResubmissionNotification extends Notification implements ShouldQueue
+class CustomerVerificationResubmissionNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -33,7 +37,7 @@ class CustomerVerificationResubmissionNotification extends Notification implemen
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -71,5 +75,10 @@ class CustomerVerificationResubmissionNotification extends Notification implemen
         return SmsMessage::make($arabic
             ? "{$appName}: نحتاج إعادة إرسال وثيقتك ({$reasons})."
             : "{$appName}: please resubmit your identity document ({$reasons}).");
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'account.resubmission_requested', InboxLinkKind::ACCOUNT);
     }
 }
