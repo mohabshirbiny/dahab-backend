@@ -4,11 +4,13 @@ namespace App\Actions\Auth\Customer;
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Actions\Auth\Shared\RecordAuditLogAction;
+use App\Enums\AccountEvent;
 use App\Enums\AuditEvent;
 use App\Enums\AuthErrorCode;
 use App\Exceptions\AuthApiException;
 use App\Models\Customer;
 use App\Models\CustomerTrustedDevice;
+use App\Notifications\AccountNotification;
 use App\Services\CustomerLoginChallengeStore;
 use App\Support\RequestContext;
 use App\Support\SessionDto;
@@ -96,14 +98,20 @@ final class VerifyCustomerLoginOtpAction
                 ]);
                 $device->first_seen_at ??= now();
                 $device->last_seen_at = now();
+                $device->platform = IssueTokenFamilyAction::platform();
+                $device->user_agent = mb_substr((string) request()?->userAgent(), 0, 255) ?: null;
                 $device->save();
 
-                return $this->issueTokens->forCustomer($customer);
+                return $this->issueTokens->forCustomer($customer, $ctx->deviceFingerprintHash);
             });
 
             $auditCtx = RequestContext::forCustomer(request(), $customer->customer_id, $ctx->deviceFingerprintHash);
             $this->audit->execute(AuditEvent::CUSTOMER_OTP_VERIFIED, 'success', ['purpose' => 'new_device_sign_in'], 'customer', $customer->customer_id, $auditCtx);
             $this->audit->execute(AuditEvent::CUSTOMER_SIGN_IN, 'success', ['via' => 'new_device_otp'], 'customer', $customer->customer_id, $auditCtx);
+
+            // Spec 017 FR-021: a sign-in from a new device is told on every channel.
+            $customer->notify(new AccountNotification(AccountEvent::NEW_DEVICE, $customer->preferred_lang ?? 'ar',
+                detail: IssueTokenFamilyAction::platform()));
 
             return ['customer' => $customer, 'session' => $session];
         } finally {

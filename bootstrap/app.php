@@ -118,6 +118,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 // indexes answer a lost race with the same code the Action gives.
                 'DH009' => DomainApiException::illegalDisputeTransition(),
                 'DH010' => DomainApiException::illegalExtensionRequestTransition(),
+                // Spec 017: a closed customer gets nothing new; inbox items only get read;
+                // a report is handled once.
+                'DH013' => DomainApiException::accountClosed(),
+                'DH014' => DomainApiException::notificationImmutable(),
+                'DH015' => DomainApiException::reportNotOpen(),
                 // Spec 016: the credit-note cap answers like the Action; any other DH012
                 // (an invoice or credit note not matching its entry) is a bug — a 500.
                 'DH012' => match (true) {
@@ -130,6 +135,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     str_contains($e->getMessage(), 'dispute_one_per_party') => DomainApiException::disputeAlreadyRaised(),
                     str_contains($e->getMessage(), 'uq_dispute_one_unresolved') => DomainApiException::orderFrozen(),
                     str_contains($e->getMessage(), 'uq_extension_request_waiting') => DomainApiException::extensionRequestPending(),
+                    str_contains($e->getMessage(), 'uq_listing_report_open') => DomainApiException::reportAlreadyOpen(),
                     default => $e,
                 },
                 default => $e,
@@ -148,6 +154,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH008' => DomainApiException::illegalPayoutAccountTransition(),
                 'DH009' => DomainApiException::illegalDisputeTransition(),
                 'DH010' => DomainApiException::illegalExtensionRequestTransition(),
+                // Spec 017: a closed customer gets nothing new; inbox items only get read;
+                // a report is handled once.
+                'DH013' => DomainApiException::accountClosed(),
+                'DH014' => DomainApiException::notificationImmutable(),
+                'DH015' => DomainApiException::reportNotOpen(),
                 default => $e,
             };
         });

@@ -1,16 +1,21 @@
 <?php
 
 use App\Enums\StaffPermission;
+use App\Http\Controllers\Api\V1\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerAuthController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\BuyRequestController as CustomerBuyRequestController;
+use App\Http\Controllers\Api\V1\Customer\CloseAccountController as CustomerCloseAccountController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Customer\InvoiceController as CustomerInvoiceController;
 use App\Http\Controllers\Api\V1\Customer\ListingController as CustomerListingController;
 use App\Http\Controllers\Api\V1\Customer\ListingQueueController as CustomerListingQueueController;
+use App\Http\Controllers\Api\V1\Customer\ListingReportController as CustomerListingReportController;
+use App\Http\Controllers\Api\V1\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Api\V1\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Api\V1\Customer\PayoutAccountController as CustomerPayoutAccountController;
+use App\Http\Controllers\Api\V1\Customer\SavedPieceController as CustomerSavedPieceController;
 use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
@@ -35,6 +40,7 @@ use App\Http\Controllers\Api\V1\Dashboard\InvoiceController as DashboardInvoiceC
 use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
+use App\Http\Controllers\Api\V1\Dashboard\ListingReportController as DashboardListingReportController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController as DashboardOrderController;
 use App\Http\Controllers\Api\V1\Dashboard\OverviewController as DashboardOverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PayoutAccountController as DashboardPayoutAccountController;
@@ -50,6 +56,7 @@ use App\Http\Controllers\Api\V1\Dashboard\WalletController as DashboardWalletCon
 use App\Http\Controllers\Api\V1\Dashboard\WithdrawalController as DashboardWithdrawalController;
 use App\Http\Controllers\Api\V1\Market\MarketListingController;
 use App\Http\Controllers\Api\V1\Market\ReferenceController;
+use App\Http\Controllers\Api\V1\Public\EmailChangeController;
 use App\Http\Controllers\Api\V1\Public\WithdrawalConfirmationController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +80,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/karats', [ReferenceController::class, 'karats'])->name('karats');
             Route::get('/piece-types', [ReferenceController::class, 'pieceTypes'])->name('piece-types');
             Route::get('/branches', [ReferenceController::class, 'branches'])->name('branches');
+            // Spec 017: the list the app shows, and how to reach Dahab.
+            Route::get('/legal-documents', [ReferenceController::class, 'legalDocuments'])->name('legal-documents.index');
+            Route::get('/support-contacts', [ReferenceController::class, 'supportContacts'])->name('support-contacts');
             Route::get('/legal-documents/{code}', [ReferenceController::class, 'legalDocument'])
                 ->where('code', '[a-z][a-z0-9_]{1,49}')->name('legal-documents.show');
             // Spec 015: today's prices and the seller's estimate (indicative; nothing is locked).
@@ -95,6 +105,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->prefix('withdrawal-confirmations')->name('withdrawal-confirmations.')->group(function () {
             Route::post('/read', [WithdrawalConfirmationController::class, 'read'])->name('read');
             Route::post('/confirm', [WithdrawalConfirmationController::class, 'confirm'])->name('confirm');
+        });
+
+    // Spec 017: the email-change link's page, as the withdrawal link (research R2).
+    Route::middleware(['throttle:public.email_change', 'db.elevate:bootstrap'])
+        ->prefix('contact-changes/email')->name('contact-changes.email.')->group(function () {
+            Route::post('/read', [EmailChangeController::class, 'read'])->name('read');
+            Route::post('/confirm', [EmailChangeController::class, 'confirm'])->name('confirm');
         });
 
     Route::prefix('customer')->name('customer.')->group(function () {
@@ -162,6 +179,44 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::post('/identity-documents', [CustomerIdentityDocumentController::class, 'store'])
                 ->name('identity-documents.store');
+
+            // Spec 017: the customer's own account — every state may use it (Q7), so these
+            // routes are open (CustomerRouteAccess). Each POST needs an Idempotency-Key.
+            Route::post('/phone-change', [CustomerAccountController::class, 'requestPhoneChange'])
+                ->middleware(['throttle:customer.contact_change', 'idempotent'])->name('phone-change.request');
+            Route::post('/phone-change/{challenge}/confirm', [CustomerAccountController::class, 'confirmPhoneChange'])
+                ->whereUuid('challenge')->middleware(['throttle:customer.contact_confirm', 'idempotent'])->name('phone-change.confirm');
+            Route::post('/email-change', [CustomerAccountController::class, 'requestEmailChange'])
+                ->middleware(['throttle:customer.contact_change', 'idempotent'])->name('email-change.request');
+            Route::post('/password', [CustomerAccountController::class, 'changePassword'])
+                ->middleware(['throttle:customer.password_change', 'idempotent'])->name('password.change');
+            Route::get('/sessions', [CustomerAccountController::class, 'sessions'])->name('sessions.index');
+            Route::post('/sessions/{session}/sign-out', [CustomerAccountController::class, 'signOutSession'])
+                ->whereUuid('session')->middleware(['throttle:customer.session_sign_out', 'idempotent'])->name('sessions.sign-out');
+
+            // Spec 017: the inbox (third channel next to SMS and email).
+            Route::prefix('notifications')->name('notifications.')->group(function () {
+                Route::get('/', [CustomerNotificationController::class, 'index'])->name('index');
+                Route::get('/unread-count', [CustomerNotificationController::class, 'unreadCount'])->name('unread-count');
+                Route::post('/read-all', [CustomerNotificationController::class, 'readAll'])->middleware('idempotent')->name('read-all');
+                Route::post('/{notification}/read', [CustomerNotificationController::class, 'read'])
+                    ->whereUuid('notification')->middleware('idempotent')->name('read');
+            });
+
+            // Spec 017: saved pieces (any signed-in customer, Q17).
+            Route::prefix('saved-pieces')->name('saved-pieces.')->group(function () {
+                Route::get('/', [CustomerSavedPieceController::class, 'index'])->name('index');
+                Route::post('/', [CustomerSavedPieceController::class, 'store'])->middleware('idempotent')->name('store');
+                Route::delete('/{listing}', [CustomerSavedPieceController::class, 'destroy'])->whereUuid('listing')->name('destroy');
+            });
+
+            // Spec 017: close my account (any state; refused while anything is open).
+            Route::get('/account/close-check', [CustomerCloseAccountController::class, 'check'])->name('account.close-check');
+            Route::post('/account/close', [CustomerCloseAccountController::class, 'close'])->middleware('idempotent')->name('account.close');
+
+            // Spec 017: report a listing — verified and not suspended.
+            Route::post('/listing-reports', [CustomerListingReportController::class, 'store'])
+                ->middleware(['customer.gate:trade', 'throttle:customer.listing_reports', 'idempotent'])->name('listing-reports.store');
 
             // Spec 008: the customer's own wallet (verified; a suspended customer may read).
             Route::middleware('customer.gate:verified')->prefix('wallet')->name('wallet.')->group(function () {
@@ -362,6 +417,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/{customer}/sessions', [DashboardCustomerController::class, 'sessions'])
                     ->whereUuid('customer')
                     ->middleware('staff.permission:customer.view')->name('sessions');
+                // Spec 017: what the customer was sent (their inbox), read-only.
+                Route::get('/{customer}/notifications', [DashboardCustomerController::class, 'notifications'])
+                    ->whereUuid('customer')->middleware('staff.permission:customer.view')->name('notifications');
             });
 
         // Identity review.
@@ -557,6 +615,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     Route::post('/{dispute}/resolve', [DashboardDisputeController::class, 'resolve'])
                         ->whereUuid('dispute')->middleware('idempotent')->name('resolve');
                 });
+            });
+
+        // Spec 017: the listing-reports half of Disputes and reports. Take-down also needs
+        // listing.takedown (the spec 010 take-down runs inside).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:listing_report.handle'])
+            ->prefix('listing-reports')->name('listing-reports.')->group(function () {
+                Route::get('/', [DashboardListingReportController::class, 'index'])->name('index');
+                Route::get('/{report}', [DashboardListingReportController::class, 'show'])->whereUuid('report')->name('show');
+                Route::post('/{report}/dismiss', [DashboardListingReportController::class, 'dismiss'])
+                    ->whereUuid('report')->middleware('idempotent')->name('dismiss');
+                Route::post('/{report}/take-down', [DashboardListingReportController::class, 'takeDown'])
+                    ->whereUuid('report')->middleware(['staff.permission:listing.takedown', 'idempotent'])->name('take-down');
             });
 
         // Spec 014: sellers' requests for more time, answered in Orders.

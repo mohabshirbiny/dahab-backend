@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CloseReason;
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Enums\Governorate;
@@ -53,6 +54,9 @@ class Customer extends Authenticatable implements HasApiTokensContract
         'suspended_note',
         'status_before_suspension',
         'cancellations_reset_at',
+        'closed_at',
+        'closed_reason',
+        'closed_note',
     ];
 
     protected function casts(): array
@@ -63,6 +67,8 @@ class Customer extends Authenticatable implements HasApiTokensContract
             'email_verified_at' => 'datetime',
             'suspended_at' => 'datetime',
             'cancellations_reset_at' => 'immutable_datetime',
+            'closed_at' => 'immutable_datetime',
+            'closed_reason' => CloseReason::class,
             'suspended_reason' => SuspendedReason::class,
             'status' => CustomerStatus::class,
             'status_before_suspension' => CustomerStatus::class,

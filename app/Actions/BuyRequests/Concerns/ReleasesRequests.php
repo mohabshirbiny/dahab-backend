@@ -5,6 +5,7 @@ namespace App\Actions\BuyRequests\Concerns;
 use App\Actions\Listings\Concerns\MovesListing;
 use App\Enums\BuyRequestEvent;
 use App\Enums\BuyRequestState;
+use App\Enums\InboxLinkKind;
 use App\Enums\ListingState;
 use App\Exceptions\DomainApiException;
 use App\Jobs\NotifyCustomerJob;
@@ -103,9 +104,14 @@ trait ReleasesRequests
     ): void {
         $listing->loadMissing('pieceType');
 
-        $this->outbox[] = [$customerId, new BuyRequestNotification(
+        $notification = new BuyRequestNotification(
             $event, $listing->title(), $listing->title(arabic: true), $amount, $deadline, $orderRef, $branch, $branchAr, $reason,
-        )];
+        );
+        // Spec 017: the seller's inbox item opens the piece.
+        if ($event === BuyRequestEvent::NEW_REQUEST) {
+            $notification->linkTo(InboxLinkKind::LISTING, $listing->listing_id);
+        }
+        $this->outbox[] = [$customerId, $notification];
     }
 
     /** Send what was collected, once the transaction commits (call inside it). */

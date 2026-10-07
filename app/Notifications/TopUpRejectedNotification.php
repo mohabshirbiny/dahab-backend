@@ -2,8 +2,12 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Enums\TopUpRejectReason;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,9 +19,9 @@ use Illuminate\Notifications\Notification;
  * the staff note never leaves the Dashboard. SMS plus email when the
  * customer has one, after the change commits.
  */
-class TopUpRejectedNotification extends Notification implements ShouldQueue
+class TopUpRejectedNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -35,7 +39,7 @@ class TopUpRejectedNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -56,5 +60,10 @@ class TopUpRejectedNotification extends Notification implements ShouldQueue
         return SmsMessage::make($notifiable->preferred_lang === 'ar'
             ? config('app.name').': '.$this->reason->labelAr()." ({$this->number})."
             : config('app.name').': '.$this->reason->label()." ({$this->number}).");
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'topup.rejected', InboxLinkKind::WALLET, null, ['number' => $this->number]);
     }
 }

@@ -99,7 +99,7 @@ function withCommittedListings(Closure $test): void
         DatabaseActor::reapply();
         // TRUNCATE skips the row-level no-delete triggers.
         // The customer's wallet accounts go too; the ledger singletons are re-provisioned below.
-        DB::statement('TRUNCATE listing_state_change, listing_queue_seq, listing_ownership_declaration, listing_branch_option, listing_media, listing, ledger_posting, ledger_transaction, account, audit_log CASCADE');
+        DB::statement('TRUNCATE customer_notification, listing_state_change, listing_queue_seq, listing_ownership_declaration, listing_branch_option, listing_media, listing, ledger_posting, ledger_transaction, account, audit_log CASCADE');
         DB::table('branch_hours')->whereIn('branch_id', $branchIds)->delete();
         DB::table('branch')->whereIn('branch_id', $branchIds)->delete();
         DB::table('customer')->where('customer_id', $seller?->customer_id)->delete();

@@ -8,6 +8,7 @@ use App\Actions\Listings\Concerns\MovesListing;
 use App\Enums\AuditEvent;
 use App\Enums\BuyRequestEvent;
 use App\Enums\CustomerStatus;
+use App\Enums\InboxLinkKind;
 use App\Enums\ListingDecision;
 use App\Enums\ListingState;
 use App\Exceptions\DomainApiException;
@@ -87,6 +88,7 @@ final class DecideListingAction
 
             $listing->loadMissing('pieceType');
             $notification = new ListingDecisionNotification($decision, $listing->title(), $listing->title(arabic: true), $note);
+            $notification->linkTo(InboxLinkKind::LISTING, $listing->listing_id);
             DB::afterCommit(fn () => Customer::query()->find($listing->seller_id)?->notify($notification));
 
             return $listing;

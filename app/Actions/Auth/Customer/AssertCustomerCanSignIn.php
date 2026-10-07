@@ -3,6 +3,7 @@
 namespace App\Actions\Auth\Customer;
 
 use App\Enums\CustomerStatus;
+use App\Exceptions\AuthApiException;
 use App\Models\Customer;
 
 /**
@@ -15,7 +16,9 @@ use App\Models\Customer;
  * - suspended customers sign in to read their own data and wind down
  *   (Part 1 §2.2); trade actions are refused with `account_suspended`.
  *
- * Kept as the single place a future closed/banned status would be refused.
+ * - closed customers never sign in again (spec 017 FR-051): `account_closed`.
+ *
+ * The single place a closed status is refused.
  * Checked at password sign-in and again when a new-device OTP is verified.
  */
 final class AssertCustomerCanSignIn
@@ -27,6 +30,7 @@ final class AssertCustomerCanSignIn
             CustomerStatus::PENDING_VERIFICATION,
             CustomerStatus::REJECTED,
             CustomerStatus::SUSPENDED => null,
+            CustomerStatus::CLOSED => throw AuthApiException::accountClosed(),
         };
     }
 }

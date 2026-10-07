@@ -31,6 +31,23 @@ final class CustomerRouteAccess
         'api.v1.customer.auth.logout-all',
         'api.v1.customer.me.uploads.store',
         'api.v1.customer.me.identity-documents.store',
+        // Spec 017 (Q7, Q17): the account itself, the inbox, saved pieces and closing —
+        // every signed-in customer, whatever the state.
+        'api.v1.customer.me.phone-change.request',
+        'api.v1.customer.me.phone-change.confirm',
+        'api.v1.customer.me.email-change.request',
+        'api.v1.customer.me.password.change',
+        'api.v1.customer.me.sessions.index',
+        'api.v1.customer.me.sessions.sign-out',
+        'api.v1.customer.me.notifications.index',
+        'api.v1.customer.me.notifications.unread-count',
+        'api.v1.customer.me.notifications.read-all',
+        'api.v1.customer.me.notifications.read',
+        'api.v1.customer.me.saved-pieces.index',
+        'api.v1.customer.me.saved-pieces.store',
+        'api.v1.customer.me.saved-pieces.destroy',
+        'api.v1.customer.me.account.close-check',
+        'api.v1.customer.me.account.close',
     ];
 
     public const GATES = ['customer.gate:verified', 'customer.gate:trade'];

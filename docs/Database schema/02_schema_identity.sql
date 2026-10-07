@@ -249,3 +249,62 @@ CREATE TABLE staff_device_fingerprint (
   last_seen_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (staff_id, fingerprint_hash)
 );
+
+-- =====================================================================
+-- spec 017 — the customer account (specs/017-customer-account/data-model.md)
+-- =====================================================================
+
+-- Closing an account: a status of its own, final; nothing is deleted.
+ALTER TABLE customer
+  ADD COLUMN closed_at     TIMESTAMPTZ,
+  ADD COLUMN closed_reason TEXT CHECK (closed_reason IN (
+    'finished','fees_too_high','too_slow_to_sell','data_trust','something_went_wrong','other')),
+  ADD COLUMN closed_note   TEXT CHECK (char_length(closed_note) <= 500),
+  ADD CONSTRAINT customer_closed_shape CHECK ((closed_at IS NULL) = (closed_reason IS NULL)),
+  ADD CONSTRAINT customer_closed_note_other CHECK (closed_note IS NULL OR closed_reason = 'other'),
+  ADD CONSTRAINT customer_closed_status CHECK ((status = 'closed') = (closed_at IS NOT NULL));
+-- customer_status_check gains 'closed'; customer_status_flags_consistent accepts any flags when closed
+-- (closing clears status_before_suspension; the suspension reason and dates stay).
+
+-- Sessions learn their device (spec 017 research R4).
+ALTER TABLE personal_access_tokens ADD COLUMN device_fingerprint_hash TEXT, ADD COLUMN device_platform TEXT;
+CREATE INDEX idx_pat_tokenable_device ON personal_access_tokens (tokenable_id, device_fingerprint_hash);
+ALTER TABLE customer_trusted_device
+  ADD COLUMN platform   TEXT CHECK (platform IN ('ios','android','web')),
+  ADD COLUMN user_agent TEXT CHECK (char_length(user_agent) <= 255);
+
+-- The in-app inbox: a third channel next to SMS and email. Written only by an
+-- elevated scope (the inbox notification channel); only read_at changes (DH014).
+CREATE TABLE customer_notification (
+  notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id  UUID NOT NULL REFERENCES customer(customer_id),
+  type         TEXT NOT NULL CHECK (type ~ '^[a-z_]+\.[a-z_]+$'),
+  params       JSONB NOT NULL DEFAULT '{}'::jsonb,
+  link_kind    TEXT NOT NULL CHECK (link_kind IN ('order','listing','buy_request','wallet','withdrawal',
+                 'payout_account','topup','invoice','credit_note','dispute','account','none')),
+  link_id      TEXT,
+  title_en     TEXT NOT NULL CHECK (char_length(title_en) <= 200),
+  title_ar     TEXT NOT NULL CHECK (char_length(title_ar) <= 200),
+  body_en      TEXT NOT NULL CHECK (char_length(body_en) <= 1000),
+  body_ar      TEXT NOT NULL CHECK (char_length(body_ar) <= 1000),
+  dedupe_key   TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  read_at      TIMESTAMPTZ,
+  CONSTRAINT customer_notification_link CHECK ((link_id IS NULL) = (link_kind IN ('wallet','account','none'))),
+  CONSTRAINT customer_notification_dedupe UNIQUE (customer_id, dedupe_key)
+);
+-- Forced RLS: read/update own (elevated: all), insert elevated only, no delete policy.
+
+-- Saved pieces (summary taken at save time, no media). At most setting saved.max_per_customer (200).
+CREATE TABLE saved_listing (
+  customer_id UUID NOT NULL REFERENCES customer(customer_id),
+  listing_id  UUID NOT NULL REFERENCES listing(listing_id),
+  summary     JSONB NOT NULL,
+  saved_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (customer_id, listing_id)
+);
+-- Forced RLS: own rows only.
+
+-- DH013: refuse_closed_customer() BEFORE INSERT on listing, buy_request, withdrawal,
+-- withdrawal_confirmation, topup, dispute, payout_account, saved_listing, listing_report, and
+-- refuse_closed_customer_posting() on ledger_posting for a closed customer's accounts.

@@ -19,12 +19,22 @@ final class IssueTokenFamilyAction
      * `<kind>:access`, the refresh token only `<kind>:refresh`, so neither can
      * stand in for the other. Pass `$familyId` to rotate within a family.
      *
+     * Spec 017 (research R4): the tokens remember the device that signed in;
+     * a rotation keeps the device of its family.
+     *
      * @param  'customer'|'staff'  $actorKind
      */
-    public function execute(Model $tokenable, string $actorKind, ?string $familyId = null): SessionDto
+    public function execute(Model $tokenable, string $actorKind, ?string $familyId = null, ?string $deviceFingerprintHash = null, ?string $devicePlatform = null): SessionDto
     {
         if (! $tokenable instanceof HasApiTokens) {
             throw new \InvalidArgumentException('tokenable must use HasApiTokens');
+        }
+
+        if ($familyId !== null) {
+            $device = DB::table('personal_access_tokens')->where('family_id', $familyId)
+                ->whereNotNull('device_fingerprint_hash')->first(['device_fingerprint_hash', 'device_platform']);
+            $deviceFingerprintHash ??= $device?->device_fingerprint_hash;
+            $devicePlatform ??= $device?->device_platform;
         }
 
         $familyId ??= (string) Str::uuid();
@@ -43,6 +53,8 @@ final class IssueTokenFamilyAction
             ->update([
                 'family_id' => $familyId,
                 'actor_kind' => $actorKind,
+                'device_fingerprint_hash' => $deviceFingerprintHash,
+                'device_platform' => $devicePlatform,
             ]);
 
         return new SessionDto(
@@ -54,9 +66,17 @@ final class IssueTokenFamilyAction
         );
     }
 
-    public function forCustomer(Customer $customer): SessionDto
+    public function forCustomer(Customer $customer, ?string $deviceFingerprintHash = null): SessionDto
     {
-        return $this->execute($customer, 'customer');
+        return $this->execute($customer, 'customer', null, $deviceFingerprintHash, $deviceFingerprintHash === null ? null : self::platform());
+    }
+
+    /** The platform the app declares (`X-Device-Platform`, as the fingerprint), or web. */
+    public static function platform(): string
+    {
+        $platform = strtolower((string) request()?->header('X-Device-Platform', 'web'));
+
+        return in_array($platform, ['ios', 'android', 'web'], true) ? $platform : 'web';
     }
 
     public function forStaff(Staff $staff): SessionDto

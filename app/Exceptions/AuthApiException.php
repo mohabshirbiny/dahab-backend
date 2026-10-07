@@ -52,6 +52,12 @@ class AuthApiException extends RuntimeException
         return new self(AuthErrorCode::MFA_INVALID, 401, 'Invalid verification code.');
     }
 
+    /** The customer closed the account (spec 017 FR-051): it never signs in again. */
+    public static function accountClosed(): self
+    {
+        return new self(AuthErrorCode::ACCOUNT_CLOSED, 403, 'This account is closed.');
+    }
+
     public static function accountSuspended(?string $reason = null): self
     {
         return new self(AuthErrorCode::ACCOUNT_SUSPENDED, 403, 'Account suspended.', array_filter(['suspended_reason' => $reason]));

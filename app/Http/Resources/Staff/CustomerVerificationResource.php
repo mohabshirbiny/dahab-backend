@@ -20,7 +20,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'email', type: 'string', nullable: true),
         new OA\Property(property: 'governorate', type: 'string', nullable: true),
         new OA\Property(property: 'customer_type', type: 'string', enum: ['ordinary', 'market_maker']),
-        new OA\Property(property: 'status', type: 'string', enum: ['pending_verification', 'active', 'rejected', 'suspended']),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending_verification', 'active', 'rejected', 'suspended', 'closed']),
         new OA\Property(property: 'suspended_reason', type: 'string', nullable: true),
         new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'latest_document', type: 'object', nullable: true, properties: [

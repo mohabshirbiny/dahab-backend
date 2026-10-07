@@ -4,10 +4,10 @@ namespace App\Actions\Withdrawals\Concerns;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
+use App\Enums\PauseTrigger;
 use App\Enums\PayoutAccountChangeKind;
 use App\Enums\PayoutAccountState;
 use App\Enums\PayoutEvent;
-use App\Enums\SettingKey;
 use App\Enums\WithdrawalState;
 use App\Exceptions\DomainApiException;
 use App\Jobs\NotifyCustomerJob;
@@ -16,9 +16,9 @@ use App\Models\PayoutAccountChange;
 use App\Models\Withdrawal;
 use App\Models\WithdrawalPause;
 use App\Notifications\PayoutNotification;
-use App\Support\Pricing\Settings;
 use App\Support\RequestContext;
 use App\Support\Withdrawals\WithdrawalLedger;
+use App\Support\Withdrawals\WithdrawalSafetyStop;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -188,25 +188,11 @@ trait WorksWithdrawals
         $previous = $accounts->first(fn (PayoutAccount $a) => $a->is_in_use && $a->payout_account_id !== $account->payout_account_id);
 
         if (! $firstEver) {
-            $ledger = app(WithdrawalLedger::class);
-            foreach ($this->lockOpenWithdrawals($customerId) as $open) {
-                $txn = $ledger->returnToAvailable($open, $actorCustomerId, $actorStaffId, 'payout account changed');
-                $this->moveWithdrawal($open, WithdrawalState::CANCELLED, [
-                    'return_txn_id' => $txn->ledger_txn_id,
-                    'cancelled_by_change' => true,
-                ]);
-                $cancelled[] = $open->number();
-            }
-
-            $hours = app(Settings::class)->integer(SettingKey::WITHDRAWAL_ACCOUNT_CHANGE_PAUSE_HOURS);
-            if ($hours > 0) {
-                $pause = WithdrawalPause::query()->create([
-                    'customer_id' => $customerId,
-                    'opened_at' => now(),
-                    'pause_until' => now()->addHours($hours),
-                    'triggered_by_account' => $account->payout_account_id,
-                ]);
-            }
+            // The accounts are already locked by the caller (R6); shared with spec 017's contact changes.
+            ['pause' => $pause, 'cancelled' => $cancelled] = app(WithdrawalSafetyStop::class)->apply(
+                $customerId, PauseTrigger::PAYOUT_ACCOUNT, 'payout account changed',
+                accountId: $account->payout_account_id, actorCustomerId: $actorCustomerId, actorStaffId: $actorStaffId,
+            );
         }
 
         if ($previous !== null) {

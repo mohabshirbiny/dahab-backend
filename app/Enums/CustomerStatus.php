@@ -11,6 +11,7 @@ namespace App\Enums;
  *   pending_verification → active | rejected         (identity review)
  *   any other state      → suspended                  (Customer::suspend(), spec 007)
  *   suspended            → the state it interrupted   (Customer::reinstate())
+ *   any state            → closed                     (the customer closes it, spec 017; final)
  *
  * While suspended, `is_verified` describes the interrupted state (true only
  * when it was `active`), so the SUSPENDED entry in legacyFlags() is not used
@@ -24,6 +25,7 @@ enum CustomerStatus: string
     case ACTIVE = 'active';
     case REJECTED = 'rejected';
     case SUSPENDED = 'suspended';
+    case CLOSED = 'closed';
 
     /** @return array{is_verified: bool, is_suspended: bool} */
     public function legacyFlags(): array
@@ -33,6 +35,8 @@ enum CustomerStatus: string
             self::REJECTED => ['is_verified' => false, 'is_suspended' => false],
             self::ACTIVE => ['is_verified' => true,  'is_suspended' => false],
             self::SUSPENDED => ['is_verified' => true,  'is_suspended' => true],
+            // Closing keeps the flags of the state it ended (spec 017); never applied by a transition.
+            self::CLOSED => ['is_verified' => false, 'is_suspended' => false],
         };
     }
 

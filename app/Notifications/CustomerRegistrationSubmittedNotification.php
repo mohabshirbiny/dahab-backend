@@ -2,7 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -14,9 +18,9 @@ use Illuminate\Notifications\Notification;
  * copy MUST say "waiting for verification" — the account is not active
  * yet (docs Part 2 §18.3).
  */
-class CustomerRegistrationSubmittedNotification extends Notification implements ShouldQueue
+class CustomerRegistrationSubmittedNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -29,7 +33,7 @@ class CustomerRegistrationSubmittedNotification extends Notification implements 
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -59,5 +63,10 @@ class CustomerRegistrationSubmittedNotification extends Notification implements 
         return SmsMessage::make($arabic
             ? "تم استلام طلب تسجيلك في {$appName} وهو قيد المراجعة. رقم العميل: {$notifiable->display_ref}."
             : "Your {$appName} registration has been received and is awaiting verification. Reference: {$notifiable->display_ref}.");
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'account.registration_submitted', InboxLinkKind::ACCOUNT);
     }
 }

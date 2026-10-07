@@ -2,7 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Enums\InboxLinkKind;
 use App\Models\Customer;
+use App\Notifications\Concerns\RendersInbox;
+use App\Notifications\Contracts\InboxNotification;
+use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,9 +14,9 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /** Sent from ReviewIdentityDocumentAction on `verify` after commit. */
-class CustomerVerifiedNotification extends Notification implements ShouldQueue
+class CustomerVerifiedNotification extends Notification implements InboxNotification, ShouldQueue
 {
-    use Queueable;
+    use Queueable, RendersInbox;
 
     public int $tries = 3;
 
@@ -25,7 +29,7 @@ class CustomerVerifiedNotification extends Notification implements ShouldQueue
             array_unshift($channels, 'mail');
         }
 
-        return $channels;
+        return $this->withInbox($notifiable, $channels);
     }
 
     public function toMail(mixed $notifiable): MailMessage
@@ -50,5 +54,10 @@ class CustomerVerifiedNotification extends Notification implements ShouldQueue
         return SmsMessage::make($arabic
             ? "تم تفعيل حسابك في {$appName}. يمكنك الآن تسجيل الدخول."
             : "Your {$appName} account is now active. You can sign in.");
+    }
+
+    public function toInbox(Customer $customer): ?InboxMessage
+    {
+        return $this->inboxMessage($customer, 'account.verified', InboxLinkKind::ACCOUNT);
     }
 }

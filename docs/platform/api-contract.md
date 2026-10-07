@@ -219,7 +219,12 @@ machine-readable value clients must switch on**; `message` is human text and may
   `disputed`), `dispute_already_raised` 409, `dispute_outcome_not_allowed` 409, `illegal_dispute_transition` 409 (SQLSTATE DH009),
   `assignee_not_eligible` 422, `extension_request_pending` 409, `illegal_extension_request_transition` 409 (SQLSTATE DH010),
   `compensation_cap_exceeded` 403, `proxy_details_missing` 422; from spec 015: `day_not_ended` 422, `day_already_closed` 409; from spec 016: `invoice_not_creditable` 409,
-  `credit_exceeds_invoice` 422 (`details.remaining`), `document_not_ready` 409, SQLSTATE DH012, …).
+  `credit_exceeds_invoice` 422 (`details.remaining`), `document_not_ready` 409, SQLSTATE DH012; from spec 017:
+  `contact_taken` 409, `same_contact` 422, `change_code_invalid` 422 (`details.tries_left`), `change_code_locked` 429,
+  `change_link_invalid` 410, `current_password_wrong` 422, `current_session` 422, `account_closed` (403 at sign-in, 409 from
+  SQLSTATE DH013), `account_has_open_items` 409 (`details.blockers`), `listing_not_saveable` 422, `saved_limit_reached` 422
+  (`details.limit`), `listing_not_reportable` 422, `report_already_open` 409, `report_not_open` 409 (SQLSTATE DH015),
+  `notification_immutable` 409 (SQLSTATE DH014), …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -266,7 +271,10 @@ token is single use. Since spec 014: `POST /customer/me/orders/{id}/disputes|ext
 `POST /dashboard/disputes/{id}/pass-on|resolve` and `POST /dashboard/extension-requests/{id}/accept|refuse`. Since spec 015:
 `POST /dashboard/compensation`, `POST /dashboard/customers/{id}/wallet-adjustments`, `POST /dashboard/bank-movements` and
 `POST /dashboard/daily-close` (the staff upload `POST /dashboard/uploads` returns a single-use token, like the customer's).
-Since spec 016: `POST /dashboard/invoices/{id}/credit-notes`.
+Since spec 016: `POST /dashboard/invoices/{id}/credit-notes`. Since spec 017: `POST /customer/me/phone-change`,
+`/phone-change/{id}/confirm`, `/email-change`, `/password`, `/sessions/{id}/sign-out`, `/notifications/{id}/read`,
+`/notifications/read-all`, `/saved-pieces`, `/account/close`, `/listing-reports`, and `POST /dashboard/listing-reports/{id}/dismiss|take-down`.
+The public `POST /contact-changes/email/confirm` has no key: its link is single use.
 
 ## Status codes in use
 
@@ -330,3 +338,20 @@ Each frontend's dev origin must be listed (Dashboard Vite :3000, Flutter web :87
   `credit_note` — consumers must keep a fallback label for unknown kinds.
 - Dashboard surface: `/dashboard/invoices*`, `/dashboard/credit-notes*`. Invoice status (`issued | partly_credited | credited`)
   is derived from the credit notes. No Tax Authority status exists in any response (not integrated).
+
+## The customer account and the inbox (spec 017)
+
+- Customer status gains `closed` (final): sign-in, the new-device code and refresh answer `403 account_closed`; nothing new is
+  created for a closed customer (SQLSTATE DH013 → `409 account_closed`). Consumers map every status, with a fallback.
+- Contact changes are security events: a phone change proves the new number with an SMS code (`/customer/me/phone-change*`),
+  an email change with a single-use link opened on the public page (`/contact-changes/email/read|confirm`, token in the body).
+  Both may cancel withdrawals not yet released and open a withdrawal pause (`trigger_kind` `phone_change | email_change`), and
+  always tell the old contact.
+- The inbox (`/customer/me/notifications*`) is a third channel next to SMS and email. An item is generic and open for later
+  specs: `{id, type: "<area>.<event>", params, link: {kind, id}, title, body, title_en, title_ar, body_en, body_ar, created_at,
+  read_at}`. Link kinds: `order, listing, buy_request, wallet, withdrawal, payout_account, topup, invoice, credit_note,
+  dispute, account, none` (`id` null for `wallet`, `account`, `none`). Codes, collection codes and confirmation links never
+  appear in an item. Consumers ignore unknown types and link kinds (show the text, open nothing).
+- Limits: phone/email change requests 3 an hour; code confirmations and password changes 5 per 15 minutes; sign-outs 10 a
+  minute; listing reports 10 a day; the public link page 10 a minute per IP.
+- Reference: `GET /reference/legal-documents` (the four codes with `published`) and `GET /reference/support-contacts`.

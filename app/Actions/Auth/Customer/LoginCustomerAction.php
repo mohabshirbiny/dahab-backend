@@ -62,9 +62,13 @@ final class LoginCustomerAction
             CustomerTrustedDevice::query()
                 ->where('customer_id', $customer->customer_id)
                 ->where('fingerprint_hash', $ctx->deviceFingerprintHash)
-                ->update(['last_seen_at' => now()]);
+                ->update([
+                    'last_seen_at' => now(),
+                    'platform' => IssueTokenFamilyAction::platform(),
+                    'user_agent' => mb_substr((string) request()?->userAgent(), 0, 255) ?: null,
+                ]);
 
-            $session = $this->issueTokens->forCustomer($customer);
+            $session = $this->issueTokens->forCustomer($customer, $ctx->deviceFingerprintHash);
 
             $this->audit->execute(
                 AuditEvent::CUSTOMER_SIGN_IN,

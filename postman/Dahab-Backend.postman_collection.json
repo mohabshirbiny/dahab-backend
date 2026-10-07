@@ -36,6 +36,11 @@
         }
     ],
     "variable": [
+        {"key": "phone_challenge_id", "value": ""},
+        {"key": "email_change_token", "value": ""},
+        {"key": "session_id", "value": ""},
+        {"key": "notification_id", "value": ""},
+        {"key": "listing_report_id", "value": ""},
         {
             "key": "base_url",
             "value": "http://localhost",
@@ -6574,6 +6579,272 @@
                     ]
                 },
                 {
+                    "name": "Listing Reports",
+                    "description": "Spec 017: the listing-reports half of Disputes and reports. listing_report.handle; take-down also needs listing.takedown.",
+                    "item": [
+                        {
+                            "name": "Listing Reports",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listing-reports?state=&reason=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listing-reports"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "reason",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Open first, newest 100; meta.counts by state. Saves listing_report_id.",
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data[0]) pm.collectionVariables.set('listing_report_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Listing Report",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listing-reports/{{listing_report_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listing-reports",
+                                        "{{listing_report_id}}"
+                                    ]
+                                },
+                                "description": "One report, with the reporter reference (staff only).",
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Dismiss Report",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listing-reports/{{listing_report_id}}/dismiss",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listing-reports",
+                                        "{{listing_report_id}}",
+                                        "dismiss"
+                                    ]
+                                },
+                                "description": "note 3–1000. report_not_open 409. The reporter gets a generic inbox note.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"note\": \"The photos are the seller own\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Take Down Reported Piece",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listing-reports/{{listing_report_id}}/take-down",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listing-reports",
+                                        "{{listing_report_id}}",
+                                        "take-down"
+                                    ]
+                                },
+                                "description": "Runs the spec 010 take-down (reason 10–1000, to the seller) and actions every open report on the piece.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"The photos are taken from another shop\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Notifications",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/notifications?cursor=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "cursor",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 017 FR-035. customer.view; what the customer was sent (their inbox), read-only.",
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{staff_access_token}}",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
                     "name": "Invoices",
                     "description": "Spec 016: tax invoices issued automatically at pay-balance (DH-YYYY-NNNNNN-S / -B) and credit notes (CN-YYYY-NNNNNN). Nothing is filed with the Tax Authority.",
                     "item": [
@@ -10092,6 +10363,710 @@
                     ]
                 },
                 {
+                    "name": "Account",
+                    "description": "Spec 017: phone and email changes, the password, the devices. Every signed-in customer, whatever the state; each change is audited and the old contact told.",
+                    "item": [
+                        {
+                            "name": "Request Phone Change",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/phone-change",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "phone-change"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-001. A code goes to the new number only; contact_taken 409 when another customer holds it; same_contact 422. 3 an hour. Saves phone_challenge_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"phone\": \"+201000000099\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data) pm.collectionVariables.set('phone_challenge_id', json.data.challenge_id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Confirm Phone Change",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/phone-change/{{phone_challenge_id}}/confirm",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "phone-change",
+                                        "{{phone_challenge_id}}",
+                                        "confirm"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-002. The code from the SMS to the new number (MAIL/SMS log locally). Cancels withdrawals not released, opens the pause, ends other sessions and forgets other devices; the old number is told. change_code_invalid (details.tries_left) | change_code_locked.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"code\": \"123456\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Request Email Change",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/email-change",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "email-change"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-010. A single-use link (30 minutes) to the new address. contact_taken | same_contact. 3 an hour.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"new.address@example.com\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Change Password",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/password",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "password"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-012. Spec 001 rules, different from the current one; every other session ends. current_password_wrong 422 counts against the sign-in limiter.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"current_password\": \"Password123!\",\n  \"password\": \"a-brand-new-secret-9\",\n  \"password_confirmation\": \"a-brand-new-secret-9\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "My Sessions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/sessions",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "sessions"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-020. Open sessions, newest activity first; is_current marks this one. Saves session_id (the first that is not current)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "const other = (json.data || []).find(s => !s.is_current);",
+                                            "if (other) pm.collectionVariables.set('session_id', other.session_id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Sign Out Session",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/sessions/{{session_id}}/sign-out",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "sessions",
+                                        "{{session_id}}",
+                                        "sign-out"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-020. Ends the session and every session of its device, and forgets the device. current_session 422 for this one (use logout)."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Inbox",
+                    "description": "Spec 017: the in-app inbox — every message sent by SMS or email except codes and confirmation links.",
+                    "item": [
+                        {
+                            "name": "My Inbox",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/notifications?unread=&cursor=&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "notifications"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "unread",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "cursor",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 017 FR-032. Newest first, keyset paged; meta.unread_count. Saves notification_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const json = pm.response.json();",
+                                            "if (json.data && json.data[0]) pm.collectionVariables.set('notification_id', json.data[0].id);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Unread Count",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/notifications/unread-count",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "notifications",
+                                        "unread-count"
+                                    ]
+                                },
+                                "description": "The bell."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Mark Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/notifications/{{notification_id}}/read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "notifications",
+                                        "{{notification_id}}",
+                                        "read"
+                                    ]
+                                },
+                                "description": "Idempotent."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Mark All Read",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/notifications/read-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "notifications",
+                                        "read-all"
+                                    ]
+                                },
+                                "description": "data.marked = how many."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Saved Pieces",
+                    "description": "Spec 017: pieces saved from the market; a saved piece never locks a price.",
+                    "item": [
+                        {
+                            "name": "My Saved Pieces",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/saved-pieces?listing_id=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "saved-pieces"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "listing_id",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 017 FR-040. available false once a piece left the market (summary only, no price). listing_id checks one piece."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Save Piece",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/saved-pieces",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "saved-pieces"
+                                    ]
+                                },
+                                "description": "listing_not_saveable | saved_limit_reached (setting saved.max_per_customer). Idempotent.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"listing_id\": \"{{listing_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Unsave Piece",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/saved-pieces/{{listing_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "saved-pieces",
+                                        "{{listing_id}}"
+                                    ]
+                                },
+                                "description": "Idempotent; 204."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Close Account",
+                    "description": "Spec 017: close my account — refused while anything is open or money is left.",
+                    "item": [
+                        {
+                            "name": "Close Check",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/account/close-check",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "account",
+                                        "close-check"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-050. can_close and the blockers with counts."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Close Account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/account/close",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "account",
+                                        "close"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-050, FR-051. reason: finished | fees_too_high | too_slow_to_sell | data_trust | something_went_wrong | other (note only with other, ≤ 500). account_has_open_items 409 (details.blockers). Every session ends.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"other\",\n  \"note\": \"Moving abroad\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Listing Reports",
+                    "description": "Spec 017: report a piece on the market. Verified and not suspended.",
+                    "item": [
+                        {
+                            "name": "Report Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listing-reports",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listing-reports"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-052. reason: photos_not_genuine | price_or_weight_wrong | description_mismatch | not_theirs_to_sell | off_platform_dealing | other. listing_not_reportable | report_already_open. 10 a day.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"listing_id\": \"{{listing_id}}\",\n  \"reason\": \"photos_not_genuine\",\n  \"note\": \"The same photo is on another site\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
                     "name": "Invoices",
                     "description": "Spec 016: the customer's own tax invoices and credit notes.",
                     "item": [
@@ -10249,6 +11224,66 @@
                 {
                     "name": "Reference",
                     "item": [
+                        {
+                            "name": "Legal Documents",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/legal-documents",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "legal-documents"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-045. terms, privacy, selling_rules, id_handling with published / version.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Support Contacts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/support-contacts",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "support-contacts"
+                                    ]
+                                },
+                                "description": "Spec 017 FR-045. From config/dahab-support.php (demo values).",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": []
+                        },
                         {
                             "name": "Karats",
                             "request": {
@@ -10750,6 +11785,102 @@
                             ]
                         },
                         "description": "Spec 010. A public photo, video or certificate of a live piece, streamed; Cache-Control: no-store. 404 for the invoice, for another listing's file, and once the listing leaves the market. Public.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Contact Changes",
+            "description": "Spec 017: the email-change link page. No token; the link secret is the key. Throttled per IP.",
+            "item": [
+                {
+                    "name": "Read Email Change",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/contact-changes/email/read",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "contact-changes",
+                                "email",
+                                "read"
+                            ]
+                        },
+                        "description": "No side effect. 410 change_link_invalid.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{email_change_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Confirm Email Change",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/contact-changes/email/confirm",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "contact-changes",
+                                "email",
+                                "confirm"
+                            ]
+                        },
+                        "description": "Spec 017 FR-010, FR-011. Works once. With an earlier email: withdrawal links stop, unreleased withdrawals are cancelled, new ones pause; the old address is told.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{email_change_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
                         "auth": {
                             "type": "noauth"
                         }

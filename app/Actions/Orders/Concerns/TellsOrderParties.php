@@ -2,6 +2,7 @@
 
 namespace App\Actions\Orders\Concerns;
 
+use App\Enums\InboxLinkKind;
 use App\Enums\OrderEvent;
 use App\Jobs\NotifyCustomerJob;
 use App\Jobs\NotifyWhenFreeJob;
@@ -38,10 +39,10 @@ trait TellsOrderParties
         $listing->loadMissing('pieceType');
         $order->loadMissing('branch');
 
-        $this->orderOutbox[] = [$customerId, new OrderNotification(
+        $this->orderOutbox[] = [$customerId, (new OrderNotification(
             $event, $order->order_ref, $listing->title(), $listing->title(arabic: true),
             $amount, $deadline?->toIso8601String(), $order->branch?->name_en, $order->branch?->name_ar, $code, $message,
-        )];
+        ))->linkTo(InboxLinkKind::ORDER, $order->order_id)];
     }
 
     /** Send what was collected once the transaction commits (call inside it). */

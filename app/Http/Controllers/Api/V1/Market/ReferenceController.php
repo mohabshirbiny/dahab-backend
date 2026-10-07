@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Market;
 
 use App\Actions\Reference\QuoteAction;
 use App\Actions\Reference\ShowGoldPricesAction;
+use App\Enums\LegalDocumentCode;
 use App\Enums\PieceCategory;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reference\QuoteRequest;
@@ -116,6 +117,70 @@ class ReferenceController extends Controller
                 'address_en' => $b->address_en,
                 'address_ar' => $b->address_ar,
             ])->all()]);
+    }
+
+    #[OA\Get(
+        path: '/reference/legal-documents',
+        operationId: 'referenceLegalDocuments',
+        summary: 'The legal documents the app lists, published or not yet',
+        description: 'Spec 017 FR-045. terms, privacy, selling_rules, id_handling: the latest version when published (read it at /reference/legal-documents/{code}), else published false. Public.',
+        tags: ['Reference'],
+        responses: [new OA\Response(response: 200, description: 'The list', content: new OA\JsonContent(properties: [
+            new OA\Property(property: 'data', type: 'array', items: new OA\Items(properties: [
+                new OA\Property(property: 'code', type: 'string', enum: ['terms', 'privacy', 'selling_rules', 'id_handling']),
+                new OA\Property(property: 'published', type: 'boolean'),
+                new OA\Property(property: 'version', type: 'integer', nullable: true),
+                new OA\Property(property: 'published_at', type: 'string', format: 'date-time', nullable: true),
+            ], type: 'object')),
+        ]))],
+    )]
+    public function legalDocuments(): JsonResponse
+    {
+        return response()->json(['data' => array_map(function (LegalDocumentCode $code) {
+            $doc = LegalDocument::current($code->value);
+
+            return [
+                'code' => $code->value,
+                'published' => $doc !== null,
+                'version' => $doc?->version,
+                'published_at' => $doc?->published_at?->toIso8601String(),
+            ];
+        }, LegalDocumentCode::cases())]);
+    }
+
+    #[OA\Get(
+        path: '/reference/support-contacts',
+        operationId: 'referenceSupportContacts',
+        summary: 'How to reach Dahab',
+        description: 'Spec 017 FR-045. From the Backend configuration (demo values until replaced before production). Public.',
+        tags: ['Reference'],
+        responses: [new OA\Response(response: 200, description: 'Contacts', content: new OA\JsonContent(properties: [
+            new OA\Property(property: 'data', properties: [
+                new OA\Property(property: 'phone', type: 'string', example: '16000'),
+                new OA\Property(property: 'hours_en', type: 'string'),
+                new OA\Property(property: 'hours_ar', type: 'string'),
+                new OA\Property(property: 'whatsapp', type: 'string'),
+                new OA\Property(property: 'email', type: 'string'),
+                new OA\Property(property: 'social', properties: [
+                    new OA\Property(property: 'facebook', type: 'string'),
+                    new OA\Property(property: 'instagram', type: 'string'),
+                    new OA\Property(property: 'tiktok', type: 'string'),
+                ], type: 'object'),
+            ], type: 'object'),
+        ]))],
+    )]
+    public function supportContacts(): JsonResponse
+    {
+        $c = config('dahab-support');
+
+        return response()->json(['data' => [
+            'phone' => (string) $c['phone'],
+            'hours_en' => (string) $c['hours_en'],
+            'hours_ar' => (string) $c['hours_ar'],
+            'whatsapp' => (string) $c['whatsapp'],
+            'email' => (string) $c['email'],
+            'social' => array_map('strval', $c['social']),
+        ]]);
     }
 
     #[OA\Get(

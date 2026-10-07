@@ -137,6 +137,17 @@ enum AuditEvent: string
     case INVOICE_DOCUMENT_VIEWED = 'invoice.document_viewed';
     case CREDIT_NOTE_DOCUMENT_VIEWED = 'credit_note.document_viewed';
     case INVOICES_EXPORTED = 'invoices.exported';
+    // Spec 017: the customer account and listing reports.
+    case CUSTOMER_PHONE_CHANGE_REQUESTED = 'customer.phone_change_requested';
+    case CUSTOMER_PHONE_CHANGED = 'customer.phone_changed';
+    case CUSTOMER_EMAIL_CHANGE_REQUESTED = 'customer.email_change_requested';
+    case CUSTOMER_EMAIL_CHANGED = 'customer.email_changed';
+    case CUSTOMER_PASSWORD_CHANGED = 'customer.password_changed';
+    case CUSTOMER_SESSION_SIGNED_OUT = 'customer.session_signed_out';
+    case CUSTOMER_ACCOUNT_CLOSED = 'customer.account_closed';
+    case LISTING_REPORT_CREATED = 'listing_report.created';
+    case LISTING_REPORT_DISMISSED = 'listing_report.dismissed';
+    case LISTING_REPORT_ACTIONED = 'listing_report.actioned';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -265,6 +276,16 @@ enum AuditEvent: string
             self::INVOICE_DOCUMENT_VIEWED => 'Tax invoice opened',
             self::CREDIT_NOTE_DOCUMENT_VIEWED => 'Credit note opened',
             self::INVOICES_EXPORTED => 'Tax invoices exported',
+            self::CUSTOMER_PHONE_CHANGE_REQUESTED => 'Customer asked to change the phone number',
+            self::CUSTOMER_PHONE_CHANGED => 'Customer changed the phone number',
+            self::CUSTOMER_EMAIL_CHANGE_REQUESTED => 'Customer asked to change the email',
+            self::CUSTOMER_EMAIL_CHANGED => 'Customer changed the email',
+            self::CUSTOMER_PASSWORD_CHANGED => 'Customer changed the password',
+            self::CUSTOMER_SESSION_SIGNED_OUT => 'Customer signed out a device',
+            self::CUSTOMER_ACCOUNT_CLOSED => 'Customer closed the account',
+            self::LISTING_REPORT_CREATED => 'Listing reported',
+            self::LISTING_REPORT_DISMISSED => 'Listing report dismissed',
+            self::LISTING_REPORT_ACTIONED => 'Reported listing taken down',
         };
     }
 
@@ -298,6 +319,10 @@ enum AuditEvent: string
             self::CREDIT_NOTE_ISSUED, self::INVOICE_DOCUMENT_VIEWED, self::CREDIT_NOTE_DOCUMENT_VIEWED,
             self::INVOICES_EXPORTED => AuditCategory::MONEY,
             self::ORDER_LIST_EXPORTED => AuditCategory::ORDERS,
+            self::CUSTOMER_PHONE_CHANGE_REQUESTED, self::CUSTOMER_PHONE_CHANGED, self::CUSTOMER_EMAIL_CHANGE_REQUESTED,
+            self::CUSTOMER_EMAIL_CHANGED, self::CUSTOMER_ACCOUNT_CLOSED => AuditCategory::ACCOUNTS,
+            self::CUSTOMER_PASSWORD_CHANGED, self::CUSTOMER_SESSION_SIGNED_OUT => AuditCategory::SESSIONS,
+            self::LISTING_REPORT_CREATED, self::LISTING_REPORT_DISMISSED, self::LISTING_REPORT_ACTIONED => AuditCategory::LISTINGS,
         };
     }
 
