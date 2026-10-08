@@ -51,6 +51,9 @@ Guards:
 
 Forced RLS: `ENABLE` + `FORCE`; `order_rating_isolation FOR ALL USING (dahab_rls_elevated() OR customer_id = dahab_current_customer_id()) WITH CHECK (… same …)`; written in the `order` scope by the author only. Staff reads are made in the elevated scope inside `ShowOrderAction`, only when the viewer holds `rating.view`.
 
+## Names across layers
+`collection.free_relist_until` (database) = `free_relist.ends_at` (API) = *window end* (spec) = `freeRelist.endsAt` (Dashboard/Flutter). `listing.relisted_from_order_id` = `relisted_from_order { id, order_ref }` (API).
+
 ## Derived (no storage)
 - **Offer status** `none|open|used|expired` — from `collection.free_relist_until`, the existence of a listing linking to the order, and `now()` (R10).
 - **Rating window** — seller opens at the `order_state_change` row `→ ready_to_collect`; buyer at `order.completed_at`; both close 30 calendar days later (Cairo) (R12).

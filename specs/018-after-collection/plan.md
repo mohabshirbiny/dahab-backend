@@ -44,7 +44,7 @@ API models/types: YES — Dashboard src/types/order.ts, staff.ts; Flutter lib/mo
 |---|---|---|
 | I Named actor on every state change | Relist = customer actor (buyer); rating = customer actor; the window is stored by the staff handover (staff actor); no system write is added | PASS |
 | II Customer isolation by the engine; staff authorization by permission data | `order_rating` forced RLS (author reads own; staff through the permission-gated path); relist runs in the existing non-elevated `order` scope; new code `rating.view` is permission data seeded to CEO + COO and editable | PASS |
-| III Docs are the source of truth | Same change set updates the Technical Spec (Parts 1–3, each "Changed by spec 018"), schema SQL, `api-contract.md`, `docs/features/after-collection.md`, `CLAUDE.md` current state (task group 8) | PASS (gated by tasks) |
+| III Docs are the source of truth | Same change set updates the Technical Spec (Parts 1–3, each "Changed by spec 018"), schema SQL, `api-contract.md`, `docs/features/after-collection.md`, `CLAUDE.md` current state (tasks T002–T005 and T055) | PASS (gated by tasks) |
 | IV Foundation before modules | Builds on specs 010–017 only; migration mirrors the schema docs; Action + Pest happy and refusal path + `#[OA]` per endpoint | PASS |
 | V Test the boundary and the ledger | Every state-changing path (handover offer, relist, waiver settlement, invoice skip, rating) has an HTTP-boundary test; settlement figures are asserted against ledger rows | PASS |
 
@@ -81,7 +81,7 @@ dahab-backend/
 ├── app/Http/Resources/Customer/{CustomerOrderResource,ListingResource}.php, Staff/{StaffOrderResource,ListingResource}.php
 ├── app/Actions/Orders/Staff/{ListOrdersAction,ShowOrderAction}.php     # filter, panels, ratings by permission
 ├── app/Actions/Customers/ListCustomerActivityAction.php                # relist (+ rating for rating.view)
-├── app/Models/{OrderRating,Listing,Collection}.php, app/Enums/{AuditEvent,StaffPermission,OrderEvent,RatingPartyRole?}.php
+├── app/Models/{OrderRating,Listing,Collection}.php, app/Enums/{AuditEvent,StaffPermission,OrderEvent,(reuse the existing `PartyRole`)}.php
 ├── app/Notifications/OrderNotification.php, app/Enums/OrderEvent.php   # FREE_RELISTED, window text on COLLECTED
 ├── app/Exceptions/DomainApiException.php                               # free_relist_expired, already_relisted, rating_closed, already_rated, rating_not_available
 ├── routes/api.php, postman/*, docs/…                                   # routes, collection, docs
@@ -92,7 +92,7 @@ dahab-dashboard/
 ├── src/components/orders/{OrderDetailPanel.vue,OrdersTable.vue,OrderTimeline.vue} + new FreeRelistPanel.vue, OrderRatingsPanel.vue
 ├── src/pages/orders/index.vue (filter), src/pages/listings/index.vue + src/components/listings/ListingHistory.vue (line)
 ├── src/pages/customers/[id].vue (history events), src/mock/nav.ts only if a mock lists permissions
-└── i18n files used by the Dashboard (verify the folder in T-D01)
+└── i18n files used by the Dashboard (find the folder in T042)
 
 dahab-flutter/
 ├── lib/models/order.dart (+FreeRelistOffer, OrderRating), lib/services/api/orders_api.dart, lib/services/repositories.dart, lib/services/mock_repositories.dart
