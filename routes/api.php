@@ -309,6 +309,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->whereUuid('order')->middleware('idempotent')->name('extension-requests.store');
                     Route::post('/{order}/proxy/remove', [CustomerOrderController::class, 'removeProxy'])
                         ->whereUuid('order')->middleware('idempotent')->name('proxy.remove');
+                    // Spec 018: a party's rating of the order (a suspended customer may rate).
+                    Route::post('/{order}/rating', [CustomerOrderController::class, 'rate'])
+                        ->whereUuid('order')->middleware(['throttle:customer.ratings', 'idempotent'])->name('rating.store');
                 });
 
                 Route::middleware('customer.gate:trade')->group(function () {
@@ -317,6 +320,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     // Spec 014: naming someone else to collect completes a trade (trade gate).
                     Route::post('/{order}/proxy', [CustomerOrderController::class, 'nameProxy'])
                         ->whereUuid('order')->middleware('idempotent')->name('proxy.store');
+                    // Spec 018: the buyer's free relist of a collected piece is new trading (trade gate).
+                    Route::post('/{order}/free-relist', [CustomerOrderController::class, 'freeRelist'])
+                        ->whereUuid('order')->middleware(['throttle:customer.listings', 'idempotent'])->name('free-relist');
                 });
             });
 

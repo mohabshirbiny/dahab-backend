@@ -103,6 +103,7 @@ class OrderController extends Controller
         parameters: [
             new OA\Parameter(name: 'group', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['open', 'waiting_seller', 'at_igi', 'needs_decision', 'waiting_balance', 'ready_to_collect', 'returns', 'closed', 'all'])),
             new OA\Parameter(name: 'past_deadline', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'free_relist', in: 'query', required: false, description: 'Spec 018: the state of the buyer free-relist offer; without group it looks at every order', schema: new OA\Schema(type: 'string', enum: ['open', 'used', 'expired'])),
             new OA\Parameter(name: 'branch_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'q', in: 'query', required: false, schema: new OA\Schema(type: 'string', maxLength: 40)),
             new OA\Parameter(name: 'cursor', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
@@ -125,7 +126,7 @@ class OrderController extends Controller
     public function index(ListOrdersRequest $request, ListOrdersAction $list): JsonResponse
     {
         $perPage = $request->perPage(25);
-        $page = $list->handle($request->group(), $request->pastDeadline(), $request->branchId(), $request->search(), $request->cursor(), $perPage);
+        $page = $list->handle($request->group(), $request->pastDeadline(), $request->branchId(), $request->search(), $request->cursor(), $perPage, $request->freeRelist());
 
         return response()->json([
             'data' => StaffOrderResource::collection($page['rows'])->resolve($request),
@@ -143,6 +144,7 @@ class OrderController extends Controller
         parameters: [
             new OA\Parameter(name: 'group', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'past_deadline', in: 'query', required: false, schema: new OA\Schema(type: 'boolean')),
+            new OA\Parameter(name: 'free_relist', in: 'query', required: false, description: 'Spec 018: the state of the buyer free-relist offer; without group it looks at every order', schema: new OA\Schema(type: 'string', enum: ['open', 'used', 'expired'])),
             new OA\Parameter(name: 'branch_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'q', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
         ],
@@ -154,7 +156,7 @@ class OrderController extends Controller
     public function export(ListOrdersRequest $request, ExportOrdersAction $export): Response
     {
         return CompensationController::csv($export->handle($request->user('staff'), $request->group(), $request->pastDeadline(),
-            $request->branchId(), $request->search()), 'orders');
+            $request->branchId(), $request->search(), $request->freeRelist()), 'orders');
     }
 
     #[OA\Get(

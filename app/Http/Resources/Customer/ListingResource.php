@@ -42,6 +42,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'price_available', type: 'boolean'),
         new OA\Property(property: 'price_is_indicative', type: 'boolean'),
         new OA\Property(property: 'you_would_receive', type: 'string', nullable: true, example: '57744.0000'),
+        new OA\Property(property: 'relisted_from_order', type: 'object', nullable: true, description: 'Spec 018: {id, order_ref} when this is a free relist (no commission) of a collected order'),
         new OA\Property(property: 'staff_message', type: 'string', nullable: true),
         new OA\Property(property: 'staff_message_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
@@ -114,6 +115,11 @@ class ListingResource extends JsonResource
             'price_available' => $quote->priceAvailable(),
             'price_is_indicative' => $quote->priceIsIndicative,
             'you_would_receive' => $quote->youWouldReceive,
+            // Spec 018: set when this listing is a buyer's free relist (0% commission) of a collected order.
+            'relisted_from_order' => $l->relisted_from_order_id === null ? null : [
+                'id' => $l->relisted_from_order_id,
+                'order_ref' => $l->relistedFrom?->order_ref,
+            ],
         ];
     }
 

@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
  */
 final class ListOwnListingsAction
 {
-    public const RELATIONS = ['pieceType', 'media', 'branches', 'changes', 'order.branch'];
+    public const RELATIONS = ['pieceType', 'media', 'branches', 'changes', 'order.branch', 'relistedFrom:order_id,order_ref'];
 
     /** @return array{rows: Collection<int, Listing>, next_cursor: string|null} */
     public function handle(string $customerId, ?ListingState $state, ?ListingCursor $cursor, int $perPage): array

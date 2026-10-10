@@ -13,8 +13,9 @@ use App\Support\WorkingHours\WorkingHoursUnavailable;
 use Carbon\CarbonImmutable;
 
 /**
- * The order deadlines (spec 012, research R9, R13, R14; Part 3 §1.3). Only the
- * reach-branch deadline is in working hours (set at acceptance by spec 011);
+ * The order deadlines (spec 012, research R9, R13, R14; Part 3 §1.3). The
+ * reach-branch deadline (set at acceptance by spec 011) and, since spec 018,
+ * the free-relist window (set at the staff handover) are in working hours;
  * the decision, balance, collection and return windows are CALENDAR time,
  * counted in Cairo, from settings read live.
  */
@@ -41,6 +42,33 @@ final class DeadlinePolicy
     public function returnWindow(?CarbonImmutable $from = null): CarbonImmutable
     {
         return $this->cairo($from)->addWeeks($this->settings->integer(SettingKey::DEADLINE_SELLER_RETURN_WEEKS));
+    }
+
+    /** `deadline.free_relist_working_hours`, read live (0 means no offer is made). */
+    public function freeRelistHours(): int
+    {
+        return $this->settings->integer(SettingKey::DEADLINE_FREE_RELIST_WORKING_HOURS);
+    }
+
+    /**
+     * The end of the buyer's free-relist window: `deadline.free_relist_working_hours`
+     * of working time on the order's branch after `$from` (spec 018 research R2).
+     * Null — no offer — when the setting is 0 or the branch's hours cannot be
+     * worked out; the handover never fails on it (FR-002).
+     */
+    public function freeRelistEnd(CarbonImmutable $from, int $branchId): ?CarbonImmutable
+    {
+        $hours = $this->freeRelistHours();
+
+        if ($hours <= 0) {
+            return null;
+        }
+
+        try {
+            return $this->hours->addWorkingMinutes($from, $hours * 60, $branchId);
+        } catch (WorkingHoursUnavailable) {
+            return null;
+        }
     }
 
     /** The deadline an order is running against now, if any (research R19). */

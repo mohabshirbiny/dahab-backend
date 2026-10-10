@@ -3,22 +3,28 @@
 namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Actions\Disputes\Customer\OpenDisputeAction;
+use App\Actions\Listings\ListOwnListingsAction;
 use App\Actions\Orders\Customer\CancelOrderBySellerAction;
 use App\Actions\Orders\Customer\DecideAdjustmentAction;
+use App\Actions\Orders\Customer\FreeRelistAction;
 use App\Actions\Orders\Customer\ListOwnOrdersAction;
 use App\Actions\Orders\Customer\NameProxyAction;
 use App\Actions\Orders\Customer\PayBalanceAction;
+use App\Actions\Orders\Customer\RateOrderAction;
 use App\Actions\Orders\Customer\RelistReturnedPieceAction;
 use App\Actions\Orders\Customer\RemoveProxyAction;
 use App\Actions\Orders\Customer\RequestMoreTimeAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\Order\DecideAdjustmentRequest;
+use App\Http\Requests\Customer\Order\FreeRelistRequest;
 use App\Http\Requests\Customer\Order\ListOrdersRequest;
 use App\Http\Requests\Customer\Order\NameProxyRequest;
 use App\Http\Requests\Customer\Order\OpenDisputeRequest;
+use App\Http\Requests\Customer\Order\RateOrderRequest;
 use App\Http\Requests\Customer\Order\RequestMoreTimeRequest;
 use App\Http\Resources\Customer\CustomerOrderResource;
 use App\Http\Resources\Customer\DisputeResource;
+use App\Http\Resources\Customer\ListingResource;
 use App\Models\Customer;
 use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\JsonResponse;
@@ -208,6 +214,91 @@ class OrderController extends Controller
         $relist->handle($this->customer($request), $order, $request->attributes->get('context'));
 
         return $this->respond($request, $order, $list);
+    }
+
+    #[OA\Post(
+        path: '/customer/me/orders/{order}/free-relist',
+        operationId: 'customerFreeRelist',
+        summary: 'Relist a collected piece for free (buyer)',
+        description: "Spec 018 FR-004–FR-016. Within the free-relist window the staff handover stored (free_relist.ends_at on the order), the buyer puts the piece back on the market with no commission: a NEW live listing is created at once, with no review, owned by the buyer, linked to the order (the link is the waiver — commission, its VAT and the minimum are 0 for every sale of that listing; the buy/sell spread still applies; only the buyer's invoice is issued). The IGI-measured karat and weight, the public photos and the branch options are copied; the original invoice is not. The buyer enters the price (making_charge_per_g for gold, asking_price for stones) and re-accepts the ownership declaration. One free relist per order. Audited (order.free_relisted); the buyer is told by SMS, email and the inbox. Trade gate. Idempotent.",
+        security: [['customerBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/FreeRelistRequest')),
+        tags: ['Customer Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 201, description: 'The new listing (live) and the order (its offer now used)', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'listing', ref: '#/components/schemas/CustomerListing'),
+                    new OA\Property(property: 'order', ref: '#/components/schemas/CustomerOrder'),
+                ], type: 'object'),
+            ])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required | account_suspended | account_closed', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found (not the buyer)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_order_transition (not collected) | free_relist_expired | already_relisted | order_frozen | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed | branch_options_required | ownership_declaration_required | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function freeRelist(FreeRelistRequest $request, string $order, FreeRelistAction $relist, ListOwnOrdersAction $list): JsonResponse
+    {
+        $listing = $relist->handle($this->customer($request), $order, $request->validated(), $request->attributes->get('context'));
+        $listing->load(ListOwnListingsAction::RELATIONS);
+
+        return response()->json(['data' => [
+            'listing' => ListingResource::make($listing)->resolve($request),
+            'order' => CustomerOrderResource::make($list->show($order))->withCode()->resolve($request),
+        ]], 201);
+    }
+
+    #[OA\Post(
+        path: '/customer/me/orders/{order}/rating',
+        operationId: 'customerRateOrder',
+        summary: 'Rate an order (buyer or seller)',
+        description: 'Spec 018 FR-030–FR-036. Your own rating of the experience with Dahab: 1 to 5 stars and an optional note (500 characters). One per party and order, immutable. The seller from the moment the piece is ready to collect, the buyer once it is completed, for 30 days; never for a cancelled order. A suspended customer may rate. The other party never sees it, nothing changes anywhere else and no one is told. Audited (order.rated, stars only). Idempotent.',
+        security: [['customerBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/RateOrderRequest')),
+        tags: ['Customer Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 201, description: 'The rating and the order', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'rating', properties: [
+                        new OA\Property(property: 'stars', type: 'integer'),
+                        new OA\Property(property: 'note', type: 'string', nullable: true),
+                        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
+                    ], type: 'object'),
+                    new OA\Property(property: 'order', ref: '#/components/schemas/CustomerOrder'),
+                ], type: 'object'),
+            ])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required | account_closed', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found (not a party)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'rating_not_available | rating_closed | already_rated | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function rate(RateOrderRequest $request, string $order, RateOrderAction $rate, ListOwnOrdersAction $list): JsonResponse
+    {
+        $rating = $rate->handle($this->customer($request), $order, (int) $request->validated('stars'), $request->validated('note'), $request->attributes->get('context'));
+
+        return response()->json(['data' => [
+            'rating' => [
+                'stars' => $rating->stars,
+                'note' => $rating->note,
+                'created_at' => $rating->created_at->toIso8601String(),
+            ],
+            'order' => CustomerOrderResource::make($list->show($order))->withCode()->resolve($request),
+        ]], 201);
     }
 
     #[OA\Post(

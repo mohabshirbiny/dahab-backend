@@ -147,6 +147,9 @@ enum StaffPermission: string
     /** Work the listing reports: read, dismiss; take down also needs listing.takedown (spec 017 FR-053). */
     case LISTING_REPORT_HANDLE = 'listing_report.handle';
 
+    /** Read each party's rating of an order (spec 018 FR-034). CEO and COO. */
+    case RATING_VIEW = 'rating.view';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -212,6 +215,7 @@ enum StaffPermission: string
             self::INVOICE_VIEW => 'View tax invoices and credit notes',
             self::INVOICE_CORRECT => 'Issue or correct a tax invoice',
             self::LISTING_REPORT_HANDLE => 'Handle listing reports',
+            self::RATING_VIEW => 'View ratings',
         };
     }
 
@@ -233,7 +237,7 @@ enum StaffPermission: string
             self::LISTING_REPORT_HANDLE => 'Listings',
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
-            self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW, self::DISPUTE_HANDLE => 'Orders',
+            self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW, self::DISPUTE_HANDLE, self::RATING_VIEW => 'Orders',
         };
     }
 
@@ -322,6 +326,8 @@ enum StaffPermission: string
             self::INVOICE_VIEW, self::INVOICE_CORRECT => [SeedRole::FINANCE->value],
             // Spec 017: the roles that hold listing.takedown (approved in clarify).
             self::LISTING_REPORT_HANDLE => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
+            // Spec 018: ratings are read by the CEO (every code) and the COO.
+            self::RATING_VIEW => [SeedRole::COO->value],
         };
     }
 }

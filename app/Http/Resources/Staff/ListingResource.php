@@ -38,6 +38,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'price_is_indicative', type: 'boolean'),
         new OA\Property(property: 'you_would_receive', type: 'string', nullable: true),
         new OA\Property(property: 'gold_rate_per_gram', type: 'string', nullable: true, description: 'What buyers pay per gram of this karat now; with the making charge it gives the design\'s "as % of gold value"'),
+        new OA\Property(property: 'relisted_from_order', type: 'object', nullable: true, description: 'Spec 018: {id, order_ref} when this is a free relist (no commission) of a collected order'),
         new OA\Property(property: 'seller', properties: [
             new OA\Property(property: 'id', type: 'string', format: 'uuid'),
             new OA\Property(property: 'display_ref', type: 'string', example: '008842'),

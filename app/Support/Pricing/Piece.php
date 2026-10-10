@@ -36,8 +36,8 @@ final readonly class Piece
      * pricing is needed, the per-gram rates come from the order. The weight is
      * the IGI-measured one; the asking price may be a regrade's accepted price.
      */
-    public static function locked(PieceCategory $category, ?string $weight, ?string $makingPerGram, ?string $askingPrice): self
+    public static function locked(PieceCategory $category, ?string $weight, ?string $makingPerGram, ?string $askingPrice, bool $commissionWaived = false): self
     {
-        return new self($category, null, $weight, $makingPerGram, $askingPrice, false);
+        return new self($category, null, $weight, $makingPerGram, $askingPrice, $commissionWaived);
     }
 }

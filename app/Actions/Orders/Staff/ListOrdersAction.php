@@ -21,13 +21,13 @@ final class ListOrdersAction
     public const GROUPS = ['open', 'waiting_seller', 'at_igi', 'needs_decision', 'waiting_balance', 'ready_to_collect', 'returns', 'closed', 'all'];
 
     /** @return array{rows: Collection<int, Order>, next_cursor: string|null, counts: array<string, int>} */
-    public function handle(string $group, bool $pastDeadline, ?int $branchId, ?string $q, ?ListingCursor $cursor, int $perPage): array
+    public function handle(string $group, bool $pastDeadline, ?int $branchId, ?string $q, ?ListingCursor $cursor, int $perPage, ?string $freeRelist = null): array
     {
         $base = fn () => Order::query()
             ->when($branchId !== null, fn (Builder $b) => $b->where('order.branch_id', $branchId))
             ->when($q !== null && $q !== '', fn (Builder $b) => $this->search($b, (string) $q));
 
-        $query = $this->filtered($group, $pastDeadline, $branchId, $q);
+        $query = $this->filtered($group, $pastDeadline, $branchId, $q, $freeRelist);
 
         $rows = $query
             ->when($cursor !== null, fn (Builder $b) => $b->where(fn (Builder $w) => $w
@@ -40,7 +40,7 @@ final class ListOrdersAction
         $more = $rows->count() > $perPage;
         $rows = $rows->take($perPage)->values();
         $rows->load(['listing.pieceType', 'listing.photos', 'branch', 'buyRequest', 'seller:customer_id,display_ref',
-            'buyer:customer_id,display_ref', 'sellerReturn', 'collection', 'extensionRequests']);
+            'buyer:customer_id,display_ref', 'sellerReturn', 'collection', 'extensionRequests', 'freeRelistListing', 'listing']);
 
         $counts = [];
         foreach (array_diff(self::GROUPS, ['all', 'closed']) as $g) {
@@ -69,7 +69,7 @@ final class ListOrdersAction
      *
      * @return Builder<Order>
      */
-    public function filtered(string $group, bool $pastDeadline, ?int $branchId, ?string $q): Builder
+    public function filtered(string $group, bool $pastDeadline, ?int $branchId, ?string $q, ?string $freeRelist = null): Builder
     {
         $query = Order::query()
             ->when($branchId !== null, fn (Builder $b) => $b->where('order.branch_id', $branchId))
@@ -78,8 +78,30 @@ final class ListOrdersAction
         if ($pastDeadline) {
             $this->pastDeadline($query);
         }
+        if ($freeRelist !== null && $freeRelist !== '') {
+            $this->freeRelist($query, $freeRelist);
+        }
 
         return $query;
+    }
+
+    /**
+     * Spec 018: orders by the state of their free-relist offer (open — inside the
+     * window and not used; used — a listing links to the order; expired — past the
+     * window and not used). The stored end and the link are the whole truth.
+     */
+    private function freeRelist(Builder $query, string $status): void
+    {
+        $now = CarbonImmutable::now();
+
+        match ($status) {
+            'used' => $query->whereHas('freeRelistListing'),
+            'open' => $query->whereDoesntHave('freeRelistListing')
+                ->whereHas('collection', fn (Builder $c) => $c->whereNotNull('free_relist_until')->where('free_relist_until', '>=', $now)),
+            'expired' => $query->whereDoesntHave('freeRelistListing')
+                ->whereHas('collection', fn (Builder $c) => $c->whereNotNull('free_relist_until')->where('free_relist_until', '<', $now)),
+            default => null,
+        };
     }
 
     private function group(Builder $query, string $group): void

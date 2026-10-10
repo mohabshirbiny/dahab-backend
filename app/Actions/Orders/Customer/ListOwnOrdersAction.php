@@ -73,6 +73,8 @@ final class ListOwnOrdersAction
             'disputes', 'extensionRequests',
             // Spec 016: row security returns only the caller's own tax invoice.
             'invoices',
+            // Spec 018: the free relist made from it, and the caller's own rating (row security).
+            'freeRelistListing', 'ratings',
         ]));
     }
 }

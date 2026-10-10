@@ -171,6 +171,18 @@ class Order extends Model
     }
 
     /** Spec 016: the tax invoices issued at payment, one per party (RLS: a customer sees their own only). */
+    /** Spec 018: the buyer's free relist of this order, once made (the new listing links back here). */
+    public function freeRelistListing(): HasOne
+    {
+        return $this->hasOne(Listing::class, 'relisted_from_order_id', 'order_id');
+    }
+
+    /** Spec 018: each party's rating (a customer reads only their own; staff need rating.view). */
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(OrderRating::class, 'order_id', 'order_id');
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(TaxInvoice::class, 'order_id', 'order_id');

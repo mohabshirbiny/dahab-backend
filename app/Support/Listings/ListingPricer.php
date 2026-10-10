@@ -140,8 +140,11 @@ final class ListingPricer
 
     private function piece(Listing $listing): ?Piece
     {
+        // Spec 018: a free relist carries no commission, its VAT or the minimum (the link is the waiver).
+        $waived = $listing->isFreeRelist();
+
         if ($listing->category === PieceCategory::DIAMOND) {
-            return Piece::diamond((string) $listing->asking_price);
+            return Piece::diamond((string) $listing->asking_price, $waived);
         }
 
         $karat = $this->karats[(int) $listing->karat_code] ?? null;
@@ -151,8 +154,8 @@ final class ListingPricer
         }
 
         return $listing->category === PieceCategory::GOLD
-            ? Piece::gold($karat, (string) $listing->stated_weight_g, (string) $listing->making_charge_per_g)
-            : Piece::goldWithDiamond($karat, (string) $listing->stated_weight_g, (string) $listing->asking_price);
+            ? Piece::gold($karat, (string) $listing->stated_weight_g, (string) $listing->making_charge_per_g, $waived)
+            : Piece::goldWithDiamond($karat, (string) $listing->stated_weight_g, (string) $listing->asking_price, $waived);
     }
 
     private function load(): void

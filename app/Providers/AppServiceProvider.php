@@ -192,6 +192,11 @@ class AppServiceProvider extends ServiceProvider
             return $this->limit(10, 86400, 'customer-listing-reports:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
         });
 
+        // Spec 018: ratings per customer.
+        RateLimiter::for('customer.ratings', function (Request $request) {
+            return $this->limit(10, 60, 'customer-ratings:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         RateLimiter::for('public.email_change', function (Request $request) {
             return $this->limit(10, 60, 'public-email-change:'.$request->ip());
         });

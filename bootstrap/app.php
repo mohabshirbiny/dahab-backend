@@ -123,6 +123,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH013' => DomainApiException::accountClosed(),
                 'DH014' => DomainApiException::notificationImmutable(),
                 'DH015' => DomainApiException::reportNotOpen(),
+                // Spec 018: a rating (or the free-relist window) never changes.
+                'DH016' => DomainApiException::ratingImmutable(),
                 // Spec 016: the credit-note cap answers like the Action; any other DH012
                 // (an invoice or credit note not matching its entry) is a bug — a 500.
                 'DH012' => match (true) {
@@ -136,6 +138,8 @@ return Application::configure(basePath: dirname(__DIR__))
                     str_contains($e->getMessage(), 'uq_dispute_one_unresolved') => DomainApiException::orderFrozen(),
                     str_contains($e->getMessage(), 'uq_extension_request_waiting') => DomainApiException::extensionRequestPending(),
                     str_contains($e->getMessage(), 'uq_listing_report_open') => DomainApiException::reportAlreadyOpen(),
+                    str_contains($e->getMessage(), 'one_free_relist_per_order') => DomainApiException::alreadyRelisted(),
+                    str_contains($e->getMessage(), 'order_rating_one_per_party') => DomainApiException::alreadyRated(),
                     default => $e,
                 },
                 default => $e,
@@ -159,6 +163,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH013' => DomainApiException::accountClosed(),
                 'DH014' => DomainApiException::notificationImmutable(),
                 'DH015' => DomainApiException::reportNotOpen(),
+                // Spec 018: a rating (or the free-relist window) never changes.
+                'DH016' => DomainApiException::ratingImmutable(),
                 default => $e,
             };
         });
