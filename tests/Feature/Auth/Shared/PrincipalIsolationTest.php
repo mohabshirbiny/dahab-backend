@@ -175,7 +175,8 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            The public reference gold-prices and quote carry no guard (MarketScopeTest).
     // spec 016:  customer invoices index/show/pdf + credit-notes pdf (4); dashboard invoices
     //            index/export/show/pdf/credit-notes store (5), credit-notes index/pdf (2).
-    expect($checked)->toBe(201);
+    // spec 018:  free-relist and rating on the customer orders (2).
+    expect($checked)->toBe(203);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

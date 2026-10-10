@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ListListingsForReviewAction
 {
-    public const RELATIONS = ['pieceType', 'media', 'branches', 'seller'];
+    public const RELATIONS = ['pieceType', 'media', 'branches', 'seller', 'relistedFrom:order_id,order_ref'];
 
     /** @return array{rows: Collection<int, Listing>, next_cursor: string|null, counts: array<string, int>} */
     public function handle(ListingState $state, ?ListingCursor $cursor, int $perPage): array

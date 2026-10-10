@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $failed_attempts
  * @property CarbonImmutable|null $locked_until
  * @property CarbonImmutable|null $collected_at
+ * @property CarbonImmutable|null $free_relist_until spec 018: end of the buyer's free-relist window, set once at handover
  * @property string|null $handover_by
  * @property bool $is_proxy
  * @property string|null $proxy_name
@@ -46,6 +47,7 @@ class OrderCollection extends Model
             'failed_attempts' => 'integer',
             'locked_until' => 'immutable_datetime',
             'collected_at' => 'immutable_datetime',
+            'free_relist_until' => 'immutable_datetime',
             'is_proxy' => 'boolean',
             'proxy_named_at' => 'immutable_datetime',
             'collected_by_proxy' => 'boolean',

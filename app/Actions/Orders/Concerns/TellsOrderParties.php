@@ -35,6 +35,8 @@ trait TellsOrderParties
         ?CarbonImmutable $deadline = null,
         ?string $code = null,
         ?string $message = null,
+        ?InboxLinkKind $linkKind = null,
+        ?string $linkId = null,
     ): void {
         $listing->loadMissing('pieceType');
         $order->loadMissing('branch');
@@ -42,7 +44,7 @@ trait TellsOrderParties
         $this->orderOutbox[] = [$customerId, (new OrderNotification(
             $event, $order->order_ref, $listing->title(), $listing->title(arabic: true),
             $amount, $deadline?->toIso8601String(), $order->branch?->name_en, $order->branch?->name_ar, $code, $message,
-        ))->linkTo(InboxLinkKind::ORDER, $order->order_id)];
+        ))->linkTo($linkKind ?? InboxLinkKind::ORDER, $linkId ?? $order->order_id)];
     }
 
     /** Send what was collected once the transaction commits (call inside it). */

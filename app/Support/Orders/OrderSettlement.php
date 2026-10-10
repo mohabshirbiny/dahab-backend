@@ -65,7 +65,8 @@ final class OrderSettlement
         }
 
         $breakdown = $this->calculator->lockedBreakdown(
-            Piece::locked($listing->category, $weight, $listing->making_charge_per_g === null ? null : (string) $listing->making_charge_per_g, $asking),
+            // Spec 018: a free relist is sold without commission, its VAT or the minimum (the spread stays).
+            Piece::locked($listing->category, $weight, $listing->making_charge_per_g === null ? null : (string) $listing->making_charge_per_g, $asking, $listing->isFreeRelist()),
             $request->locked_unit_rate === null ? null : (string) $request->locked_unit_rate,
             $this->sellerRate($order, $listing),
             $rates ?? $this->context->rates(),

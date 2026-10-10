@@ -90,6 +90,15 @@ payment, **Hand Over To Buyer** uses `collection_code`. **Change Order Branch** 
 Deadline** need `order.change_branch` / `order.extend_deadline`. Five wrong codes lock a handover for 15 minutes. Every POST sends a fresh
 `Idempotency-Key`. Variables: `order_id`, `inspection_id`, `collection_code`, `return_code` (the last two secret).
 
+**After collection** (spec 018). When staff **Hand Over To Buyer**, the order stores a free-relist window
+(`deadline.free_relist_working_hours`, working hours on the order's branch): **Customer → Orders → Show My Order** as the
+buyer returns `free_relist` (`status`, `ends_at`). Inside the window the buyer runs **Free Relist (Buyer)** (needs
+`ownership_legal_doc_id` and the price the category needs; saves `listing_id`): a new live listing at 0% commission with
+no review. Selling that listing settles with no commission, VAT or minimum and issues only the buyer's invoice.
+**Rate An Order** works for either party (the seller from ready to collect, the buyer once completed, for 30 days). As
+`ceo` or `coo`, **Dashboard → Orders → Show Order** also returns `ratings` (`rating.view`); **List Orders** takes
+`free_relist=open|used|expired`.
+
 ## Import
 
 1. Postman → Import → select both `.json` files in this folder.

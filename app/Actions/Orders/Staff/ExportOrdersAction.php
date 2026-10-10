@@ -25,13 +25,13 @@ final class ExportOrdersAction
     ) {}
 
     /** @return array{csv: string, rows: int, truncated: bool} */
-    public function handle(Staff $viewer, string $group, bool $pastDeadline, ?int $branchId, ?string $q): array
+    public function handle(Staff $viewer, string $group, bool $pastDeadline, ?int $branchId, ?string $q, ?string $freeRelist = null): array
     {
         $cap = (int) config('dahab-orders.export_cap');
         $csv = new Csv(['Order', 'State', 'Piece', 'Karat', 'Weight (g)', 'Branch', 'Seller ref', 'Buyer ref', 'Locked total',
             'Deposit', 'Held now', 'Accepted at', 'Deadline', 'Deadline at', 'Past deadline'], $cap);
 
-        $orders = $this->list->filtered($group, $pastDeadline, $branchId, $q)
+        $orders = $this->list->filtered($group, $pastDeadline, $branchId, $q, $freeRelist)
             ->with(['listing.pieceType', 'branch', 'buyRequest', 'seller:customer_id,display_ref', 'buyer:customer_id,display_ref', 'sellerReturn'])
             ->orderByDesc('accepted_at')->orderByDesc('order_id')->limit($cap + 1)->get();
         $held = HeldByRequest::for($orders->pluck('buy_request_id')->all());
@@ -54,7 +54,7 @@ final class ExportOrdersAction
 
         $result = $csv->finish();
         $this->audit->execute(AuditEvent::ORDER_LIST_EXPORTED, 'success',
-            ['group' => $group, 'past_deadline' => $pastDeadline, 'branch_id' => $branchId, 'q' => $q,
+            ['group' => $group, 'past_deadline' => $pastDeadline, 'branch_id' => $branchId, 'q' => $q, 'free_relist' => $freeRelist,
                 'rows' => $result['rows'], 'truncated' => $result['truncated']],
             entityType: 'order', actorStaffId: $viewer->staff_id);
 

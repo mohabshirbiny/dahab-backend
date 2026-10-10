@@ -11,11 +11,13 @@ use App\Enums\ListingState;
 use App\Enums\OrderEvent;
 use App\Enums\OrderState;
 use App\Exceptions\DomainApiException;
+use App\Models\Listing;
 use App\Models\ListingStateChange;
 use App\Models\Order;
 use App\Models\OrderCollection;
 use App\Models\Staff;
 use App\Support\Orders\CollectionCodes;
+use App\Support\Orders\DeadlinePolicy;
 use App\Support\Orders\StaffBranchScope;
 use App\Support\RequestContext;
 use Carbon\CarbonImmutable;
@@ -32,6 +34,10 @@ use Illuminate\Support\Facades\DB;
  * (`collector = proxy`), staff must confirm they checked the person's ID
  * against the named proxy first (`proxy_details_missing`, no attempt counted);
  * the buyer may still collect in person.
+ * Spec 018: the same transaction stores the end of the buyer's free-relist
+ * window (working hours on the order's branch). It never fails the handover:
+ * a setting of 0, branch hours that cannot be worked out, or a sale that was
+ * itself a free relist simply give no offer (the audit says why).
  */
 final class HandoverPieceAction
 {
@@ -41,6 +47,7 @@ final class HandoverPieceAction
         private readonly StaffBranchScope $branches,
         private readonly CollectionCodes $codes,
         private readonly RecordAuditLogAction $audit,
+        private readonly DeadlinePolicy $deadlines,
     ) {}
 
     public function handle(Staff $actor, string $orderId, string $code, ?RequestContext $ctx = null, bool $byProxy = false, bool $proxyIdChecked = false): Order
@@ -70,8 +77,10 @@ final class HandoverPieceAction
             }
 
             $now = CarbonImmutable::now();
+            [$freeRelistUntil, $noOfferReason] = $this->freeRelistWindow($listing, $order, $now);
             $collection->forceFill([
                 'collected_at' => $now,
+                'free_relist_until' => $freeRelistUntil,
                 'handover_by' => $actor->staff_id,
                 'failed_attempts' => 0,
                 'locked_until' => null,
@@ -87,7 +96,10 @@ final class HandoverPieceAction
                 AuditEvent::ORDER_HANDED_OVER,
                 'success',
                 ['order_ref' => $order->order_ref, 'state' => OrderState::COMPLETED->value, 'after_window' => $late, 'branch_id' => $order->branch_id,
-                    'collector' => $byProxy ? 'proxy' : 'buyer', 'proxy_name' => $byProxy ? $collection->proxy_name : null],
+                    'collector' => $byProxy ? 'proxy' : 'buyer', 'proxy_name' => $byProxy ? $collection->proxy_name : null,
+                    'free_relist_offer' => $freeRelistUntil === null ? 'none' : 'open',
+                    'free_relist_none_reason' => $noOfferReason,
+                    'free_relist_until' => $freeRelistUntil?->toIso8601String()],
                 'order',
                 $order->order_id,
                 $ctx,
@@ -95,7 +107,7 @@ final class HandoverPieceAction
                 before: ['state' => OrderState::READY_TO_COLLECT->value],
             );
 
-            $this->tellOrder($order->buyer_id, OrderEvent::COLLECTED, $order, $listing);
+            $this->tellOrder($order->buyer_id, OrderEvent::COLLECTED, $order, $listing, deadline: $freeRelistUntil);
             $this->tellOrder($order->seller_id, OrderEvent::COLLECTED, $order, $listing);
             $this->flushOrderOutbox();
 
@@ -119,5 +131,25 @@ final class HandoverPieceAction
         }
 
         return $outcome['order'];
+    }
+
+    /**
+     * The end of the free-relist window and, when there is none, why.
+     *
+     * @return array{0: CarbonImmutable|null, 1: string|null}
+     */
+    private function freeRelistWindow(Listing $listing, Order $order, CarbonImmutable $from): array
+    {
+        if ($listing->isFreeRelist()) {
+            return [null, 'free_relist_sale'];
+        }
+
+        if ($this->deadlines->freeRelistHours() <= 0) {
+            return [null, 'setting_zero'];
+        }
+
+        $until = $this->deadlines->freeRelistEnd($from, (int) $order->branch_id);
+
+        return $until === null ? [null, 'hours_unavailable'] : [$until, null];
     }
 }

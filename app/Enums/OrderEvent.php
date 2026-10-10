@@ -39,4 +39,6 @@ enum OrderEvent: string
     case COMPENSATION_PAID = 'compensation_paid';
     case EXTENSION_REFUSED = 'extension_refused';
     case PROXY_NAMED = 'proxy_named';
+    // Spec 018: the buyer's free relist went live.
+    case FREE_RELISTED = 'free_relisted';
 }

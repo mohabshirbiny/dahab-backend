@@ -134,6 +134,8 @@ The service resolves every privileged endpoint against the staff member's effect
 
 ### 4.1 Listings and orders
 
+> **Changed by spec 018** — see [`specs/018-after-collection/spec.md`](../../specs/018-after-collection/spec.md). New code `rating.view` ("View ratings", group Orders): read each party's rating of an order in the order detail and the customer file. Seeded to the CEO (every code) and the COO; editable like any role. Ratings are never public and never counted into a score.
+
 > **Changed by spec 014** — see [`specs/014-disputes/spec.md`](../../specs/014-disputes/spec.md). "Freeze an order during a dispute" is the code `dispute.handle` *Handle disputes and freeze orders* — the Disputes queue, detail, photos, pass on and resolve — seeded to CEO, COO, Operations **and Finance** (Finance so the people who move the money can act on a dispute; analysis C1). A customer's dispute freezes the order itself; staff do not freeze an order without one. "Check the ID of someone collecting for another" is `order.handover` (the counter confirms the proxy's ID when the proxy collects); no separate code.
 
 > **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). New catalogue codes, editable from the Dashboard (the CEO holds every code): `order.view` *View orders* (COO, Finance, Operations — amounts on orders are not a wallet), `order.receive` *Mark a piece received at the branch* (COO, Operations, IGI), `inspection.enter` *Enter an inspection result* (IGI), `order.price_adjust` *Propose a new price after a regrade* (COO, Operations), `order.change_branch` *Change the inspection branch on an open order* (COO, Operations), `order.extend_deadline` *Extend a deadline on request* (COO, Operations), `order.handover` *Confirm handover at the counter* (IGI), `buy_request.view` *View buy requests* (COO, Operations). "Check the ID of someone collecting for another" is not built (proxy collection is out of scope).
@@ -234,6 +236,8 @@ authorize(staff, action):
 ## 5. Data isolation: row-level security and grants
 
 ### 5.1 Customer row-level security
+
+> **Changed by spec 018** — see [`specs/018-after-collection/spec.md`](../../specs/018-after-collection/spec.md). `order_rating` joins forced RLS: a customer reads and writes only their own row (`customer_id = dahab_current_customer_id()`); staff read through the permission-gated, elevated path (`rating.view`). A rating is immutable (SQLSTATE DH016) and nothing new is written for a closed customer (DH013). `listing.relisted_from_order_id` and `collection.free_relist_until` follow their tables' existing policies; the free relist runs in the non-elevated `order` scope.
 
 > **Changed by spec 017** — see [`specs/017-customer-account/spec.md`](../../specs/017-customer-account/spec.md). `customer_notification` (the inbox: the customer reads and marks read their own; only an elevated scope inserts; nobody deletes), `saved_listing` (own rows) and `listing_report` (the reporter inserts and reads their own; staff elevated) join forced RLS. SQLSTATE DH013 refuses any new row for a closed customer (listing, buy request, withdrawal and its confirmation, top-up, dispute, payout account, saved piece, report, and a ledger posting on their accounts).
 

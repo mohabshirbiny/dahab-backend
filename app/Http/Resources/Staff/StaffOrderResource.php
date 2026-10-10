@@ -9,6 +9,7 @@ use App\Http\Resources\Customer\CustomerOrderResource;
 use App\Models\Order;
 use App\Models\Staff;
 use App\Support\Orders\DeadlinePolicy;
+use App\Support\Orders\FreeRelistOffer;
 use App\Support\Orders\OrderTimeline;
 use App\Support\Orders\StaffBranchScope;
 use Illuminate\Http\Request;
@@ -43,6 +44,10 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'accepted_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'frozen', type: 'boolean', description: 'Spec 014: disputed'),
         new OA\Property(property: 'has_waiting_extension', type: 'boolean', description: 'Spec 014: the seller asked for more time and is waiting'),
+        new OA\Property(property: 'free_relist_status', type: 'string', enum: ['none', 'open', 'used', 'expired'], description: 'Spec 018: the buyer\'s free-relist offer of the collected piece, on every row'),
+        new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, detail: {status, ends_at | null, listing: {id, title} | null}'),
+        new OA\Property(property: 'relisted_from_order', type: 'object', nullable: true, description: 'Spec 018, detail: {id, order_ref} when the sold piece was itself a free relist'),
+        new OA\Property(property: 'ratings', type: 'array', items: new OA\Items(type: 'object'), description: 'Spec 018, detail, only with rating.view (the key is absent otherwise): [{party_role, stars, note, created_at}]'),
     ],
 )]
 class StaffOrderResource extends JsonResource
@@ -89,11 +94,17 @@ class StaffOrderResource extends JsonResource
             'accepted_at' => $o->accepted_at->toIso8601String(),
             'frozen' => $o->state === OrderState::DISPUTED,
             'has_waiting_extension' => $requests->contains(fn ($r) => $r->state === ExtensionRequestState::WAITING),
+            // Spec 018: none | open | used | expired — the buyer's free-relist offer of the collected piece.
+            'free_relist_status' => ($offer = self::offer($o))->status,
         ];
 
         if (! $this->detail) {
             return $data;
         }
+
+        /** @var Staff|null $viewer */
+        $viewer = $request->user('staff');
+        $relisted = $o->relationLoaded('freeRelistListing') ? $o->freeRelistListing : $o->freeRelistListing()->first();
 
         $superseded = $o->inspections->pluck('supersedes_id')->filter()->all();
         $latest = $o->latestInspection();
@@ -157,8 +168,35 @@ class StaffOrderResource extends JsonResource
                 'opened_at' => $d->opened_at->toIso8601String(),
             ])->values()->all(),
             'extension_request' => ($last = $requests->last()) === null ? null : ExtensionRequestResource::shape($last, withOrder: false),
+            // Spec 018 (order.view): the offer, and where this sale came from when it is a free relist.
+            'free_relist' => [
+                'status' => $offer->status,
+                'ends_at' => $offer->endsAt?->toIso8601String(),
+                'listing' => $relisted === null ? null : ['id' => $relisted->listing_id, 'title' => $relisted->title()],
+            ],
+            'relisted_from_order' => $o->listing->relisted_from_order_id === null ? null : [
+                'id' => $o->listing->relisted_from_order_id,
+                'order_ref' => $o->listing->relistedFrom?->order_ref,
+            ],
             'can' => self::can($o, $request->user('staff')),
-        ];
+        ] + ($viewer !== null && $viewer->can(StaffPermission::RATING_VIEW->value)
+            // Only with rating.view; the key is absent, never empty, without it.
+            ? ['ratings' => ($o->relationLoaded('ratings') ? $o->ratings : $o->ratings()->get())
+                ->sortBy('created_at')->map(fn ($r) => [
+                    'party_role' => $r->party_role->value,
+                    'stars' => $r->stars,
+                    'note' => $r->note,
+                    'created_at' => $r->created_at->toIso8601String(),
+                ])->values()->all()]
+            : []);
+    }
+
+    private static function offer(Order $o): FreeRelistOffer
+    {
+        $relisted = $o->relationLoaded('freeRelistListing') ? $o->freeRelistListing : $o->freeRelistListing()->first();
+        $collection = $o->relationLoaded('collection') ? $o->collection : $o->collection()->first();
+
+        return FreeRelistOffer::for($o, $collection, $relisted);
     }
 
     /** @return array<string, bool> */

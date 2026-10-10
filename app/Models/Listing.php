@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $making_charge_per_g
  * @property string|null $asking_price
  * @property string|null $description
+ * @property string|null $relisted_from_order_id spec 018: set when this listing is a free relist (the 0% commission waiver)
  * @property ListingState $state
  * @property int $active_queue_count
  * @property CarbonImmutable $created_at
@@ -72,6 +73,17 @@ class Listing extends Model
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'seller_id', 'customer_id');
+    }
+
+    /** Spec 018: a free relist is linked to the order it was relisted from; the link is the waiver. */
+    public function isFreeRelist(): bool
+    {
+        return $this->relisted_from_order_id !== null;
+    }
+
+    public function relistedFrom(): BelongsTo
+    {
+        return $this->belongsTo(Order::class, 'relisted_from_order_id', 'order_id');
     }
 
     public function pieceType(): BelongsTo

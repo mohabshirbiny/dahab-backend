@@ -153,9 +153,16 @@ class OrderNotification extends Notification implements InboxNotification, Shoul
             OrderEvent::RETURN_WINDOW_PASSED => $arabic
                 ? "ميعاد استلام القطعة ({$t}) عدى. كلمنا. طلب {$r}."
                 : "The window to collect your piece ({$t}) has passed. Please contact us. Order {$r}.",
-            OrderEvent::COLLECTED => $arabic
+            // Spec 018: the buyer's copy carries the end of the free-relist window as its deadline.
+            OrderEvent::COLLECTED => ($arabic
                 ? "القطعة ({$t}) اتسلمت. طلب {$r}."
-                : "The piece ({$t}) has been collected. Order {$r}.",
+                : "The piece ({$t}) has been collected. Order {$r}.")
+                .($this->deadline === null ? '' : ($arabic
+                    ? " تقدر ترجعها للسوق من غير عمولة لحد {$when}."
+                    : " You can put it back on the market at 0% commission until {$when}.")),
+            OrderEvent::FREE_RELISTED => $arabic
+                ? "قطعتك ({$t}) رجعت للسوق من غير عمولة. طلب {$r}."
+                : "Your piece ({$t}) is back on the market at 0% commission. Order {$r}.",
             OrderEvent::COLLECTION_WINDOW_PASSED => $arabic
                 ? "ميعاد الاستلام عدى والقطعة ({$t}) لسه في الفرع. كلمنا. طلب {$r}."
                 : "The collection window has passed and the piece ({$t}) is still at the branch. Please contact us. Order {$r}.",

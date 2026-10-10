@@ -568,6 +568,42 @@ class DomainApiException extends RuntimeException
         return new self('notification_immutable', 409, 'This notification cannot change.');
     }
 
+    /** Spec 018: the free-relist window has passed (or there never was one for this order). */
+    public static function freeRelistExpired(): self
+    {
+        return new self('free_relist_expired', 409, 'The time to relist this piece for free has passed.');
+    }
+
+    /** Spec 018: the one free relist of this order was already made. */
+    public static function alreadyRelisted(): self
+    {
+        return new self('already_relisted', 409, 'This piece was already relisted.');
+    }
+
+    /** Spec 018: not settled, the buyer before collecting, or a cancelled order. */
+    public static function ratingNotAvailable(): self
+    {
+        return new self('rating_not_available', 409, 'This order cannot be rated now.');
+    }
+
+    /** Spec 018: more than thirty days since the rating opened. */
+    public static function ratingClosed(): self
+    {
+        return new self('rating_closed', 409, 'The time to rate this order has passed.');
+    }
+
+    /** Spec 018: one rating per party and order. */
+    public static function alreadyRated(): self
+    {
+        return new self('already_rated', 409, 'You already rated this order.');
+    }
+
+    /** Guard DH016: a rating or the free-relist window never changes. A bug if reached through the API. */
+    public static function ratingImmutable(): self
+    {
+        return new self('rating_immutable', 409, 'This cannot change.');
+    }
+
     /** The PDF is built after the payment or credit note commits (spec 016 FR-023a). */
     public static function documentNotReady(): self
     {

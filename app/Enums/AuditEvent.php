@@ -90,6 +90,9 @@ enum AuditEvent: string
     case ORDER_DECIDED = 'order.decided';
     case ORDER_PAID = 'order.paid';
     case ORDER_RELISTED = 'order.relisted';
+    // Spec 018: the buyer's free relist of a collected piece; a party's rating of an order.
+    case ORDER_FREE_RELISTED = 'order.free_relisted';
+    case ORDER_RATED = 'order.rated';
 
     // Spec 013: payout accounts and withdrawals.
     case PAYOUT_ACCOUNT_ADDED = 'payout_account.added';
@@ -235,6 +238,8 @@ enum AuditEvent: string
             self::ORDER_DECIDED => 'Buyer decided on an adjusted price',
             self::ORDER_PAID => 'Buyer paid the balance',
             self::ORDER_RELISTED => 'Seller relisted a returned piece',
+            self::ORDER_FREE_RELISTED => 'Buyer relisted a collected piece for free',
+            self::ORDER_RATED => 'Party rated an order',
             self::PAYOUT_ACCOUNT_ADDED => 'Payout account added',
             self::PAYOUT_ACCOUNT_VERIFIED => 'Payout account verified',
             self::PAYOUT_ACCOUNT_REFUSED => 'Payout account refused',
@@ -308,6 +313,7 @@ enum AuditEvent: string
             self::ORDER_PRICE_PROPOSED, self::ORDER_HANDED_OVER, self::ORDER_HANDOVER_FAILED, self::ORDER_RETURN_HANDED_OVER,
             self::INSPECTION_RESULT_RECORDED, self::ORDER_SELLER_CANCELLED, self::ORDER_DECIDED, self::ORDER_PAID,
             self::ORDER_RELISTED, self::ORDER_FORFEITED, self::ORDER_WINDOW_PASSED,
+            self::ORDER_FREE_RELISTED, self::ORDER_RATED,
             self::DISPUTE_OPENED, self::DISPUTE_PASSED_ON, self::DISPUTE_RESOLVED, self::DISPUTE_PHOTO_VIEWED,
             self::ORDER_PROXY_NAMED, self::ORDER_PROXY_REMOVED, self::ORDER_PROXY_ID_VIEWED,
             self::ORDER_EXTENSION_REQUESTED, self::ORDER_EXTENSION_REQUEST_ACCEPTED, self::ORDER_EXTENSION_REQUEST_REFUSED => AuditCategory::ORDERS,

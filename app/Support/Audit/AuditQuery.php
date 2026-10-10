@@ -26,6 +26,11 @@ final class AuditQuery
             $query->where('actor_staff_id', $viewer->staff_id);
         }
 
+        // Spec 018 FR-034: a party's rating is for rating.view holders only, here too.
+        if (! $viewer->can(StaffPermission::RATING_VIEW->value)) {
+            $query->where('action', '!=', AuditEvent::ORDER_RATED->value);
+        }
+
         return $query;
     }
 

@@ -8,14 +8,17 @@ use App\Enums\InspectionOutcome;
 use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
 use App\Enums\OrderState;
+use App\Enums\PartyRole;
 use App\Http\Resources\ListingMediaResource;
 use App\Models\Branch;
 use App\Models\Dispute;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Support\Orders\DeadlinePolicy;
+use App\Support\Orders\FreeRelistOffer;
 use App\Support\Orders\OrderSettlement;
 use App\Support\Orders\OrderTimeline;
+use App\Support\Orders\RatingWindow;
 use App\Support\Pricing\PricingContext;
 use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\Request;
@@ -60,6 +63,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'dispute_outcome', type: 'string', enum: ['resumed', 'cancelled'], nullable: true, description: 'Spec 014: from the order history, once a dispute on it was resolved (either party)'),
         new OA\Property(property: 'extension_request', type: 'object', nullable: true, description: 'Spec 014, the seller only: {state: waiting|accepted|refused|lapsed, reason, detail, hours_granted, answer_note, requested_at, answered_at}'),
         new OA\Property(property: 'proxy', type: 'object', nullable: true, description: 'Spec 014, the buyer only: {name, phone_masked, named_at}'),
+        new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, always present. The buyer\'s offer to relist the collected piece at 0% commission: {status: none|open|used|expired, ends_at (the server\'s window end, working hours from the handover) | null, listing_id | null}. Always none for the seller.'),
+        new OA\Property(property: 'rating', type: 'object', description: 'Spec 018, your own party only: {can_rate, opens_at, closes_at, given: {stars, note, created_at} | null}'),
+        new OA\Property(property: 'no_fee', type: 'boolean', description: 'Spec 018: true on the seller\'s order when the sale was a free relist — Dahab charged no commission and there is no seller invoice'),
         new OA\Property(property: 'timeline', type: 'array', items: new OA\Items(type: 'object')),
         new OA\Property(property: 'collection_code', type: 'string', nullable: true, description: 'Detail only, the buyer, while ready to collect'),
         new OA\Property(property: 'return_code', type: 'string', nullable: true, description: 'Detail only, the seller, while the return is open'),
@@ -179,6 +185,10 @@ class CustomerOrderResource extends JsonResource
                 'phone_masked' => self::maskPhone((string) $collection->proxy_phone),
                 'named_at' => $collection->proxy_named_at?->toIso8601String(),
             ] : null,
+            // Spec 018. The offer belongs to the buyer; the seller of the sale has none.
+            'free_relist' => ($seller ? FreeRelistOffer::none() : FreeRelistOffer::for($o, $collection, $o->freeRelistListing))->toArray(),
+            'rating' => self::rating($o, $seller, $me),
+            'no_fee' => $seller && $listing->isFreeRelist(),
         ];
 
         if ($this->withCode) {
@@ -214,6 +224,29 @@ class CustomerOrderResource extends JsonResource
             $report,
             $o->state === OrderState::READY_TO_COLLECT && $o->collection !== null && $o->collection->collected_at === null ? 'name_proxy' : null,
         ]));
+    }
+
+    /**
+     * Spec 018: the caller's own rating of this order and whether they may still give one.
+     * Row security returns only their own row.
+     *
+     * @return array<string, mixed>
+     */
+    private static function rating(Order $o, bool $seller, string $me): array
+    {
+        $window = RatingWindow::of($o, $seller ? PartyRole::SELLER : PartyRole::BUYER);
+        $given = $o->ratings->first(fn ($r) => $r->customer_id === $me);
+
+        return [
+            'can_rate' => $window !== null && $window->isOpen() && $given === null,
+            'opens_at' => $window?->opensAt->toIso8601String(),
+            'closes_at' => $window?->closesAt->toIso8601String(),
+            'given' => $given === null ? null : [
+                'stars' => $given->stars,
+                'note' => $given->note,
+                'created_at' => $given->created_at->toIso8601String(),
+            ],
+        ];
     }
 
     /** The caller's own dispute (row security already hides the other side's). */

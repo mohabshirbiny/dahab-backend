@@ -4105,7 +4105,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/v1/dashboard/orders/export?group=open&past_deadline=&branch_id=&q=",
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/export?group=open&past_deadline=&branch_id=&q=&free_relist=",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -4132,6 +4132,11 @@
                                         {
                                             "key": "q",
                                             "value": ""
+                                        },
+                                        {
+                                            "key": "free_relist",
+                                            "value": "",
+                                            "description": "Spec 018: open | used | expired"
                                         }
                                     ]
                                 },
@@ -4606,7 +4611,7 @@
                                         "orders?group=open&past_deadline=0&per_page=25"
                                     ]
                                 },
-                                "description": "Spec 012 FR-022. group = open | waiting_seller | at_igi | needs_decision | waiting_balance | ready_to_collect | returns | closed | all; past_deadline; branch_id; q (order ref or customer display ref); keyset cursor. meta.counts per group. Requires order.view (ceo, coo, finance, operations). Saves order_id (the first)."
+                                "description": "Spec 012 FR-022. group = open | waiting_seller | at_igi | needs_decision | waiting_balance | ready_to_collect | returns | closed | all; past_deadline; branch_id; q (order ref or customer display ref); spec 018: free_relist = open | used | expired (the buyer's free-relist offer of a collected piece; without group it looks at every order; each row carries free_relist_status); keyset cursor. meta.counts per group. Requires order.view (ceo, coo, finance, operations). Saves order_id (the first)."
                             },
                             "response": []
                         },
@@ -9498,6 +9503,129 @@
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"accept\": true,\n  \"inspection_id\": \"{{inspection_id}}\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Free Relist (Buyer)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/free-relist",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "free-relist"
+                                    ]
+                                },
+                                "description": "Spec 018 FR-004-FR-016. The buyer of a collected order puts the piece back on the market at 0% commission, inside the window the staff handover stored (free_relist.ends_at on the order): a NEW live listing at once, no review, linked to the order (the link is the waiver). Karat, IGI-measured weight, public photos and branch options are copied; send the price the category needs (making_charge_per_g for gold, asking_price for stones), an optional description and the current ownership_legal_doc_id. One per order. Trade gate. 409 free_relist_expired | already_relisted | illegal_order_transition; 422 branch_options_required | ownership_declaration_required. Saves listing_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"making_charge_per_g\": \"250.00\",\n  \"description\": \"Back on the market, same piece.\",\n  \"ownership_legal_doc_id\": {{ownership_legal_doc_id}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Free relist created (201)', () => pm.response.to.have.status(201));",
+                                            "const body = pm.response.json();",
+                                            "if (body.data && body.data.listing) { pm.collectionVariables.set('listing_id', body.data.listing.id); }"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Rate An Order (Buyer or Seller)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/rating",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "rating"
+                                    ]
+                                },
+                                "description": "Spec 018 FR-030-FR-036. Your own rating of the experience with Dahab: stars 1-5 and an optional note (max 500). One per party and order, immutable; the seller from ready_to_collect, the buyer once completed, for 30 days; never for a cancelled order. A suspended customer may rate. 409 rating_not_available | rating_closed | already_rated. Not audited with the note text; no notification.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"stars\": 5,\n  \"note\": \"Quick and clear.\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"

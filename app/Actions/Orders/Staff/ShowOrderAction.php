@@ -22,6 +22,8 @@ final class ShowOrderAction
         'stateChanges', 'branchChanges', 'extensions',
         // Spec 014: the disputes, the seller's requests for more time.
         'disputes', 'extensionRequests',
+        // Spec 018: the free relist made from it, and what it was relisted from.
+        'freeRelistListing.pieceType', 'listing.relistedFrom:order_id,order_ref',
     ];
 
     public function handle(string $orderId): Order

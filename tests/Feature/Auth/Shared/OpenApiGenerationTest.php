@@ -233,6 +233,8 @@ const OPENAPI_CUSTOMER_ORDER_PATHS = [
     'post /customer/me/orders/{order}/extension-requests',
     'post /customer/me/orders/{order}/proxy',
     'post /customer/me/orders/{order}/proxy/remove',
+    'post /customer/me/orders/{order}/free-relist',
+    'post /customer/me/orders/{order}/rating',
 ];
 
 // spec 013: payout accounts and withdrawals, the staff queue, and the email link's public page.
@@ -614,6 +616,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'CustomerDispute', 'StaffDispute', 'StaffExtensionRequest',
         'OpenDisputeRequest', 'RequestMoreTimeRequest', 'NameProxyRequest', 'PassOnDisputeRequest', 'ResolveDisputeRequest',
         'AcceptExtensionRequestRequest', 'RefuseExtensionRequestRequest',
+        'FreeRelistRequest', 'RateOrderRequest',
         'StaffCompensation', 'PayCompensationRequest', 'StaffWalletAdjustment', 'AdjustWalletRequest',
         'StaffBankMovement', 'RecordBankMovementRequest', 'StaffDailyClose', 'CloseDayRequest',
         'StaffInvoice', 'StaffCreditNote', 'InvoiceFigures', 'IssueCreditNoteRequest', 'CustomerInvoice', 'CustomerCreditNote',

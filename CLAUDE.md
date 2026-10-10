@@ -149,6 +149,8 @@ Projects intentionally not changed: <projects + reason>
 7. **Never move/rename/merge the projects or their repositories.**
 8. **Never commit or push unless explicitly instructed.** Each repo gets its own commits.
 9. Prefer small, focused, reversible changes.
+10. **Never record Claude (or any AI tool) as a participant in a git action.** Applies to
+    `dahab-backend`, `dahab-dashboard` and `dahab-flutter` (see "Git coordination").
 
 ## Git coordination
 
@@ -156,6 +158,13 @@ Each project keeps its own repository. For a feature touching several projects, 
 branch name in each affected repo: `feature/<feature-name>` (e.g. `feature/customer-identity-approval`).
 Create/switch branches only when asked. `../dahab-flutter` has its own repository since 2026-10-04 and
 follows the same rules. Details: `docs/platform/development-workflow.md`.
+
+Git attribution (all three repos): no `Co-Authored-By:` trailer, no `Claude-Session:` line, no
+"Generated with Claude Code" text, no claude.ai links and no model or tool name in any commit message,
+merge commit, cherry-pick, squash, tag, PR title or PR body. Messages are plain, in the project's style
+(`feat(scope): …`, `docs(scope): …`, `test(scope): …`), authored only by the git user already configured
+on the machine; never change `user.name` or `user.email`. Check the full message before every commit and
+merge. Only fix commits you created yourself; never rewrite shared history unless asked.
 
 ## Change classification
 
@@ -307,7 +316,14 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   deleted, sign-in `403 account_closed`, guard DH013); listing reports (`/customer/me/listing-reports`, `RPT-n`; staff
   `/dashboard/listing-reports*` with `listing_report.handle`, take-down also `listing.takedown`; sweep
   `listing-reports:close-gone`); the Customer file's notifications (`/dashboard/customers/{id}/notifications`). Guards
-  DH013–DH015. Nothing else yet.
+  DH013–DH015; after collection (spec 018) — the staff handover stores `collection.free_relist_until` (handover +
+  `deadline.free_relist_working_hours` working hours on the order's branch; none when the setting is 0, the hours are unknown or
+  the sale was itself a free relist); the buyer relists once with no commission and no review (`POST
+  /customer/me/orders/{order}/free-relist`, trade gate): a NEW live listing linked by `listing.relisted_from_order_id` — the link
+  is the waiver (commission, VAT and the minimum are 0 for every sale of that listing, the spread stays; only the buyer's
+  invoice `-B`; the order shows `no_fee`) — and a guarded `draft → live` move; one immutable rating per party and order
+  (`POST /customer/me/orders/{order}/rating`, 1–5 stars + note ≤ 500, 30 days, no effect, staff read with `rating.view`);
+  `free_relist` and `rating` blocks on the customer order; staff `free_relist` filter and blocks; guard DH016. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -323,6 +339,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   figures, invoices with their status from credit notes, export, credit notes, detail and PDF, Issue a credit note (spec 016).
   Disputes and reports has the Listing reports view (Dismiss, Take the piece down), the Customer file shows what the
   customer was sent, the closure and the pause trigger, Users has a Closed tab, Settings lists `saved.max_per_customer` (spec 017).
+  Orders has the Free relist filter and badge, the order detail shows the offer, the relisted listing, where a sale came from
+  and (with `rating.view`) the ratings; Listings shows "Free relist of order …" (spec 018).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -343,7 +361,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   credit notes are live, with View invoice on a paid order and Open the invoice on the wallet line (spec 016). Change phone
   (code) and email (link, `#/email-confirm`), the password and devices, the inbox with the bell count, notification settings
   (always-on rows), saved pieces and Save, Report this listing, Terms and privacy with the published documents, Contact us and
-  Close my account are live (spec 017); Help's FAQ is still mock (spec 019).
+  Close my account are live (spec 017); the order screen's free-relist offer with its countdown, the relist form, "No Dahab fee on
+  this sale" and the rating screen (no invite card) are live and the mock relist timer is gone (spec 018); Help's FAQ is still mock
+  (spec 019).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 
