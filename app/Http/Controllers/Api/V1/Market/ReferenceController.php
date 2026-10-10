@@ -12,8 +12,10 @@ use App\Models\Branch;
 use App\Models\Karat;
 use App\Models\LegalDocument;
 use App\Models\PieceType;
+use App\Support\Content\BundleBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
 
@@ -146,6 +148,74 @@ class ReferenceController extends Controller
                 'published_at' => $doc?->published_at?->toIso8601String(),
             ];
         }, LegalDocumentCode::cases())]);
+    }
+
+    #[OA\Get(
+        path: '/reference/app-texts',
+        operationId: 'referenceAppTexts',
+        summary: 'The texts staff published for the customer app',
+        description: 'Spec 019 FR-006. Published overrides of the app and FAQ kinds only, in both languages (never notification templates, never a reverted key), the FAQ entries in order, and the current value of every setting placeholder. The version tag (`ETag`, also `data.tag`) is `"<bundle_version>-<settings fingerprint>"`: it changes when staff publish or when a number a text may state changes; `If-None-Match` with the same tag answers 304. The app keeps the last bundle and falls back to its own text on any failure. Public.',
+        tags: ['Reference'],
+        parameters: [new OA\Parameter(name: 'If-None-Match', in: 'header', required: false, schema: new OA\Schema(type: 'string'))],
+        responses: [
+            new OA\Response(response: 200, description: 'The bundle', headers: [new OA\Header(header: 'ETag', schema: new OA\Schema(type: 'string'))], content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'tag', type: 'string', example: '"3-9c1d…"'),
+                    new OA\Property(property: 'version', type: 'integer', description: '0 before the first publish'),
+                    new OA\Property(property: 'published_at', type: 'string', format: 'date-time', nullable: true),
+                    new OA\Property(property: 'texts', type: 'object', additionalProperties: new OA\AdditionalProperties(properties: [
+                        new OA\Property(property: 'en', type: 'string'),
+                        new OA\Property(property: 'ar', type: 'string'),
+                    ], type: 'object')),
+                    new OA\Property(property: 'faq', type: 'array', items: new OA\Items(properties: [
+                        new OA\Property(property: 'key', type: 'string'),
+                        new OA\Property(property: 'position', type: 'integer', nullable: true),
+                        new OA\Property(property: 'question', properties: [new OA\Property(property: 'en', type: 'string'), new OA\Property(property: 'ar', type: 'string')], type: 'object'),
+                        new OA\Property(property: 'answer', properties: [new OA\Property(property: 'en', type: 'string'), new OA\Property(property: 'ar', type: 'string')], type: 'object'),
+                    ], type: 'object')),
+                    new OA\Property(property: 'settings', type: 'object', additionalProperties: new OA\AdditionalProperties(type: 'string'), example: ['commission_gold_pct' => '20']),
+                ], type: 'object'),
+            ])),
+            new OA\Response(response: 304, description: 'Not modified'),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function appTexts(Request $request, BundleBuilder $bundle): JsonResponse|Response
+    {
+        $tag = $bundle->tag();
+        $headers = ['ETag' => $tag['tag'], 'Cache-Control' => 'public, max-age=0, must-revalidate', 'Access-Control-Expose-Headers' => 'ETag'];
+
+        if (self::matches((string) $request->header('If-None-Match', ''), $tag['tag'])) {
+            return response('', 304, $headers);
+        }
+
+        $content = $bundle->content();
+
+        return response()->json(['data' => [
+            'tag' => $tag['tag'],
+            'version' => $tag['version'],
+            'published_at' => $tag['published_at'],
+            // Empty maps must stay JSON objects, not lists.
+            'texts' => (object) $content['texts'],
+            'faq' => $content['faq'],
+            'settings' => (object) $tag['settings'],
+        ]], 200, $headers);
+    }
+
+    /** `If-None-Match` may carry several tags, weak or not. */
+    private static function matches(string $header, string $tag): bool
+    {
+        foreach (explode(',', $header) as $candidate) {
+            $candidate = trim($candidate);
+            if (str_starts_with($candidate, 'W/')) {
+                $candidate = substr($candidate, 2);
+            }
+            if ($candidate !== '' && $candidate === $tag) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     #[OA\Get(

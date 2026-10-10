@@ -151,6 +151,11 @@ enum AuditEvent: string
     case LISTING_REPORT_CREATED = 'listing_report.created';
     case LISTING_REPORT_DISMISSED = 'listing_report.dismissed';
     case LISTING_REPORT_ACTIONED = 'listing_report.actioned';
+    case CONTENT_DRAFT_SAVED = 'content.draft_saved';
+    case CONTENT_DRAFT_DISCARDED = 'content.draft_discarded';
+    case CONTENT_PUBLISHED = 'content.published';
+    case CONTENT_REVERTED = 'content.reverted';
+    case CONTENT_EXPORTED = 'content.exported';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -291,6 +296,11 @@ enum AuditEvent: string
             self::LISTING_REPORT_CREATED => 'Listing reported',
             self::LISTING_REPORT_DISMISSED => 'Listing report dismissed',
             self::LISTING_REPORT_ACTIONED => 'Reported listing taken down',
+            self::CONTENT_DRAFT_SAVED => 'App text draft saved',
+            self::CONTENT_DRAFT_DISCARDED => 'App text draft discarded',
+            self::CONTENT_PUBLISHED => 'App texts published',
+            self::CONTENT_REVERTED => 'App text reverted',
+            self::CONTENT_EXPORTED => 'App texts exported',
         };
     }
 
@@ -329,6 +339,7 @@ enum AuditEvent: string
             self::CUSTOMER_EMAIL_CHANGED, self::CUSTOMER_ACCOUNT_CLOSED => AuditCategory::ACCOUNTS,
             self::CUSTOMER_PASSWORD_CHANGED, self::CUSTOMER_SESSION_SIGNED_OUT => AuditCategory::SESSIONS,
             self::LISTING_REPORT_CREATED, self::LISTING_REPORT_DISMISSED, self::LISTING_REPORT_ACTIONED => AuditCategory::LISTINGS,
+            self::CONTENT_DRAFT_SAVED, self::CONTENT_DRAFT_DISCARDED, self::CONTENT_PUBLISHED, self::CONTENT_REVERTED, self::CONTENT_EXPORTED => AuditCategory::CONTENT,
         };
     }
 

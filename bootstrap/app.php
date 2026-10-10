@@ -125,6 +125,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH015' => DomainApiException::reportNotOpen(),
                 // Spec 018: a rating (or the free-relist window) never changes.
                 'DH016' => DomainApiException::ratingImmutable(),
+                // Spec 019: published app text history never changes.
+                'DH017' => DomainApiException::contentHistoryImmutable(),
                 // Spec 016: the credit-note cap answers like the Action; any other DH012
                 // (an invoice or credit note not matching its entry) is a bug — a 500.
                 'DH012' => match (true) {
@@ -165,6 +167,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH015' => DomainApiException::reportNotOpen(),
                 // Spec 018: a rating (or the free-relist window) never changes.
                 'DH016' => DomainApiException::ratingImmutable(),
+                'DH017' => DomainApiException::contentHistoryImmutable(),
                 default => $e,
             };
         });

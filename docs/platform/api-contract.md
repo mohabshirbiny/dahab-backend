@@ -225,7 +225,12 @@ machine-readable value clients must switch on**; `message` is human text and may
   SQLSTATE DH013), `account_has_open_items` 409 (`details.blockers`), `listing_not_saveable` 422, `saved_limit_reached` 422
   (`details.limit`), `listing_not_reportable` 422, `report_already_open` 409, `report_not_open` 409 (SQLSTATE DH015),
   `notification_immutable` 409 (SQLSTATE DH014); from spec 018: `free_relist_expired` 409, `already_relisted` 409,
-  `rating_not_available` 409, `rating_closed` 409, `already_rated` 409, `rating_immutable` 409 (SQLSTATE DH016), …).
+  `rating_not_available` 409, `rating_closed` 409, `already_rated` 409, `rating_immutable` 409 (SQLSTATE DH016); from spec 019:
+  `content_draft_changed` 409 (`details.draft_version`), `content_key_read_only` 409, `content_key_retired` 409,
+  `content_no_draft` 404, `content_invalid_placeholder` 422 (`details.placeholders`), `content_missing_required_placeholder` 422,
+  `content_language_missing` 422 (`details.languages`), `content_too_long` 422 (`details.max_length`), `content_unchanged` 422,
+  `content_nothing_to_publish` 422, `content_invalid` 422 (`details.keys`: per key `{code, message}`),
+  `content_history_immutable` 409 (SQLSTATE DH017), …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -375,3 +380,25 @@ Each frontend's dev origin must be listed (Dashboard Vite :3000, Flutter web :87
   creates or changes an offer or a rating. Audit events `order.free_relisted` and `order.rated` (stars only; the latter is
   visible with `rating.view`).
 - Non-breaking: new endpoints, optional fields, an optional filter and one new permission string (`rating.view`).
+
+## App text: the published bundle and the App text page (spec 019, first release)
+
+- `GET /reference/app-texts` (public, `throttle:public.market`) returns what staff published for the customer app:
+  `data { tag, version, published_at, texts { "<key>": { en, ar } }, faq [ { key, position, question {en,ar}, answer {en,ar} } ],
+  settings { "<placeholder>": "<value>" } }`. Only overrides of the kinds `app` and `faq` are served: never a draft, a
+  notification template, a retired key or a key whose override was reverted (the app shows its own default). `settings` holds
+  the live value of every setting placeholder (`commission_gold_pct`, `commission_minimum_egp`, …) as people write the number.
+- **Version tag.** The `ETag` header (also `data.tag`, for browsers that do not expose it — CORS exposes `ETag`) is
+  `"<bundle_version>-<sha1 of the setting values>"`: it changes when staff publish **or** a number a text may state changes.
+  `If-None-Match` with the tag answers `304` with no body. Clients keep the last bundle, ask on start, on return to the
+  foreground and every 15 minutes, and use their own text on any failure, an unknown key, a missing language or a
+  placeholder they cannot fill. A `404` from an older Backend means "no overrides".
+- Dashboard (`content.edit`): `GET /dashboard/app-texts` (filters `kind`, `area`, `q`, `changed`, `state`; keyset `cursor`,
+  `per_page`), `PUT|DELETE /dashboard/app-texts/{key}/draft`, `POST /dashboard/app-texts/{key}/revert`
+  (`to: "default"` or a version), `POST /dashboard/app-texts/publish`, `GET /dashboard/app-texts/{key}/history`,
+  `GET /dashboard/app-texts/export` (CSV), `GET /dashboard/content/placeholders`. Every write takes an `Idempotency-Key` and is
+  audited (`content.draft_saved`, `content.draft_discarded`, `content.reverted`, `content.published`, `content.exported`) with
+  the version it replaced.
+- Texts are plain text: `{snake_case}` placeholders only, from the key's own list or the setting list. Keys are readable and
+  stable (`order.free_relist.card_title`) and are never renamed.
+- Non-breaking: new endpoints and one new permission string (`content.edit`).

@@ -41,6 +41,7 @@
         {"key": "session_id", "value": ""},
         {"key": "notification_id", "value": ""},
         {"key": "listing_report_id", "value": ""},
+        {"key": "app_text_key", "value": "order.free_relist.card_title"},
         {
             "key": "base_url",
             "value": "http://localhost",
@@ -7207,6 +7208,412 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "App Text",
+                    "item": [
+                        {
+                            "name": "List App Texts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts?area=Orders&per_page=50",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "area",
+                                            "value": "Orders"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "50"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 US1. content.edit (CEO, COO, Operations). Every registered text with where it appears, the code default, what is live, the pending draft and whether the default changed since the live override. Filters kind, area, q, changed, state (draft|published|default); keyset cursor (meta.next_cursor), per_page. Saves the first key as app_text_key."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const first = (pm.response.json().data || [])[0];",
+                                            "if (first) pm.collectionVariables.set('app_text_key', first.key);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Save Text Draft",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/draft",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "draft"
+                                    ]
+                                },
+                                "description": "Spec 019 Q2. content.edit. One shared draft per key, invisible to customers until Publish Changes. Both languages; only the key's own {placeholders} and the setting placeholders ({commission_gold_pct}, …); a required placeholder must stay. 422 content_unchanged when it equals what customers see; 409 content_draft_changed when draft_version is stale; 409 content_key_read_only for a template with a code or link. Audited content.draft_saved.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"text_en\": \"Sell it again with no commission\",\n    \"text_ar\": \"بيعها تاني من غير عمولة\",\n    \"draft_version\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Discard Text Draft",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/draft",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "draft"
+                                    ]
+                                },
+                                "description": "Spec 019 US1. content.edit. Deletes the pending draft; audited content.draft_discarded. 404 content_no_draft when there is none."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Revert Text To Default",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/revert",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "revert"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-002. content.edit. `to: \"default\"` makes a default-marker draft; once published the override ends, the bundle drops the key and the app shows its own current default. Audited content.reverted.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"to\": \"default\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Restore Earlier Text Version",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/revert",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "revert"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-002. content.edit. `to: <version>` makes a draft copying that version's wording; published, it is a new version. See Text History for the numbers.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"to\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Publish Changes",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/publish",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "publish"
+                                    ]
+                                },
+                                "description": "Spec 019 Q2, FR-003. content.edit. Every pending draft goes live together as one new bundle, or none does: 422 content_invalid lists each key with its reason, 422 content_nothing_to_publish when there are no drafts. Audited content.published with the version replaced and the wording before and after."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Text History",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/history",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "history"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-002. content.edit. Every version, newest first, with who wrote and published each and when."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export App Texts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "text/csv",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/export?area=Orders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "area",
+                                            "value": "Orders"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 FR-011. content.edit. CSV (UTF-8 with a BOM) of key, kind, area, English, Arabic, version and published date under the list filters; audited content.exported."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Setting Placeholders",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/content/placeholders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "content",
+                                        "placeholders"
+                                    ]
+                                },
+                                "description": "Spec 019 R5. content.edit. The {names} a text may use for a number a setting owns, with the value customers will see."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""
@@ -11376,6 +11783,36 @@
                                     ]
                                 },
                                 "description": "Spec 017 FR-045. terms, privacy, selling_rules, id_handling with published / version.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "App Texts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/app-texts",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "app-texts"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-006. Public. The texts staff published for the customer app (kinds app and faq, both languages), the FAQ and the live values of the setting placeholders. ETag \"<bundle_version>-<settings fingerprint>\" also moves when a setting behind a placeholder changes; send it back as If-None-Match for a 304.",
                                 "auth": {
                                     "type": "noauth"
                                 }

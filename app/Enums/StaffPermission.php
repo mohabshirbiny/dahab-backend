@@ -150,6 +150,9 @@ enum StaffPermission: string
     /** Read each party's rating of an order (spec 018 FR-034). CEO and COO. */
     case RATING_VIEW = 'rating.view';
 
+    /** Edit the customer app's texts and publish them (Part 1 §4.3 "Edit app text"; spec 019). CEO, COO, Operations. */
+    case CONTENT_EDIT = 'content.edit';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -216,6 +219,7 @@ enum StaffPermission: string
             self::INVOICE_CORRECT => 'Issue or correct a tax invoice',
             self::LISTING_REPORT_HANDLE => 'Handle listing reports',
             self::RATING_VIEW => 'View ratings',
+            self::CONTENT_EDIT => 'Edit app text',
         };
     }
 
@@ -238,6 +242,7 @@ enum StaffPermission: string
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
             self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW, self::DISPUTE_HANDLE, self::RATING_VIEW => 'Orders',
+            self::CONTENT_EDIT => 'Content',
         };
     }
 
@@ -328,6 +333,8 @@ enum StaffPermission: string
             self::LISTING_REPORT_HANDLE => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
             // Spec 018: ratings are read by the CEO (every code) and the COO.
             self::RATING_VIEW => [SeedRole::COO->value],
+            // Spec 019 (Part 1 §4.3 "Edit app text": CEO, COO, Operations).
+            self::CONTENT_EDIT => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
         };
     }
 }

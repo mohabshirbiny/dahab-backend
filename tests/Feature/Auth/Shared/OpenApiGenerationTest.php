@@ -335,6 +335,19 @@ const OPENAPI_INVOICE_PATHS = [
     'get /dashboard/credit-notes/{creditNote}/pdf',
 ];
 
+// Spec 019: App text (content.edit) and the public bundle.
+const OPENAPI_CONTENT_PATHS = [
+    'get /reference/app-texts',
+    'get /dashboard/app-texts',
+    'get /dashboard/app-texts/export',
+    'put /dashboard/app-texts/{key}/draft',
+    'delete /dashboard/app-texts/{key}/draft',
+    'post /dashboard/app-texts/{key}/revert',
+    'post /dashboard/app-texts/publish',
+    'get /dashboard/app-texts/{key}/history',
+    'get /dashboard/content/placeholders',
+];
+
 // Spec 017: the customer account, the inbox, saved pieces, closing, listing reports.
 const OPENAPI_ACCOUNT_PATHS = [
     'post /customer/me/phone-change',
@@ -416,6 +429,7 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_DASHBOARD_OVERVIEW_PATHS,
         ...OPENAPI_ACCOUNT_PATHS,
         ...OPENAPI_INVOICE_PATHS,
+        ...OPENAPI_CONTENT_PATHS,
     ]);
 });
 
@@ -622,6 +636,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffInvoice', 'StaffCreditNote', 'InvoiceFigures', 'IssueCreditNoteRequest', 'CustomerInvoice', 'CustomerCreditNote',
         'CustomerSession', 'RequestPhoneChangeRequest', 'ConfirmPhoneChangeRequest', 'RequestEmailChangeRequest', 'ChangePasswordRequest',
         'InboxItem', 'SavedPiece', 'CloseBlocker', 'StaffListingReport',
+        'StaffAppText', 'StaffAppTextVersion', 'StaffAppTextDraft', 'DashboardSaveAppTextDraft', 'DashboardRevertAppText',
     ]);
 
     $ops = documentedOperations($doc);

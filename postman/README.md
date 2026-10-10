@@ -158,3 +158,11 @@ of the link into `confirmation_token`, then **Withdrawal Confirmations → Confi
 transfer at the bank first, then record it) or **Reject**. **Use Payout Account** on a second verified account cancels
 open withdrawals and pauses new ones for `withdrawal.account_change_pause_hours`. Every POST except the public pair
 sends a new `Idempotency-Key`.
+
+**App text** (spec 019, first release). **Dashboard → App Text** needs `content.edit` (`ceo`, `coo`, `operations`):
+**List App Texts** (saves `app_text_key`; run `php artisan app-texts:sync` first so the registry is filled) →
+**Save Text Draft** (a draft customers cannot see) → **Publish Changes** (every pending draft goes live as one bundle) →
+**Text History**, then **Revert Text To Default** / **Restore Earlier Text Version** (each makes a draft; publish to apply)
+and **Export App Texts** (CSV). **Market → Reference → App Texts** is the public bundle the app reads; its `ETag` moves
+with a publish and with a setting behind a placeholder, and the same tag in `If-None-Match` answers 304. Every write
+sends a fresh `Idempotency-Key`.

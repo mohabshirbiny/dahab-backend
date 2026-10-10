@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * The audit log viewer's categories (spec 006): the design's five chips plus
- * three for kinds the design does not place, Listings (spec 010) and Orders (spec 011). "Everything" leaves out
+ * three for kinds the design does not place, Listings (spec 010), Orders (spec 011) and App text (spec 019). "Everything" leaves out
  * sign-ins and sessions (Clarification 1).
  */
 enum AuditCategory: string
@@ -17,6 +17,7 @@ enum AuditCategory: string
     case REFERENCE = 'reference';
     case LISTINGS = 'listings';
     case ORDERS = 'orders';
+    case CONTENT = 'content';
     case SESSIONS = 'sessions';
     case SYSTEM = 'system';
 
@@ -31,6 +32,7 @@ enum AuditCategory: string
             self::REFERENCE => 'Reference data',
             self::LISTINGS => 'Listings',
             self::ORDERS => 'Orders',
+            self::CONTENT => 'App text',
             self::SESSIONS => 'Sign-ins and sessions',
             self::SYSTEM => 'System',
         };

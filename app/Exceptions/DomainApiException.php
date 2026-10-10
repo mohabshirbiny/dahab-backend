@@ -609,4 +609,76 @@ class DomainApiException extends RuntimeException
     {
         return new self('document_not_ready', 409, 'This document is being prepared. Try again in a few minutes.');
     }
+
+    // ---- Spec 019: app text ----
+
+    /** Someone saved the draft since this copy was read (A2: one shared draft per key, optimistic check). */
+    public static function contentDraftChanged(int $current): self
+    {
+        return new self('content_draft_changed', 409, 'This text was changed by someone else. Reload it and try again.', ['draft_version' => $current]);
+    }
+
+    /** D7: a template that carries a one-time code or a link is shown, not edited. */
+    public static function contentKeyReadOnly(): self
+    {
+        return new self('content_key_read_only', 409, 'This text cannot be edited here.');
+    }
+
+    /** The key was removed from the app (retired): it takes no new version. */
+    public static function contentKeyRetired(): self
+    {
+        return new self('content_key_retired', 409, 'This text is no longer used by the app.');
+    }
+
+    public static function contentNoDraft(): self
+    {
+        return new self('content_no_draft', 404, 'There is no draft for this text.');
+    }
+
+    /** @param  list<string>  $names  the `{names}` that are not allowed for this key */
+    public static function contentInvalidPlaceholder(array $names): self
+    {
+        return new self('content_invalid_placeholder', 422, 'This text uses a placeholder that is not allowed: '.implode(', ', $names).'.', ['placeholders' => $names]);
+    }
+
+    /** @param  list<string>  $names  the required `{names}` the text dropped */
+    public static function contentMissingRequiredPlaceholder(array $names): self
+    {
+        return new self('content_missing_required_placeholder', 422, 'This text must keep: '.implode(', ', array_map(fn ($n) => '{'.$n.'}', $names)).'.', ['placeholders' => $names]);
+    }
+
+    /** @param  list<string>  $languages  `en` and/or `ar` */
+    public static function contentLanguageMissing(array $languages): self
+    {
+        return new self('content_language_missing', 422, 'Both English and Arabic are required.', ['languages' => $languages]);
+    }
+
+    /** @param  list<string>  $languages  the languages above the limit */
+    public static function contentTooLong(int $max, array $languages): self
+    {
+        return new self('content_too_long', 422, "This text is longer than the {$max} characters allowed.", ['max_length' => $max, 'languages' => $languages]);
+    }
+
+    /** Publishing or saving the text it already has. */
+    public static function contentUnchanged(): self
+    {
+        return new self('content_unchanged', 422, 'Nothing changed.');
+    }
+
+    public static function contentNothingToPublish(): self
+    {
+        return new self('content_nothing_to_publish', 422, 'There are no drafts to publish.');
+    }
+
+    /** @param  array<string, array{code: string, message: string}>  $errors  one per key that cannot be published */
+    public static function contentInvalid(array $errors): self
+    {
+        return new self('content_invalid', 422, 'Some drafts cannot be published.', ['keys' => $errors]);
+    }
+
+    /** Guard DH017: published text history never changes. A bug if reached through the API. */
+    public static function contentHistoryImmutable(): self
+    {
+        return new self('content_history_immutable', 409, 'Published text history cannot be changed.');
+    }
 }

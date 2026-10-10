@@ -1,0 +1,488 @@
+{
+  "version": 1,
+  "keys": [
+    {
+      "key": "order.free_relist.card_title",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, the offer to relist with no commission",
+      "default_en": "Sell it again with no commission",
+      "default_ar": "بيعها تاني من غير عمولة",
+      "placeholders": [],
+      "max_length": 64
+    },
+    {
+      "key": "order.free_relist.card_body",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, the offer to relist with no commission",
+      "default_en": "You collected this piece. Put it back on the market now and Dahab takes no commission on that sale. It goes live straight away, with no review.",
+      "default_ar": "إنت استلمت القطعة. رجّعها للسوق دلوقتي ودهب مش هتاخد عمولة على البيعة دي. بتنزل على طول من غير مراجعة.",
+      "placeholders": [],
+      "max_length": 286
+    },
+    {
+      "key": "order.free_relist.card_until",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, the offer to relist with no commission",
+      "default_en": "Until",
+      "default_ar": "لحد",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.card_time_left",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, the offer to relist with no commission",
+      "default_en": "Time left",
+      "default_ar": "الوقت الباقي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.card_left_hours_minutes",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, the offer to relist with no commission",
+      "default_en": "{hours} h {minutes} min left",
+      "default_ar": "فاضل {hours} ساعة و{minutes} دقيقة",
+      "placeholders": [
+        "hours",
+        "minutes"
+      ],
+      "max_length": 56
+    },
+    {
+      "key": "order.free_relist.card_left_minutes",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, the offer to relist with no commission",
+      "default_en": "{minutes} min left",
+      "default_ar": "فاضل {minutes} دقيقة",
+      "placeholders": [
+        "minutes"
+      ],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.card_button",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, the offer to relist with no commission",
+      "default_en": "Relist this piece, no commission",
+      "default_ar": "رجّع القطعة للسوق من غير عمولة",
+      "placeholders": [],
+      "max_length": 64
+    },
+    {
+      "key": "order.free_relist.used_note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, after the free relist was made",
+      "default_en": "You put this piece back on the market with no commission.",
+      "default_ar": "رجّعت القطعة دي للسوق من غير عمولة.",
+      "placeholders": [],
+      "max_length": 114
+    },
+    {
+      "key": "order.free_relist.used_see_listings",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, after the free relist was made",
+      "default_en": "See it in My listings",
+      "default_ar": "شوفها في قطعي",
+      "placeholders": [],
+      "max_length": 42
+    },
+    {
+      "key": "order.no_fee.seller_note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, seller of a free relist",
+      "default_en": "No Dahab fee on this sale. It was a free relist, so the whole price reached you.",
+      "default_ar": "من غير رسوم دهب على البيعة دي. كانت إعادة عرض مجانية، فالسعر كله وصلك.",
+      "placeholders": [],
+      "max_length": 160
+    },
+    {
+      "key": "order.rating.given_note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, after rating",
+      "default_en": "You rated this order {stars} out of 5.",
+      "default_ar": "You rated this order {stars} out of 5.",
+      "placeholders": [
+        "stars"
+      ],
+      "max_length": 76
+    },
+    {
+      "key": "order.rating.rate_button",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen, when rating is open",
+      "default_en": "Rate this order",
+      "default_ar": "قيّم الطلب ده",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.form.used_already",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "You already put this piece back on the market.",
+      "default_ar": "إنت رجّعت القطعة دي للسوق قبل كده.",
+      "placeholders": [],
+      "max_length": 92
+    },
+    {
+      "key": "order.free_relist.form.window_over",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "The time to relist this piece with no commission has passed.",
+      "default_ar": "الوقت اللي تقدر ترجّع فيه القطعة من غير عمولة عدّى.",
+      "placeholders": [],
+      "max_length": 120
+    },
+    {
+      "key": "order.free_relist.form.back_to_order",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Back to the order",
+      "default_ar": "ارجع للطلب",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.form.live_again_note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Your piece goes live again straight away, with no review. The karat and weight are the ones IGI measured, and your photos and branches come with it. You set the price.",
+      "default_ar": "قطعتك بتنزل السوق تاني على طول من غير مراجعة. العيار والوزن هما اللي IGI قاسهم، وصورك وفروعك بتيجي معاها. إنت اللي بتحدد السعر.",
+      "placeholders": [],
+      "max_length": 334
+    },
+    {
+      "key": "order.free_relist.form.price_label_gold",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Your making charge per gram (EGP)",
+      "default_ar": "المصنعية بتاعتك للجرام (جنيه)",
+      "placeholders": [],
+      "max_length": 66
+    },
+    {
+      "key": "order.free_relist.form.price_label_other",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "The price you are asking (EGP)",
+      "default_ar": "السعر اللي طالبه (جنيه)",
+      "placeholders": [],
+      "max_length": 60
+    },
+    {
+      "key": "order.free_relist.form.price_hint_gold",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "For example 250",
+      "default_ar": "مثلاً 250",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.form.price_hint_other",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "For example 120000",
+      "default_ar": "مثلاً 120000",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.form.description_label",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Anything to add? (optional)",
+      "default_ar": "عاوز تضيف حاجة؟ (اختياري)",
+      "placeholders": [],
+      "max_length": 54
+    },
+    {
+      "key": "order.free_relist.form.description_hint",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "A line about the piece.",
+      "default_ar": "سطر عن القطعة.",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "order.free_relist.form.estimate_line",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen, the line under the price",
+      "default_en": "No Dahab commission on this sale. The difference between the rate you were charged and the rate you are paid still applies, and the final figure is worked out on the weight IGI measures.",
+      "default_ar": "من غير عمولة دهب على البيعة دي. الفرق بين سعر الشراء وسعر البيع لسه موجود، والرقم النهائي بيتحسب على الوزن اللي IGI بيقيسه.",
+      "placeholders": [],
+      "max_length": 372
+    },
+    {
+      "key": "order.free_relist.form.declaration_fallback",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen, the ownership tick box when the declaration text is empty",
+      "default_en": "I confirm this piece is mine to sell and the details above are accurate.",
+      "default_ar": "أقر إن القطعة دي ملكي وإن البيانات اللي فوق صحيحة.",
+      "placeholders": [],
+      "max_length": 144
+    },
+    {
+      "key": "order.free_relist.form.submit_button",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Relist with no commission",
+      "default_ar": "رجّعها من غير عمولة",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "order.free_relist.form.error_price_gold",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Enter your making charge per gram.",
+      "default_ar": "اكتب المصنعية للجرام.",
+      "placeholders": [],
+      "max_length": 68
+    },
+    {
+      "key": "order.free_relist.form.error_price_other",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Enter the price you are asking.",
+      "default_ar": "اكتب السعر اللي طالبه.",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "order.free_relist.form.error_confirm_ownership",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Confirm ownership to list the piece.",
+      "default_ar": "أكد الملكية عشان تعرض القطعة.",
+      "placeholders": [],
+      "max_length": 72
+    },
+    {
+      "key": "order.free_relist.form.error_declaration_changed",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "The declaration text changed. Read it again and confirm.",
+      "default_ar": "نص الإقرار اتغير. اقراه تاني وأكد.",
+      "placeholders": [],
+      "max_length": 112
+    },
+    {
+      "key": "order.free_relist.form.success_title",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen, the dialog after sending",
+      "default_en": "Back on the market",
+      "default_ar": "رجعت للسوق",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.form.success_body",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen, the dialog after sending",
+      "default_en": "Your piece is live again with no Dahab commission. You can see it in My listings.",
+      "default_ar": "قطعتك نزلت السوق تاني من غير عمولة دهب. تقدر تشوفها في قطعي.",
+      "placeholders": [],
+      "max_length": 162
+    },
+    {
+      "key": "order.free_relist.form.window_until",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Relist with no commission until",
+      "default_ar": "رجّعها من غير عمولة لحد",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "order.free_relist.form.window_time_left",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Time left",
+      "default_ar": "الوقت الباقي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.form.window_time_up",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Time is up",
+      "default_ar": "الوقت خلص",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.free_relist.form.window_left_hours_minutes",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "{hours} h {minutes} min left",
+      "default_ar": "فاضل {hours} ساعة و{minutes} دقيقة",
+      "placeholders": [
+        "hours",
+        "minutes"
+      ],
+      "max_length": 56
+    },
+    {
+      "key": "order.free_relist.form.window_left_minutes",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "{minutes} min left",
+      "default_ar": "فاضل {minutes} دقيقة",
+      "placeholders": [
+        "minutes"
+      ],
+      "max_length": 40
+    },
+    {
+      "key": "order.rating.thanks_title",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "Thank you",
+      "default_ar": "شكراً",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.rating.thanks_body",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "It helps more than you think.",
+      "default_ar": "بيساعدنا أكتر مما تتخيل.",
+      "placeholders": [],
+      "max_length": 58
+    },
+    {
+      "key": "order.rating.back_to_order",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "Back to the order",
+      "default_ar": "ارجع للطلب",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.rating.closed_note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "The time to rate this order has passed.",
+      "default_ar": "الوقت اللي تقدر تقيّم فيه الطلب ده عدّى.",
+      "placeholders": [],
+      "max_length": 78
+    },
+    {
+      "key": "order.rating.not_yet_note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "You can rate this order once the sale is settled for you.",
+      "default_ar": "تقدر تقيّم الطلب ده لما البيعة تتقفل عندك.",
+      "placeholders": [],
+      "max_length": 114
+    },
+    {
+      "key": "order.rating.title_seller",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "How did your sale go?",
+      "default_ar": "البيعة كانت عاملة إزاي؟",
+      "placeholders": [],
+      "max_length": 42
+    },
+    {
+      "key": "order.rating.title_buyer",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "How did your purchase go?",
+      "default_ar": "الشراء كان عامل إزاي؟",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "order.rating.subtitle",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "Tell us about your experience with Dahab. It is only for us.",
+      "default_ar": "قولنا تجربتك مع دهب. ده لينا إحنا بس.",
+      "placeholders": [],
+      "max_length": 120
+    },
+    {
+      "key": "order.rating.error_stars",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "Choose how many stars before sending.",
+      "default_ar": "اختار عدد النجوم قبل ما تبعت.",
+      "placeholders": [],
+      "max_length": 74
+    },
+    {
+      "key": "order.rating.note_hint",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "Anything we could do better?",
+      "default_ar": "في حاجة نحسنها؟",
+      "placeholders": [],
+      "max_length": 56
+    },
+    {
+      "key": "order.rating.send_button",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Rate an order screen",
+      "default_en": "Send",
+      "default_ar": "إرسال",
+      "placeholders": [],
+      "max_length": 40
+    }
+  ],
+  "retired": []
+}

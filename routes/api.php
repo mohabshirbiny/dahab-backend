@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpControl
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
 use App\Http\Controllers\Api\V1\Customer\WithdrawalController as CustomerWithdrawalController;
+use App\Http\Controllers\Api\V1\Dashboard\AppTextController as DashboardAppTextController;
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
@@ -83,6 +84,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             // Spec 017: the list the app shows, and how to reach Dahab.
             Route::get('/legal-documents', [ReferenceController::class, 'legalDocuments'])->name('legal-documents.index');
             Route::get('/support-contacts', [ReferenceController::class, 'supportContacts'])->name('support-contacts');
+            // Spec 019: the texts staff published for the app; an ETag that also moves with the setting values.
+            Route::get('/app-texts', [ReferenceController::class, 'appTexts'])->name('app-texts');
             Route::get('/legal-documents/{code}', [ReferenceController::class, 'legalDocument'])
                 ->where('code', '[a-z][a-z0-9_]{1,49}')->name('legal-documents.show');
             // Spec 015: today's prices and the seller's estimate (indicative; nothing is locked).
@@ -769,6 +772,27 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->whereNumber('closure')
                     ->middleware('staff.permission:branches.manage')->name('destroy');
             });
+        });
+
+        // Spec 019: App text (content.edit). Literal routes come before the {key} ones; every
+        // write is idempotent (`idempotent` runs last) and audited with the version it replaces.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:content.edit'])->group(function () {
+            $key = DashboardAppTextController::keyPattern();
+
+            Route::prefix('app-texts')->name('app-texts.')->group(function () use ($key) {
+                Route::get('/', [DashboardAppTextController::class, 'index'])->name('index');
+                Route::get('/export', [DashboardAppTextController::class, 'export'])->name('export');
+                Route::post('/publish', [DashboardAppTextController::class, 'publish'])->middleware('idempotent')->name('publish');
+                Route::get('/{key}/history', [DashboardAppTextController::class, 'history'])->where('key', $key)->name('history');
+                Route::put('/{key}/draft', [DashboardAppTextController::class, 'saveDraft'])->where('key', $key)
+                    ->middleware('idempotent')->name('draft.save');
+                Route::delete('/{key}/draft', [DashboardAppTextController::class, 'discardDraft'])->where('key', $key)
+                    ->middleware('idempotent')->name('draft.discard');
+                Route::post('/{key}/revert', [DashboardAppTextController::class, 'revert'])->where('key', $key)
+                    ->middleware('idempotent')->name('revert');
+            });
+
+            Route::get('/content/placeholders', [DashboardAppTextController::class, 'placeholders'])->name('content.placeholders');
         });
 
         // Spec 016: tax invoices and credit notes (invoice.view reads; invoice.correct issues a credit note).

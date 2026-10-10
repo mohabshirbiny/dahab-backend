@@ -323,7 +323,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   is the waiver (commission, VAT and the minimum are 0 for every sale of that listing, the spread stays; only the buyer's
   invoice `-B`; the order shows `no_fee`) — and a guarded `draft → live` move; one immutable rating per party and order
   (`POST /customer/me/orders/{order}/rating`, 1–5 stars + note ≤ 500, 30 days, no effect, staff read with `rating.view`);
-  `free_relist` and `rating` blocks on the customer order; staff `free_relist` filter and blocks; guard DH016. Nothing else yet.
+  `free_relist` and `rating` blocks on the customer order; staff `free_relist` filter and blocks; guard DH016; app text (spec 019, first release) — the customer app's texts as keys with the code's own wording as default: the registry (`app_text_key`, filled by `php artisan app-texts:sync` from `database/data/app_text_keys.json`, the app's generated manifest), one shared draft per key, *Publish changes* as one bundle (`POST /dashboard/app-texts/publish`), revert to default as a marker that ends the override, history and CSV export (`/dashboard/app-texts*`, `/dashboard/content/placeholders`, `content.edit` — CEO, COO, Operations), the public `GET /reference/app-texts` whose `ETag` also moves with the setting placeholders' values, and the DH017 guard on published history. Nothing else yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live

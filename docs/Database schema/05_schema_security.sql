@@ -1081,3 +1081,14 @@ CREATE CONSTRAINT TRIGGER trg_order_seller_invoice_present
   AFTER UPDATE OF settlement_txn_id ON "order" DEFERRABLE INITIALLY DEFERRED
   FOR EACH ROW WHEN (OLD.settlement_txn_id IS NULL AND NEW.settlement_txn_id IS NOT NULL)
   EXECUTE FUNCTION tax_invoice_waived_check();
+
+-- =====================================================================
+-- spec 019 — guards for the app text tables (the tables and functions are in 00_schema_full.sql)
+-- =====================================================================
+-- DH017: app_text_version — INSERT only as a draft and never for a read_only key; a draft may be
+-- edited, discarded or published; a published row only becomes superseded; a superseded row and
+-- every published or superseded DELETE are refused. app_text_bundle never changes.
+CREATE TRIGGER trg_app_text_version_guard BEFORE INSERT OR UPDATE OR DELETE ON app_text_version
+  FOR EACH ROW EXECUTE FUNCTION app_text_version_guard();                -- DH017
+CREATE TRIGGER trg_app_text_bundle_immutable BEFORE UPDATE OR DELETE ON app_text_bundle
+  FOR EACH ROW EXECUTE FUNCTION app_text_bundle_immutable();             -- DH017
