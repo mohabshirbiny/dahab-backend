@@ -149,6 +149,8 @@ Projects intentionally not changed: <projects + reason>
 7. **Never move/rename/merge the projects or their repositories.**
 8. **Never commit or push unless explicitly instructed.** Each repo gets its own commits.
 9. Prefer small, focused, reversible changes.
+10. **Never record Claude (or any AI tool) as a participant in a git action.** Applies to
+    `dahab-backend`, `dahab-dashboard` and `dahab-flutter` (see "Git coordination").
 
 ## Git coordination
 
@@ -156,6 +158,13 @@ Each project keeps its own repository. For a feature touching several projects, 
 branch name in each affected repo: `feature/<feature-name>` (e.g. `feature/customer-identity-approval`).
 Create/switch branches only when asked. `../dahab-flutter` has its own repository since 2026-10-04 and
 follows the same rules. Details: `docs/platform/development-workflow.md`.
+
+Git attribution (all three repos): no `Co-Authored-By:` trailer, no `Claude-Session:` line, no
+"Generated with Claude Code" text, no claude.ai links and no model or tool name in any commit message,
+merge commit, cherry-pick, squash, tag, PR title or PR body. Messages are plain, in the project's style
+(`feat(scope): …`, `docs(scope): …`, `test(scope): …`), authored only by the git user already configured
+on the machine; never change `user.name` or `user.email`. Check the full message before every commit and
+merge. Only fix commits you created yourself; never rewrite shared history unless asked.
 
 ## Change classification
 
