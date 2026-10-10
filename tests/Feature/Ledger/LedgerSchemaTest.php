@@ -193,6 +193,8 @@ it('refuses deleting a customer who has ledger lines', function () {
 });
 
 it('rolls back without leaving a ledger object behind', function () {
+    // Spec 018 first: its listing link and invoice checks hang off the orders and invoices below.
+    Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_11_000010_after_collection.php', '--force' => true]);
     // Tax invoices (spec 016), finance operations (spec 015), disputes (spec 014), withdrawals (spec 013), orders (spec 012), buy requests
     // (spec 011) and top-ups (spec 009) reference the ledger, so they roll back first.
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_09_000010_create_tax_invoices.php', '--force' => true]);
