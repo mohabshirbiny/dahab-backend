@@ -43,6 +43,8 @@ Working time accrues only inside a branch's open intervals, skipping closures.
 
 ### 1.3 Working-weeks
 
+> **Changed by spec 018** — see [`specs/018-after-collection/spec.md`](../../specs/018-after-collection/spec.md). The buyer's free-relist window (`deadline.free_relist_working_hours`, 12) is **working hours** on the order's branch calendar, counted from the staff handover and stored once in `collection.free_relist_until`; it is the second working-hours deadline after the reach-branch one. If the setting is 0 or the branch's hours cannot be worked out, the handover still succeeds and there is no offer.
+
 > **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: the pay window (`deadline.buyer_pay_days`, also used for the buyer's decision on an adjustment), the collection window and the seller-return window are **calendar** time in Cairo; only the reach-branch deadline is working hours. OI-3.1 is settled as written.
 
 `deadline.seller_return_weeks` and `deadline.collect_weeks` are expressed in **weeks** in the seed. The business intent differs by which:
@@ -112,6 +114,8 @@ For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed aski
 
 ### 2.5 Commission and VAT
 
+> **Changed by spec 018** — see [`specs/018-after-collection/spec.md`](../../specs/018-after-collection/spec.md). **Waiver.** A listing that is a free relist (`relisted_from_order_id` set) is sold with commission, its VAT and the minimum commission all **0** — for every sale of that listing, also after a sale that fell through. The buy/sell spread is untouched. Nothing else waives the minimum.
+
 > **Changed by spec 016** — see [`specs/016-tax-invoices/spec.md`](../../specs/016-tax-invoices/spec.md). As built (spec 005 calculator, spec 012 settlement), VAT is **added on top** of the commission (`vat = vat.pct × commission`; seller proceeds = seller gross − commission − VAT), so the seller's tax invoice shows net = commission, VAT, gross = commission + VAT. The blueprint's worked example and the customer prototype describe the commission as *VAT included* (e.g. 336 = 294.74 + 41.26) — that wording disagrees with this section and with the build; reported, the invoice follows the build. No rounding residue arises at settlement as built (proceeds and spread are derived by subtraction).
 
 - **Gold:** `commission = max(commission.gold_pct × (making_charge_per_g × W), commission.minimum_egp)`.
@@ -130,6 +134,8 @@ For gold, `seller_gross = sellers_get(k) × W + making_charge × W`. For stones,
 ---
 
 ## 3. Settlement math, worked end to end
+
+> **Changed by spec 018** — see [`specs/018-after-collection/spec.md`](../../specs/018-after-collection/spec.md). Settlement of a waived sale is the ordinary balance payment with no `dahab_commission` and no `vat_payable` line (zero lines are never posted); the seller receives the whole gross. Only the buyer's tax invoice (`-B`) is issued: no seller invoice, no credit note.
 
 This is the exact computation the money service performs at **`pay-balance`** (Part 2 §7 — the settlement event). Every figure is recomputed on the **IGI-confirmed weight** (locked decision #5 / (أ)).
 
@@ -402,6 +408,8 @@ Crossing `flag.pattern_txn_threshold` (5) raises a **review flag**, not an autom
 ---
 
 ## 10. Post-payment afterlife: return-to-seller and uncollected-paid
+
+> **Changed by spec 018** — see [`specs/018-after-collection/spec.md`](../../specs/018-after-collection/spec.md). **After collection (§10.4).** When staff hand the piece to its buyer the buyer may put it back on the market at once, with no commission, until the stored window ends (§1.3): a new live listing owned by the buyer, linked to the order, with no review (database-enforced `draft → live` for a linked listing only). The buyer enters the price and re-accepts the ownership declaration; karat and weight are the IGI-measured ones. One free relist per order; a sale of a free relist gives no further offer. Either party may rate the order (1–5 stars, optional note, 30 days, immutable); ratings have no automated effect.
 
 The order is a **closed accounting record** once terminal (`completed`, `cancelled_buyer_nopay`, `cancelled_inspection`). The **physical afterlife of the piece rides entirely on `listing_state`** (locked model): `awaiting_seller_return`, `seller_unclaimed`, `uncollected_expired`. The order never re-opens. This section specifies the two afterlife flows.
 

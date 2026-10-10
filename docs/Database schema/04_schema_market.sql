@@ -901,3 +901,34 @@ CREATE TABLE listing_report (
 );
 CREATE UNIQUE INDEX uq_listing_report_open ON listing_report (listing_id, reporter_id) WHERE state = 'open';
 -- Forced RLS: the reporter inserts and reads their own; staff elevated.
+
+-- spec 018 — after collection: the free relist and the rating (specs/018-after-collection/data-model.md)
+-- The window of the buyer's free relist, stored by the staff handover (deadline.free_relist_working_hours of
+-- working time on the order's branch). NULL = no offer (setting 0, hours unknown, or a sale of a free relist).
+ALTER TABLE collection
+  ADD COLUMN free_relist_until TIMESTAMPTZ,
+  ADD CONSTRAINT collection_free_relist_shape CHECK (
+    free_relist_until IS NULL OR (collected_at IS NOT NULL AND free_relist_until > collected_at));
+
+-- The link on the listing IS the 0% commission waiver: set at INSERT, never changes, one per origin order.
+ALTER TABLE listing
+  ADD COLUMN relisted_from_order_id UUID REFERENCES "order"(order_id);
+CREATE UNIQUE INDEX one_free_relist_per_order ON listing (relisted_from_order_id)
+  WHERE relisted_from_order_id IS NOT NULL;
+
+INSERT INTO listing_transition (from_state, to_state, note)
+  VALUES ('draft', 'live', 'free relist: no review');
+
+-- One rating per party per order, immutable.
+CREATE TABLE order_rating (
+  rating_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id    UUID NOT NULL REFERENCES "order"(order_id),
+  party_role  TEXT NOT NULL CHECK (party_role IN ('seller','buyer')),
+  customer_id UUID NOT NULL REFERENCES customer(customer_id),
+  stars       SMALLINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
+  note        TEXT CHECK (note IS NULL OR char_length(note) BETWEEN 1 AND 500),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  CONSTRAINT order_rating_one_per_party UNIQUE (order_id, party_role)
+);
+CREATE INDEX idx_order_rating_customer ON order_rating (customer_id, created_at);
+-- Forced RLS: a customer reads and writes only their own row; staff read through rating.view.

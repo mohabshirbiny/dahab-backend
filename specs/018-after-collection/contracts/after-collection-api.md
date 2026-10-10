@@ -40,7 +40,7 @@ For the seller of a waived sale `invoice` is `null` and `no_fee` is `true`. No e
 New optional query `free_relist` ∈ `open|used|expired` (permission `order.view`, unchanged). Each row gains `free_relist_status`.
 
 ### `GET /api/v1/dashboard/orders/{id}` (existing)
-New `free_relist { status, ends_at, listing { id, ref } | null }` (with `order.view`). New `relisted_from_order { id, order_ref } | null` when the order's listing is a free relist. New `ratings [ { party_role, stars, note, created_at } ]` **only** when the viewer holds `rating.view` (absent otherwise; the key is omitted, not empty).
+New `free_relist { status, ends_at, listing { id, title } | null }` (with `order.view`). New `relisted_from_order { id, order_ref } | null` when the order's listing is a free relist. New `ratings [ { party_role, stars, note, created_at } ]` **only** when the viewer holds `rating.view` (absent otherwise; the key is omitted, not empty).
 
 ### `GET /api/v1/dashboard/listings…` (existing list and detail)
 Each listing gains `relisted_from_order { id, order_ref } | null`.

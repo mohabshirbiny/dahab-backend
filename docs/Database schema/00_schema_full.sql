@@ -3049,3 +3049,64 @@ CREATE UNIQUE INDEX uq_listing_report_open ON listing_report (listing_id, report
 -- Forced RLS: the reporter inserts and reads their own; staff elevated.
 
 -- spec 017: one_time_token purpose gains 'email_change' (the email-change link, 30 minutes, payload {new_email}).
+
+-- spec 018 — after collection: the free relist and the rating (specs/018-after-collection/data-model.md)
+-- The window of the buyer's free relist, stored by the staff handover (deadline.free_relist_working_hours of
+-- working time on the order's branch). NULL = no offer (setting 0, hours unknown, or a sale of a free relist).
+ALTER TABLE collection
+  ADD COLUMN free_relist_until TIMESTAMPTZ,
+  ADD CONSTRAINT collection_free_relist_shape CHECK (
+    free_relist_until IS NULL OR (collected_at IS NOT NULL AND free_relist_until > collected_at));
+
+-- The link on the listing IS the 0% commission waiver: set at INSERT, never changes, one per origin order.
+ALTER TABLE listing
+  ADD COLUMN relisted_from_order_id UUID REFERENCES "order"(order_id);
+CREATE UNIQUE INDEX one_free_relist_per_order ON listing (relisted_from_order_id)
+  WHERE relisted_from_order_id IS NOT NULL;
+
+INSERT INTO listing_transition (from_state, to_state, note)
+  VALUES ('draft', 'live', 'free relist: no review');
+
+-- One rating per party per order, immutable.
+CREATE TABLE order_rating (
+  rating_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id    UUID NOT NULL REFERENCES "order"(order_id),
+  party_role  TEXT NOT NULL CHECK (party_role IN ('seller','buyer')),
+  customer_id UUID NOT NULL REFERENCES customer(customer_id),
+  stars       SMALLINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
+  note        TEXT CHECK (note IS NULL OR char_length(note) BETWEEN 1 AND 500),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  CONSTRAINT order_rating_one_per_party UNIQUE (order_id, party_role)
+);
+CREATE INDEX idx_order_rating_customer ON order_rating (customer_id, created_at);
+-- Forced RLS: a customer reads and writes only their own row; staff read through rating.view.
+
+-- spec 018 — guards, RLS and checks (specs/018-after-collection/data-model.md)
+-- DH016: the free-relist window is set once with the handover; an order_rating never changes or goes away.
+CREATE TRIGGER trg_collection_free_relist_once BEFORE UPDATE ON collection
+  FOR EACH ROW EXECUTE FUNCTION collection_free_relist_once();      -- DH016
+
+-- listing_guard (spec 010) gains: INSERT with relisted_from_order_id requires a completed origin order whose
+-- buyer is the new seller, a stored window not yet over, and an origin listing that is not itself a relist
+-- (free_relist_origin_ok, DH004); relisted_from_order_id never changes; draft -> live only with the link.
+
+-- order_rating: author = the order's seller/buyer for the role; order settled and not cancelled; the buyer only
+-- when completed (DH016); never changes (DH016); nothing new for a closed customer (DH013).
+CREATE TRIGGER trg_order_rating_party      BEFORE INSERT ON order_rating FOR EACH ROW EXECUTE FUNCTION order_rating_party();
+CREATE TRIGGER trg_order_rating_immutable  BEFORE UPDATE OR DELETE ON order_rating FOR EACH ROW EXECUTE FUNCTION order_rating_immutable();
+CREATE TRIGGER trg_order_rating_not_closed BEFORE INSERT ON order_rating FOR EACH ROW EXECUTE FUNCTION refuse_closed_customer('customer_id');
+
+ALTER TABLE order_rating ENABLE ROW LEVEL SECURITY;
+ALTER TABLE order_rating FORCE  ROW LEVEL SECURITY;
+CREATE POLICY order_rating_isolation ON order_rating FOR ALL
+  USING      ((SELECT dahab_rls_elevated()) OR customer_id = (SELECT dahab_current_customer_id()))
+  WITH CHECK ((SELECT dahab_rls_elevated()) OR customer_id = (SELECT dahab_current_customer_id()));
+
+-- A sale of no commission has no seller invoice, and a sale with a commission has one (deferred, DH012).
+CREATE CONSTRAINT TRIGGER trg_tax_invoice_waived
+  AFTER INSERT ON tax_invoice DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION tax_invoice_waived_check();
+CREATE CONSTRAINT TRIGGER trg_order_seller_invoice_present
+  AFTER UPDATE OF settlement_txn_id ON "order" DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW WHEN (OLD.settlement_txn_id IS NULL AND NEW.settlement_txn_id IS NOT NULL)
+  EXECUTE FUNCTION tax_invoice_waived_check();

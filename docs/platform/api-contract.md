@@ -224,7 +224,8 @@ machine-readable value clients must switch on**; `message` is human text and may
   `change_link_invalid` 410, `current_password_wrong` 422, `current_session` 422, `account_closed` (403 at sign-in, 409 from
   SQLSTATE DH013), `account_has_open_items` 409 (`details.blockers`), `listing_not_saveable` 422, `saved_limit_reached` 422
   (`details.limit`), `listing_not_reportable` 422, `report_already_open` 409, `report_not_open` 409 (SQLSTATE DH015),
-  `notification_immutable` 409 (SQLSTATE DH014), …).
+  `notification_immutable` 409 (SQLSTATE DH014); from spec 018: `free_relist_expired` 409, `already_relisted` 409,
+  `rating_not_available` 409, `rating_closed` 409, `already_rated` 409, `rating_immutable` 409 (SQLSTATE DH016), …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -274,7 +275,8 @@ token is single use. Since spec 014: `POST /customer/me/orders/{id}/disputes|ext
 Since spec 016: `POST /dashboard/invoices/{id}/credit-notes`. Since spec 017: `POST /customer/me/phone-change`,
 `/phone-change/{id}/confirm`, `/email-change`, `/password`, `/sessions/{id}/sign-out`, `/notifications/{id}/read`,
 `/notifications/read-all`, `/saved-pieces`, `/account/close`, `/listing-reports`, and `POST /dashboard/listing-reports/{id}/dismiss|take-down`.
-The public `POST /contact-changes/email/confirm` has no key: its link is single use.
+The public `POST /contact-changes/email/confirm` has no key: its link is single use. Since spec 018:
+`POST /customer/me/orders/{id}/free-relist` and `POST /customer/me/orders/{id}/rating`.
 
 ## Status codes in use
 
@@ -355,3 +357,21 @@ Each frontend's dev origin must be listed (Dashboard Vite :3000, Flutter web :87
 - Limits: phone/email change requests 3 an hour; code confirmations and password changes 5 per 15 minutes; sign-outs 10 a
   minute; listing reports 10 a day; the public link page 10 a minute per IP.
 - Reference: `GET /reference/legal-documents` (the four codes with `published`) and `GET /reference/support-contacts`.
+
+## After collection: the free relist and the rating (spec 018)
+
+- The buyer of a collected piece may relist it at once with no commission: `POST /customer/me/orders/{order}/free-relist`
+  (trade gate, `Idempotency-Key`) creates a **new** live listing, owned by the buyer and linked to the order. The window is
+  `free_relist.ends_at` on the customer order (`status` `none | open | used | expired`; consumers keep a fallback for an unknown
+  status). The server decides; a client countdown is only a display. The listing's `relisted_from_order` (`{id, order_ref}`)
+  marks it as a free relist.
+- A sale of a free relist has commission, its VAT and the minimum at 0 (the buy/sell spread still applies) and only the buyer's
+  invoice. The seller's order carries `no_fee: true` and `invoice: null`; the listing's `you_would_receive` already shows it.
+- `POST /customer/me/orders/{order}/rating` (verified gate; a suspended customer may rate): `stars` 1–5 and an optional `note`
+  (≤ 500). One per party and order, immutable. A customer reads only their own (`rating` on the order); staff read both with
+  `rating.view` (`ratings` is absent from the order detail without it). Limit: 10 a minute.
+- Dashboard: `GET /dashboard/orders?free_relist=open|used|expired` (each row has `free_relist_status`; the CSV export honours the
+  filter), order detail `free_relist {status, ends_at, listing: {id, title}}` and `relisted_from_order`. No staff endpoint
+  creates or changes an offer or a rating. Audit events `order.free_relisted` and `order.rated` (stars only; the latter is
+  visible with `rating.view`).
+- Non-breaking: new endpoints, optional fields, an optional filter and one new permission string (`rating.view`).

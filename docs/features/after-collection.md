@@ -1,7 +1,7 @@
 # After collection — free relist and rating
 
-> File: `docs/features/after-collection.md` · Branch: `feature/after-collection` in each affected repo (not yet created)
-> Status: approved (specification final, implementation not started) · Date: 2026-10-07
+> File: `docs/features/after-collection.md` · Branch: `feature/after-collection` in each affected repo
+> Status: implemented on the feature branches (not merged, nothing pushed) · Date: 2026-10-10
 > Full spec: [`specs/018-after-collection/spec.md`](../../specs/018-after-collection/spec.md)
 
 ## Goal
