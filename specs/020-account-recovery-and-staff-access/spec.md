@@ -1,6 +1,6 @@
 # Spec 020 — Account recovery and staff access
 
-**Status**: PLANNED — D20-1…5 confirmed by the owner 2026-10-11; clarifications C1–C6 below proposed, awaiting confirmation · **Repos**: Backend, Dashboard, Customer app · **Priority**: first (nothing else depends on it being late; launch depends on it)
+**Status**: PLANNED — D20-1…5 confirmed by the owner 2026-10-11; clarifications C1–C6 confirmed by the owner 2026-10-11 · **Repos**: Backend, Dashboard, Customer app · **Priority**: first (nothing else depends on it being late; launch depends on it)
 
 ## Why
 
@@ -58,7 +58,7 @@ A staff member asks for a link to the email on file; the link is single-use and 
 | D20-4 | Who holds `staff.manage` | CEO only (the CEO holds every code); no role seeded |
 | D20-5 | Password rule for reset | The same rule as sign-up and change |
 
-## Clarifications proposed (planned on the recommended answer; confirm or override)
+## Clarifications (confirmed by the owner, 2026-10-11)
 
 | ID | Where the spec is silent or in tension | Recommended (as planned) |
 |---|---|---|

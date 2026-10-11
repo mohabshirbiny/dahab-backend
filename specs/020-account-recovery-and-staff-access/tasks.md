@@ -114,5 +114,5 @@ Phase 3 ────────────────────────
 ## Blocked / waiting on the owner
 
 - T001 (databases).
-- C1–C6 confirmations (the plan assumes the recommended answers; a change of C1/C2/C3 touches T015/T029/T036 only).
+- C1–C6: confirmed 2026-10-11.
 - AR-DRAFT approval of the Arabic strings (does not block build).

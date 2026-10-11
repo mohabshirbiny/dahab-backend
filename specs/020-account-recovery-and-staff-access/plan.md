@@ -2,7 +2,7 @@
 
 **Branch**: `feature/account-recovery` in all three repositories (to be created from each `main` **only when the owner asks**; this planning session works on the Backend branch it was given) | **Date**: 2026-10-11 | **Spec**: [spec.md](spec.md)
 
-**Status**: Plan only. Nothing is implemented, committed or pushed. Decisions D20-1…5 are the owner's; C1–C6 in the spec are planned on the recommended answer and wait for confirmation.
+**Status**: Plan only. Nothing is implemented, committed or pushed. Decisions D20-1…5 are the owner's; C1–C6 in the spec are also confirmed by the owner (2026-10-11).
 
 **Bases verified**: Backend `main` 72424da (spec 019 merged), Dashboard `main` 5101f84, Customer app `main` b2b9b96 (all read from GitHub `origin/main`; the local-only merges named in the session prompt are now pushed).
 
