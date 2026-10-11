@@ -55,6 +55,8 @@ ALTER TABLE setting_history
 
 -- Founder-account security: a sign-in from a new device is held until the
 -- other founder confirms; either founder can freeze the other instantly.
+-- Changed by spec 021: both tables gain columns, CHECKs and guards (DH021, DH022), and
+-- staff_notice is added: see the "spec 021" section of 05_schema_security.sql.
 CREATE TABLE founder_device_approval (
   approval_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   staff_id      UUID NOT NULL REFERENCES staff(staff_id),

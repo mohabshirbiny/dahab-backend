@@ -12,7 +12,8 @@ use App\Support\SessionDto;
 
 /**
  * The last step of every successful staff sign-in (password only, or password
- * + TOTP): remember the device, mint the token family, audit the sign-in.
+ * + TOTP, or a founder's approved device — spec 021): remember the device,
+ * mint the token family, audit the sign-in.
  */
 final class CompleteStaffSignInAction
 {
@@ -21,14 +22,17 @@ final class CompleteStaffSignInAction
         private readonly RecordAuditLogAction $audit,
     ) {}
 
-    /** @param 'password'|'mfa'|'mfa_enrollment' $via */
+    /** @param 'password'|'mfa'|'mfa_enrollment'|'device_approval' $via */
     public function execute(Staff $staff, RequestContext $ctx, string $via): SessionDto
     {
         if ($ctx->deviceFingerprintHash !== null) {
-            StaffDeviceFingerprint::query()->updateOrCreate(
+            // Spec 021 R2: "known since" stays the first sign-in; only last_seen_at moves.
+            $device = StaffDeviceFingerprint::query()->firstOrNew(
                 ['staff_id' => $staff->staff_id, 'fingerprint_hash' => $ctx->deviceFingerprintHash],
-                ['first_seen_at' => now(), 'last_seen_at' => now()],
+                ['first_seen_at' => now()],
             );
+            $device->last_seen_at = now();
+            $device->save();
         }
 
         $session = $this->issueTokens->forStaff($staff);

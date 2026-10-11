@@ -25,11 +25,11 @@ class StaffAuthController extends Controller
         path: '/dashboard/auth/login',
         operationId: 'dashboardAuthLogin',
         summary: 'Sign a staff member in with email and password',
-        description: 'Roles ceo/coo/finance (and any staff who enrolled voluntarily) do not receive a session here: the response is an MFA challenge (`mfa_required`) or, when no TOTP is enrolled yet, an enrollment payload (`mfa_enrollment_required`). Finish with `POST /dashboard/auth/mfa/verify` or `/mfa/enroll`.',
+        description: 'Roles ceo/coo/finance (and any staff who enrolled voluntarily) do not receive a session here: the response is an MFA challenge (`mfa_required`) or, when no TOTP is enrolled yet, an enrollment payload (`mfa_enrollment_required`). Finish with `POST /dashboard/auth/mfa/verify` or `/mfa/enroll`. Spec 021: a founder must send `X-Device-Id`; a founder on a device not yet known gets `device_approval_required` (no token) — only here when MFA is off locally, otherwise at the MFA step.',
         tags: ['Dashboard Auth'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/LoginStaffRequest')),
         responses: [
-            new OA\Response(response: 200, description: 'Session issued, OR an MFA challenge, OR MFA enrollment required', content: new OA\JsonContent(oneOf: [
+            new OA\Response(response: 200, description: 'Session issued, OR an MFA challenge, OR MFA enrollment required, OR (spec 021) a founder device held for approval', content: new OA\JsonContent(oneOf: [
                 new OA\Schema(properties: [
                     new OA\Property(property: 'data', properties: [
                         new OA\Property(property: 'staff', ref: '#/components/schemas/StaffProfile'),
@@ -42,10 +42,13 @@ class StaffAuthController extends Controller
                 new OA\Schema(properties: [
                     new OA\Property(property: 'data', ref: '#/components/schemas/StaffMfaEnrollmentPending'),
                 ]),
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceApprovalPending'),
+                ]),
             ])),
             new OA\Response(response: 401, description: 'invalid_credentials — same shape for unknown email, wrong password and a disabled account', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 403, description: 'account_frozen — correct password on a frozen account', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
-            new OA\Response(response: 422, description: 'validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed | device_id_required (a founder without X-Device-Id, spec 021)', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 429, description: 'account_locked (email bucket) or too_many_requests (IP bucket); Retry-After is set', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
         ],
     )]
@@ -62,7 +65,9 @@ class StaffAuthController extends Controller
             ]]);
         }
 
-        $result['expires_at'] = $result['expires_at']->toIso8601String();
+        if (! is_string($result['expires_at'])) {
+            $result['expires_at'] = $result['expires_at']->toIso8601String();
+        }
 
         return response()->json(['data' => $result]);
     }

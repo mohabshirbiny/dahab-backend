@@ -55,7 +55,9 @@ it('opens the invoice pages to the CEO and Finance only', function () {
 it('refuses a frozen staff member', function () {
     $ceo = Finance::staff($this, SeedRole::CEO);
     $finance = Finance::staff($this, SeedRole::FINANCE);
-    AccountFreeze::query()->create(['frozen_staff_id' => $finance->staff_id, 'frozen_by' => $ceo->staff_id, 'frozen_at' => now()]);
+    // Spec 021 (DH022): only a founder freezes, with a reason.
+    $ceo->forceFill(['is_founder' => true])->save();
+    AccountFreeze::query()->create(['frozen_staff_id' => $finance->staff_id, 'frozen_by' => $ceo->staff_id, 'frozen_at' => now(), 'reason' => 'Frozen for a test']);
 
     $this->getJson(Invoices::STAFF_URL)->assertForbidden()->assertJsonPath('code', 'account_frozen');
     Invoices::credit($this, $this->invoice, '10')->assertForbidden()->assertJsonPath('code', 'account_frozen');

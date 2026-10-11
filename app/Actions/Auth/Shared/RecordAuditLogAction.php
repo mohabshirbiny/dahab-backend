@@ -5,6 +5,7 @@ namespace App\Actions\Auth\Shared;
 use App\Enums\AuditEvent;
 use App\Models\AuditLog;
 use App\Support\DatabaseActor;
+use App\Support\FounderSecurity\FounderAlerts;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -69,9 +70,19 @@ final class RecordAuditLogAction
                 $attributes,
             ));
 
-            return (new AuditLog)->forceFill($attributes);
+            return $this->alertFounders($event, (new AuditLog)->forceFill($attributes));
         }
 
-        return AuditLog::query()->create($attributes);
+        return $this->alertFounders($event, AuditLog::query()->create($attributes));
+    }
+
+    /** Spec 021 research R11: founders are told after commit, so a rolled-back action never alerts. */
+    private function alertFounders(AuditEvent $event, AuditLog $row): AuditLog
+    {
+        if (FounderAlerts::watches($event)) {
+            FounderAlerts::afterCommit($row);
+        }
+
+        return $row;
     }
 }

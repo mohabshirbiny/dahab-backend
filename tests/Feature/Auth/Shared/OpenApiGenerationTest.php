@@ -387,6 +387,28 @@ const OPENAPI_ACCOUNT_PATHS = [
     'get /dashboard/customers/{customer}/notifications',
 ];
 
+// Spec 021: founder-account security (2 public auth routes, 7 founder routes) and the notices (3).
+const OPENAPI_FOUNDER_SECURITY_PUBLIC_PATHS = [
+    'post /dashboard/auth/device-approval/status',
+    'post /dashboard/auth/frozen/confirm-unfreeze',
+];
+
+const OPENAPI_FOUNDER_SECURITY_PATHS = [
+    'get /dashboard/founder/device-approvals',
+    'post /dashboard/founder/device-approvals/{approval}/approve',
+    'post /dashboard/founder/device-approvals/{approval}/refuse',
+    'get /dashboard/founder/devices',
+    'post /dashboard/founder/freeze',
+    'get /dashboard/founder/freezes',
+    'post /dashboard/founder/unfreeze',
+];
+
+const OPENAPI_NOTICE_PATHS = [
+    'get /dashboard/notices',
+    'post /dashboard/notices/{notice}/read',
+    'post /dashboard/notices/read-all',
+];
+
 function documentedOperations(array $doc): array
 {
     $ops = [];
@@ -468,6 +490,9 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_ACCOUNT_PATHS,
         ...OPENAPI_INVOICE_PATHS,
         ...OPENAPI_CONTENT_PATHS,
+        ...OPENAPI_FOUNDER_SECURITY_PUBLIC_PATHS,
+        ...OPENAPI_FOUNDER_SECURITY_PATHS,
+        ...OPENAPI_NOTICE_PATHS,
     ]);
 });
 
@@ -682,6 +707,11 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'InboxItem', 'SavedPiece', 'CloseBlocker', 'StaffListingReport',
         'StaffLegalDocument', 'StaffLegalVersion', 'AcceptLegalVersionRequest', 'LegalAcceptanceRequired', 'DashboardCreateFaqEntry', 'DashboardMoveFaqEntry', 'DashboardPublishLegalVersion', 'DashboardClearCategoryControl', 'DashboardSetCategoryControl', 'DashboardSetVisibility',
         'StaffAppText', 'StaffAppTextVersion', 'StaffAppTextDraft', 'DashboardSaveAppTextDraft', 'DashboardRevertAppText',
+        // Spec 021: founder-account security and the notices.
+        'StaffDeviceApprovalPending', 'StaffDeviceApprovalStatusRequest', 'StaffFrozenConfirmUnfreezeRequest',
+        'DashboardDeviceApproval', 'DashboardDeviceApprovalDecision', 'DashboardFounderDevices',
+        'DashboardAccountFreeze', 'DashboardFreezeConfirmation', 'DashboardFreezeFounder', 'DashboardConfirmUnfreeze',
+        'DashboardStaffNotice',
     ]);
 
     $ops = documentedOperations($doc);
@@ -726,4 +756,30 @@ it('stays in step with the registered routes', function () {
         ->all();
 
     expect(array_keys($ops))->toEqualCanonicalizing($registered);
+});
+
+// Spec 021: the held sign-in poll and the frozen founder's confirmation are public; the founder
+// routes and the notices use the dashboard bearer, each under its own tag.
+it('documents the founder security endpoints on their surfaces', function () {
+    $ops = documentedOperations(generatedOpenApi());
+
+    foreach (OPENAPI_FOUNDER_SECURITY_PUBLIC_PATHS as $key) {
+        expect($ops[$key]['security'] ?? [])->toBe([], "{$key} is public")
+            ->and($ops[$key]['tags'])->toBe(['Dashboard Auth']);
+    }
+    foreach (OPENAPI_FOUNDER_SECURITY_PATHS as $key) {
+        expect($ops[$key]['security'])->toBe([['dashboardBearer' => []]])
+            ->and($ops[$key]['tags'])->toBe(['Dashboard Founder Security']);
+    }
+    foreach (OPENAPI_NOTICE_PATHS as $key) {
+        expect($ops[$key]['security'])->toBe([['dashboardBearer' => []]])
+            ->and($ops[$key]['tags'])->toBe(['Dashboard Notices']);
+    }
+
+    // The held answer is a keyed variant of sign-in, MFA verify and MFA enroll.
+    $doc = generatedOpenApi();
+    expect($doc['components']['schemas'])->toHaveKey('StaffDeviceApprovalPending');
+    foreach (['/dashboard/auth/login', '/dashboard/auth/mfa/verify', '/dashboard/auth/mfa/enroll'] as $path) {
+        expect(json_encode($doc['paths'][$path]['post']['responses']['200']))->toContain('StaffDeviceApprovalPending');
+    }
 });

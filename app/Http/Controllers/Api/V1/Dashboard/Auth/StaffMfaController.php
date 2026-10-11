@@ -34,6 +34,18 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'expires_at', type: 'string', format: 'date-time'),
     ],
 )]
+#[OA\Schema(
+    schema: 'StaffDeviceApprovalPending',
+    description: 'Spec 021: password and MFA accepted, but this founder\'s device is not yet known. No token is issued. Poll `POST /dashboard/auth/device-approval/status` with `approval_ref` and the same `X-Device-Id` every `poll_interval_seconds` until the other founder approves (the first poll after approval returns the session) or refuses. Single use; ends at `expires_at` (15 minutes).',
+    required: ['device_approval_required', 'approval_id', 'approval_ref', 'expires_at', 'poll_interval_seconds'],
+    properties: [
+        new OA\Property(property: 'device_approval_required', type: 'boolean', enum: [true]),
+        new OA\Property(property: 'approval_id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'approval_ref', type: 'string', description: 'Opaque, 43 characters base64url; only its HMAC is stored. Shown once.'),
+        new OA\Property(property: 'expires_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'poll_interval_seconds', type: 'integer', example: 5),
+    ],
+)]
 class StaffMfaController extends Controller
 {
     public function __construct(
@@ -48,14 +60,19 @@ class StaffMfaController extends Controller
         tags: ['Dashboard Auth'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StaffMfaVerifyRequest')),
         responses: [
-            new OA\Response(response: 200, description: 'Session issued', content: new OA\JsonContent(properties: [
-                new OA\Property(property: 'data', properties: [
-                    new OA\Property(property: 'staff', ref: '#/components/schemas/StaffProfile'),
-                    new OA\Property(property: 'session', ref: '#/components/schemas/Session'),
-                ], type: 'object'),
+            new OA\Response(response: 200, description: 'Session issued, OR (spec 021) a founder device held for the other founder\'s approval — no token', content: new OA\JsonContent(oneOf: [
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', properties: [
+                        new OA\Property(property: 'staff', ref: '#/components/schemas/StaffProfile'),
+                        new OA\Property(property: 'session', ref: '#/components/schemas/Session'),
+                    ], type: 'object'),
+                ]),
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceApprovalPending'),
+                ]),
             ])),
             new OA\Response(response: 401, description: 'mfa_invalid — wrong/replayed code, or an unknown, expired or already-used session_ref', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
-            new OA\Response(response: 422, description: 'validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed | device_id_required (a founder without X-Device-Id, spec 021)', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 429, description: 'too_many_requests — per session_ref and per IP', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
         ],
     )]
@@ -70,6 +87,10 @@ class StaffMfaController extends Controller
             $ctx,
         );
 
+        if (isset($result['device_approval_required'])) {
+            return response()->json(['data' => $result]);
+        }
+
         return response()->json(['data' => [
             'staff' => (new StaffResource($result['staff']))->toArray($request),
             'session' => $result['session']->toArray(),
@@ -83,15 +104,20 @@ class StaffMfaController extends Controller
         tags: ['Dashboard Auth'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StaffMfaEnrollRequest')),
         responses: [
-            new OA\Response(response: 200, description: 'MFA enrolled; session issued', content: new OA\JsonContent(properties: [
-                new OA\Property(property: 'data', properties: [
-                    new OA\Property(property: 'staff', ref: '#/components/schemas/StaffProfile'),
-                    new OA\Property(property: 'session', ref: '#/components/schemas/Session'),
-                    new OA\Property(property: 'recovery_codes', type: 'array', items: new OA\Items(type: 'string')),
-                ], type: 'object'),
+            new OA\Response(response: 200, description: 'MFA enrolled; session issued, OR (spec 021) MFA enrolled and a founder device held for approval — no token', content: new OA\JsonContent(oneOf: [
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', properties: [
+                        new OA\Property(property: 'staff', ref: '#/components/schemas/StaffProfile'),
+                        new OA\Property(property: 'session', ref: '#/components/schemas/Session'),
+                        new OA\Property(property: 'recovery_codes', type: 'array', items: new OA\Items(type: 'string')),
+                    ], type: 'object'),
+                ]),
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceApprovalPending'),
+                ]),
             ])),
             new OA\Response(response: 401, description: 'mfa_invalid — wrong code, or an unknown, expired or already-used session_ref', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
-            new OA\Response(response: 422, description: 'validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed | device_id_required (a founder without X-Device-Id, spec 021)', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 429, description: 'too_many_requests — per session_ref and per IP', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
         ],
     )]
@@ -100,6 +126,10 @@ class StaffMfaController extends Controller
         /** @var RequestContext $ctx */
         $ctx = $request->attributes->get('context');
         $result = $this->enroll->execute($request->validated('session_ref'), $request->validated('code'), $ctx);
+
+        if (isset($result['device_approval_required'])) {
+            return response()->json(['data' => $result]);
+        }
 
         return response()->json(['data' => [
             'staff' => (new StaffResource($result['staff']))->toArray($request),

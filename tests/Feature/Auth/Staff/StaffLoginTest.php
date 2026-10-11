@@ -118,7 +118,7 @@ it('does not reveal a frozen account to someone without the password', function 
 
 it('lets a staff member whose freeze was lifted sign in again', function () {
     $staff = Staff::factory()->role(SeedRole::OPERATIONS)->frozen()->withPassword(STAFF_PASSWORD)->create();
-    $staff->activeFreeze()->update(['unfrozen_at' => now()]);
+    liftFreeze($staff->activeFreeze);
 
     $this->postJson(STAFF_LOGIN_URL, loginBody($staff))->assertOk();
 });

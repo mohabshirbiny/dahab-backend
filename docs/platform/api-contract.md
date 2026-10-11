@@ -58,6 +58,14 @@ deliberately not enabled.
 - **Staff sign-in.** `POST /dashboard/auth/login` (email + password) → `{ data: { staff, session } }`, or,
   for MFA roles, `{ data: { … mfa_required | mfa_enrollment_required, session_ref, expires_at } }`;
   finish with `/dashboard/auth/mfa/verify` or `/mfa/enroll` (TOTP).
+- **Founder devices (spec 021).** The Dashboard sends `X-Device-Id` (and `X-Device-Platform: web`) on every request. A
+  **founder** must send it at sign-in (`422 device_id_required` otherwise). A founder on a device not yet known for them gets,
+  after the password **and** MFA, a fourth keyed variant with **no token**:
+  `{ data: { device_approval_required: true, approval_id, approval_ref, expires_at, poll_interval_seconds } }` (on `mfa/verify`,
+  `mfa/enroll`, or `login` when MFA is off locally). The device polls `POST /dashboard/auth/device-approval/status` until the
+  other founder approves (the first poll after approval returns `staff` + `session`, once) or refuses. Known devices,
+  non-founders and an approved device sign in as before. A founder's first device is trusted on the server with
+  `php artisan founder:trust-device <email> <device-id>`.
 - `GET …/auth/me`, `POST …/auth/logout`, `POST …/auth/logout-all` exist on both surfaces.
 
 ## Authorization
@@ -240,7 +248,10 @@ machine-readable value clients must switch on**; `message` is human text and may
   `listing_not_live` 409, `promo_code_invalid` 422 (`details.reason`: inactive, not_your_code, not_approved, too_new,
   cap_reached), `market_maker_only` 403, `promo_history_immutable` 409 (SQLSTATE DH020); from spec 020: `reset_link_invalid` 422 (the staff set-password
   link is unknown, used, voided, expired, or its member is disabled), `founder_protected` 403, `staff_already_disabled` 409,
-  `staff_not_disabled` 409, …).
+  `staff_not_disabled` 409; from spec 021: `device_id_required` 422, `device_approval_refused` 403, `device_approval_invalid` 401,
+  `device_approval_not_pending` 409 (SQLSTATE DH021), `device_not_known` 403, `founder_only` 403, `founder_self_action` 403,
+  `freeze_target_invalid` 422, `already_frozen` 409, `not_frozen` 409, `unfreeze_order` 409, `unfreeze_already_confirmed` 409
+  (SQLSTATE DH022), …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -270,6 +281,34 @@ Additions to existing contracts: `GET /dashboard/staff?status=active|disabled` a
 (non-breaking); `password_reset` in the customer file's `withdrawal_pause.trigger_kind` (potentially breaking for exhaustive maps;
 the Dashboard was updated in the same change). New permission `staff.manage` (CEO only, no seed role). New error codes:
 `reset_link_invalid` 422, `founder_protected` 403, `staff_already_disabled` 409, `staff_not_disabled` 409.
+
+## Founder-account security and Dashboard notices (spec 021)
+
+Twelve endpoints; exact shapes in `specs/021-founder-security/contracts/founder-security-api.md` and the generated OpenAPI.
+
+| Endpoint | Auth · gate | Notes |
+|---|---|---|
+| `POST /dashboard/auth/device-approval/status` | public (`approval_ref` + the same `X-Device-Id`) | `200 {status: pending}` or `{status: approved, staff, session}` (first poll only); `403 device_approval_refused`; `401 device_approval_invalid`; throttle `auth.staff.device_approval` (30/min per ref, 60/min per IP) |
+| `POST /dashboard/auth/frozen/confirm-unfreeze` | public (email + password + TOTP or recovery code, from a known device) | the frozen founder's slot 1; **never a token**; checks in order `invalid_credentials` → `not_frozen` → `device_id_required` / `device_not_known` → `mfa_invalid` → `unfreeze_already_confirmed`; sign-in and MFA limiters |
+| `GET /dashboard/founder/device-approvals` | `staff.founder` | every founder's requests; `status=pending|approved|refused|expired|all`; `can_decide`, `meta.pending_for_me` |
+| `POST /dashboard/founder/device-approvals/{id}/approve` · `/refuse` | `staff.founder`, `Idempotency-Key` | optional `note`; `403 founder_self_action`, `409 device_approval_not_pending` |
+| `GET /dashboard/founder/devices` | `staff.founder` | each founder's known devices by `device_ref` (8 hex characters) |
+| `POST /dashboard/founder/freeze` | `staff.founder`, `Idempotency-Key` | `201`; `reason` required; every token of the target deleted; `422 freeze_target_invalid`, `403 founder_self_action`, `409 already_frozen` |
+| `GET /dashboard/founder/freezes` | `staff.founder_or:founder.unfreeze_second` | `state=open|all`; `can_confirm`, `my_slot` |
+| `POST /dashboard/founder/unfreeze` | `staff.founder_or:founder.unfreeze_second`, `Idempotency-Key` | one confirmation; the server picks the slot (a founder → 2, last; a holder → 1); `409 unfreeze_order` / `unfreeze_already_confirmed` / `not_frozen` |
+| `GET /dashboard/notices` | any staff | own notices, newest first; `unread=1`; `meta.unread_count` |
+| `POST /dashboard/notices/{id}/read` · `/read-all` | any staff | someone else's notice → `404` |
+
+`staff.founder` gates on `staff.is_founder` (a flag, never a role) → `403 founder_only`; `staff.founder_or:<permission>` also lets
+holders of that permission through → `403 permission_denied` otherwise. New permission `founder.unfreeze_second` (the CEO role
+holds it; no other seed role). Every active founder — the actor and a frozen one included — gets an email and a Dashboard notice
+for the Story 3 actions done by a founder and for every founder security event, and an SMS for a freeze; a notice never carries
+a password, code, poll ref, device id, amount or setting value. The `auth.staff.sign_in` audit payload's `via` gains
+`device_approval`.
+
+Classification: the new variant on `mfa/verify` / `mfa/enroll` and `422 device_id_required` for founders are **potentially
+breaking** (the Dashboard was changed in the same release and must ship with the Backend); everything else is non-breaking.
+The Customer app is not affected.
 
 ## Idempotency
 

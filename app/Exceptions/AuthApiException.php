@@ -62,4 +62,22 @@ class AuthApiException extends RuntimeException
     {
         return new self(AuthErrorCode::ACCOUNT_SUSPENDED, 403, 'Account suspended.', array_filter(['suspended_reason' => $reason]));
     }
+
+    /** Spec 021 R3: a founder reached the device check without `X-Device-Id`. */
+    public static function deviceIdRequired(): self
+    {
+        return new self(AuthErrorCode::DEVICE_ID_REQUIRED, 422, 'This device did not identify itself. Reload the Dashboard and sign in again.');
+    }
+
+    /** Spec 021 R4: the other founder refused this sign-in. */
+    public static function deviceApprovalRefused(): self
+    {
+        return new self(AuthErrorCode::DEVICE_APPROVAL_REFUSED, 403, 'The other founder refused this sign-in.');
+    }
+
+    /** Spec 021 R4: unknown, expired, already collected, or polled from another device — one answer. */
+    public static function deviceApprovalInvalid(): self
+    {
+        return new self(AuthErrorCode::DEVICE_APPROVAL_INVALID, 401, 'This request has ended. Sign in again.');
+    }
 }

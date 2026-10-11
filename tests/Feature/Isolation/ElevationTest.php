@@ -110,6 +110,9 @@ it('only elevates the pinned unauthenticated auth routes', function () {
         'api.v1.customer.auth.register.submit',
         'api.v1.customer.auth.register.verify-email-otp',
         'api.v1.customer.auth.register.verify-phone-otp',
+        // Spec 021: the held founder device polls its approval; the frozen founder confirms (no token).
+        'api.v1.dashboard.auth.device-approval.status',
+        'api.v1.dashboard.auth.frozen.confirm-unfreeze',
         'api.v1.dashboard.auth.login',
         'api.v1.dashboard.auth.mfa.enroll',
         'api.v1.dashboard.auth.mfa.verify',

@@ -1101,3 +1101,148 @@ CREATE TRIGGER trg_app_text_bundle_immutable BEFORE UPDATE OR DELETE ON app_text
 ALTER TABLE withdrawal_pause DROP CONSTRAINT IF EXISTS withdrawal_pause_trigger_kind_check;
 ALTER TABLE withdrawal_pause ADD CONSTRAINT withdrawal_pause_trigger_kind_check
   CHECK (trigger_kind IN ('payout_account','phone_change','email_change','password_reset'));
+
+-- =====================================================================
+-- spec 021 — founder-account security (specs/021-founder-security/data-model.md)
+-- =====================================================================
+-- Changed by spec 021. A founder's sign-in from a device not yet known for them is held in
+-- founder_device_approval until the other founder decides (15 minutes, single use; only the HMAC
+-- of the poll ref is stored). Either founder freezes the other; unfreezing takes two confirmations
+-- in order (slot 1: the frozen founder or a holder of founder.unfreeze_second; slot 2, always
+-- last: a founder who is not frozen). staff_notice holds Dashboard notices (spec 024 reuses it).
+-- The permission founder.unfreeze_second is data (inserted by the migration, given to the CEO role).
+
+ALTER TABLE founder_device_approval
+  ADD COLUMN expires_at    TIMESTAMPTZ NOT NULL,          -- requested_at + 15 minutes (backfilled)
+  ADD COLUMN ref_hash      TEXT UNIQUE,                   -- HMAC of the poll ref; NULL only before spec 021
+  ADD COLUMN platform      TEXT,
+  ADD COLUMN user_agent    TEXT,
+  ADD COLUMN ip_address    INET,
+  ADD COLUMN refused_by    UUID REFERENCES staff(staff_id),
+  ADD COLUMN refused_at    TIMESTAMPTZ,
+  ADD COLUMN decision_note TEXT,
+  ADD COLUMN consumed_at   TIMESTAMPTZ,                   -- the held device collected its session
+  ADD CONSTRAINT refuser_is_not_self     CHECK (refused_by IS NULL OR refused_by <> staff_id),
+  ADD CONSTRAINT approved_pair           CHECK ((approved_by IS NULL) = (approved_at IS NULL)),
+  ADD CONSTRAINT refused_pair            CHECK ((refused_by IS NULL) = (refused_at IS NULL)),
+  ADD CONSTRAINT one_decision            CHECK (approved_at IS NULL OR refused_at IS NULL),
+  ADD CONSTRAINT consumed_after_approval CHECK (consumed_at IS NULL OR approved_at IS NOT NULL);
+
+CREATE INDEX idx_fda_staff_pending ON founder_device_approval(staff_id, device_fingerprint)
+  WHERE approved_at IS NULL AND refused_at IS NULL;
+CREATE INDEX idx_fda_requested ON founder_device_approval(requested_at DESC);
+
+-- DH021: never deleted; the request never changes; one decision, before expires_at; expires_at
+-- only moves earlier; collected once, and only when approved.
+CREATE OR REPLACE FUNCTION founder_device_approval_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'a founder device approval is never deleted' USING ERRCODE = 'DH021';
+  END IF;
+  IF NEW.staff_id IS DISTINCT FROM OLD.staff_id OR NEW.device_fingerprint IS DISTINCT FROM OLD.device_fingerprint
+     OR NEW.requested_at IS DISTINCT FROM OLD.requested_at OR NEW.ref_hash IS DISTINCT FROM OLD.ref_hash THEN
+    RAISE EXCEPTION 'the request of a founder device approval never changes' USING ERRCODE = 'DH021';
+  END IF;
+  IF OLD.approved_at IS NOT NULL OR OLD.refused_at IS NOT NULL THEN
+    IF NEW.approved_by IS DISTINCT FROM OLD.approved_by OR NEW.approved_at IS DISTINCT FROM OLD.approved_at
+       OR NEW.refused_by IS DISTINCT FROM OLD.refused_by OR NEW.refused_at IS DISTINCT FROM OLD.refused_at
+       OR NEW.decision_note IS DISTINCT FROM OLD.decision_note THEN
+      RAISE EXCEPTION 'a founder device approval is decided once' USING ERRCODE = 'DH021';
+    END IF;
+  ELSIF NEW.approved_at IS NOT NULL OR NEW.refused_at IS NOT NULL THEN
+    IF now() >= OLD.expires_at THEN
+      RAISE EXCEPTION 'a founder device approval is decided before it expires' USING ERRCODE = 'DH021';
+    END IF;
+  ELSIF NEW.decision_note IS DISTINCT FROM OLD.decision_note THEN
+    RAISE EXCEPTION 'a decision note comes with the decision' USING ERRCODE = 'DH021';
+  END IF;
+  IF NEW.expires_at > OLD.expires_at THEN
+    RAISE EXCEPTION 'the expiry of a founder device approval only moves earlier' USING ERRCODE = 'DH021';
+  END IF;
+  IF OLD.consumed_at IS NOT NULL AND NEW.consumed_at IS DISTINCT FROM OLD.consumed_at THEN
+    RAISE EXCEPTION 'a founder device approval is collected once' USING ERRCODE = 'DH021';
+  END IF;
+  IF OLD.consumed_at IS NULL AND NEW.consumed_at IS NOT NULL AND NEW.approved_at IS NULL THEN
+    RAISE EXCEPTION 'only an approved founder device approval is collected' USING ERRCODE = 'DH021';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_founder_device_approval_guard BEFORE UPDATE OR DELETE ON founder_device_approval
+  FOR EACH ROW EXECUTE FUNCTION founder_device_approval_guard();          -- DH021
+
+ALTER TABLE account_freeze
+  ADD COLUMN reason                  TEXT NOT NULL,         -- '(recorded before spec 021)' backfilled
+  ADD COLUMN unfreeze_confirm_1_at   TIMESTAMPTZ,
+  ADD COLUMN unfreeze_confirm_1_kind TEXT CHECK (unfreeze_confirm_1_kind IN ('frozen_founder','second_approver')),
+  ADD COLUMN unfreeze_confirm_2_at   TIMESTAMPTZ,
+  ADD CONSTRAINT confirm_1_complete CHECK ((unfreeze_confirm_1 IS NULL) = (unfreeze_confirm_1_at IS NULL)
+                                       AND (unfreeze_confirm_1 IS NULL) = (unfreeze_confirm_1_kind IS NULL)),
+  ADD CONSTRAINT confirm_2_complete CHECK ((unfreeze_confirm_2 IS NULL) = (unfreeze_confirm_2_at IS NULL)),
+  ADD CONSTRAINT confirm_2_after_1 CHECK (unfreeze_confirm_2 IS NULL OR unfreeze_confirm_1 IS NOT NULL),
+  ADD CONSTRAINT confirmers_differ CHECK (unfreeze_confirm_2 IS NULL OR unfreeze_confirm_2 <> unfreeze_confirm_1),
+  ADD CONSTRAINT confirm_2_not_frozen CHECK (unfreeze_confirm_2 IS NULL OR unfreeze_confirm_2 <> frozen_staff_id),
+  ADD CONSTRAINT confirm_1_kind_match CHECK (unfreeze_confirm_1_kind IS DISTINCT FROM 'frozen_founder'
+                                         OR unfreeze_confirm_1 = frozen_staff_id),
+  ADD CONSTRAINT second_approver_not_frozen CHECK (unfreeze_confirm_1_kind IS DISTINCT FROM 'second_approver'
+                                         OR unfreeze_confirm_1 <> frozen_staff_id),
+  ADD CONSTRAINT unfrozen_iff_confirm_2 CHECK ((unfrozen_at IS NULL) = (unfreeze_confirm_2 IS NULL)),
+  ADD CONSTRAINT reason_present CHECK (length(btrim(reason)) > 0);
+
+CREATE UNIQUE INDEX uq_account_freeze_open ON account_freeze(frozen_staff_id) WHERE unfrozen_at IS NULL;
+CREATE INDEX idx_account_freeze_frozen_at ON account_freeze(frozen_at DESC);
+
+-- DH022: never deleted; the freezer is a founder (the target is not checked here: the action
+-- enforces "the other founder"); the freeze itself never changes; slot 1 is given once; slot 2
+-- is a founder; an unfrozen row never changes.
+CREATE OR REPLACE FUNCTION account_freeze_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'an account freeze is never deleted' USING ERRCODE = 'DH022';
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    IF NOT EXISTS (SELECT 1 FROM staff WHERE staff_id = NEW.frozen_by AND is_founder) THEN
+      RAISE EXCEPTION 'only a founder freezes an account' USING ERRCODE = 'DH022';
+    END IF;
+  ELSE
+    IF OLD.unfrozen_at IS NOT NULL THEN
+      RAISE EXCEPTION 'an unfrozen account freeze never changes' USING ERRCODE = 'DH022';
+    END IF;
+    IF NEW.frozen_staff_id IS DISTINCT FROM OLD.frozen_staff_id OR NEW.frozen_by IS DISTINCT FROM OLD.frozen_by
+       OR NEW.frozen_at IS DISTINCT FROM OLD.frozen_at OR NEW.reason IS DISTINCT FROM OLD.reason THEN
+      RAISE EXCEPTION 'the freeze itself never changes' USING ERRCODE = 'DH022';
+    END IF;
+    IF OLD.unfreeze_confirm_1 IS NOT NULL
+       AND (NEW.unfreeze_confirm_1 IS DISTINCT FROM OLD.unfreeze_confirm_1
+            OR NEW.unfreeze_confirm_1_at IS DISTINCT FROM OLD.unfreeze_confirm_1_at
+            OR NEW.unfreeze_confirm_1_kind IS DISTINCT FROM OLD.unfreeze_confirm_1_kind) THEN
+      RAISE EXCEPTION 'the first unfreeze confirmation is given once' USING ERRCODE = 'DH022';
+    END IF;
+  END IF;
+  IF NEW.unfreeze_confirm_2 IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM staff WHERE staff_id = NEW.unfreeze_confirm_2 AND is_founder) THEN
+    RAISE EXCEPTION 'the second unfreeze confirmation comes from a founder' USING ERRCODE = 'DH022';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_account_freeze_guard BEFORE INSERT OR UPDATE OR DELETE ON account_freeze
+  FOR EACH ROW EXECUTE FUNCTION account_freeze_guard();                   -- DH022
+
+-- Dashboard notices to one staff member (staff-facing English; params never carry a secret).
+-- No RLS (staff tables never have it). Only read_at changes. dedupe_key = notification id +
+-- recipient, so a retried send writes nothing new.
+CREATE TABLE staff_notice (
+  notice_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  staff_id   UUID NOT NULL REFERENCES staff(staff_id),
+  kind       TEXT NOT NULL,                                 -- App\Enums\StaffNoticeKind, e.g. 'founder_alert'
+  severity   TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info','warning','critical')),
+  title      TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  params     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  link       TEXT,                                          -- a Dashboard path
+  audit_id   BIGINT REFERENCES audit_log(audit_id),
+  dedupe_key TEXT UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  read_at    TIMESTAMPTZ
+);
+CREATE INDEX idx_staff_notice_inbox ON staff_notice(staff_id, created_at DESC);
+CREATE INDEX idx_staff_notice_unread ON staff_notice(staff_id) WHERE read_at IS NULL;

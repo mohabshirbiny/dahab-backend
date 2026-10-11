@@ -60,7 +60,9 @@ it('still challenges a voluntarily enrolled non-founder', function () {
 it('lets local development switch enforcement off', function () {
     config(['dahab-auth.mfa_enforced' => false]);
 
-    $founder = Staff::factory()->role(SeedRole::CEO)->founder()->withPassword()->create();
+    // Spec 021: a founder signs in from a known device, or is held for approval.
+    $founder = Staff::factory()->role(SeedRole::CEO)->founder()->withPassword()->withKnownDevice('dev-1')->create();
 
+    test()->withHeaders(deviceHeaders('dev-1'));
     signIn($founder)->assertOk()->assertJsonStructure(['data' => ['session']]);
 });

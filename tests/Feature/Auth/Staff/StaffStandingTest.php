@@ -25,6 +25,7 @@ function freeze(Staff $staff): AccountFreeze
         'frozen_staff_id' => $staff->staff_id,
         'frozen_by' => Staff::factory()->role(SeedRole::CEO)->founder()->create()->staff_id,
         'frozen_at' => now(),
+        'reason' => 'Frozen for a test',
     ]);
 }
 
@@ -55,7 +56,7 @@ it('lets an unfrozen account work again on its next request', function () {
     $freeze = freeze($this->staff);
     $this->bearer($this->session->accessToken)->getJson('/api/v1/dashboard/customers')->assertForbidden();
 
-    $freeze->forceFill(['unfrozen_at' => now()])->save();
+    liftFreeze($freeze);
 
     $this->bearer($this->session->accessToken)->getJson('/api/v1/dashboard/customers')->assertOk();
 });

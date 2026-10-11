@@ -6,6 +6,7 @@ use App\Http\Middleware\ElevateDatabaseScope;
 use App\Http\Middleware\EnforceIdempotency;
 use App\Http\Middleware\EnforceStaffPermission;
 use App\Http\Middleware\EnsureCustomerStanding;
+use App\Http\Middleware\EnsureFounder;
 use App\Http\Middleware\EnsureLegalAccepted;
 use App\Http\Middleware\EnsureStaffStanding;
 use App\Http\Middleware\SetDatabaseActor;
@@ -48,6 +49,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff.permission' => EnforceStaffPermission::class,
             // Frozen/deactivated staff are stopped on every request (spec 002 FR-056).
             'staff.standing' => EnsureStaffStanding::class,
+            // Founder-only routes (spec 021 R13): `staff.founder`, or `staff.founder_or:<permission>`.
+            'staff.founder' => EnsureFounder::class,
+            'staff.founder_or' => EnsureFounder::class,
             // Customer verified gate, default-deny (spec 002 FR-030, App\Http\CustomerRouteAccess).
             'customer.gate' => EnsureCustomerStanding::class,
             // Required acceptance of the live terms / privacy before any write (spec 019 FR-025).
@@ -135,6 +139,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 // Spec 019: a category control is cleared once and never edited.
                 'DH019' => DomainApiException::controlHistoryImmutable(),
                 'DH020' => DomainApiException::promoHistoryImmutable(),
+                // Spec 021: the founder device approval and account freeze guards; in practice the
+                // Actions refuse first with the same codes.
+                'DH021' => DomainApiException::deviceApprovalNotPending(),
+                'DH022' => str_contains($e->getMessage(), 'unfrozen') ? DomainApiException::notFrozen() : DomainApiException::unfreezeAlreadyConfirmed(),
+                '23514' => match (true) {
+                    str_contains($e->getMessage(), 'approver_is_not_self'),
+                    str_contains($e->getMessage(), 'refuser_is_not_self'),
+                    str_contains($e->getMessage(), 'no_self_freeze') => DomainApiException::founderSelfAction(),
+                    default => $e,
+                },
                 // Spec 016: the credit-note cap answers like the Action; any other DH012
                 // (an invoice or credit note not matching its entry) is a bug — a 500.
                 'DH012' => match (true) {
@@ -150,6 +164,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     str_contains($e->getMessage(), 'uq_listing_report_open') => DomainApiException::reportAlreadyOpen(),
                     str_contains($e->getMessage(), 'one_free_relist_per_order') => DomainApiException::alreadyRelisted(),
                     str_contains($e->getMessage(), 'order_rating_one_per_party') => DomainApiException::alreadyRated(),
+                    str_contains($e->getMessage(), 'uq_account_freeze_open') => DomainApiException::alreadyFrozen(),
                     default => $e,
                 },
                 default => $e,
@@ -181,6 +196,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 // Spec 019: a category control is cleared once and never edited.
                 'DH019' => DomainApiException::controlHistoryImmutable(),
                 'DH020' => DomainApiException::promoHistoryImmutable(),
+                'DH021' => DomainApiException::deviceApprovalNotPending(),
+                'DH022' => str_contains($e->getMessage(), 'unfrozen') ? DomainApiException::notFrozen() : DomainApiException::unfreezeAlreadyConfirmed(),
                 default => $e,
             };
         });
