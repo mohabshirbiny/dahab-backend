@@ -4,10 +4,9 @@ use App\Enums\SeedRole;
 use App\Models\AppTextKey;
 use App\Models\AppTextVersion;
 use App\Models\AuditLog;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\AppTexts;
 use Tests\Support\TopUps;
 
@@ -131,23 +130,20 @@ it('refuses a missing field as a validation error', function () {
         ->assertStatus(422)->assertJsonPath('code', 'validation_failed')->assertJsonValidationErrors(['text_ar']);
 });
 
-it('refuses to edit a read-only template, in the API and in the database', function () {
+it('refuses to edit a read-only template without content.edit_secure, and keeps its placeholders with it (D7)', function () {
     AppTexts::key('order.test.otp', ['kind' => 'notification', 'read_only' => true, 'placeholders' => ['code'], 'required_placeholders' => ['code']]);
 
     AppTexts::save($this, 'order.test.otp', ['text_en' => 'Code {code}', 'text_ar' => 'الكود {code}'])
         ->assertStatus(409)->assertJsonPath('code', 'content_key_read_only');
+    expect(AppTextVersion::query()->where('text_key', 'order.test.otp')->count())->toBe(0);
 
-    // Not only the API: the guard refuses a version of a read-only key (DH017).
-    $state = null;
-    try {
-        DB::transaction(fn () => AppTextVersion::query()->create([
-            'text_key' => 'order.test.otp', 'version' => 1, 'state' => 'draft', 'text_en' => 'x', 'text_ar' => 'y',
-            'edited_by' => $this->ops->staff_id, 'edited_at' => now(),
-        ]));
-    } catch (QueryException $e) {
-        $state = $e->errorInfo[0];
-    }
-    expect($state)->toBe('DH017');
+    // The holder of the separate permission edits it, and still may not drop the {code}.
+    $this->ops->givePermissionTo('content.edit_secure');
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    AppTexts::save($this, 'order.test.otp', ['text_en' => 'Code is here', 'text_ar' => 'الكود هنا'])
+        ->assertStatus(422)->assertJsonPath('code', 'content_missing_required_placeholder');
+    AppTexts::save($this, 'order.test.otp', ['text_en' => 'Code {code}', 'text_ar' => 'الكود {code}'])->assertOk();
 });
 
 it('refuses a retired key and an unknown one', function () {

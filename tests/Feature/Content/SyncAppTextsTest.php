@@ -37,7 +37,7 @@ it('adds the keys of the manifest with their defaults, area and placeholders', f
     $this->artisan('app-texts:sync', ['--file' => $file])->assertSuccessful();
 
     $two = AppTextKey::query()->findOrFail('order.test.two');
-    expect(AppTextKey::query()->count())->toBe(2)
+    expect(AppTextKey::query()->where('kind', 'app')->count())->toBe(2)
         ->and($two->kind)->toBe('app')
         ->and($two->area)->toBe('Orders')
         ->and($two->description)->toBe('Order screen')
@@ -53,7 +53,7 @@ it('adds the keys of the manifest with their defaults, area and placeholders', f
 
 it('stamps default_changed_at only when a default changed', function () {
     $this->artisan('app-texts:sync', ['--file' => syncManifest([syncEntry('order.test.one'), syncEntry('order.test.two')])])->assertSuccessful();
-    expect(AppTextKey::query()->whereNotNull('default_changed_at')->count())->toBe(0);
+    expect(AppTextKey::query()->where('kind', 'app')->whereNotNull('default_changed_at')->count())->toBe(0);
 
     $this->artisan('app-texts:sync', ['--file' => syncManifest([syncEntry('order.test.one'), syncEntry('order.test.two', 'Hello again')])])->assertSuccessful();
 
@@ -66,7 +66,7 @@ it('retires a key that left the manifest, never deletes it, and brings it back',
     $this->artisan('app-texts:sync', ['--file' => syncManifest([syncEntry('order.test.one'), syncEntry('order.test.two')])])->assertSuccessful();
     $this->artisan('app-texts:sync', ['--file' => syncManifest([syncEntry('order.test.one')])])->assertSuccessful();
 
-    expect(AppTextKey::query()->count())->toBe(2)
+    expect(AppTextKey::query()->where('kind', 'app')->count())->toBe(2)
         ->and(AppTextKey::query()->findOrFail('order.test.two')->retired_at)->not->toBeNull()
         ->and(AppTextKey::query()->findOrFail('order.test.one')->retired_at)->toBeNull();
 
@@ -110,7 +110,7 @@ it('fails clearly on a missing or broken manifest', function () {
     $this->artisan('app-texts:sync', ['--file' => $broken])->assertFailed();
     @unlink($broken);
 
-    expect(AppTextKey::query()->count())->toBe(0);
+    expect(AppTextKey::query()->where('kind', 'app')->count())->toBe(0);
 });
 
 it('registers the manifest the app ships with, every key readable and unique', function () {
@@ -118,7 +118,7 @@ it('registers the manifest the app ships with, every key readable and unique', f
 
     $this->artisan('app-texts:sync')->assertSuccessful();
 
-    $keys = AppTextKey::query()->pluck('text_key')->all();
+    $keys = AppTextKey::query()->where('kind', 'app')->pluck('text_key')->all();
     expect($keys)->toHaveCount(count($manifest['keys']))
         ->and($keys)->toContain('order.free_relist.card_title', 'order.rating.send_button', 'order.no_fee.seller_note');
     foreach ($keys as $key) {
@@ -126,9 +126,9 @@ it('registers the manifest the app ships with, every key readable and unique', f
     }
 
     // Spec 018 FR-038: no invite or referral text in the Stage 1 catalogue.
-    expect(AppTextKey::query()->where('default_en', 'ilike', '%invite%')->orWhere('default_en', 'ilike', '%referral%')->count())->toBe(0);
+    expect(AppTextKey::query()->where('kind', 'app')->where(fn ($q) => $q->where('default_en', 'ilike', '%invite%')->orWhere('default_en', 'ilike', '%referral%'))->count())->toBe(0);
 
     // A second run changes nothing.
     $this->artisan('app-texts:sync')->assertSuccessful();
-    expect(AppTextKey::query()->whereNotNull('default_changed_at')->count())->toBe(0);
+    expect(AppTextKey::query()->where('kind', 'app')->whereNotNull('default_changed_at')->count())->toBe(0);
 });

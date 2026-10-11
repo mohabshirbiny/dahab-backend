@@ -193,6 +193,11 @@ it('refuses deleting a customer who has ledger lines', function () {
 });
 
 it('rolls back without leaving a ledger object behind', function () {
+    // Spec 019 first, newest first: its codes, uses and requests reference buy requests, orders and listings.
+    foreach (['2026_10_12_000045_market_maker_purchases', '2026_10_12_000040_market_makers', '2026_10_12_000030_category_controls',
+        '2026_10_12_000021_content_secure_templates_and_faq_order', '2026_10_12_000020_legal_publishing', '2026_10_12_000010_app_content'] as $file) {
+        Artisan::call('migrate:rollback', ['--path' => "database/migrations/{$file}.php", '--force' => true]);
+    }
     // Spec 018 first: its listing link and invoice checks hang off the orders and invoices below.
     Artisan::call('migrate:rollback', ['--path' => 'database/migrations/2026_10_11_000010_after_collection.php', '--force' => true]);
     // Tax invoices (spec 016), finance operations (spec 015), disputes (spec 014), withdrawals (spec 013), orders (spec 012), buy requests

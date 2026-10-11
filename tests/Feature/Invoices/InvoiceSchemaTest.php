@@ -42,6 +42,8 @@ beforeEach(function () {
     Storage::fake('identity_private');
     Notification::fake();
     Orders::workedPrices();
+    // No document yet: the schema checks below set the document columns themselves.
+    Invoices::clearIssuer();
     $this->order = Invoices::paid($this);
     $this->seller = Invoices::of($this->order, 'seller');
 });

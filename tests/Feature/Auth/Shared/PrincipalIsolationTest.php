@@ -177,7 +177,7 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            index/export/show/pdf/credit-notes store (5), credit-notes index/pdf (2).
     // spec 018:  free-relist and rating on the customer orders (2).
     // spec 019:  App text — seven /dashboard/app-texts* routes and /dashboard/content/placeholders (8).
-    expect($checked)->toBe(211);
+    expect($checked)->toBe(233);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

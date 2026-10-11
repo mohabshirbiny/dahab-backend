@@ -104,6 +104,7 @@ it('rolls the whole payment back when the invoices cannot be written', function 
 });
 
 it('copies Dahab\'s details at issue when configured, and pays anyway when not', function () {
+    Invoices::clearIssuer();
     $without = Invoices::paid($this);
     expect(Invoices::of($without, 'seller')->issuer)->toBeNull();
 
