@@ -221,10 +221,29 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth.password_reset.request', function (Request $request) use ($reset) {
             $identity = $this->identity($request, 'phone', $this->identity($request, 'email'));
 
+            // Spec 020: a third bucket per device (the device id, else the IP).
+            $device = $request->header('X-Device-Id');
+            $device = is_string($device) && trim($device) !== '' ? mb_strtolower(trim($device)) : (string) $request->ip();
+
             return [
                 $this->limit($reset['per_identity_max'], $reset['per_identity_window'], 'reset-id:'.$identity),
                 $this->limit($reset['per_ip_max'], $reset['per_ip_window'], 'reset-ip:'.$request->ip()),
+                $this->limit($reset['per_device_max'], $reset['per_device_window'], 'reset-device:'.$device),
             ];
+        });
+
+        // Spec 020: spending the customer's reset code (the per-code cap of 5 is the challenge's own).
+        $resetConfirm = config('dahab-auth.rate_limits.password_reset_confirm');
+        RateLimiter::for('auth.password_reset.confirm', function (Request $request) use ($resetConfirm) {
+            return [
+                $this->limit($resetConfirm['per_identity_max'], $resetConfirm['per_identity_window'], 'reset-confirm-id:'.$this->identity($request, 'phone')),
+                $this->limit($resetConfirm['per_ip_max'], $resetConfirm['per_ip_window'], 'reset-confirm-ip:'.$request->ip()),
+            ];
+        });
+
+        $staffResetConfirm = config('dahab-auth.rate_limits.staff_password_reset_confirm');
+        RateLimiter::for('auth.staff.password_reset.confirm', function (Request $request) use ($staffResetConfirm) {
+            return $this->limit($staffResetConfirm['per_ip_max'], $staffResetConfirm['per_ip_window'], 'staff-reset-confirm-ip:'.$request->ip());
         });
 
         $refresh = config('dahab-auth.rate_limits.refresh');

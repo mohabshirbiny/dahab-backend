@@ -1092,3 +1092,12 @@ CREATE TRIGGER trg_app_text_version_guard BEFORE INSERT OR UPDATE OR DELETE ON a
   FOR EACH ROW EXECUTE FUNCTION app_text_version_guard();                -- DH017
 CREATE TRIGGER trg_app_text_bundle_immutable BEFORE UPDATE OR DELETE ON app_text_bundle
   FOR EACH ROW EXECUTE FUNCTION app_text_bundle_immutable();             -- DH017
+
+-- =====================================================================
+-- spec 020 — account recovery and staff access (specs/020-account-recovery-and-staff-access/data-model.md)
+-- =====================================================================
+-- Changed by spec 020: a password reset opens the same withdrawal pause as a phone or email change.
+-- The permission `staff.manage` is data (inserted by the migration, given to the CEO role only), not schema.
+ALTER TABLE withdrawal_pause DROP CONSTRAINT IF EXISTS withdrawal_pause_trigger_kind_check;
+ALTER TABLE withdrawal_pause ADD CONSTRAINT withdrawal_pause_trigger_kind_check
+  CHECK (trigger_kind IN ('payout_account','phone_change','email_change','password_reset'));

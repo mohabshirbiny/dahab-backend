@@ -238,7 +238,9 @@ machine-readable value clients must switch on**; `message` is human text and may
   `control_history_immutable` 409 (SQLSTATE DH019), `setting_not_editable_here` 422, `promo_kind_not_available` 422,
   `promo_customer_not_market_maker` 422, `promo_code_exists` 409, `already_approved` 409, `listing_too_new` 422,
   `listing_not_live` 409, `promo_code_invalid` 422 (`details.reason`: inactive, not_your_code, not_approved, too_new,
-  cap_reached), `market_maker_only` 403, `promo_history_immutable` 409 (SQLSTATE DH020), …).
+  cap_reached), `market_maker_only` 403, `promo_history_immutable` 409 (SQLSTATE DH020); from spec 020: `reset_link_invalid` 422 (the staff set-password
+  link is unknown, used, voided, expired, or its member is disabled), `founder_protected` 403, `staff_already_disabled` 409,
+  `staff_not_disabled` 409, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients
@@ -249,6 +251,25 @@ machine-readable value clients must switch on**; `message` is human text and may
   `{ retry_after }` (seconds); since spec 013 `insufficient_funds` on a withdrawal `{ available, shortfall }` and
   `withdrawals_paused` `{ pause_until }`; since spec 014 `order_frozen` `{ dispute_ref }` (only to the customer who raised the
   dispute, and to staff) and `compensation_cap_exceeded` `{ per_payment, left_today }`.
+
+## Account recovery and staff access (spec 020)
+
+Seven endpoints; exact shapes in `specs/020-account-recovery-and-staff-access/contracts/account-recovery-api.md` and the generated OpenAPI.
+
+| Endpoint | Auth · permission | Notes |
+|---|---|---|
+| `POST /customer/auth/password/reset-request` | public | `202` always the same body; throttle `auth.password_reset.request` (3/h per phone, 10/h per device, 20/h per IP) |
+| `POST /customer/auth/password/reset-confirm` | public | `200`; `otp_invalid` / `otp_expired` 401; throttle `auth.password_reset.confirm`; no token issued |
+| `POST /dashboard/auth/password/reset-request` | public | `202` always the same message; same throttle as the customer request |
+| `POST /dashboard/auth/password/reset-confirm` | public | `200`; `reset_link_invalid` 422; throttle `auth.staff.password_reset.confirm` (20/h per IP) |
+| `POST /dashboard/staff` | `staff.manage`, `Idempotency-Key` | `201`; no password; invitation link mailed; `reason` required |
+| `POST /dashboard/staff/{staff}/disable` | `staff.manage`, `Idempotency-Key` | `403 escalation_denied` (yourself) / `founder_protected`, `409 staff_already_disabled` / `last_role_manager` |
+| `POST /dashboard/staff/{staff}/enable` | `staff.manage`, `Idempotency-Key` | `409 staff_not_disabled`; the old password is deleted, a 48-hour link is mailed |
+
+Additions to existing contracts: `GET /dashboard/staff?status=active|disabled` and `password_set` on the staff member
+(non-breaking); `password_reset` in the customer file's `withdrawal_pause.trigger_kind` (potentially breaking for exhaustive maps;
+the Dashboard was updated in the same change). New permission `staff.manage` (CEO only, no seed role). New error codes:
+`reset_link_invalid` 422, `founder_protected` 403, `staff_already_disabled` 409, `staff_not_disabled` 409.
 
 ## Idempotency
 

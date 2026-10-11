@@ -495,6 +495,76 @@
                             "response": []
                         },
                         {
+                            "name": "Staff Password Reset — Request",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"email\": \"operations@dahab.test\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/password/reset-request",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "password",
+                                        "reset-request"
+                                    ]
+                                },
+                                "description": "Forgot password (spec 020 US2). Mails a single-use set-password link (30 minutes) to an active staff account. The answer is always 202 with the same message, whether or not the address is a staff account. The link is DASHBOARD_URL/set-password?token=...; copy the token into the staff_reset_token variable for the next request. 3 an hour per address, 10 per device, 20 per IP."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Staff Password Reset — Confirm",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"token\": \"{{staff_reset_token}}\",\n    \"password\": \"NewStaffPassword123!\",\n    \"password_confirmation\": \"NewStaffPassword123!\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/password/reset-confirm",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "password",
+                                        "reset-confirm"
+                                    ]
+                                },
+                                "description": "Sets the password with the emailed link (spec 020 US2). 200 with password_changed. Every staff token of the member is deleted; no session is issued and MFA is untouched - sign in with Staff Login (then the authenticator). 422 reset_link_invalid for an unknown, used, voided, expired link or a disabled member; 422 validation_failed for the password rule."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Staff Logout",
                             "request": {
                                 "auth": {
@@ -1514,10 +1584,16 @@
                                         {
                                             "key": "per_page",
                                             "value": "25"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "active",
+                                            "description": "active or disabled; omit for all (spec 020)",
+                                            "disabled": true
                                         }
                                     ]
                                 },
-                                "description": "Staff members (system actor never listed) with roles, effective permissions, read-only is_founder and branch. Filters: role (a role name), per_page 1-50 (default 25). Saves staff_id from the first row. Requires staff.view."
+                                "description": "Staff members (system actor never listed) with roles, effective permissions, read-only is_founder and branch. Filters: role (a role name), status (active or disabled; omit for all), per_page 1-50 (default 25). Each member has password_set (false until an invited or re-enabled member chooses a password). Saves staff_id from the first row. Requires staff.view."
                             },
                             "response": [],
                             "event": [
@@ -1661,6 +1737,164 @@
                                         }
                                     }
                                 }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Staff",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"full_name\": \"Amr Salah\",\n    \"email\": \"amr@dahab.test\",\n    \"phone\": \"+201000000009\",\n    \"roles\": [\"operations\"],\n    \"branch_id\": null,\n    \"reason\": \"New hire, Cairo branch\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff"
+                                    ]
+                                },
+                                "description": "Creates a staff member WITHOUT a password (spec 020). 201 with the member (password_set false); an invitation link (DASHBOARD_URL/set-password?token=..., 48 hours) is mailed after commit and the member chooses the password. Roles are bounded by the permissions you hold (403 escalation_denied). reason required (422 reason_required); email must be new (422 validation_failed, errors.email). Founder status cannot be set. Saves new_staff_id. Requires staff.manage (the CEO) and an Idempotency-Key."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('new_staff_id', pm.response.json().data.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Disable Staff",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"Left the company\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff/{{new_staff_id}}/disable",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff",
+                                        "{{new_staff_id}}",
+                                        "disable"
+                                    ]
+                                },
+                                "description": "Disables a staff member (spec 020): every token is revoked at once, open links are voided, sign-in answers invalid_credentials, history keeps the name. 403 escalation_denied (yourself) / founder_protected; 404 not_found; 409 staff_already_disabled / last_role_manager; 422 reason_required. List them with List Staff ?status=disabled. Requires staff.manage and an Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Enable Staff",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"Cleared after review\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff/{{new_staff_id}}/enable",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff",
+                                        "{{new_staff_id}}",
+                                        "enable"
+                                    ]
+                                },
+                                "description": "Enables a disabled staff member (spec 020): the old password is deleted and a 48-hour set-password link is mailed - the link is the only way back in; the authenticator enrolment is kept. 403 escalation_denied (yourself); 409 staff_not_disabled; 422 reason_required. Requires staff.manage and an Idempotency-Key."
                             },
                             "response": []
                         }
@@ -9124,6 +9358,92 @@
                                     ]
                                 },
                                 "description": "Sends a fresh SMS code on the pending challenge. 429 too_many_requests within the 60 s cooldown (Retry-After set) or after 5 codes on one challenge."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Password Reset — Request",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"+201000000001\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/password/reset-request",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "password",
+                                        "reset-request"
+                                    ]
+                                },
+                                "description": "Forgot password, step 1 (spec 020). Sends a six-digit SMS code (local env: 123456) to the phone when it belongs to an account that is not closed. The answer is always 202 with expires_in_seconds and resend_available_at, whether or not the phone is registered. 3 an hour per phone, 10 per device, 20 per IP; 429 too_many_requests."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Customer Password Reset — Confirm",
+                            "request": {
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"phone\": \"+201000000001\",\n    \"code\": \"{{reset_code}}\",\n    \"password\": \"NewPassword123!\",\n    \"password_confirmation\": \"NewPassword123!\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/auth/password/reset-confirm",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "auth",
+                                        "password",
+                                        "reset-confirm"
+                                    ]
+                                },
+                                "description": "Forgot password, step 2 (spec 020). Spends the code and sets the new password: every session ends, every trusted device is forgotten, withdrawals not yet released are cancelled and new ones pause. 200 with password_changed, signed_out_sessions, withdrawals_paused_until, cancelled_withdrawals. No token is issued; sign in with Customer Login. 401 otp_invalid / otp_expired; 422 validation_failed."
                             },
                             "response": []
                         },

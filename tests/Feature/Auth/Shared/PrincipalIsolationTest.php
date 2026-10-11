@@ -111,7 +111,12 @@ it('guards every customer and dashboard route with the right guard and ability, 
         // New-device sign-in: credentialed by the challenge_id from login, not a token.
         'api/v1/customer/auth/otp/verify',
         'api/v1/customer/auth/otp/resend',
+        // Spec 020: a forgotten password — credentialed by the SMS code, not a token.
+        'api/v1/customer/auth/password/reset-request',
+        'api/v1/customer/auth/password/reset-confirm',
         'api/v1/dashboard/auth/login',
+        'api/v1/dashboard/auth/password/reset-request',
+        'api/v1/dashboard/auth/password/reset-confirm',
         'api/v1/dashboard/auth/mfa/verify',
         'api/v1/dashboard/auth/mfa/enroll',
     ];
@@ -177,7 +182,8 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            index/export/show/pdf/credit-notes store (5), credit-notes index/pdf (2).
     // spec 018:  free-relist and rating on the customer orders (2).
     // spec 019:  App text — seven /dashboard/app-texts* routes and /dashboard/content/placeholders (8).
-    expect($checked)->toBe(233);
+    // spec 020: create, disable and enable staff (3); the four recovery routes are public.
+    expect($checked)->toBe(236);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

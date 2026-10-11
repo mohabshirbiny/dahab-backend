@@ -576,6 +576,254 @@
       "max_length": 104
     },
     {
+      "key": "auth.reset.ask_title",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Forgot password screen",
+      "default_en": "Reset your password",
+      "default_ar": "استرجاع كلمة السر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.ask_body",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Forgot password screen",
+      "default_en": "Enter the phone number on your account. We will send you a code to set a new password.",
+      "default_ar": "اكتب رقم الموبايل اللي على حسابك. هنبعتلك كود عشان تحط كلمة سر جديدة.",
+      "placeholders": [],
+      "max_length": 172
+    },
+    {
+      "key": "auth.reset.send_code",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Forgot password screen",
+      "default_en": "Send the code",
+      "default_ar": "ابعتلي الكود",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.phone_missing",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Forgot password screen",
+      "default_en": "Enter your phone number.",
+      "default_ar": "اكتب رقم الموبايل.",
+      "placeholders": [],
+      "max_length": 48
+    },
+    {
+      "key": "auth.reset.back_to_sign_in",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Forgot password screen",
+      "default_en": "Back to sign in",
+      "default_ar": "ارجع لتسجيل الدخول",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.set_title",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Choose a new password",
+      "default_ar": "اختار كلمة سر جديدة",
+      "placeholders": [],
+      "max_length": 42
+    },
+    {
+      "key": "auth.reset.set_body",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "We sent a six digit code to {phone}. Enter it with your new password.",
+      "default_ar": "بعتنا كود من ست أرقام على {phone}. اكتبه مع كلمة السر الجديدة.",
+      "placeholders": [
+        "phone"
+      ],
+      "max_length": 138
+    },
+    {
+      "key": "auth.reset.code_label",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Code",
+      "default_ar": "الكود",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.new_password_label",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "New password",
+      "default_ar": "كلمة السر الجديدة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.confirm_password_label",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Confirm the new password",
+      "default_ar": "أكد كلمة السر الجديدة",
+      "placeholders": [],
+      "max_length": 48
+    },
+    {
+      "key": "auth.reset.password_hint",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "At least 10 characters",
+      "default_ar": "عشر حروف على الأقل",
+      "placeholders": [],
+      "max_length": 44
+    },
+    {
+      "key": "auth.reset.submit",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Set the new password",
+      "default_ar": "حدد كلمة السر الجديدة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.code_missing",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Enter the six digit code.",
+      "default_ar": "اكتب الكود المكوّن من ست أرقام.",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "auth.reset.password_short",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Choose a password of at least 10 characters.",
+      "default_ar": "اختار كلمة سر من عشر حروف على الأقل.",
+      "placeholders": [],
+      "max_length": 88
+    },
+    {
+      "key": "auth.reset.password_mismatch",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "The two passwords do not match.",
+      "default_ar": "كلمتا السر مش زي بعض.",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "auth.reset.resend_in",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "You can ask for a new code in {seconds}s",
+      "default_ar": "تقدر تطلب كود جديد بعد {seconds} ث",
+      "placeholders": [
+        "seconds"
+      ],
+      "max_length": 80
+    },
+    {
+      "key": "auth.reset.didnt_arrive",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Didn't arrive?",
+      "default_ar": "الكود ماوصلش؟",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.send_again",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Send it again",
+      "default_ar": "ابعته تاني",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.sent_again",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Code sent again.",
+      "default_ar": "بعتنا الكود تاني.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.start_over",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Reset password screen",
+      "default_en": "Start again",
+      "default_ar": "ابدأ من الأول",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.reset.done_title",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in, after a reset",
+      "default_en": "Your password was changed",
+      "default_ar": "كلمة السر اتغيرت",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "auth.reset.done_body",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in, after a reset",
+      "default_en": "Every device was signed out. Sign in with your new password.",
+      "default_ar": "كل الأجهزة خرجت من الحساب. ادخل بكلمة السر الجديدة.",
+      "placeholders": [],
+      "max_length": 120
+    },
+    {
+      "key": "auth.reset.done_paused",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in, after a reset",
+      "default_en": "For your safety, withdrawals are paused until {until}.",
+      "default_ar": "لأمانك، السحب متوقف لحد {until}.",
+      "placeholders": [
+        "until"
+      ],
+      "max_length": 108
+    },
+    {
+      "key": "auth.reset.done_cancelled",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in, after a reset",
+      "default_en": "Withdrawals that had not left ({count}) were cancelled and the money is back in your wallet.",
+      "default_ar": "طلبات السحب اللي ماخرجتش ({count}) اتلغت والفلوس رجعت محفظتك.",
+      "placeholders": [
+        "count"
+      ],
+      "max_length": 184
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",
@@ -9286,16 +9534,6 @@
       "max_length": 40
     },
     {
-      "key": "auth.password_reset_is_not_available_yet",
-      "kind": "app",
-      "area": "Auth",
-      "where": "Sign in",
-      "default_en": "Password reset is not available yet.",
-      "default_ar": "استرجاع كلمة السر مش متاح لسه.",
-      "placeholders": [],
-      "max_length": 72
-    },
-    {
       "key": "auth.phone_number",
       "kind": "app",
       "area": "Auth",
@@ -13326,5 +13564,7 @@
       "max_length": 40
     }
   ],
-  "retired": []
+  "retired": [
+    "auth.password_reset_is_not_available_yet"
+  ]
 }

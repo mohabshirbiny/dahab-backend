@@ -184,6 +184,9 @@ enum StaffPermission: string
     /** See who to watch: the measured signals per customer (spec 019 US8: CEO, COO). */
     case PEOPLE_TO_WATCH_VIEW = 'people_to_watch.view';
 
+    /** Spec 020 D20-4: create, disable or enable staff accounts. The CEO's alone — no seed role. */
+    case STAFF_MANAGE = 'staff.manage';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -269,6 +272,7 @@ enum StaffPermission: string
             self::PROMO_MANAGE => 'Manage market-maker promo codes',
             self::MARKET_MAKER_APPROVE => 'Approve pieces for market makers',
             self::PEOPLE_TO_WATCH_VIEW => 'See People to watch',
+            self::STAFF_MANAGE => 'Create, disable or enable staff accounts',
         };
     }
 
@@ -277,7 +281,7 @@ enum StaffPermission: string
         return match ($this) {
             self::CUSTOMER_VIEW, self::CUSTOMER_SUSPEND, self::PAYOUT_ACCOUNT_VERIFY => 'Customers',
             self::IDENTITY_VIEW, self::IDENTITY_REVIEW => 'Identity',
-            self::STAFF_VIEW, self::ROLES_MANAGE => 'Access control',
+            self::STAFF_VIEW, self::ROLES_MANAGE, self::STAFF_MANAGE => 'Access control',
             self::REFERENCE_VIEW, self::KARATS_TOGGLE, self::KARATS_CREATE, self::BRANCHES_MANAGE => 'Reference data',
             self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
@@ -398,6 +402,8 @@ enum StaffPermission: string
             // Spec 019 FR-060/FR-062: the CEO (every code) and Finance. FR US8: the CEO and the COO.
             self::PROMO_MANAGE, self::MARKET_MAKER_APPROVE => [SeedRole::FINANCE->value],
             self::PEOPLE_TO_WATCH_VIEW => [SeedRole::COO->value],
+            // Spec 020 D20-4: the CEO's alone (the CEO holds every code) — no role.
+            self::STAFF_MANAGE => [],
         };
     }
 }

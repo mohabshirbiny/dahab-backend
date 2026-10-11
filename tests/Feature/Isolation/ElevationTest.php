@@ -100,6 +100,9 @@ it('only elevates the pinned unauthenticated auth routes', function () {
         'api.v1.customer.auth.login',
         'api.v1.customer.auth.otp.resend',
         'api.v1.customer.auth.otp.verify',
+        // Spec 020: a forgotten password (the code is found by phone, the link by its token).
+        'api.v1.customer.auth.password.reset-confirm',
+        'api.v1.customer.auth.password.reset-request',
         'api.v1.customer.auth.register.complete',
         'api.v1.customer.auth.register.documents',
         'api.v1.customer.auth.register.email',
@@ -110,6 +113,8 @@ it('only elevates the pinned unauthenticated auth routes', function () {
         'api.v1.dashboard.auth.login',
         'api.v1.dashboard.auth.mfa.enroll',
         'api.v1.dashboard.auth.mfa.verify',
+        'api.v1.dashboard.auth.password.reset-confirm',
+        'api.v1.dashboard.auth.password.reset-request',
         // Spec 013: the withdrawal email link's page finds one row by its token.
         'api.v1.withdrawal-confirmations.confirm',
         'api.v1.withdrawal-confirmations.read',

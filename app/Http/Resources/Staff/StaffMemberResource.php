@@ -22,6 +22,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'roles', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardRoleRef')),
         new OA\Property(property: 'permissions', type: 'array', items: new OA\Items(type: 'string'), description: 'Effective permissions (union of roles), sorted'),
         new OA\Property(property: 'mfa_enrolled', type: 'boolean'),
+        new OA\Property(property: 'password_set', type: 'boolean', description: 'False for a member who was invited (or re-enabled) and has not chosen a password yet (spec 020).'),
     ],
 )]
 class StaffMemberResource extends JsonResource
@@ -44,6 +45,7 @@ class StaffMemberResource extends JsonResource
             // From the eager-loaded roles.permissions: no query per row.
             'permissions' => $roles->flatMap(fn ($r) => $r->permissions->pluck('name'))->unique()->sort()->values()->all(),
             'mfa_enrolled' => $s->relationLoaded('mfa') ? $s->mfa !== null : $s->mfa()->exists(),
+            'password_set' => $s->relationLoaded('password') ? $s->password !== null : $s->password()->exists(),
         ];
     }
 }

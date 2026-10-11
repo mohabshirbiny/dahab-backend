@@ -25,7 +25,7 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'payout_accounts', type: 'array', description: 'Spec 013: every payout account, the one in use first; the full number only for payout_account.verify / withdrawal.release', items: new OA\Items(ref: '#/components/schemas/StaffPayoutAccount')),
             new OA\Property(property: 'withdrawal_pause', nullable: true, description: 'Spec 013: the open withdrawal pause; spec 017: what opened it', properties: [
                 new OA\Property(property: 'until', type: 'string', format: 'date-time'),
-                new OA\Property(property: 'trigger_kind', type: 'string', enum: ['payout_account', 'phone_change', 'email_change']),
+                new OA\Property(property: 'trigger_kind', type: 'string', enum: ['payout_account', 'phone_change', 'email_change', 'password_reset']),
             ], type: 'object'),
             new OA\Property(property: 'closure', nullable: true, description: 'Spec 017: the customer closed the account', properties: [
                 new OA\Property(property: 'closed_at', type: 'string', format: 'date-time'),

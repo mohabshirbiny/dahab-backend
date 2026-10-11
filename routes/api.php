@@ -4,6 +4,7 @@ use App\Enums\StaffPermission;
 use App\Http\Controllers\Api\V1\Customer\AccountController as CustomerAccountController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerAuthController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerLoginOtpController;
+use App\Http\Controllers\Api\V1\Customer\Auth\CustomerPasswordResetController;
 use App\Http\Controllers\Api\V1\Customer\Auth\CustomerRegistrationController;
 use App\Http\Controllers\Api\V1\Customer\BuyRequestController as CustomerBuyRequestController;
 use App\Http\Controllers\Api\V1\Customer\CloseAccountController as CustomerCloseAccountController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AppTextController as DashboardAppTextC
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
+use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffPasswordResetController;
 use App\Http\Controllers\Api\V1\Dashboard\BankMovementController as DashboardBankMovementController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBranchClosureController;
 use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
@@ -160,6 +162,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
             Route::post('/login', [CustomerAuthController::class, 'login'])
                 ->middleware(['throttle:auth.customer.login', 'db.elevate:bootstrap'])->name('login');
+
+            // Spec 020: a forgotten password — an SMS code, then a new password. Public; the
+            // answers never reveal whether a number is registered.
+            Route::middleware('db.elevate:bootstrap')->prefix('password')->name('password.')->group(function () {
+                Route::post('/reset-request', [CustomerPasswordResetController::class, 'requestReset'])
+                    ->middleware('throttle:auth.password_reset.request')->name('reset-request');
+                Route::post('/reset-confirm', [CustomerPasswordResetController::class, 'confirmReset'])
+                    ->middleware('throttle:auth.password_reset.confirm')->name('reset-confirm');
+            });
 
             // New-device sign-in (Part 1 §2.3): login answers `otp_required`
             // with a challenge_id; these release it. Code guessing is capped
@@ -398,6 +409,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/login', [StaffAuthController::class, 'login'])
                 ->middleware(['throttle:auth.staff.login', 'db.elevate:bootstrap'])->name('login');
 
+            // Spec 020: staff recovery — an emailed single-use link, then a new password. Public.
+            Route::middleware('db.elevate:bootstrap')->prefix('password')->name('password.')->group(function () {
+                Route::post('/reset-request', [StaffPasswordResetController::class, 'requestReset'])
+                    ->middleware('throttle:auth.password_reset.request')->name('reset-request');
+                Route::post('/reset-confirm', [StaffPasswordResetController::class, 'confirmReset'])
+                    ->middleware('throttle:auth.staff.password_reset.confirm')->name('reset-confirm');
+            });
+
             Route::middleware(['throttle:auth.staff.mfa', 'db.elevate:bootstrap'])->prefix('mfa')->name('mfa.')->group(function () {
                 Route::post('/verify', [StaffMfaController::class, 'verify'])->name('verify');
                 Route::post('/enroll', [StaffMfaController::class, 'enroll'])->name('enroll');
@@ -499,6 +518,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::put('/{staff}/branch', [DashboardStaffController::class, 'updateBranch'])
                     ->whereUuid('staff')
                     ->middleware('staff.permission:roles.manage')->name('branch.update');
+
+                // Spec 020: create, disable and enable staff accounts (staff.manage, the CEO's).
+                Route::post('/', [DashboardStaffController::class, 'store'])
+                    ->middleware(['staff.permission:staff.manage', 'idempotent'])->name('store');
+                Route::post('/{staff}/disable', [DashboardStaffController::class, 'disable'])
+                    ->whereUuid('staff')
+                    ->middleware(['staff.permission:staff.manage', 'idempotent'])->name('disable');
+                Route::post('/{staff}/enable', [DashboardStaffController::class, 'enable'])
+                    ->whereUuid('staff')
+                    ->middleware(['staff.permission:staff.manage', 'idempotent'])->name('enable');
             });
 
         // Pricing: gold prices, per-karat adjustments and settings (spec 005).

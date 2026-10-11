@@ -8,12 +8,14 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 /** Staff members for the access-control screens (spec 002 FR-020). */
 final class ListStaffAction
 {
-    public function handle(?string $role, int $perPage): LengthAwarePaginator
+    /** @param  'active'|'disabled'|null  $status  spec 020 C6: omitted = all, as before */
+    public function handle(?string $role, int $perPage, ?string $status = null): LengthAwarePaginator
     {
         return Staff::query()
             ->manageable()
             ->when($role !== null, fn ($q) => $q->whereHas('roles', fn ($r) => $r->where('name', $role)))
-            ->with(['roles.permissions:id,name', 'mfa'])
+            ->when($status !== null, fn ($q) => $q->where('is_active', $status === 'active'))
+            ->with(['roles.permissions:id,name', 'mfa', 'password:staff_id'])
             ->orderBy('full_name')
             ->orderBy('staff_id')
             ->paginate($perPage);
@@ -23,7 +25,7 @@ final class ListStaffAction
     {
         return Staff::query()
             ->manageable()
-            ->with(['roles.permissions:id,name', 'mfa'])
+            ->with(['roles.permissions:id,name', 'mfa', 'password:staff_id'])
             ->findOrFail($staffId);
     }
 }

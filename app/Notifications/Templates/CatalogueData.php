@@ -762,6 +762,23 @@ final class CatalogueData
             'inbox' => true,
             'desc' => 'Account password changed: the email subject (also the inbox title)',
         ],
+        // Spec 020. AR-DRAFT: the Arabic wording awaits the owner's review.
+        'account.password_reset.sms' => [
+            'en' => 'The password of your Dahab account was reset and all your devices were signed out.{stop}{not_you}',
+            'ar' => 'كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب.{stop}{not_you}',
+            'vars' => ['stop', 'not_you'],
+            'read_only' => false,
+            'inbox' => true,
+            'desc' => 'Account password reset: the SMS sentence (also the email and the inbox)',
+        ],
+        'account.password_reset.mail_subject' => [
+            'en' => 'Your password was reset',
+            'ar' => 'كلمة السر اتعملها إعادة تعيين',
+            'vars' => [],
+            'read_only' => false,
+            'inbox' => true,
+            'desc' => 'Account password reset: the email subject (also the inbox title)',
+        ],
         'account.new_device.sms' => [
             'en' => 'Someone signed in to your Dahab account from a new device ({detail}).{not_you}',
             'ar' => 'حد دخل حسابك على دهب من جهاز جديد ({detail}).{not_you}',
@@ -1289,6 +1306,15 @@ final class CatalogueData
             'read_only' => true,
             'inbox' => false,
             'desc' => 'Change-phone code: the SMS (a code: read-only)',
+        ],
+        // Spec 020. AR-DRAFT.
+        'auth.password_reset_code.sms' => [
+            'en' => 'Your {app} code to reset your password is {code}. It expires in {minutes} minutes. Do not share it with anyone.',
+            'ar' => 'رمز إعادة تعيين كلمة السر في {app} هو {code}. صالح لمدة {minutes} دقائق. لا تشاركه مع أحد.',
+            'vars' => ['app', 'code', 'minutes'],
+            'read_only' => true,
+            'inbox' => false,
+            'desc' => 'Reset-password code: the SMS (a code: read-only)',
         ],
         'auth.registration_email_otp.mail_subject' => [
             'en' => '{app} verification code',
