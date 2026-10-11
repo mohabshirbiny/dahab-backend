@@ -6,6 +6,7 @@ use App\Enums\InboxLinkKind;
 use App\Models\Customer;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -30,12 +31,14 @@ class ListingReportNotification extends Notification implements InboxNotificatio
 
     public function toInbox(Customer $customer): ?InboxMessage
     {
+        $p = ['reference' => $this->reference];
+
         return new InboxMessage(
             'listing_report.reviewed',
-            'We looked at your report',
-            'راجعنا البلاغ بتاعك',
-            "Thank you. We looked at your report {$this->reference} and took the action we found right.",
-            "شكراً ليك. راجعنا البلاغ {$this->reference} وعملنا اللي شايفينه صح.",
+            Templates::text('listing_report.reviewed.inbox_title', false),
+            Templates::text('listing_report.reviewed.inbox_title', true),
+            Templates::text('listing_report.reviewed.inbox_body', false, $p),
+            Templates::text('listing_report.reviewed.inbox_body', true, $p),
             InboxLinkKind::NONE,
             null,
             ['reference' => $this->reference],

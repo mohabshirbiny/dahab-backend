@@ -11,6 +11,7 @@ use App\Exceptions\DomainApiException;
 use App\Models\Staff;
 use App\Models\Withdrawal;
 use App\Notifications\PayoutNotification;
+use App\Support\Controls\Controls;
 use App\Support\RequestContext;
 use App\Support\Withdrawals\WithdrawalLedger;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,9 @@ final class ReleaseWithdrawalAction
 
     public function handle(Staff $actor, string $withdrawalId, string $bankTxnNumber, ?string $transferReference, ?string $valueDate, ?RequestContext $ctx = null): Withdrawal
     {
+        // Spec 019 US7 D5: no release while everything is stopped; held money stays held.
+        app(Controls::class)->assertPlatformRunning();
+
         return DB::transaction(function () use ($actor, $withdrawalId, $bankTxnNumber, $transferReference, $valueDate, $ctx) {
             [$withdrawal, $accounts] = $this->lockWithdrawal($withdrawalId);
 

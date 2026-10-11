@@ -335,6 +335,19 @@ const OPENAPI_INVOICE_PATHS = [
     'get /dashboard/credit-notes/{creditNote}/pdf',
 ];
 
+// Spec 019: App text (content.edit) and the public bundle.
+const OPENAPI_CONTENT_PATHS = [
+    'get /reference/app-texts',
+    'get /dashboard/app-texts',
+    'get /dashboard/app-texts/export',
+    'put /dashboard/app-texts/{key}/draft',
+    'delete /dashboard/app-texts/{key}/draft',
+    'post /dashboard/app-texts/{key}/revert',
+    'post /dashboard/app-texts/publish',
+    'get /dashboard/app-texts/{key}/history',
+    'get /dashboard/content/placeholders',
+];
+
 // Spec 017: the customer account, the inbox, saved pieces, closing, listing reports.
 const OPENAPI_ACCOUNT_PATHS = [
     'post /customer/me/phone-change',
@@ -384,6 +397,33 @@ it('generates a valid OpenAPI document', function () {
         ->and($doc['servers'][0]['url'])->toBe('/api/v1');
 });
 
+// Spec 019 later phases: legal publishing, Help, Switches, market makers, People to watch.
+const OPENAPI_SPEC019_LATER_PATHS = [
+    'post /customer/me/legal-acceptances',
+    'get /customer/me/market/listings',
+    'post /dashboard/faq',
+    'patch /dashboard/faq/{slug}/position',
+    'get /dashboard/category-controls',
+    'post /dashboard/category-controls',
+    'post /dashboard/category-controls/clear',
+    'get /dashboard/visibility',
+    'patch /dashboard/visibility/{key}',
+    'get /dashboard/legal-documents',
+    'get /dashboard/legal-documents/{code}/versions',
+    'post /dashboard/legal-documents/{code}/versions',
+    'get /dashboard/promo-codes',
+    'post /dashboard/promo-codes',
+    'patch /dashboard/promo-codes/{code}',
+    'get /dashboard/promo-codes/{code}/uses',
+    'get /dashboard/market-maker/queue',
+    'get /dashboard/market-maker/approvals',
+    'post /dashboard/market-maker/approvals',
+    'get /dashboard/market-maker/cost',
+    'get /dashboard/people-to-watch',
+    'get /dashboard/people-to-watch/export',
+    'get /reference/controls',
+];
+
 it('documents exactly the customer, dashboard and public endpoints', function () {
     $ops = documentedOperations(generatedOpenApi());
 
@@ -391,6 +431,7 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_CUSTOMER_PATHS,
         ...OPENAPI_DASHBOARD_PATHS,
         ...OPENAPI_CUSTOMER_IDENTITY_PATHS,
+        ...OPENAPI_SPEC019_LATER_PATHS,
         ...OPENAPI_DASHBOARD_IDENTITY_PATHS,
         ...OPENAPI_DASHBOARD_CUSTOMER_PATHS,
         ...OPENAPI_DASHBOARD_ACCESS_PATHS,
@@ -416,6 +457,7 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
         ...OPENAPI_DASHBOARD_OVERVIEW_PATHS,
         ...OPENAPI_ACCOUNT_PATHS,
         ...OPENAPI_INVOICE_PATHS,
+        ...OPENAPI_CONTENT_PATHS,
     ]);
 });
 
@@ -622,6 +664,8 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffInvoice', 'StaffCreditNote', 'InvoiceFigures', 'IssueCreditNoteRequest', 'CustomerInvoice', 'CustomerCreditNote',
         'CustomerSession', 'RequestPhoneChangeRequest', 'ConfirmPhoneChangeRequest', 'RequestEmailChangeRequest', 'ChangePasswordRequest',
         'InboxItem', 'SavedPiece', 'CloseBlocker', 'StaffListingReport',
+        'StaffLegalDocument', 'StaffLegalVersion', 'AcceptLegalVersionRequest', 'LegalAcceptanceRequired', 'DashboardCreateFaqEntry', 'DashboardMoveFaqEntry', 'DashboardPublishLegalVersion', 'DashboardClearCategoryControl', 'DashboardSetCategoryControl', 'DashboardSetVisibility',
+        'StaffAppText', 'StaffAppTextVersion', 'StaffAppTextDraft', 'DashboardSaveAppTextDraft', 'DashboardRevertAppText',
     ]);
 
     $ops = documentedOperations($doc);

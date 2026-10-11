@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Pricing\ChangeSettingAction;
+use App\Enums\SettingGroup;
 use App\Enums\SettingKey;
+use App\Exceptions\DomainApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EnforceStaffPermission;
 use App\Http\Requests\Dashboard\Pricing\UpdateSettingRequest;
@@ -67,6 +69,11 @@ class SettingController extends Controller
     public function update(UpdateSettingRequest $request, string $key, ChangeSettingAction $change, EnforceStaffPermission $gate): SettingResource
     {
         $settingKey = SettingKey::tryFrom($key) ?? abort(404);
+
+        // What customers can see is changed from Switches (spec 019 US7), with its own permission.
+        if ($settingKey->group() === SettingGroup::VISIBILITY) {
+            throw DomainApiException::settingNotEditableHere();
+        }
 
         // The permission depends on the key's group, so it is checked here, the same way the route middleware does.
         $gate->handle($request, fn () => response()->noContent(), $settingKey->permission()->value);

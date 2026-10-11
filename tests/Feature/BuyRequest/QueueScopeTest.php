@@ -132,6 +132,8 @@ it('is pushed only by the buy-request Actions and the seller\'s withdrawal', fun
         'app/Actions/BuyRequests/ListOwnBuyRequestsAction.php',
         'app/Actions/BuyRequests/ShowQueueAction.php',
         'app/Support/BuyRequests/PlaceInLine.php',
+        // Spec 019 6B: reads the caller's own code and the approved pieces in the queue scope.
+        'app/Http/Controllers/Api/V1/Customer/MarketMakerListingController.php',
     ];
 
     $callers = collect(File::allFiles(app_path()))

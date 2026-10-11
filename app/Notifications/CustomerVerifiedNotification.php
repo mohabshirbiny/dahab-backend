@@ -8,6 +8,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -36,24 +37,19 @@ class CustomerVerifiedNotification extends Notification implements InboxNotifica
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
+        $p = ['app' => (string) config('app.name')];
 
         return (new MailMessage)
-            ->subject($arabic ? 'تم تفعيل حسابك في '.$appName : 'Your '.$appName.' account is now active')
-            ->line($arabic
-                ? 'تم التحقق من حسابك بنجاح، ويمكنك الآن تسجيل الدخول واستخدام '.$appName.'.'
-                : 'Your account has been verified. You can now sign in and start using '.$appName.'.');
+            ->subject(Templates::text('customer.verified.mail_subject', $arabic, $p))
+            ->line(Templates::text('customer.verified.mail_body', $arabic, $p));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
 
-        return SmsMessage::make($arabic
-            ? "تم تفعيل حسابك في {$appName}. يمكنك الآن تسجيل الدخول."
-            : "Your {$appName} account is now active. You can sign in.");
+        return SmsMessage::make(Templates::text('customer.verified.sms', $arabic, ['app' => (string) config('app.name')]));
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

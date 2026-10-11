@@ -8,6 +8,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -44,18 +45,18 @@ class CustomerVerificationRejectedNotification extends Notification implements I
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
+        $p = ['app' => (string) config('app.name')];
 
         $message = (new MailMessage)
-            ->subject($arabic ? $appName.' — تم رفض طلب التسجيل' : $appName.' — your registration was rejected')
-            ->line($arabic ? 'للأسف لم نتمكن من تفعيل حسابك.' : 'We were unable to approve your registration.');
+            ->subject(Templates::text('customer.verification_rejected.mail_subject', $arabic, $p))
+            ->line(Templates::text('customer.verification_rejected.mail_body', $arabic, $p));
 
         foreach ($this->reasons as $reason) {
             $message->line('• '.$reason);
         }
 
         if ($this->note !== null) {
-            $message->line(($arabic ? 'السبب: ' : 'Reason: ').$this->note);
+            $message->line(Templates::text('customer.verification_rejected.mail_reason', $arabic).$this->note);
         }
 
         return $message;
@@ -65,11 +66,8 @@ class CustomerVerificationRejectedNotification extends Notification implements I
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
 
-        return SmsMessage::make($arabic
-            ? "{$appName}: تم رفض طلب التسجيل. راجع بريدك للتفاصيل."
-            : "{$appName}: your registration was rejected. Check your inbox for details.");
+        return SmsMessage::make(Templates::text('customer.verification_rejected.sms', $arabic, ['app' => (string) config('app.name')]));
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

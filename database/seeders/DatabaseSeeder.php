@@ -57,6 +57,9 @@ class DatabaseSeeder extends Seeder
         // Saved pieces and an open listing report, through the real Actions (spec 017); same guard.
         $this->call(LocalAccountSeeder::class);
 
+        // The prototype's nine Help questions as unpublished drafts (spec 019); same guard.
+        $this->call(LocalFaqSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

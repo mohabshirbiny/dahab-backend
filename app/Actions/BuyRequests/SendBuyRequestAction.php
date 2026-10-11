@@ -17,7 +17,10 @@ use App\Models\Listing;
 use App\Models\ListingStateChange;
 use App\Support\BuyRequests\DepositLedger;
 use App\Support\BuyRequests\DepositRule;
+use App\Support\Controls\Controls;
+use App\Support\DatabaseActor;
 use App\Support\Listings\ListingPricer;
+use App\Support\MarketMakers\PromoCodeGate;
 use App\Support\Pricing\Settings;
 use App\Support\RequestContext;
 use Carbon\CarbonImmutable;
@@ -42,13 +45,34 @@ final class SendBuyRequestAction
         private readonly DepositLedger $deposits,
         private readonly DepositRule $rule,
         private readonly Settings $settings,
+        private readonly PromoCodeGate $promos,
     ) {}
 
-    public function handle(Customer $buyer, string $listingId, string $confirmedPrice, int $termsId, ?RequestContext $ctx = null): BuyRequest
+    public function handle(Customer $buyer, string $listingId, string $confirmedPrice, int $termsId, ?RequestContext $ctx = null, ?string $promoCode = null): BuyRequest
     {
-        return $this->inQueue(function () use ($buyer, $listingId, $confirmedPrice, $termsId, $ctx) {
-            // Everything that has been on the market is readable here; drafts are not found.
-            $seen = Listing::query()->whereKey($listingId)->firstOrFail();
+        try {
+            return $this->send($buyer, $listingId, $confirmedPrice, $termsId, $ctx, $promoCode);
+        } catch (DomainApiException $e) {
+            // A refused use of a code is logged on its own: the request that failed rolled back.
+            if ($promoCode !== null && $e->errorCode === 'promo_code_invalid') {
+                DatabaseActor::queue(fn () => DB::transaction(
+                    fn () => $this->promos->blocked($promoCode, $buyer, (string) ($e->details['reason'] ?? 'inactive'), $ctx),
+                ));
+            }
+
+            throw $e;
+        }
+    }
+
+    private function send(Customer $buyer, string $listingId, string $confirmedPrice, int $termsId, ?RequestContext $ctx, ?string $promoCode): BuyRequest
+    {
+        return $this->inQueue(function () use ($buyer, $listingId, $confirmedPrice, $termsId, $ctx, $promoCode) {
+            // Spec 019 US7: no buy request while everything is stopped.
+            app(Controls::class)->assertPlatformRunning();
+
+            // Everything that has been on the market is readable here; drafts are not found, and
+            // neither is a live piece of a paused category (it is off the market until reopened).
+            $seen = Listing::query()->whereKey($listingId)->notHiddenByPause()->firstOrFail();
 
             if ($seen->seller_id === $buyer->customer_id) {
                 throw DomainApiException::cannotBuyOwnListing();
@@ -77,6 +101,9 @@ final class SendBuyRequestAction
             if ($price === null) {
                 throw DomainApiException::priceUnavailable();
             }
+
+            // Spec 019 6B: a market-maker code is checked under the code's row lock, with the listing locked.
+            $promo = $promoCode === null ? null : $this->promos->validate($buyer, $listing, $price, $promoCode);
 
             $deposit = $this->rule->deposit($price);
             if (! $this->rule->withinTolerance($confirmedPrice, $price)) {
@@ -126,7 +153,12 @@ final class SendBuyRequestAction
                 'deposit_acceptance_id' => $acceptance->acceptance_id,
                 'requested_at' => $now,
                 'seller_reply_deadline' => $now->addHours($this->settings->integer(SettingKey::DEADLINE_SELLER_REPLY_HOURS)),
+                'promo_code' => $promo?->code,
             ]);
+
+            if ($promo !== null) {
+                $this->promos->allowed($promo, $buyer, $id, $price, $ctx);
+            }
 
             if ($listing->state === ListingState::LIVE) {
                 $listing = $this->moveListing($listing, ListingState::RESERVED, $buyer, null, ListingStateChange::NOTE_BUY_REQUEST_QUEUED);

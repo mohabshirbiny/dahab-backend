@@ -9,9 +9,11 @@ use App\Http\Controllers\Api\V1\Customer\BuyRequestController as CustomerBuyRequ
 use App\Http\Controllers\Api\V1\Customer\CloseAccountController as CustomerCloseAccountController;
 use App\Http\Controllers\Api\V1\Customer\IdentityDocumentController as CustomerIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Customer\InvoiceController as CustomerInvoiceController;
+use App\Http\Controllers\Api\V1\Customer\LegalAcceptanceController as CustomerLegalAcceptanceController;
 use App\Http\Controllers\Api\V1\Customer\ListingController as CustomerListingController;
 use App\Http\Controllers\Api\V1\Customer\ListingQueueController as CustomerListingQueueController;
 use App\Http\Controllers\Api\V1\Customer\ListingReportController as CustomerListingReportController;
+use App\Http\Controllers\Api\V1\Customer\MarketMakerListingController;
 use App\Http\Controllers\Api\V1\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Api\V1\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Api\V1\Customer\PayoutAccountController as CustomerPayoutAccountController;
@@ -20,6 +22,7 @@ use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpControl
 use App\Http\Controllers\Api\V1\Customer\UploadController;
 use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletController;
 use App\Http\Controllers\Api\V1\Customer\WithdrawalController as CustomerWithdrawalController;
+use App\Http\Controllers\Api\V1\Dashboard\AppTextController as DashboardAppTextController;
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
@@ -28,6 +31,7 @@ use App\Http\Controllers\Api\V1\Dashboard\BranchClosureController as DashboardBr
 use App\Http\Controllers\Api\V1\Dashboard\BranchController as DashboardBranchController;
 use App\Http\Controllers\Api\V1\Dashboard\BuyRequestController as DashboardBuyRequestController;
 use App\Http\Controllers\Api\V1\Dashboard\CompensationController as DashboardCompensationController;
+use App\Http\Controllers\Api\V1\Dashboard\ControlsController;
 use App\Http\Controllers\Api\V1\Dashboard\CreditNoteController as DashboardCreditNoteController;
 use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustomerController;
 use App\Http\Controllers\Api\V1\Dashboard\DailyCloseController as DashboardDailyCloseController;
@@ -39,11 +43,14 @@ use App\Http\Controllers\Api\V1\Dashboard\InspectionController as DashboardInspe
 use App\Http\Controllers\Api\V1\Dashboard\InvoiceController as DashboardInvoiceController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
+use App\Http\Controllers\Api\V1\Dashboard\LegalDocumentController as DashboardLegalDocumentController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingReportController as DashboardListingReportController;
+use App\Http\Controllers\Api\V1\Dashboard\MarketMakerController;
 use App\Http\Controllers\Api\V1\Dashboard\OrderController as DashboardOrderController;
 use App\Http\Controllers\Api\V1\Dashboard\OverviewController as DashboardOverviewController;
 use App\Http\Controllers\Api\V1\Dashboard\PayoutAccountController as DashboardPayoutAccountController;
+use App\Http\Controllers\Api\V1\Dashboard\PeopleToWatchController;
 use App\Http\Controllers\Api\V1\Dashboard\PermissionController as DashboardPermissionController;
 use App\Http\Controllers\Api\V1\Dashboard\ReceivingAccountController as DashboardReceivingAccountController;
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
@@ -83,6 +90,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             // Spec 017: the list the app shows, and how to reach Dahab.
             Route::get('/legal-documents', [ReferenceController::class, 'legalDocuments'])->name('legal-documents.index');
             Route::get('/support-contacts', [ReferenceController::class, 'supportContacts'])->name('support-contacts');
+            // Spec 019: the texts staff published for the app; an ETag that also moves with the setting values.
+            Route::get('/app-texts', [ReferenceController::class, 'appTexts'])->name('app-texts');
+            // Spec 019 US7: what is stopped or paused, and what customers can see.
+            Route::get('/controls', [ReferenceController::class, 'controls'])->name('controls');
             Route::get('/legal-documents/{code}', [ReferenceController::class, 'legalDocument'])
                 ->where('code', '[a-z][a-z0-9_]{1,49}')->name('legal-documents.show');
             // Spec 015: today's prices and the seller's estimate (indicative; nothing is locked).
@@ -173,7 +184,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
         });
 
-        Route::middleware(['auth:customer', 'abilities:customer:access'])->prefix('me')->name('me.')->group(function () {
+        // Spec 019: `customer.legal` refuses every write while the live terms or privacy are owed
+        // (reads, the acceptance itself and sign-out pass; sign-out is under /auth).
+        Route::middleware(['auth:customer', 'abilities:customer:access', 'customer.legal'])->prefix('me')->name('me.')->group(function () {
+            // Spec 019: accept the live terms / privacy — every state, idempotent.
+            Route::post('/legal-acceptances', [CustomerLegalAcceptanceController::class, 'store'])
+                ->middleware('idempotent')->name('legal-acceptances.store');
+
             Route::post('/uploads', [UploadController::class, 'store'])
                 ->middleware('throttle:customer.uploads')->name('uploads.store');
 
@@ -269,6 +286,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->whereUuid('listing')->middleware('idempotent')->name('decline');
                 });
             });
+
+            // Spec 019 6B: the market with approved pieces marked, for a market maker's own account.
+            Route::middleware('customer.gate:verified')->get('/market/listings', [MarketMakerListingController::class, 'index'])
+                ->name('market.listings');
 
             // Spec 011: the buyer's requests. Sending needs the trade gate; reading and
             // leaving the queue need a verified customer (a suspended buyer may leave).
@@ -770,6 +791,88 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->middleware('staff.permission:branches.manage')->name('destroy');
             });
         });
+
+        // Spec 019: App text (content.edit). Literal routes come before the {key} ones; every
+        // write is idempotent (`idempotent` runs last) and audited with the version it replaces.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:content.edit'])->group(function () {
+            $key = DashboardAppTextController::keyPattern();
+
+            Route::prefix('app-texts')->name('app-texts.')->group(function () use ($key) {
+                Route::get('/', [DashboardAppTextController::class, 'index'])->name('index');
+                Route::get('/export', [DashboardAppTextController::class, 'export'])->name('export');
+                Route::post('/publish', [DashboardAppTextController::class, 'publish'])->middleware('idempotent')->name('publish');
+                Route::get('/{key}/history', [DashboardAppTextController::class, 'history'])->where('key', $key)->name('history');
+                Route::put('/{key}/draft', [DashboardAppTextController::class, 'saveDraft'])->where('key', $key)
+                    ->middleware('idempotent')->name('draft.save');
+                Route::delete('/{key}/draft', [DashboardAppTextController::class, 'discardDraft'])->where('key', $key)
+                    ->middleware('idempotent')->name('draft.discard');
+                Route::post('/{key}/revert', [DashboardAppTextController::class, 'revert'])->where('key', $key)
+                    ->middleware('idempotent')->name('revert');
+            });
+
+            Route::get('/content/placeholders', [DashboardAppTextController::class, 'placeholders'])->name('content.placeholders');
+
+            // Help entries (US5): a pair of keys each; the entry's text is edited through app-texts.
+            Route::post('/faq', [DashboardAppTextController::class, 'createFaq'])->middleware('idempotent')->name('faq.create');
+            Route::patch('/faq/{slug}/position', [DashboardAppTextController::class, 'moveFaq'])->where('slug', '[a-z0-9_]{2,40}')
+                ->middleware('idempotent')->name('faq.move');
+        });
+
+        // Spec 019 US7: Switches. Reads need any switch permission; each write is checked by the level's own code.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {
+            $controller = ControlsController::class;
+
+            Route::middleware('staff.permission:'.StaffPermission::CONTROLS_READ)->group(function () use ($controller) {
+                Route::get('/category-controls', [$controller, 'index'])->name('category-controls.index');
+                Route::get('/visibility', [$controller, 'visibility'])->name('visibility.index');
+            });
+            Route::post('/category-controls', [$controller, 'set'])->middleware('idempotent')->name('category-controls.set');
+            Route::post('/category-controls/clear', [$controller, 'clear'])->middleware('idempotent')->name('category-controls.clear');
+            Route::patch('/visibility/{key}', [$controller, 'setVisibility'])->where('key', '[a-z_]+')
+                ->middleware(['staff.permission:visibility.manage', 'idempotent'])->name('visibility.set');
+        });
+
+        // Spec 019 US6 / 6A: market-maker codes, approvals and the cost panel. Codes: promo.manage;
+        // the queue and approvals: market_maker.approve; the use log and the cost: either.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {
+            $c = MarketMakerController::class;
+
+            Route::middleware('staff.permission:promo.manage')->group(function () use ($c) {
+                Route::get('/promo-codes', [$c, 'codes'])->name('promo-codes.index');
+                Route::post('/promo-codes', [$c, 'create'])->middleware('idempotent')->name('promo-codes.create');
+                Route::patch('/promo-codes/{code}', [$c, 'update'])->where('code', '[A-Za-z0-9-]{3,32}')
+                    ->middleware('idempotent')->name('promo-codes.update');
+                Route::get('/promo-codes/{code}/uses', [$c, 'uses'])->where('code', '[A-Za-z0-9-]{3,32}')->name('promo-codes.uses');
+            });
+            Route::middleware('staff.permission:market_maker.approve')->prefix('market-maker')->name('market-maker.')->group(function () use ($c) {
+                Route::get('/queue', [$c, 'queue'])->name('queue');
+                Route::get('/approvals', [$c, 'approvals'])->name('approvals');
+                Route::post('/approvals', [$c, 'approve'])->middleware('idempotent')->name('approve');
+            });
+            Route::get('/market-maker/cost', [$c, 'cost'])
+                ->middleware('staff.permission:'.StaffPermission::MARKET_MAKER_READ)->name('market-maker.cost');
+        });
+
+        // Spec 019 US8: People to watch. Read-only; every read is audited.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:people_to_watch.view'])->group(function () {
+            $c = PeopleToWatchController::class;
+            Route::get('/people-to-watch', [$c, 'index'])->name('people-to-watch.index');
+            Route::get('/people-to-watch/export', [$c, 'export'])->name('people-to-watch.export');
+        });
+
+        // Spec 019: Terms and versions. Reads need legal.publish or content.edit; a new version needs
+        // legal.publish alone (the CEO by seed, D1). `idempotent` runs last.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('legal-documents')->name('legal-documents.')->group(function () {
+                Route::get('/', [DashboardLegalDocumentController::class, 'index'])
+                    ->middleware('staff.permission:'.StaffPermission::LEGAL_READ)->name('index');
+                Route::get('/{code}/versions', [DashboardLegalDocumentController::class, 'versions'])
+                    ->where('code', '[a-z][a-z0-9_]{1,49}')
+                    ->middleware('staff.permission:'.StaffPermission::LEGAL_READ)->name('versions');
+                Route::post('/{code}/versions', [DashboardLegalDocumentController::class, 'publish'])
+                    ->where('code', '[a-z][a-z0-9_]{1,49}')
+                    ->middleware(['staff.permission:legal.publish', 'idempotent'])->name('publish');
+            });
 
         // Spec 016: tax invoices and credit notes (invoice.view reads; invoice.correct issues a credit note).
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing', 'staff.permission:invoice.view'])->group(function () {

@@ -55,6 +55,7 @@ class BuyRequestController extends Controller
             (string) $request->validated('confirm_locked_price'),
             (int) $request->validated('deposit_legal_doc_id'),
             $request->attributes->get('context'),
+            filled($request->validated('promo_code')) ? strtoupper((string) $request->validated('promo_code')) : null,
         );
 
         return $this->respond($request, $list->show($this->customer($request)->customer_id, $buyRequest->buy_request_id), 201);

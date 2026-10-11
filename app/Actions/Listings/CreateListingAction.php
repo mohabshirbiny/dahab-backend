@@ -6,6 +6,7 @@ use App\Actions\Listings\Concerns\AttachesListingMedia;
 use App\Actions\Listings\Concerns\MovesListing;
 use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
+use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
 use App\Models\AgreementAcceptance;
 use App\Models\Branch;
@@ -13,6 +14,7 @@ use App\Models\Customer;
 use App\Models\LegalDocument;
 use App\Models\Listing;
 use App\Models\ListingOwnershipDeclaration;
+use App\Support\Controls\Controls;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
 
@@ -32,6 +34,9 @@ final class CreateListingAction
      */
     public function handle(Customer $seller, array $data, ?RequestContext $ctx = null): Listing
     {
+        // Spec 019 US7: a stopped or paused category, or everything stopped, takes no new listing.
+        app(Controls::class)->assertCanList(PieceCategory::from((string) $data['category']));
+
         return DB::transaction(function () use ($seller, $data, $ctx) {
             $branchIds = self::enabledBranchIds($data['branch_option_ids'] ?? []);
 

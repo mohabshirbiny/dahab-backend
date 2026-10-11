@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "d4h4b-b4ck3nd-c0ll3ct10n-0001",
         "name": "Dahab Backend API",
-        "description": "API collection for the Dahab Backend (Laravel 12 + Sanctum). Organized by domain folder to mirror routes/api.php. Two API surfaces with separate tokens: Customer API (/api/v1/customer/*, customer tokens) and Dashboard API (/api/v1/dashboard/*, staff tokens). A token of the other principal is rejected with 401; an access token on a refresh endpoint (or a refresh token on an access endpoint) is rejected with 403. Keep this file updated whenever an endpoint is added, changed, or removed \u2014 see postman/README.md.",
+        "description": "API collection for the Dahab Backend (Laravel 12 + Sanctum). Organized by domain folder to mirror routes/api.php. Two API surfaces with separate tokens: Customer API (/api/v1/customer/*, customer tokens) and Dashboard API (/api/v1/dashboard/*, staff tokens). A token of the other principal is rejected with 401; an access token on a refresh endpoint (or a refresh token on an access endpoint) is rejected with 403. Keep this file updated whenever an endpoint is added, changed, or removed — see postman/README.md.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "auth": {
@@ -36,11 +36,30 @@
         }
     ],
     "variable": [
-        {"key": "phone_challenge_id", "value": ""},
-        {"key": "email_change_token", "value": ""},
-        {"key": "session_id", "value": ""},
-        {"key": "notification_id", "value": ""},
-        {"key": "listing_report_id", "value": ""},
+        {
+            "key": "phone_challenge_id",
+            "value": ""
+        },
+        {
+            "key": "email_change_token",
+            "value": ""
+        },
+        {
+            "key": "session_id",
+            "value": ""
+        },
+        {
+            "key": "notification_id",
+            "value": ""
+        },
+        {
+            "key": "listing_report_id",
+            "value": ""
+        },
+        {
+            "key": "app_text_key",
+            "value": "order.free_relist.card_title"
+        },
         {
             "key": "base_url",
             "value": "http://localhost",
@@ -296,7 +315,7 @@
             "item": [
                 {
                     "name": "Auth",
-                    "description": "Dashboard API. Uses staff tokens only (staff_access_token / staff_refresh_token); a customer token is rejected with 401. Sign in with Staff Login (local accounts <role>@dahab.test after `php artisan db:seed`, password seeded-password-1). Founders and staff holding a role flagged requires_mfa (ceo/coo/finance in the seed) never get a session from Staff Login: it answers mfa_required (enrolled) or mfa_enrollment_required (first time) with a session_ref, saved to staff_mfa_session_ref \u2014 finish with Staff MFA Verify or Staff MFA Enroll.",
+                    "description": "Dashboard API. Uses staff tokens only (staff_access_token / staff_refresh_token); a customer token is rejected with 401. Sign in with Staff Login (local accounts <role>@dahab.test after `php artisan db:seed`, password seeded-password-1). Founders and staff holding a role flagged requires_mfa (ceo/coo/finance in the seed) never get a session from Staff Login: it answers mfa_required (enrolled) or mfa_enrollment_required (first time) with a session_ref, saved to staff_mfa_session_ref — finish with Staff MFA Verify or Staff MFA Enroll.",
                     "item": [
                         {
                             "name": "Staff Login",
@@ -622,7 +641,7 @@
                 },
                 {
                     "name": "Identity",
-                    "description": "Dashboard API \u2014 identity document review. Uses staff_access_token. Listing/showing/viewing needs identity.view; approving/rejecting needs identity.review (both held by ceo and verification). Every successful View Document Image writes an append-only document_view_log row in the same transaction as the read.",
+                    "description": "Dashboard API — identity document review. Uses staff_access_token. Listing/showing/viewing needs identity.view; approving/rejecting needs identity.review (both held by ceo and verification). Every successful View Document Image writes an append-only document_view_log row in the same transaction as the read.",
                     "item": [
                         {
                             "name": "List Identity Documents",
@@ -690,7 +709,7 @@
                             "response": []
                         },
                         {
-                            "name": "View Identity Document \u2014 Front",
+                            "name": "View Identity Document — Front",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -724,7 +743,7 @@
                             "response": []
                         },
                         {
-                            "name": "View Identity Document \u2014 Back",
+                            "name": "View Identity Document — Back",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -758,7 +777,7 @@
                             "response": []
                         },
                         {
-                            "name": "Review \u2014 Verify",
+                            "name": "Review — Verify",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -792,7 +811,7 @@
                                         "review"
                                     ]
                                 },
-                                "description": "Approves the document. Customer.status \u2192 active; IdentityDocument.status \u2192 verified. Dispatches CustomerVerifiedNotification (SMS + email) after commit. Requires identity.review.",
+                                "description": "Approves the document. Customer.status → active; IdentityDocument.status → verified. Dispatches CustomerVerifiedNotification (SMS + email) after commit. Requires identity.review.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"action\": \"verify\"\n}",
@@ -806,7 +825,7 @@
                             "response": []
                         },
                         {
-                            "name": "Review \u2014 Request Resubmission",
+                            "name": "Review — Request Resubmission",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -840,7 +859,7 @@
                                         "review"
                                     ]
                                 },
-                                "description": "Ask again. IdentityDocument.status \u2192 needs_resubmission; Customer stays pending_verification. Reasons are required (enum: blurred_or_glare, card_cut_off, name_does_not_match, card_expired, back_missing, text_not_readable). Notification sent after commit.",
+                                "description": "Ask again. IdentityDocument.status → needs_resubmission; Customer stays pending_verification. Reasons are required (enum: blurred_or_glare, card_cut_off, name_does_not_match, card_expired, back_missing, text_not_readable). Notification sent after commit.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"action\": \"request_resubmission\",\n    \"reasons\": [\n        \"blurred_or_glare\",\n        \"back_missing\"\n    ],\n    \"note\": \"Please upload a clearer image.\"\n}",
@@ -854,7 +873,7 @@
                             "response": []
                         },
                         {
-                            "name": "Review \u2014 Reject",
+                            "name": "Review — Reject",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -888,7 +907,7 @@
                                         "review"
                                     ]
                                 },
-                                "description": "Rejects the registration. Customer.status \u2192 rejected. Reasons are required. Notification sent after commit.",
+                                "description": "Rejects the registration. Customer.status → rejected. Reasons are required. Notification sent after commit.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"action\": \"reject\",\n    \"reasons\": [\n        \"card_expired\"\n    ],\n    \"note\": \"Card has expired.\"\n}",
@@ -907,7 +926,7 @@
                     "name": "Customers",
                     "item": [
                         {
-                            "name": "List Customers \u2014 Waiting",
+                            "name": "List Customers — Waiting",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -1212,7 +1231,7 @@
                 },
                 {
                     "name": "Access Control",
-                    "description": "Dashboard API \u2014 roles, their permissions, and staff role assignment (spec 002). Uses staff_access_token. Roles and permissions need roles.manage; the staff list needs staff.view (ceo and coo hold both in the seed). Refusals: 403 escalation_denied (no self-escalation), 409 role_in_use / last_role_manager, 422 reason_required. Frozen staff get 403 account_frozen on every request.",
+                    "description": "Dashboard API — roles, their permissions, and staff role assignment (spec 002). Uses staff_access_token. Roles and permissions need roles.manage; the staff list needs staff.view (ceo and coo hold both in the seed). Refusals: 403 escalation_denied (no self-escalation), 409 role_in_use / last_role_manager, 422 reason_required. Frozen staff get 403 account_frozen on every request.",
                     "item": [
                         {
                             "name": "List Permissions",
@@ -1649,7 +1668,7 @@
                 },
                 {
                     "name": "Reference Data",
-                    "description": "Dashboard API \u2014 karats, inspection branches, weekly hours and closures (spec 004). Uses staff_access_token. Viewing needs reference.view (ceo, coo, finance, operations in the seed); karat on/off needs karats.toggle (finance), adding a karat karats.create (coo), branch and closure changes branches.manage (coo, operations). Refusals: 409 closure_exists / closure_in_past, 422 validation_failed. Every change is audited.",
+                    "description": "Dashboard API — karats, inspection branches, weekly hours and closures (spec 004). Uses staff_access_token. Viewing needs reference.view (ceo, coo, finance, operations in the seed); karat on/off needs karats.toggle (finance), adding a karat karats.create (coo), branch and closure changes branches.manage (coo, operations). Refusals: 409 closure_exists / closure_in_past, 422 validation_failed. Every change is audited.",
                     "item": [
                         {
                             "name": "List Karats",
@@ -1832,7 +1851,7 @@
                                         "branches"
                                     ]
                                 },
-                                "description": "Branches with their weekly hours (dow 0 = Sunday \u2026 6 = Saturday), enabled or not. Requires reference.view."
+                                "description": "Branches with their weekly hours (dow 0 = Sunday … 6 = Saturday), enabled or not. Requires reference.view."
                             },
                             "response": []
                         },
@@ -1885,7 +1904,7 @@
                                 "description": "Adds a branch with its whole week. Several intervals per day are allowed (split day); they must not overlap (422 hours.N). timezone is an IANA name, default Africa/Cairo. Requires branches.manage.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"name_ar\": \"\u0641\u0631\u0639 \u0645\u0635\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629\",\n    \"address_en\": \"12 Baghdad St, Heliopolis\",\n    \"address_ar\": \"12 \u0634\u0627\u0631\u0639 \u0628\u063a\u062f\u0627\u062f\u060c \u0645\u0635\u0631 \u0627\u0644\u062c\u062f\u064a\u062f\u0629\",\n    \"timezone\": \"Africa/Cairo\",\n    \"hours\": [\n        {\n            \"dow\": 0,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"18:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"14:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"16:00\",\n            \"closes_at\": \"20:00\"\n        }\n    ]\n}",
+                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"name_ar\": \"فرع مصر الجديدة\",\n    \"address_en\": \"12 Baghdad St, Heliopolis\",\n    \"address_ar\": \"12 شارع بغداد، مصر الجديدة\",\n    \"timezone\": \"Africa/Cairo\",\n    \"hours\": [\n        {\n            \"dow\": 0,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"18:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"14:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"16:00\",\n            \"closes_at\": \"20:00\"\n        }\n    ]\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -2023,7 +2042,7 @@
                                 "description": "Closes one branch (branch_id) or every branch (branch_id null) for a whole day, today or later. 409 closure_exists for the same date and scope. Requires branches.manage.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"branch_id\": null,\n    \"closure_date\": \"2027-01-07\",\n    \"reason_en\": \"Coptic Christmas\",\n    \"reason_ar\": \"\u0639\u064a\u062f \u0627\u0644\u0645\u064a\u0644\u0627\u062f\"\n}",
+                                    "raw": "{\n    \"branch_id\": null,\n    \"closure_date\": \"2027-01-07\",\n    \"reason_en\": \"Coptic Christmas\",\n    \"reason_ar\": \"عيد الميلاد\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -2070,7 +2089,7 @@
                 },
                 {
                     "name": "Pricing",
-                    "description": "Dashboard API \u2014 gold prices, per-karat adjustments and settings (spec 005). Uses staff_access_token. Viewing needs pricing.view (ceo, coo, finance, operations in the seed). Rates, VAT, adjustments and price rules need pricing.rates.manage (finance); deadlines and deposits need settings.manage (coo); a manual price needs gold_price.enter and is accepted only while the price feed is down or not configured; confirming one needs gold_price.confirm (finance) and, while manualprice.confirmer_must_differ is on, another person. Money is a 4-dp string. No provider credential belongs in Postman: the feed is configured in the Backend's .env only.",
+                    "description": "Dashboard API — gold prices, per-karat adjustments and settings (spec 005). Uses staff_access_token. Viewing needs pricing.view (ceo, coo, finance, operations in the seed). Rates, VAT, adjustments and price rules need pricing.rates.manage (finance); deadlines and deposits need settings.manage (coo); a manual price needs gold_price.enter and is accepted only while the price feed is down or not configured; confirming one needs gold_price.confirm (finance) and, while manualprice.confirmer_must_differ is on, another person. Money is a 4-dp string. No provider credential belongs in Postman: the feed is configured in the Backend's .env only.",
                     "item": [
                         {
                             "name": "Current Gold Prices",
@@ -2419,7 +2438,7 @@
                             "response": []
                         },
                         {
-                            "name": "Update Setting \u2014 Rate",
+                            "name": "Update Setting — Rate",
                             "request": {
                                 "method": "PATCH",
                                 "header": [
@@ -2452,7 +2471,7 @@
                                         "commission.gold_pct"
                                     ]
                                 },
-                                "description": "A rates key: needs pricing.rates.manage. value is a decimal string (\u2264 4 dp) or a boolean for flags. Reason required. Kept in history and audited.",
+                                "description": "A rates key: needs pricing.rates.manage. value is a decimal string (≤ 4 dp) or a boolean for flags. Reason required. Kept in history and audited.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"value\": \"20\",\n    \"reason\": \"Back to the standard rate\"\n}",
@@ -2466,7 +2485,7 @@
                             "response": []
                         },
                         {
-                            "name": "Update Setting \u2014 Operations",
+                            "name": "Update Setting — Operations",
                             "request": {
                                 "method": "PATCH",
                                 "header": [
@@ -2555,7 +2574,7 @@
                 },
                 {
                     "name": "Audit Log",
-                    "description": "Dashboard API \u2014 the audit log (spec 006). Uses staff_access_token. audit.view_all (ceo) sees everything; audit.view_own (coo, finance, operations, verification) sees only the caller's own actions. \"Everything\" (no category) leaves out sign-ins and sessions. Pages use a cursor: pass meta.next_cursor. Each export is itself recorded.",
+                    "description": "Dashboard API — the audit log (spec 006). Uses staff_access_token. audit.view_all (ceo) sees everything; audit.view_own (coo, finance, operations, verification) sees only the caller's own actions. \"Everything\" (no category) leaves out sign-ins and sessions. Pages use a cursor: pass meta.next_cursor. Each export is itself recorded.",
                     "item": [
                         {
                             "name": "List Audit Log",
@@ -2607,12 +2626,12 @@
                                         }
                                     ]
                                 },
-                                "description": "Newest first, last 7 days by default. Filters: from, to (Cairo dates), category, actor (staff id or system), action, entity_type, entity_id; cursor, per_page \u2264 100."
+                                "description": "Newest first, last 7 days by default. Filters: from, to (Cairo dates), category, actor (staff id or system), action, entity_type, entity_id; cursor, per_page ≤ 100."
                             },
                             "response": []
                         },
                         {
-                            "name": "List Audit Log \u2014 Next Page",
+                            "name": "List Audit Log — Next Page",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -2654,7 +2673,7 @@
                             "response": []
                         },
                         {
-                            "name": "List Audit Log \u2014 Pricing",
+                            "name": "List Audit Log — Pricing",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3282,7 +3301,7 @@
                                         "match"
                                     ]
                                 },
-                                "description": "Spec 009. Credit what actually arrived: one topup ledger entry (bank \u2212amount, customer available +amount), the notice credited once, audited (topup.matched), SMS/email after commit. note required when the amount differs from the claim; arrival_reference (the provider's transaction reference) required when the customer is suspended. 409 illegal_topup_transition when already closed. Requires topup.match and an Idempotency-Key.",
+                                "description": "Spec 009. Credit what actually arrived: one topup ledger entry (bank −amount, customer available +amount), the notice credited once, audited (topup.matched), SMS/email after commit. note required when the amount differs from the claim; arrival_reference (the provider's transaction reference) required when the customer is suspended. 409 illegal_topup_transition when already closed. Requires topup.match and an Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"amount\": \"20000.00\",\n    \"receiving_account_id\": {{receiving_account_id}},\n    \"note\": null,\n    \"arrival_reference\": null\n}",
@@ -3336,7 +3355,7 @@
                                         "hold"
                                     ]
                                 },
-                                "description": "Spec 009. pending \u2192 on_hold while you check; stays matchable. note required (staff only). Audited (topup.held). Requires topup.match and an Idempotency-Key.",
+                                "description": "Spec 009. pending → on_hold while you check; stays matchable. note required (staff only). Audited (topup.held). Requires topup.match and an Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"note\": \"Checking the CIB statement.\"\n}",
@@ -3385,7 +3404,7 @@
                                         "unhold"
                                     ]
                                 },
-                                "description": "Spec 009. on_hold \u2192 pending. Audited (topup.unheld). Requires topup.match and an Idempotency-Key."
+                                "description": "Spec 009. on_hold → pending. Audited (topup.unheld). Requires topup.match and an Idempotency-Key."
                             },
                             "response": []
                         },
@@ -3430,7 +3449,7 @@
                                         "reject"
                                     ]
                                 },
-                                "description": "Spec 009. pending or on_hold \u2192 rejected (final); no money moves. reason: money_not_received | duplicate_notice | sender_not_accepted | other (told to the customer); note: staff only. Audited (topup.rejected). Requires topup.match and an Idempotency-Key.",
+                                "description": "Spec 009. pending or on_hold → rejected (final); no money moves. reason: money_not_received | duplicate_notice | sender_not_accepted | other (told to the customer); note: staff only. Audited (topup.rejected). Requires topup.match and an Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"reason\": \"money_not_received\",\n    \"note\": \"Nothing on the statement after 3 days.\"\n}",
@@ -3482,7 +3501,7 @@
                                         "topups"
                                     ]
                                 },
-                                "description": "Spec 009. Money that arrived without a notice: a credited transfer (origin by_hand) and the topup ledger entry, audited (topup.credited_by_hand). Verified and active customers; suspended (from active) customers only with arrival_reference; customers awaiting verification or rejected \u2192 403 verification_required. Requires topup.match and an Idempotency-Key. Saves topup_id.",
+                                "description": "Spec 009. Money that arrived without a notice: a credited transfer (origin by_hand) and the topup ledger entry, audited (topup.credited_by_hand). Verified and active customers; suspended (from active) customers only with arrival_reference; customers awaiting verification or rejected → 403 verification_required. Requires topup.match and an Idempotency-Key. Saves topup_id.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"customer_id\": \"{{customer_id}}\",\n    \"amount\": \"15000.00\",\n    \"receiving_account_id\": {{receiving_account_id}},\n    \"note\": \"Phone matches, no reference.\",\n    \"arrival_reference\": null\n}",
@@ -3867,7 +3886,7 @@
                                         "approve"
                                     ]
                                 },
-                                "description": "Spec 010. in_review \u2192 live; sets listed_at; on the market at once. 409 illegal_listing_transition | seller_suspended | karat_disabled (the listing stays in review). Audited (listing.approved). Requires listing.review and an Idempotency-Key."
+                                "description": "Spec 010. in_review → live; sets listed_at; on the market at once. 409 illegal_listing_transition | seller_suspended | karat_disabled (the listing stays in review). Audited (listing.approved). Requires listing.review and an Idempotency-Key."
                             },
                             "response": []
                         },
@@ -3912,7 +3931,7 @@
                                         "request-changes"
                                     ]
                                 },
-                                "description": "Spec 010. in_review \u2192 changes_requested with a message the seller reads (10\u20131000 characters). Audited (listing.changes_requested). Requires listing.request_changes and an Idempotency-Key.",
+                                "description": "Spec 010. in_review → changes_requested with a message the seller reads (10–1000 characters). Audited (listing.changes_requested). Requires listing.request_changes and an Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"message\": \"The hallmark photo is blurred and we cannot read the karat. Please retake it in daylight.\"\n}",
@@ -3966,7 +3985,7 @@
                                         "reject"
                                     ]
                                 },
-                                "description": "Spec 010. in_review \u2192 rejected with a reason the seller reads (10\u20131000 characters). Final. Audited (listing.rejected). Requires listing.review and an Idempotency-Key.",
+                                "description": "Spec 010. in_review → rejected with a reason the seller reads (10–1000 characters). Final. Audited (listing.rejected). Requires listing.review and an Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"reason\": \"The photos are not of the piece described.\"\n}",
@@ -4020,7 +4039,7 @@
                                         "takedown"
                                     ]
                                 },
-                                "description": "Spec 010 FR-030, spec 011 FR-019. live or reserved \u2192 withdrawn with a reason; from reserved the line is released and refunded (the audit row carries released_count). Requires listing.takedown; Idempotency-Key.",
+                                "description": "Spec 010 FR-030, spec 011 FR-019. live or reserved → withdrawn with a reason; from reserved the line is released and refunded (the audit row carries released_count). Requires listing.takedown; Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"reason\": \"A buyer reported that the photos are taken from another listing.\"\n}",
@@ -4075,7 +4094,7 @@
                                         "cancel"
                                     ]
                                 },
-                                "description": "Spec 011 FR-020a. An order awaiting delivery \u2192 cancelled_staff; the buyer's deposit is refunded in full; relist true: the piece goes back on the market (accepted \u2192 live), false: withdrawn for good. Audited (order.cancelled); buyer and seller told. Requires order.cancel; Idempotency-Key. Run Dashboard \u203a Listings \u203a Show Listing on the accepted piece first (saves order_id). 409 order_not_cancellable.",
+                                "description": "Spec 011 FR-020a. An order awaiting delivery → cancelled_staff; the buyer's deposit is refunded in full; relist true: the piece goes back on the market (accepted → live), false: withdrawn for good. Audited (order.cancelled); buyer and seller told. Requires order.cancel; Idempotency-Key. Run Dashboard › Listings › Show Listing on the accepted piece first (saves order_id). 409 order_not_cancellable.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"reason\": \"The seller reported the piece damaged before delivery.\",\n  \"relist\": true\n}",
@@ -6148,7 +6167,7 @@
                                         "uploads"
                                     ]
                                 },
-                                "description": "Spec 015. bank.record. PDF/JPG/PNG \u2264 10 MB; a single-use token for proof_upload_token.",
+                                "description": "Spec 015. bank.record. PDF/JPG/PNG ≤ 10 MB; a single-use token for proof_upload_token.",
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
@@ -6450,7 +6469,7 @@
                             "response": []
                         },
                         {
-                            "name": "Daily Close \u2014 Day",
+                            "name": "Daily Close — Day",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6488,7 +6507,7 @@
                             "response": []
                         },
                         {
-                            "name": "Daily Closes \u2014 Recent Days",
+                            "name": "Daily Closes — Recent Days",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7207,6 +7226,1404 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "App Text",
+                    "item": [
+                        {
+                            "name": "List App Texts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts?area=Orders&per_page=50",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "area",
+                                            "value": "Orders"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "50"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 US1. content.edit (CEO, COO, Operations). Every registered text with where it appears, the code default, what is live, the pending draft and whether the default changed since the live override. Filters kind, area, q, changed, state (draft|published|default); keyset cursor (meta.next_cursor), per_page. Saves the first key as app_text_key."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const first = (pm.response.json().data || [])[0];",
+                                            "if (first) pm.collectionVariables.set('app_text_key', first.key);"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Save Text Draft",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/draft",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "draft"
+                                    ]
+                                },
+                                "description": "Spec 019 Q2. content.edit. One shared draft per key, invisible to customers until Publish Changes. Both languages; only the key's own {placeholders} and the setting placeholders ({commission_gold_pct}, …); a required placeholder must stay. 422 content_unchanged when it equals what customers see; 409 content_draft_changed when draft_version is stale; 409 content_key_read_only for a template with a code or link. Audited content.draft_saved.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"text_en\": \"Sell it again with no commission\",\n    \"text_ar\": \"بيعها تاني من غير عمولة\",\n    \"draft_version\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Discard Text Draft",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/draft",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "draft"
+                                    ]
+                                },
+                                "description": "Spec 019 US1. content.edit. Deletes the pending draft; audited content.draft_discarded. 404 content_no_draft when there is none."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Revert Text To Default",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/revert",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "revert"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-002. content.edit. `to: \"default\"` makes a default-marker draft; once published the override ends, the bundle drops the key and the app shows its own current default. Audited content.reverted.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"to\": \"default\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Restore Earlier Text Version",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/revert",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "revert"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-002. content.edit. `to: <version>` makes a draft copying that version's wording; published, it is a new version. See Text History for the numbers.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"to\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Publish Changes",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/publish",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "publish"
+                                    ]
+                                },
+                                "description": "Spec 019 Q2, FR-003. content.edit. Every pending draft goes live together as one new bundle, or none does: 422 content_invalid lists each key with its reason, 422 content_nothing_to_publish when there are no drafts. Audited content.published with the version replaced and the wording before and after."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Text History",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/{{app_text_key}}/history",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "{{app_text_key}}",
+                                        "history"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-002. content.edit. Every version, newest first, with who wrote and published each and when."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export App Texts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "text/csv",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/app-texts/export?area=Orders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "app-texts",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "area",
+                                            "value": "Orders"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 FR-011. content.edit. CSV (UTF-8 with a BOM) of key, kind, area, English, Arabic, version and published date under the list filters; audited content.exported."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Setting Placeholders",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/content/placeholders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "content",
+                                        "placeholders"
+                                    ]
+                                },
+                                "description": "Spec 019 R5. content.edit. The {names} a text may use for a number a setting owns, with the value customers will see."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Help Entry",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/faq",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "faq"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-030. content.edit. Two keys, each with a draft in both languages, at the end of the list; invisible until Publish Changes. 409 content_faq_exists. Audited content.faq_created.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"slug\": \"how_to_sell\",\n    \"question_en\": \"How do I sell a piece?\",\n    \"question_ar\": \"ازاي ابيع قطعة؟\",\n    \"answer_en\": \"List it, bring it to the branch, get paid.\",\n    \"answer_ar\": \"اعرضها وسلّمها للفرع واستلم فلوسك.\",\n    \"is_hidden\": false\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Move Help Entry",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/faq/{{faq_slug}}/position",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "faq",
+                                        "{{faq_slug}}",
+                                        "position"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-031. content.edit. The new order is a draft (pending_position) and goes live with Publish Changes. 404 content_faq_unknown; 422 content_unchanged. Audited content.faq_reordered.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"position\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Legal",
+                    "item": [
+                        {
+                            "name": "List Legal Documents",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/legal-documents",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "legal-documents"
+                                    ]
+                                },
+                                "description": "Spec 019. legal.publish or content.edit. Per code: live version, who published, whether material, how many accepted it."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Legal Versions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/legal-documents/terms/versions?with_body=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "legal-documents",
+                                        "terms",
+                                        "versions"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "with_body",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019. Every version, newest first; with_body=1 includes the bodies."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Publish Legal Version",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/legal-documents/terms/versions",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "legal-documents",
+                                        "terms",
+                                        "versions"
+                                    ]
+                                },
+                                "description": "Spec 019 D1. legal.publish (CEO). A whole new version (previous + 1); never an edit in place. 422 legal_body_required; 409 legal_version_conflict. Audited legal.published.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"body_en\": \"Terms of use…\",\n    \"body_ar\": \"شروط الاستخدام…\",\n    \"is_material\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Switches",
+                    "item": [
+                        {
+                            "name": "Switches",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/category-controls",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "category-controls"
+                                    ]
+                                },
+                                "description": "Spec 019 US7. Any of category.stop_new, category.pause, platform.stop_everything, visibility.manage. Per category: state, who set it and why, live / no-request / price-locked counts."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Stop New Listings",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/category-controls",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "category-controls"
+                                    ]
+                                },
+                                "description": "Spec 019 US7. category.stop_new (COO, Operations). A reason is required; the message is what customers read. 409 control_already_active. Audited control.set.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"level\": \"stop_new_listings\",\n    \"category\": \"gold\",\n    \"reason\": \"Counting the stock\",\n    \"message_en\": \"New gold listings are paused until Monday.\",\n    \"message_ar\": \"الإعلانات الجديدة للدهب واقفة لحد الاتنين.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Pause Category",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/category-controls",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "category-controls"
+                                    ]
+                                },
+                                "description": "Spec 019 US7. category.pause (COO). Hides live pieces nobody asked for, refuses waiting requests for more time, tells the sellers in the category.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"level\": \"pause_category\",\n    \"category\": \"diamond\",\n    \"reason\": \"Cleaning the cases\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Stop Everything",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/category-controls",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "category-controls"
+                                    ]
+                                },
+                                "description": "Spec 019 US7 D5. platform.stop_everything (COO). One row per category; no new listing, buy request or withdrawal and no release; founders are emailed.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"level\": \"stop_everything\",\n    \"reason\": \"Bank outage\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Clear Control",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/category-controls/clear",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "category-controls",
+                                        "clear"
+                                    ]
+                                },
+                                "description": "Spec 019 US7. The same permission as the level. 409 control_not_active. Audited control.cleared.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"level\": \"pause_category\",\n    \"category\": \"diamond\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Visibility",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/visibility",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "visibility"
+                                    ]
+                                },
+                                "description": "Spec 019 US7. The four flags."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Set Visibility",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/visibility/sharing",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "visibility",
+                                        "sharing"
+                                    ]
+                                },
+                                "description": "Spec 019 US7. visibility.manage. rapaport_reference | payout_averages | listing_stats | sharing. Pricing is not affected. Audited visibility.changed.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"shown\": false\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Market Makers",
+                    "item": [
+                        {
+                            "name": "List Promo Codes",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-060. promo.manage (CEO, Finance)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Promo Code",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-060. Only market_maker codes, tied to one customer of type market_maker. 422 promo_kind_not_available | promo_customer_not_market_maker; 409 promo_code_exists. Audited promo.created.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"code\": \"AHMED-GOLD\",\n    \"tied_customer_id\": \"{{customer_id}}\",\n    \"monthly_cap_egp\": 500000\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Promo Code",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes/AHMED-GOLD",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes",
+                                        "AHMED-GOLD"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-060. Only the cap and the on/off change. Audited promo.updated.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"active\": false,\n    \"monthly_cap_egp\": 250000\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Promo Code Uses",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes/AHMED-GOLD/uses",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes",
+                                        "AHMED-GOLD",
+                                        "uses"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-061. Every attempt, allowed or blocked, with the reason."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Market Maker Queue",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/market-maker/queue",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "market-maker",
+                                        "queue"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-062. market_maker.approve. Live pieces listed long enough and not yet approved; views are not measured (null)."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Approve For Market Makers",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/market-maker/approvals",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "market-maker",
+                                        "approvals"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-062. The numbers seen are kept. 422 listing_too_new; 409 already_approved | listing_not_live. Audited market_maker.approved.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"listing_id\": \"{{listing_id}}\",\n    \"asking_price_seen\": 58000,\n    \"gold_value_seen\": 52000\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Market Maker Approvals",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/market-maker/approvals",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "market-maker",
+                                        "approvals"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-062. Newest first, with the numbers the approver saw."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Market Maker Cost",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/market-maker/cost?month=2026-10",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "market-maker",
+                                        "cost"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "2026-10"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 FR-062. Pieces bought with a code, their value, and the spread paid to dealers."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "People To Watch",
+                    "item": [
+                        {
+                            "name": "People To Watch",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/people-to-watch?from=2026-09-01&to=2026-10-01",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "people-to-watch"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": "2026-09-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-10-01"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 US8. people_to_watch.view (CEO, COO). Measured figures, no verdict; every read is audited."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Export People To Watch",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/people-to-watch/export?from=2026-09-01&to=2026-10-01",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "people-to-watch",
+                                        "export"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": "2026-09-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-10-01"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 US8. The same figures as CSV; audited."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ],
             "description": ""
@@ -7219,7 +8636,7 @@
                     "description": "Customer API. Access endpoints use the customer access_token (ability customer:access); Customer Refresh uses the customer refresh_token (ability customer:refresh). A staff token is rejected with 401.",
                     "item": [
                         {
-                            "name": "Customer Register \u2014 1. Start",
+                            "name": "Customer Register — 1. Start",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7280,7 +8697,7 @@
                             ]
                         },
                         {
-                            "name": "Customer Register \u2014 2. Verify Phone OTP",
+                            "name": "Customer Register — 2. Verify Phone OTP",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7309,7 +8726,7 @@
                                         "verify-phone-otp"
                                     ]
                                 },
-                                "description": "Step 2. Marks the session phone-verified. Idempotent \u2014 a retry after success succeeds unchanged.",
+                                "description": "Step 2. Marks the session phone-verified. Idempotent — a retry after success succeeds unchanged.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"registration_ref\": \"{{registration_ref}}\",\n    \"otp\": \"123456\"\n}",
@@ -7323,7 +8740,7 @@
                             "response": []
                         },
                         {
-                            "name": "Customer Register \u2014 3. Email + Governorate",
+                            "name": "Customer Register — 3. Email + Governorate",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7366,7 +8783,7 @@
                             "response": []
                         },
                         {
-                            "name": "Customer Register \u2014 4. Verify Email OTP",
+                            "name": "Customer Register — 4. Verify Email OTP",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7409,7 +8826,7 @@
                             "response": []
                         },
                         {
-                            "name": "Customer Register \u2014 5. Upload Documents",
+                            "name": "Customer Register — 5. Upload Documents",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7463,7 +8880,7 @@
                             "response": []
                         },
                         {
-                            "name": "Customer Register \u2014 6. Submit",
+                            "name": "Customer Register — 6. Submit",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7492,7 +8909,7 @@
                                         "submit"
                                     ]
                                 },
-                                "description": "Step 6. Creates the customer as pending_verification with the pending identity document. Does NOT issue a session \u2014 the customer must wait for staff approval before any login. Response contains { data: { customer, status: \"pending_verification\" } }.",
+                                "description": "Step 6. Creates the customer as pending_verification with the pending identity document. Does NOT issue a session — the customer must wait for staff approval before any login. Response contains { data: { customer, status: \"pending_verification\" } }.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"registration_ref\": \"{{registration_ref}}\"\n}",
@@ -7506,7 +8923,7 @@
                             "response": []
                         },
                         {
-                            "name": "Customer Register \u2014 DEPRECATED: /complete",
+                            "name": "Customer Register — DEPRECATED: /complete",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7586,7 +9003,7 @@
                                         "login"
                                     ]
                                 },
-                                "description": "Phone + password. From a trusted device \u2192 200 with customer + session. From a new device \u2192 200 with data.otp_required=true, challenge_id, expires_at, resend_available_at, and an SMS code is sent (local env: 123456); finish with Customer Login \u2014 Verify OTP from the same X-Device-Id. Missing X-Device-Id \u2192 401 invalid_credentials. Pending/rejected/suspended \u2192 403. 429 account_locked after 5 failures per phone in 15 minutes."
+                                "description": "Phone + password. From a trusted device → 200 with customer + session. From a new device → 200 with data.otp_required=true, challenge_id, expires_at, resend_available_at, and an SMS code is sent (local env: 123456); finish with Customer Login — Verify OTP from the same X-Device-Id. Missing X-Device-Id → 401 invalid_credentials. Pending/rejected/suspended → 403. 429 account_locked after 5 failures per phone in 15 minutes."
                             },
                             "event": [
                                 {
@@ -7610,7 +9027,7 @@
                             "response": []
                         },
                         {
-                            "name": "Customer Login \u2014 Verify OTP",
+                            "name": "Customer Login — Verify OTP",
                             "request": {
                                 "auth": {
                                     "type": "noauth"
@@ -7648,7 +9065,7 @@
                                         "verify"
                                     ]
                                 },
-                                "description": "Releases a sign-in held for a new device: correct SMS code \u2192 200 with customer + session, and this X-Device-Id becomes trusted (next login skips the code). 401 otp_invalid (wrong code, voided after 5 wrong attempts, or another device) / otp_expired. Must use the same X-Device-Id as the login."
+                                "description": "Releases a sign-in held for a new device: correct SMS code → 200 with customer + session, and this X-Device-Id becomes trusted (next login skips the code). 401 otp_invalid (wrong code, voided after 5 wrong attempts, or another device) / otp_expired. Must use the same X-Device-Id as the login."
                             },
                             "event": [
                                 {
@@ -7668,7 +9085,7 @@
                             "response": []
                         },
                         {
-                            "name": "Customer Login \u2014 Resend OTP",
+                            "name": "Customer Login — Resend OTP",
                             "request": {
                                 "auth": {
                                     "type": "noauth"
@@ -7738,7 +9155,7 @@
                                         "refresh"
                                     ]
                                 },
-                                "description": "Uses the customer refresh_token (ability customer:refresh) as the Bearer credential; the access_token is rejected here with 403. The refresh token rotates on every use \u2014 replaying an old one returns 401 refresh_invalid and revokes the whole token family."
+                                "description": "Uses the customer refresh_token (ability customer:refresh) as the Bearer credential; the access_token is rejected here with 403. The refresh token rotates on every use — replaying an old one returns 401 refresh_invalid and revokes the whole token family."
                             },
                             "event": [
                                 {
@@ -7824,7 +9241,7 @@
                 },
                 {
                     "name": "Identity",
-                    "description": "Customer API \u2014 private ID upload and identity document submission. Uses the customer access_token. Flow: Upload ID Image (stores upload_token) \u2192 Submit Identity Document (stores document_id). The customer stays unverified until staff approve it (see Dashboard Identity).",
+                    "description": "Customer API — private ID upload and identity document submission. Uses the customer access_token. Flow: Upload ID Image (stores upload_token) → Submit Identity Document (stores document_id). The customer stays unverified until staff approve it (see Dashboard Identity).",
                     "item": [
                         {
                             "name": "Upload ID Image",
@@ -8243,12 +9660,12 @@
                                         "cancel"
                                     ]
                                 },
-                                "description": "Spec 009. pending \u2192 cancelled; no money moves. 409 illegal_topup_transition unless pending. Verified gate (a suspended customer may cancel). Idempotency-Key required."
+                                "description": "Spec 009. pending → cancelled; no money moves. 409 illegal_topup_transition unless pending. Verified gate (a suspended customer may cancel). Idempotency-Key required."
                             },
                             "response": []
                         },
                         {
-                            "name": "Wallet \u2014 Held per Order",
+                            "name": "Wallet — Held per Order",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8602,7 +10019,7 @@
                                         "listings"
                                     ]
                                 },
-                                "description": "Spec 010, Part 2 \u00a73. Creates a draft with its media, branch options, the accepted ownership declaration and its queue counter. Fields by category: gold \u2014 karat_code, stated_weight_g, making_charge_per_g; gold_with_diamond \u2014 karat_code, stated_weight_g, asking_price; diamond \u2014 asking_price only. 422 gold_needs_karat_weight | branch_options_required | ownership_declaration_required | upload_token_invalid | validation_failed. Trade gate; Idempotency-Key. Saves listing_id. Run Reference \u2192 Piece Types, Branches and Ownership Declaration first.",
+                                "description": "Spec 010, Part 2 §3. Creates a draft with its media, branch options, the accepted ownership declaration and its queue counter. Fields by category: gold — karat_code, stated_weight_g, making_charge_per_g; gold_with_diamond — karat_code, stated_weight_g, asking_price; diamond — asking_price only. 422 gold_needs_karat_weight | branch_options_required | ownership_declaration_required | upload_token_invalid | validation_failed. Trade gate; Idempotency-Key. Saves listing_id. Run Reference → Piece Types, Branches and Ownership Declaration first.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"category\": \"gold\",\n    \"piece_type_id\": {{piece_type_id}},\n    \"karat_code\": 21,\n    \"stated_weight_g\": \"8.000\",\n    \"making_charge_per_g\": \"250.00\",\n    \"asking_price\": null,\n    \"description\": \"Worn a few times and kept in its box. Small scratch on the inner band.\",\n    \"branch_option_ids\": [{{branch_id}}],\n    \"photo_tokens\": [\"{{listing_photo_token}}\", \"{{listing_photo_token_2}}\"],\n    \"video_token\": null,\n    \"invoice_token\": null,\n    \"stone_certificate_token\": null,\n    \"ownership_declaration_accepted\": true,\n    \"ownership_legal_doc_id\": {{ownership_legal_doc_id}}\n}",
@@ -8843,7 +10260,7 @@
                                         "submit"
                                     ]
                                 },
-                                "description": "Spec 010. draft | changes_requested \u2192 in_review. 422 photo_required (2 photos for gold, 3 for stones), validation_failed (description 40\u20132000; karat or piece type turned off), branch_options_required; 409 illegal_listing_transition. Trade gate; Idempotency-Key."
+                                "description": "Spec 010. draft | changes_requested → in_review. 422 photo_required (2 photos for gold, 3 for stones), validation_failed (description 40–2000; karat or piece type turned off), branch_options_required; 409 illegal_listing_transition. Trade gate; Idempotency-Key."
                             },
                             "response": []
                         },
@@ -8879,7 +10296,7 @@
                                         "withdraw"
                                     ]
                                 },
-                                "description": "Spec 010, spec 011 FR-019. live or reserved \u2192 withdrawn, off the market at once. Final: there is no relisting. From reserved, every buyer in line is released and refunded and told. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
+                                "description": "Spec 010, spec 011 FR-019. live or reserved → withdrawn, off the market at once. Final: there is no relisting. From reserved, every buyer in line is released and refunded and told. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
                             },
                             "response": []
                         },
@@ -8964,7 +10381,7 @@
                                         "accept"
                                     ]
                                 },
-                                "description": "Spec 011 FR-014. The head of the queue only, at one of the listing's enabled branch options. Creates the order (DH-YYYY-NNNNNN, reach_branch_deadline in working hours), keeps the head's deposit held, releases and refunds everyone else, listing reserved \u2192 accepted. 409 not_queue_head | queue_empty | branch_not_in_options | buyer_suspended | branch_hours_unavailable.",
+                                "description": "Spec 011 FR-014. The head of the queue only, at one of the listing's enabled branch options. Creates the order (DH-YYYY-NNNNNN, reach_branch_deadline in working hours), keeps the head's deposit held, releases and refunds everyone else, listing reserved → accepted. 409 not_queue_head | queue_empty | branch_not_in_options | buyer_suspended | branch_hours_unavailable.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"buy_request_id\": \"{{buy_request_id}}\",\n  \"branch_id\": \"{{branch_id}}\"\n}",
@@ -9014,7 +10431,7 @@
                                         "decline"
                                     ]
                                 },
-                                "description": "Spec 011 FR-015. The head only, no reason. Refunded; the next moves up; nobody left \u2192 live. 409 not_queue_head | queue_empty.",
+                                "description": "Spec 011 FR-015. The head only, no reason. Refunded; the next moves up; nobody left → live. 409 not_queue_head | queue_empty.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"buy_request_id\": \"{{buy_request_id}}\"\n}",
@@ -9031,7 +10448,7 @@
                 },
                 {
                     "name": "Buy Requests",
-                    "description": "Spec 011 \u2014 buyer side. Sending needs the trade gate; reading and leaving need a verified customer (a suspended buyer may leave). Every POST needs an Idempotency-Key.",
+                    "description": "Spec 011 — buyer side. Sending needs the trade gate; reading and leaving need a verified customer (a suspended buyer may leave). Every POST needs an Idempotency-Key.",
                     "item": [
                         {
                             "name": "Send Buy Request",
@@ -9068,7 +10485,7 @@
                                         "buy-requests"
                                     ]
                                 },
-                                "description": "Spec 011 FR-001\u2013FR-008. On a live or reserved piece that is not yours: locks the fresh price (refused as price_moved beyond buyrequest.price_tolerance_pct, with details.current_price), holds deposit.buyer_pct of it (deposit_hold on the ledger), takes the next place in line, records the deposit terms. 409 insufficient_funds carries details.deposit_amount / available / shortfall. Run Market \u203a Show Listing and Reference \u203a Deposit Agreement first.",
+                                "description": "Spec 011 FR-001–FR-008. On a live or reserved piece that is not yours: locks the fresh price (refused as price_moved beyond buyrequest.price_tolerance_pct, with details.current_price), holds deposit.buyer_pct of it (deposit_hold on the ledger), takes the next place in line, records the deposit terms. 409 insufficient_funds carries details.deposit_amount / available / shortfall. Run Market › Show Listing and Reference › Deposit Agreement first.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"listing_id\": \"{{market_listing_id}}\",\n  \"confirm_locked_price\": \"{{confirm_locked_price}}\",\n  \"deposit_legal_doc_id\": \"{{deposit_legal_doc_id}}\"\n}",
@@ -9195,7 +10612,7 @@
                                         "withdraw"
                                     ]
                                 },
-                                "description": "Spec 011 FR-010/FR-011. queued \u2192 withdrawn_by_buyer; the deposit is back in available at once. notify_when_free: told once if the piece returns to the market with nobody in line. 409 not_in_queue otherwise.",
+                                "description": "Spec 011 FR-010/FR-011. queued → withdrawn_by_buyer; the deposit is back in available at once. notify_when_free: told once if the piece returns to the market with nobody in line. 409 not_in_queue otherwise.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"notify_when_free\": true\n}",
@@ -11342,6 +12759,109 @@
                             "response": []
                         }
                     ]
+                },
+                {
+                    "name": "Legal Acceptance",
+                    "item": [
+                        {
+                            "name": "Accept Legal Version",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/legal-acceptances",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "legal-acceptances"
+                                    ]
+                                },
+                                "description": "Spec 019 D2. The live terms or privacy version the customer was shown. 422 legal_document_not_current; 409 legal_acceptance_not_required. Allowed while suspended.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"legal_doc_id\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Market Makers",
+                    "item": [
+                        {
+                            "name": "Market With Approved Pieces",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{customer_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/market/listings?mm_approved=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "market",
+                                        "listings"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "mm_approved",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 019 FR-064 (6B). Same pieces as the public market with mm_approved; 403 market_maker_only for an account with no active code."
+                            },
+                            "response": []
+                        }
+                    ]
                 }
             ]
         },
@@ -11376,6 +12896,36 @@
                                     ]
                                 },
                                 "description": "Spec 017 FR-045. terms, privacy, selling_rules, id_handling with published / version.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "App Texts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/app-texts",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "app-texts"
+                                    ]
+                                },
+                                "description": "Spec 019 FR-006. Public. The texts staff published for the customer app (kinds app and faq, both languages), the FAQ and the live values of the setting placeholders. ETag \"<bundle_version>-<settings fingerprint>\" also moves when a setting behind a placeholder changes; send it back as If-None-Match for a 304.",
                                 "auth": {
                                     "type": "noauth"
                                 }
@@ -11691,7 +13241,7 @@
                             "response": []
                         },
                         {
-                            "name": "Quote \u2014 What Will I Get",
+                            "name": "Quote — What Will I Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -11736,6 +13286,33 @@
                                     ]
                                 },
                                 "description": "Spec 015 FR-021. Public. Indicative seller estimate."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Controls",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/controls",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "controls"
+                                    ]
+                                },
+                                "description": "Spec 019 US7. Public. Whether everything is stopped (with the banner text), paused categories with their messages, and the four visibility flags."
                             },
                             "response": []
                         }
@@ -11810,7 +13387,7 @@
                                 }
                             ]
                         },
-                        "description": "Spec 010, Part 2 \u00a72. Live pieces; filters category, karat, piece_type, branch, min_g, max_g; sort newest | price_asc | price_desc; keyset (cursor = meta.next_cursor), per_page 1\u2013100. current_price is computed now (indicative for gold) and null with price_available=false when it cannot be quoted. Never returns the seller or private media. Public. Saves the first id as market_listing_id.",
+                        "description": "Spec 010, Part 2 §2. Live pieces; filters category, karat, piece_type, branch, min_g, max_g; sort newest | price_asc | price_desc; keyset (cursor = meta.next_cursor), per_page 1–100. current_price is computed now (indicative for gold) and null with price_available=false when it cannot be quoted. Never returns the seller or private media. Public. Saves the first id as market_listing_id.",
                         "auth": {
                             "type": "noauth"
                         }

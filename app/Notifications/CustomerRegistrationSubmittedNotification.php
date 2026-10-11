@@ -8,6 +8,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -40,29 +41,23 @@ class CustomerRegistrationSubmittedNotification extends Notification implements 
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
+        $p = ['app' => (string) config('app.name'), 'display_ref' => $notifiable->display_ref];
 
         return (new MailMessage)
-            ->subject($arabic
-                ? 'استلمنا طلب تسجيلك في '.$appName
-                : 'Your '.$appName.' registration has been submitted')
-            ->line($arabic
-                ? 'شكرًا لتقديم طلبك. حسابك قيد المراجعة الآن، وسنُخطرك فور اكتمال التحقق.'
-                : 'Thank you for submitting your registration. Your account is now awaiting verification and we will notify you as soon as it is complete.')
-            ->line($arabic
-                ? 'رقم العميل: '.$notifiable->display_ref
-                : 'Customer reference: '.$notifiable->display_ref);
+            ->subject(Templates::text('customer.registration_submitted.mail_subject', $arabic, $p))
+            ->line(Templates::text('customer.registration_submitted.mail_body', $arabic, $p))
+            ->line(Templates::text('customer.registration_submitted.mail_reference', $arabic, $p));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
 
-        return SmsMessage::make($arabic
-            ? "تم استلام طلب تسجيلك في {$appName} وهو قيد المراجعة. رقم العميل: {$notifiable->display_ref}."
-            : "Your {$appName} registration has been received and is awaiting verification. Reference: {$notifiable->display_ref}.");
+        return SmsMessage::make(Templates::text('customer.registration_submitted.sms', $arabic, [
+            'app' => (string) config('app.name'),
+            'display_ref' => $notifiable->display_ref,
+        ]));
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

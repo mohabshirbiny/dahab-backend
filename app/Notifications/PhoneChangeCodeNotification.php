@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -33,8 +34,10 @@ class PhoneChangeCodeNotification extends Notification implements ShouldQueue
         $minutes = (int) ceil(((int) config('dahab-auth.otp.ttl_seconds')) / 60);
         $app = (string) config('app.name');
 
-        return SmsMessage::make($this->lang === 'ar'
-            ? "رمز تغيير رقم الموبايل في {$app} هو {$this->code}. صالح لمدة {$minutes} دقائق. لا تشاركه مع أحد."
-            : "Your {$app} code to change your phone number is {$this->code}. It expires in {$minutes} minutes. Do not share it with anyone.");
+        return SmsMessage::make(Templates::text('auth.phone_change_code.sms', $this->lang === 'ar', [
+            'app' => $app,
+            'code' => $this->code,
+            'minutes' => $minutes,
+        ]));
     }
 }

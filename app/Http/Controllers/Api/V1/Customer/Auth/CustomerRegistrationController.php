@@ -250,7 +250,10 @@ class CustomerRegistrationController extends Controller
     {
         /** @var RequestContext $ctx */
         $ctx = $request->attributes->get('context');
-        $result = $this->submit->execute($request->validated('registration_ref'), $ctx);
+        $result = $this->submit->execute($request->validated('registration_ref'), $ctx, [
+            'terms' => $request->validated('terms_legal_doc_id'),
+            'privacy' => $request->validated('privacy_legal_doc_id'),
+        ]);
 
         return response()->json([
             'data' => [

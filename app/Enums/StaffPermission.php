@@ -150,6 +150,40 @@ enum StaffPermission: string
     /** Read each party's rating of an order (spec 018 FR-034). CEO and COO. */
     case RATING_VIEW = 'rating.view';
 
+    /** Edit the customer app's texts and publish them (Part 1 §4.3 "Edit app text"; spec 019). CEO, COO, Operations. */
+    case CONTENT_EDIT = 'content.edit';
+
+    /** Publish a new version of a legal document (Part 1 §4.3; spec 019 D1: CEO only, no seed role). */
+    case LEGAL_PUBLISH = 'legal.publish';
+
+    /**
+     * Edit the messages that carry a one-time code or a link (spec 019 D7). A wrong word there
+     * can stop customers signing in or confirming a withdrawal, so it is its own permission,
+     * seeded to no role: the CEO (every code) assigns it. Needs `content.edit` as well.
+     */
+    case CONTENT_EDIT_SECURE = 'content.edit_secure';
+
+    /** Stop new listings in one category (spec 019 D1: COO, Operations). */
+    case CATEGORY_STOP_NEW = 'category.stop_new';
+
+    /** Pause a category: hide pieces nobody asked for, refuse requests for more time (COO). */
+    case CATEGORY_PAUSE = 'category.pause';
+
+    /** Stop everything: no new listings, buy requests or withdrawals; no staff release (COO). */
+    case PLATFORM_STOP_EVERYTHING = 'platform.stop_everything';
+
+    /** Show or hide the four items under "What customers can see" (COO). */
+    case VISIBILITY_MANAGE = 'visibility.manage';
+
+    /** Create and change market-maker promo codes (spec 019 FR-060: CEO, Finance). */
+    case PROMO_MANAGE = 'promo.manage';
+
+    /** Approve a piece for market-maker purchase (spec 019 FR-062: CEO, Finance). */
+    case MARKET_MAKER_APPROVE = 'market_maker.approve';
+
+    /** See who to watch: the measured signals per customer (spec 019 US8: CEO, COO). */
+    case PEOPLE_TO_WATCH_VIEW = 'people_to_watch.view';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -161,6 +195,15 @@ enum StaffPermission: string
 
     /** Spec 015 reads: the code that acts, or wallet.view. */
     public const COMPENSATION_READ = 'compensation.pay|wallet.view';
+
+    /** Reading legal documents and their history: the code that publishes, or content.edit (spec 019). */
+    public const LEGAL_READ = 'legal.publish|content.edit';
+
+    /** Any of these opens the Switches page and its reads (spec 019 US7). */
+    /** Either opens the cost panel of the market-maker programme. */
+    public const MARKET_MAKER_READ = 'promo.manage|market_maker.approve';
+
+    public const CONTROLS_READ = 'category.stop_new|category.pause|platform.stop_everything|visibility.manage';
 
     public const ADJUSTMENTS_READ = 'wallet.adjust|wallet.view';
 
@@ -216,6 +259,16 @@ enum StaffPermission: string
             self::INVOICE_CORRECT => 'Issue or correct a tax invoice',
             self::LISTING_REPORT_HANDLE => 'Handle listing reports',
             self::RATING_VIEW => 'View ratings',
+            self::CONTENT_EDIT => 'Edit app text',
+            self::LEGAL_PUBLISH => 'Edit legal text and publish a new version',
+            self::CONTENT_EDIT_SECURE => 'Edit messages that carry a code or a link',
+            self::CATEGORY_STOP_NEW => 'Stop new listings in a category',
+            self::CATEGORY_PAUSE => 'Pause a category',
+            self::PLATFORM_STOP_EVERYTHING => 'Stop everything',
+            self::VISIBILITY_MANAGE => 'Change what customers can see',
+            self::PROMO_MANAGE => 'Manage market-maker promo codes',
+            self::MARKET_MAKER_APPROVE => 'Approve pieces for market makers',
+            self::PEOPLE_TO_WATCH_VIEW => 'See People to watch',
         };
     }
 
@@ -238,6 +291,10 @@ enum StaffPermission: string
             self::ORDER_CANCEL, self::ORDER_VIEW, self::ORDER_RECEIVE, self::INSPECTION_ENTER,
             self::ORDER_PRICE_ADJUST, self::ORDER_CHANGE_BRANCH, self::ORDER_EXTEND_DEADLINE,
             self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW, self::DISPUTE_HANDLE, self::RATING_VIEW => 'Orders',
+            self::CONTENT_EDIT, self::LEGAL_PUBLISH, self::CONTENT_EDIT_SECURE => 'Content',
+            self::CATEGORY_STOP_NEW, self::CATEGORY_PAUSE, self::PLATFORM_STOP_EVERYTHING, self::VISIBILITY_MANAGE => 'Controls',
+            self::PROMO_MANAGE, self::MARKET_MAKER_APPROVE => 'Market makers',
+            self::PEOPLE_TO_WATCH_VIEW => 'Orders',
         };
     }
 
@@ -328,6 +385,19 @@ enum StaffPermission: string
             self::LISTING_REPORT_HANDLE => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
             // Spec 018: ratings are read by the CEO (every code) and the COO.
             self::RATING_VIEW => [SeedRole::COO->value],
+            // Spec 019 (Part 1 §4.3 "Edit app text": CEO, COO, Operations).
+            self::CONTENT_EDIT => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
+            // Spec 019 D1: "Edit legal text and publish a new version" is the CEO's alone — no role.
+            self::LEGAL_PUBLISH => [],
+            // Spec 019 D7: no role until the owner assigns one.
+            self::CONTENT_EDIT_SECURE => [],
+            // Spec 019 D1: stopping new listings is the COO's and Operations'; the rest is the COO's
+            // (the CEO holds every code).
+            self::CATEGORY_STOP_NEW => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
+            self::CATEGORY_PAUSE, self::PLATFORM_STOP_EVERYTHING, self::VISIBILITY_MANAGE => [SeedRole::COO->value],
+            // Spec 019 FR-060/FR-062: the CEO (every code) and Finance. FR US8: the CEO and the COO.
+            self::PROMO_MANAGE, self::MARKET_MAKER_APPROVE => [SeedRole::FINANCE->value],
+            self::PEOPLE_TO_WATCH_VIEW => [SeedRole::COO->value],
         };
     }
 }

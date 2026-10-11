@@ -16,6 +16,8 @@ use OpenApi\Attributes as OA;
     required: ['registration_ref'],
     properties: [
         new OA\Property(property: 'registration_ref', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'terms_legal_doc_id', type: 'integer', nullable: true, description: 'The live `terms` version the app showed; recorded as the sign-up acceptance (spec 019). Optional: an older app sends none.'),
+        new OA\Property(property: 'privacy_legal_doc_id', type: 'integer', nullable: true, description: 'The live `privacy` version the app showed; optional'),
     ],
 )]
 class SubmitRegistrationRequest extends FormRequest
@@ -29,6 +31,8 @@ class SubmitRegistrationRequest extends FormRequest
     {
         return [
             'registration_ref' => ['required', 'string', 'uuid'],
+            'terms_legal_doc_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'privacy_legal_doc_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
     }
 }

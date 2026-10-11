@@ -17,6 +17,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'listing_id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'confirm_locked_price', type: 'string', example: '58200.0000', description: 'The current_price the buyer saw. Refused as price_moved when the fresh price is further away than buyrequest.price_tolerance_pct; otherwise the fresh price is locked.'),
         new OA\Property(property: 'deposit_legal_doc_id', type: 'integer', example: 2, description: 'Id of the current deposit_agreement (GET /reference/legal-documents/deposit_agreement)'),
+        new OA\Property(property: 'promo_code', type: 'string', nullable: true, example: 'AHMED-GOLD', description: 'A market-maker code of the buyer\'s own account (spec 019 6B); refused promo_code_invalid with a reason'),
     ],
 )]
 class SendBuyRequestRequest extends FormRequest
@@ -32,6 +33,7 @@ class SendBuyRequestRequest extends FormRequest
             'listing_id' => ['required', 'uuid'],
             'confirm_locked_price' => ['required', 'string', 'regex:/^\d{1,14}(\.\d{1,4})?$/', 'not_regex:/^0+(\.0+)?$/'],
             'deposit_legal_doc_id' => ['required', 'integer', 'min:1'],
+            'promo_code' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Za-z0-9-]{3,32}$/'],
         ];
     }
 }

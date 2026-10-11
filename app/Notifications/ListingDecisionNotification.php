@@ -8,6 +8,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -48,7 +49,7 @@ class ListingDecisionNotification extends Notification implements InboxNotificat
     {
         $arabic = $this->arabic($notifiable);
 
-        $mail = (new MailMessage)->subject($this->subject($arabic))->line($this->body($arabic));
+        $mail = (new MailMessage)->subject($this->subject($arabic))->line($this->mailLine($arabic));
 
         return $this->message === null ? $mail : $mail->line($this->message);
     }
@@ -68,32 +69,23 @@ class ListingDecisionNotification extends Notification implements InboxNotificat
 
     private function subject(bool $arabic): string
     {
-        return match ($this->decision) {
-            ListingDecision::APPROVED => $arabic ? 'قطعتك اتنشرت' : 'Your piece is live',
-            ListingDecision::CHANGES_REQUESTED => $arabic ? 'قطعتك محتاجة تعديل' : 'Your piece needs a change',
-            ListingDecision::REJECTED => $arabic ? 'لم نقبل نشر قطعتك' : 'We could not list your piece',
-            ListingDecision::TAKEN_DOWN => $arabic ? 'قطعتك اتشالت من السوق' : 'Your piece was taken off the market',
-        };
+        return Templates::text("listing.{$this->decision->value}.mail_subject", $arabic);
     }
 
     private function body(bool $arabic): string
     {
-        $title = $arabic ? $this->titleAr : $this->title;
+        return Templates::text("listing.{$this->decision->value}.sms", $arabic, $this->params($arabic));
+    }
 
-        return match ($this->decision) {
-            ListingDecision::APPROVED => $arabic
-                ? "قطعتك ({$title}) اتراجعت واتنشرت في السوق."
-                : "Your piece ({$title}) was approved and is now live on the market.",
-            ListingDecision::CHANGES_REQUESTED => $arabic
-                ? "قطعتك ({$title}) محتاجة تعديل قبل ما تتنشر:"
-                : "Your piece ({$title}) needs a change before it can go live:",
-            ListingDecision::REJECTED => $arabic
-                ? "لم نقبل نشر قطعتك ({$title}):"
-                : "We could not list your piece ({$title}):",
-            ListingDecision::TAKEN_DOWN => $arabic
-                ? "قطعتك ({$title}) اتشالت من السوق:"
-                : "Your piece ({$title}) was taken off the market:",
-        };
+    private function mailLine(bool $arabic): string
+    {
+        return Templates::mailBody("listing.{$this->decision->value}", $arabic, $this->params($arabic));
+    }
+
+    /** @return array<string, scalar|null> */
+    private function params(bool $arabic): array
+    {
+        return ['piece' => $arabic ? $this->titleAr : $this->title];
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

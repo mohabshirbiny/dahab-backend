@@ -26,6 +26,17 @@ final class Invoices
 
     public const CUSTOMER_URL = '/api/v1/customer/me/invoices';
 
+    /**
+     * Leave Dahab's details empty, as a fresh install has them: documents wait. The shipped config
+     * carries demo values (kept on purpose, 2026-10-05), so a test that needs "not configured" says so.
+     */
+    public static function clearIssuer(): void
+    {
+        config(['dahab-invoices.issuer' => array_fill_keys(
+            ['legal_name_en', 'legal_name_ar', 'address_en', 'address_ar', 'tax_registration_no', 'commercial_register_no'], '',
+        )]);
+    }
+
     /** Fill Dahab's six details so documents can be made. */
     public static function configureIssuer(): void
     {

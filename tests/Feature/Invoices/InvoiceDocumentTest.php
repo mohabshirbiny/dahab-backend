@@ -45,6 +45,7 @@ it('stores each document encrypted once, copying the party and Dahab\'s details'
 });
 
 it('waits while Dahab\'s details are incomplete, then the sweep makes the documents', function () {
+    Invoices::clearIssuer();
     $fake = Invoices::fakeRenderer();
     $order = Invoices::paid($this);
 
