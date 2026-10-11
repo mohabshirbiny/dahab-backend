@@ -58,106 +58,106 @@ Format: `- [ ] T### [P?] [US?] description — repo`
 
 **Independent test**: US3 scenarios 1–10.
 
-- [ ] T027 [US3] Migration `2026_10_12_000020_legal_publishing.php`: trigger `legal_document_immutable` (`DH018`), index `(code, version DESC)`, seed `legal.publish` with **no role** (CEO only, D1); `down()` refuses when a `legal_document` row exists beyond the migration-seeded v1 declarations, drops the trigger first; mirror schema SQL — B
-- [ ] T028 [US3] `legal.publish` in `StaffPermission` (label *Edit legal text and publish a new version*, group Content, no seed role); audit events `legal.published`, `legal.accepted`; error codes `legal_acceptance_required`, `legal_document_not_current`, `legal_acceptance_not_required`, `legal_body_required`, `legal_code_unknown`, `legal_version_conflict`; inventories — B
-- [ ] T029 [US3] `LegalDocumentCode`: add the four declaration codes with `kind()`; `GET /reference/legal-documents` keeps `data[]` and adds `declarations[]` — B
-- [ ] T030 [US3] `app/Actions/Legal/PublishLegalVersionAction.php` (lock latest row of the code; version = max+1; `UNIQUE(code, version)` violation → `409 legal_version_conflict`; audit with sha256 + length per body and the version replaced) — B
-- [ ] T031 [US3] `LegalDocumentController`: list (live version, date, publisher, material, accepted count), versions history, publish (`legal.publish` only; reads also `content.edit`); `#[OA]`; Postman — B
-- [ ] T032 [US3] `app/Support/Legal/LegalAcceptanceRequirement.php` (R8: `first` when no acceptance of `terms`/`privacy`, `material` when a newer material version exists) and `legal_acceptance_required[]` on `GET /customer/me` and sign-in / OTP / refresh payloads — B
-- [ ] T033 [US3] `POST /customer/me/legal-acceptances` (`AcceptLegalVersionAction`; context `first_acceptance` or `material_reaccept`; allowed when suspended) — B
-- [ ] T034 [US3] Middleware `customer.legal` on every state-changing customer route; passes only the acceptance POST, `logout`, `logout-all` and GETs (Terms §13); route-inventory test that every customer write is gated except those — B
-- [ ] T035 [US3] Registration final step: optional `terms_legal_doc_id`, `privacy_legal_doc_id` → `signup` rows; not live → `422 legal_document_not_current`; absent → nothing recorded — B
-- [ ] T036 [P] [US3] Tests `tests/Feature/Legal/{PublishLegalVersionTest,LegalDocumentListTest,FirstAcceptanceTest,MaterialReacceptTest,SignupAcceptanceTest,LegalGuardTest,LegalConcurrencyTest}.php`: CEO-only seed (COO 403); numbering; DH018; counts; existing `*_required` refusals still fire; first acceptance for a customer with none (D2); material; gate + pass-throughs; sign-up with, without and with a stale id; two publishes of one code at once — B
-- [ ] T037 [P] [US3] Dashboard `legal.publish` string; `src/types/legal.ts`, `src/services/legal.service.ts`, `src/composables/useLegal.ts`, `src/pages/docs/index.vue` + `src/components/legal/{LegalVersionDialog,LegalHistoryDrawer}.vue` (design p-docs, material checkbox, a warning that publishing `terms`/`privacy` asks every customer without an acceptance to accept); un-hide `docs` (`anyPermission: ['legal.publish','content.edit']`), *New version* only with `legal.publish` — D
-- [ ] T038 [US3] Flutter: `legal_acceptance_required` on the me/session models; `lib/features/account/legal_accept_screen.dart` shown before anything else (keys `legal.accept.*`, Arabic AR-DRAFT per spec Appendix B); any `409 legal_acceptance_required` routes there; sign-up sends the shown `terms`/`privacy` ids; legal list shows declarations; `test/legal_accept_test.dart` — F
-- [ ] T039 [US3] Copy spec Appendix A to `docs/legal/terms-5-5-proposal.md` marked "draft for legal review — not published"; seed nothing — B
-- [ ] T040 [US3] Release rule in `docs/features/app-content.md` and the Step 5 report: the Phase 5 app must be live before the CEO publishes any `terms`/`privacy` version or any material version; publishing `terms` v1 gates every existing customer (D2) — B
+- [x] T027 [US3] Migration `2026_10_12_000020_legal_publishing.php`: trigger `legal_document_immutable` (`DH018`), index `(code, version DESC)`, seed `legal.publish` with **no role** (CEO only, D1); `down()` refuses when a `legal_document` row exists beyond the migration-seeded v1 declarations, drops the trigger first; mirror schema SQL — B
+- [x] T028 [US3] `legal.publish` in `StaffPermission` (label *Edit legal text and publish a new version*, group Content, no seed role); audit events `legal.published`, `legal.accepted`; error codes `legal_acceptance_required`, `legal_document_not_current`, `legal_acceptance_not_required`, `legal_body_required`, `legal_code_unknown`, `legal_version_conflict`; inventories — B
+- [x] T029 [US3] `LegalDocumentCode`: add the four declaration codes with `kind()`; `GET /reference/legal-documents` keeps `data[]` and adds `declarations[]` — B
+- [x] T030 [US3] `app/Actions/Legal/PublishLegalVersionAction.php` (lock latest row of the code; version = max+1; `UNIQUE(code, version)` violation → `409 legal_version_conflict`; audit with sha256 + length per body and the version replaced) — B
+- [x] T031 [US3] `LegalDocumentController`: list (live version, date, publisher, material, accepted count), versions history, publish (`legal.publish` only; reads also `content.edit`); `#[OA]`; Postman — B
+- [x] T032 [US3] `app/Support/Legal/LegalAcceptanceRequirement.php` (R8: `first` when no acceptance of `terms`/`privacy`, `material` when a newer material version exists) and `legal_acceptance_required[]` on `GET /customer/me` and sign-in / OTP / refresh payloads — B
+- [x] T033 [US3] `POST /customer/me/legal-acceptances` (`AcceptLegalVersionAction`; context `first_acceptance` or `material_reaccept`; allowed when suspended) — B
+- [x] T034 [US3] Middleware `customer.legal` on every state-changing customer route; passes only the acceptance POST, `logout`, `logout-all` and GETs (Terms §13); route-inventory test that every customer write is gated except those — B
+- [x] T035 [US3] Registration final step: optional `terms_legal_doc_id`, `privacy_legal_doc_id` → `signup` rows; not live → `422 legal_document_not_current`; absent → nothing recorded — B
+- [x] T036 [P] [US3] Tests `tests/Feature/Legal/{PublishLegalVersionTest,LegalDocumentListTest,FirstAcceptanceTest,MaterialReacceptTest,SignupAcceptanceTest,LegalGuardTest,LegalConcurrencyTest}.php`: CEO-only seed (COO 403); numbering; DH018; counts; existing `*_required` refusals still fire; first acceptance for a customer with none (D2); material; gate + pass-throughs; sign-up with, without and with a stale id; two publishes of one code at once — B
+- [x] T037 [P] [US3] Dashboard `legal.publish` string; `src/types/legal.ts`, `src/services/legal.service.ts`, `src/composables/useLegal.ts`, `src/pages/docs/index.vue` + `src/components/legal/{LegalVersionDialog,LegalHistoryDrawer}.vue` (design p-docs, material checkbox, a warning that publishing `terms`/`privacy` asks every customer without an acceptance to accept); un-hide `docs` (`anyPermission: ['legal.publish','content.edit']`), *New version* only with `legal.publish` — D
+- [x] T038 [US3] Flutter: `legal_acceptance_required` on the me/session models; `lib/features/account/legal_accept_screen.dart` shown before anything else (keys `legal.accept.*`, Arabic AR-DRAFT per spec Appendix B); any `409 legal_acceptance_required` routes there; sign-up sends the shown `terms`/`privacy` ids; legal list shows declarations; `test/legal_accept_test.dart` — F
+- [x] T039 [US3] Copy spec Appendix A to `docs/legal/terms-5-5-proposal.md` marked "draft for legal review — not published"; seed nothing — B
+- [x] T040 [US3] Release rule in `docs/features/app-content.md` and the Step 5 report: the Phase 5 app must be live before the CEO publishes any `terms`/`privacy` version or any material version; publishing `terms` v1 gates every existing customer (D2) — B
 
 ## Phase 6: US4 — Notification templates (P2)
 
 **Independent test**: US4 scenarios 1–6.
 
-- [ ] T041 [US4] Golden test FIRST: `tests/Feature/Notifications/Templates/GoldenMessagesTest.php` renders every event/audience of the 20 customer notification classes (mail subject, mail body, SMS, inbox EN/AR) with fixed inputs into `tests/Fixtures/notification-golden.json`; passes on the unchanged code — B
-- [ ] T042 [US4] `app/Notifications/Templates/Catalogue.php`: one entry per `<class>.<event>.<audience>.<part>` with default EN/AR as `{placeholders}`, allowed names, required `{code}`/`{link}`, `inbox: false` and `read_only: true` for codes/links (D7) — B
-- [ ] T043 [US4] `app/Notifications/Templates/TemplateRenderer.php` (latest published, cached per bundle version, else default; never throws; setting placeholders live) — B
-- [ ] T044 [US4] Refactor `OrderNotification`, `BuyRequestNotification`, `PayoutNotification`, `ListingDecisionNotification`, `AccountNotification`, `WalletNotification` — B
-- [ ] T045 [US4] Refactor the 14 single-message classes; T041 still byte-identical — B
-- [ ] T046 [P] [US4] Tests `tests/Feature/Notifications/Templates/{TemplateOverrideTest,TemplateFallbackTest,ReadOnlyTemplateTest}.php`: override reaches SMS, mail and inbox; corrupt/missing → default; drafting a code/link template → `409 content_key_read_only`; inbox still masks collection codes — B
-- [ ] T047 [US4] Dashboard *Notifications* tab (kind `notification`, grouped by event and audience, parts side by side, code/link templates shown read-only with a lock) — D
-- [ ] T048 [US4] Extend `app-texts:sync` to the catalogue; run on `dahab_wt019_dev` — B
+- [x] T041 [US4] Golden test FIRST: `tests/Feature/Notifications/Templates/GoldenMessagesTest.php` renders every event/audience of the 20 customer notification classes (mail subject, mail body, SMS, inbox EN/AR) with fixed inputs into `tests/Fixtures/notification-golden.json`; passes on the unchanged code — B
+- [x] T042 [US4] `app/Notifications/Templates/Catalogue.php`: one entry per `<class>.<event>.<audience>.<part>` with default EN/AR as `{placeholders}`, allowed names, required `{code}`/`{link}`, `inbox: false` and `read_only: true` for codes/links (D7) — B
+- [x] T043 [US4] `app/Notifications/Templates/TemplateRenderer.php` (latest published, cached per bundle version, else default; never throws; setting placeholders live) — B
+- [x] T044 [US4] Refactor `OrderNotification`, `BuyRequestNotification`, `PayoutNotification`, `ListingDecisionNotification`, `AccountNotification`, `WalletNotification` — B
+- [x] T045 [US4] Refactor the 14 single-message classes; T041 still byte-identical — B
+- [x] T046 [P] [US4] Tests `tests/Feature/Notifications/Templates/{TemplateOverrideTest,TemplateFallbackTest,ReadOnlyTemplateTest}.php`: override reaches SMS, mail and inbox; corrupt/missing → default; drafting a code/link template → `409 content_key_read_only`; inbox still masks collection codes — B
+- [x] T047 [US4] Dashboard *Notifications* tab (kind `notification`, grouped by event and audience, parts side by side, code/link templates shown read-only with a lock) — D
+- [x] T048 [US4] Extend `app-texts:sync` to the catalogue; run on `dahab_wt019_dev` — B
 
 ## Phase 7: US5 + US9 + clean-up (P2)
 
-- [ ] T049 [US5] `CreateFaqEntryAction`, `ReorderFaqAction`; `POST /dashboard/faq`, `PATCH /dashboard/faq/{slug}/position` (`content.edit`, drafts); `is_hidden`; bundle `faq[]` by `position`; `#[OA]`; Postman — B
-- [ ] T050 [US5] Seeder (dev DB only): the nine prototype FAQ entries as **unpublished drafts**, numbers replaced by setting placeholders, Arabic AR-DRAFT added to spec Appendix B — B
-- [ ] T051 [P] [US5] `tests/Feature/Content/FaqTest.php` — B
-- [ ] T052 [US5] Dashboard *Help* tab (add, edit, reorder, hide) — D
-- [ ] T053 [US5] Flutter `HelpScreen` from the bundle's `faq`; empty → "Nothing here yet" + Contact us (`help.*`); remove `mockFaq`, `ContentRepository.faq`; `R.help` leaves `mockScreens`; Help menu row `mock: false` — F
-- [ ] T054 [US9] Flutter: hide *Invite a friend* and make `R.invite` redirect to Account; rating screen unchanged — F
-- [ ] T055 Flutter: delete `lib/features/admin/admin_screens.dart`, routes `R.codes`, `R.codeuses`, `R.mmapprove`, `R.compensate`, their menu rows and the *Show payout averages* toggle; update `mock_flag.dart`, routing, `test/{mock_flags_test,routes_smoke_test}.dart` — F
+- [x] T049 [US5] `CreateFaqEntryAction`, `ReorderFaqAction`; `POST /dashboard/faq`, `PATCH /dashboard/faq/{slug}/position` (`content.edit`, drafts); `is_hidden`; bundle `faq[]` by `position`; `#[OA]`; Postman — B
+- [x] T050 [US5] Seeder (dev DB only): the nine prototype FAQ entries as **unpublished drafts**, numbers replaced by setting placeholders, Arabic AR-DRAFT added to spec Appendix B — B
+- [x] T051 [P] [US5] `tests/Feature/Content/FaqTest.php` — B
+- [x] T052 [US5] Dashboard *Help* tab (add, edit, reorder, hide) — D
+- [x] T053 [US5] Flutter `HelpScreen` from the bundle's `faq`; empty → "Nothing here yet" + Contact us (`help.*`); remove `mockFaq`, `ContentRepository.faq`; `R.help` leaves `mockScreens`; Help menu row `mock: false` — F
+- [x] T054 [US9] Flutter: hide *Invite a friend* and make `R.invite` redirect to Account; rating screen unchanged — F
+- [x] T055 Flutter: delete `lib/features/admin/admin_screens.dart`, routes `R.codes`, `R.codeuses`, `R.mmapprove`, `R.compensate`, their menu rows and the *Show payout averages* toggle; update `mock_flag.dart`, routing, `test/{mock_flags_test,routes_smoke_test}.dart` — F
 
 ## Phase 8: US2 continued — App text stages 2–7
 
 Each stage: catalogue file, literals → `context.k`, its `i18n.dart` patterns → keys with placeholders, manifest regenerated (T006), Backend copy + `app-texts:sync`, screen test with network off and one override; no customer-visible word changes.
 
-- [ ] T056 [US2] Stage 2 — Home, Browse, piece page (`home_screen.dart`, `browse_screen.dart`, `detail_screen.dart`, `shared/{piece_card,listing_ui}.dart`) — F, B
-- [ ] T057 [US2] Stage 3 — Orders and buying (rest of `features/orders/*`, `buy_screens.dart`, `shared/order_card.dart`) — F, B
-- [ ] T058 [US2] Stage 4 — Selling (`sell{1,2,3}_screen.dart`, My listings; commission numbers → placeholders) — F, B
-- [ ] T059 [US2] Stage 5 — Wallet and money (`features/wallet/*`, `bank_screens.dart`, invoices) — F, B
-- [ ] T060 [US2] Stage 6 — Account, settings, legal list, inbox shell, contact changes, close account — F, B
-- [ ] T061 [US2] Stage 7 — Sign-in, sign-up, splash, shared widgets, toasts, errors; repo-wide check that no customer-visible literal is outside a catalogue (allow-list: brand, icons, numbers) — F, B
+- [x] T056 [US2] Stage 2 — Home, Browse, piece page (`home_screen.dart`, `browse_screen.dart`, `detail_screen.dart`, `shared/{piece_card,listing_ui}.dart`) — F, B
+- [x] T057 [US2] Stage 3 — Orders and buying (rest of `features/orders/*`, `buy_screens.dart`, `shared/order_card.dart`) — F, B
+- [x] T058 [US2] Stage 4 — Selling (`sell{1,2,3}_screen.dart`, My listings; commission numbers → placeholders) — F, B
+- [x] T059 [US2] Stage 5 — Wallet and money (`features/wallet/*`, `bank_screens.dart`, invoices) — F, B
+- [x] T060 [US2] Stage 6 — Account, settings, legal list, inbox shell, contact changes, close account — F, B
+- [x] T061 [US2] Stage 7 — Sign-in, sign-up, splash, shared widgets, toasts, errors; repo-wide check that no customer-visible literal is outside a catalogue (allow-list: brand, icons, numbers) — F, B
 
 ## Phase 9: US7 — Switches (P3)
 
 **Independent test**: US7 scenarios 1–5.
 
-- [ ] T062 [US7] Migration `2026_10_12_000030_category_controls.php` per data-model.md §3 (`category` NOT NULL as schema §14; `reason`; cleared pair CHECK; partial unique active; clearing-only update trigger); four `visibility.*` settings; seed `category.stop_new` (COO, Operations) and `category.pause`, `platform.stop_everything`, `visibility.manage` (COO) — D1; `down()` refuses when any control row exists or a visibility value differs from its default; mirror schema SQL — B
-- [ ] T063 [US7] Enums: four permission codes, `SettingGroup::VISIBILITY`, `SettingKey` cases; generic settings PATCH refuses the group (`setting_not_editable_here`); audit events `control.set`, `control.cleared`, `visibility.changed`; error codes `category_stopped`, `category_paused`, `platform_stopped`, `control_already_active`; inventories — B
-- [ ] T064 [US7] `app/Support/Controls/Controls.php` and Actions `SetCategoryControlAction` (stop everything = one row per category in one transaction), `ClearCategoryControlAction`, `SetVisibilityAction` — B
-- [ ] T065 [US7] Effects: listing create/submit → `409 category_stopped|platform_stopped`; `MarketQuery` and every market read hide paused `live` pieces (requested pieces stay and accept new requests); buy requests → `409 platform_stopped`; on pause every `waiting` extension request in the category refused via `AnswerExtensionRequestAction::refuse` (actor = pausing staff, note "category paused") and new ones `409 category_paused` (D4); stop everything → new withdrawals and staff release `409 platform_stopped`, customer cancel allowed (D5) — B
-- [ ] T066 [US7] `CategoryNotification` (sellers with listings in a paused category, after commit) and `FounderAlertNotification` (mail to every `is_founder` staff on set and clear of stop everything, D5) — B
-- [ ] T067 [US7] `CategoryControlController`, `VisibilityController`, public `GET /reference/controls`; `#[OA]`; Postman — B
-- [ ] T068 [P] [US7] Tests `tests/Feature/Controls/{CategoryControlTest,PauseEffectsTest,PauseExtensionRequestTest,StopEverythingTest,FounderAlertTest,VisibilityTest,ControlsPermissionsTest,MarketReadInventoryTest}.php`: locked-price orders finish; requested pieces stay requestable; refusals name the pausing staff and leave deadlines; release refused and cancel allowed; founders mailed on set and clear; COO allowed, Operations refused for pause; every market route honours the pause — B
-- [ ] T069 [P] [US7] Dashboard strings; `src/types/controls.ts`, service, composable, `src/pages/switches/index.vue` + `src/components/controls/{CategoryControlDialog,StopEverythingDialog,VisibilityTable}.vue`; Stop-everything banner in the app layout from `/reference/controls`; un-hide `switches` — D
-- [ ] T070 [US7] Flutter: read `/reference/controls` with the bundle refresh; stop message on the sell flow; paused banner (`app.stopped.*`, AR-DRAFT); handle the new 409s on listing, buy, withdrawal and extension requests; honour `visibility.sharing`, `visibility.listing_stats`, `visibility.payout_averages`; `test/controls_test.dart` — F
+- [x] T062 [US7] Migration `2026_10_12_000030_category_controls.php` per data-model.md §3 (`category` NOT NULL as schema §14; `reason`; cleared pair CHECK; partial unique active; clearing-only update trigger); four `visibility.*` settings; seed `category.stop_new` (COO, Operations) and `category.pause`, `platform.stop_everything`, `visibility.manage` (COO) — D1; `down()` refuses when any control row exists or a visibility value differs from its default; mirror schema SQL — B
+- [x] T063 [US7] Enums: four permission codes, `SettingGroup::VISIBILITY`, `SettingKey` cases; generic settings PATCH refuses the group (`setting_not_editable_here`); audit events `control.set`, `control.cleared`, `visibility.changed`; error codes `category_stopped`, `category_paused`, `platform_stopped`, `control_already_active`; inventories — B
+- [x] T064 [US7] `app/Support/Controls/Controls.php` and Actions `SetCategoryControlAction` (stop everything = one row per category in one transaction), `ClearCategoryControlAction`, `SetVisibilityAction` — B
+- [x] T065 [US7] Effects: listing create/submit → `409 category_stopped|platform_stopped`; `MarketQuery` and every market read hide paused `live` pieces (requested pieces stay and accept new requests); buy requests → `409 platform_stopped`; on pause every `waiting` extension request in the category refused via `AnswerExtensionRequestAction::refuse` (actor = pausing staff, note "category paused") and new ones `409 category_paused` (D4); stop everything → new withdrawals and staff release `409 platform_stopped`, customer cancel allowed (D5) — B
+- [x] T066 [US7] `CategoryNotification` (sellers with listings in a paused category, after commit) and `FounderAlertNotification` (mail to every `is_founder` staff on set and clear of stop everything, D5) — B
+- [x] T067 [US7] `CategoryControlController`, `VisibilityController`, public `GET /reference/controls`; `#[OA]`; Postman — B
+- [x] T068 [P] [US7] Tests `tests/Feature/Controls/{CategoryControlTest,PauseEffectsTest,PauseExtensionRequestTest,StopEverythingTest,FounderAlertTest,VisibilityTest,ControlsPermissionsTest,MarketReadInventoryTest}.php`: locked-price orders finish; requested pieces stay requestable; refusals name the pausing staff and leave deadlines; release refused and cancel allowed; founders mailed on set and clear; COO allowed, Operations refused for pause; every market route honours the pause — B
+- [x] T069 [P] [US7] Dashboard strings; `src/types/controls.ts`, service, composable, `src/pages/switches/index.vue` + `src/components/controls/{CategoryControlDialog,StopEverythingDialog,VisibilityTable}.vue`; Stop-everything banner in the app layout from `/reference/controls`; un-hide `switches` — D
+- [x] T070 [US7] Flutter: read `/reference/controls` with the bundle refresh; stop message on the sell flow; paused banner (`app.stopped.*`, AR-DRAFT); handle the new 409s on listing, buy, withdrawal and extension requests; honour `visibility.sharing`, `visibility.listing_stats`, `visibility.payout_averages`; `test/controls_test.dart` — F
 
 ## Phase 10: US6 — Market makers, staff side (6A) (P3)
 
-- [ ] T071 [US6] Migration `2026_10_12_000040_market_makers.php`: `promo_code`, `promo_code_use`, `market_maker_approval` **exactly as schema §15** (CHECK `kind IN ('first_sale','market_maker')` unchanged) + code format, `monthly_cap_egp > 0`, deactivated pair CHECK; `promo_code_use` forced RLS (staff only); append-only triggers on uses and approvals; seed `promo.manage`, `market_maker.approve` (Finance); `down()` refuses when any code, use or approval exists; mirror schema SQL — B
-- [ ] T072 [US6] Models, enums, audit events `promo.created`, `promo.updated`, `market_maker.approved`, error codes `promo_kind_not_available`, `promo_customer_not_market_maker`, `already_approved`, `listing_too_new`, `listing_not_live`; inventories — B
-- [ ] T073 [US6] `CreatePromoCodeAction` (market_maker only, tied customer of type `market_maker`), `UpdatePromoCodeAction` (cap, on/off), `ApproveForMarketMakersAction` (live, aged per `marketmaker.min_list_age_days`, numbers seen) — B
-- [ ] T074 [US6] `PromoCodeController`, `MarketMakerController` (`/dashboard/promo-codes*`, `/uses`, `/dashboard/market-maker/{queue,approvals,cost}`; views *not measured*); `#[OA]`; Postman — B
-- [ ] T075 [P] [US6] Tests `tests/Feature/MarketMakers/{PromoCodeTest,ApprovalTest,CodeUseLogTest,CostTest,PromoRlsTest}.php` (first_sale refused, non-MM customer refused, aged gate, unique approval, empty log, zero cost, customers read no use rows) — B
-- [ ] T076 [P] [US6] Dashboard strings; `src/types/marketMaker.ts`, service, composable, `src/pages/promos/index.vue` (market-maker codes only) and `src/pages/market-maker/index.vue` (queue, Price is sound / Leave, cost panel); un-hide `promos` and `mm`, drop the static badge — D
+- [x] T071 [US6] Migration `2026_10_12_000040_market_makers.php`: `promo_code`, `promo_code_use`, `market_maker_approval` **exactly as schema §15** (CHECK `kind IN ('first_sale','market_maker')` unchanged) + code format, `monthly_cap_egp > 0`, deactivated pair CHECK; `promo_code_use` forced RLS (staff only); append-only triggers on uses and approvals; seed `promo.manage`, `market_maker.approve` (Finance); `down()` refuses when any code, use or approval exists; mirror schema SQL — B
+- [x] T072 [US6] Models, enums, audit events `promo.created`, `promo.updated`, `market_maker.approved`, error codes `promo_kind_not_available`, `promo_customer_not_market_maker`, `already_approved`, `listing_too_new`, `listing_not_live`; inventories — B
+- [x] T073 [US6] `CreatePromoCodeAction` (market_maker only, tied customer of type `market_maker`), `UpdatePromoCodeAction` (cap, on/off), `ApproveForMarketMakersAction` (live, aged per `marketmaker.min_list_age_days`, numbers seen) — B
+- [x] T074 [US6] `PromoCodeController`, `MarketMakerController` (`/dashboard/promo-codes*`, `/uses`, `/dashboard/market-maker/{queue,approvals,cost}`; views *not measured*); `#[OA]`; Postman — B
+- [x] T075 [P] [US6] Tests `tests/Feature/MarketMakers/{PromoCodeTest,ApprovalTest,CodeUseLogTest,CostTest,PromoRlsTest}.php` (first_sale refused, non-MM customer refused, aged gate, unique approval, empty log, zero cost, customers read no use rows) — B
+- [x] T076 [P] [US6] Dashboard strings; `src/types/marketMaker.ts`, service, composable, `src/pages/promos/index.vue` (market-maker codes only) and `src/pages/market-maker/index.vue` (queue, Price is sound / Leave, cost panel); un-hide `promos` and `mm`, drop the static badge — D
 
 ## Phase 10B: Market-maker purchases (6B) — ⛔ [SIGN-OFF Finance, D3]
 
 Not started until Finance confirms in writing the spread allocation to the dealer and its ledger, invoice and VAT treatment. Kept here so the work is visible.
 
-- [ ] T077 ⛔ [SIGN-OFF] [US6] 6B migration: `buy_request.promo_code`, `promo_code_use.buy_request_id/amount_egp/device_fingerprint` and whatever ledger kind Finance specifies; schema docs — B
-- [ ] T078 ⛔ [SIGN-OFF] [US6] Code use at `SendBuyRequestAction` under a row lock on `promo_code` (cap counts uses whose buy request is open or settled); `422 promo_code_invalid {reason}`; use rows allowed/blocked — B
-- [ ] T079 ⛔ [SIGN-OFF] [US6] Settlement per Finance's confirmed treatment (D3 recommendation: commission/VAT 0, positive spread to the dealer's `cust_available`, negative spread on `dahab_spread`, buyer invoice only) — B
-- [ ] T080 ⛔ [SIGN-OFF] [US6] `GET /customer/me/market/listings` (`mm_approved`, filter) — B
-- [ ] T081 ⛔ [SIGN-OFF] [US6] Tests: ledger lines balance, seller proceeds equal an ordinary sale's, spread credited to the dealer, cap race (two requests at once), another account blocked and logged, stop everything refuses MM buys — B
-- [ ] T082 ⛔ [SIGN-OFF] [US6] Flutter mark, filter and code field (`buy.mm.*`, AR-DRAFT); refusal reasons in plain words — F
+- [x] T077 ⛔ [SIGN-OFF] [US6] 6B migration: `buy_request.promo_code`, `promo_code_use.buy_request_id/amount_egp/device_fingerprint` and whatever ledger kind Finance specifies; schema docs — B
+- [x] T078 ⛔ [SIGN-OFF] [US6] Code use at `SendBuyRequestAction` under a row lock on `promo_code` (cap counts uses whose buy request is open or settled); `422 promo_code_invalid {reason}`; use rows allowed/blocked — B
+- [x] T079 ⛔ [SIGN-OFF] [US6] Settlement per Finance's confirmed treatment (D3 recommendation: commission/VAT 0, positive spread to the dealer's `cust_available`, negative spread on `dahab_spread`, buyer invoice only) — B
+- [x] T080 ⛔ [SIGN-OFF] [US6] `GET /customer/me/market/listings` (`mm_approved`, filter) — B
+- [x] T081 ⛔ [SIGN-OFF] [US6] Tests: ledger lines balance, seller proceeds equal an ordinary sale's, spread credited to the dealer, cap race (two requests at once), another account blocked and logged, stop everything refuses MM buys — B
+- [x] T082 ⛔ [SIGN-OFF] [US6] Flutter mark, filter and code field (`buy.mm.*`, AR-DRAFT); refusal reasons in plain words — F
 
 ## Phase 11: US8 — People to watch (P3)
 
-- [ ] T083 [US8] Migration `2026_10_12_000050_people_to_watch.php` seeding `people_to_watch.view` (COO) — D1; enum case; audit event `people_to_watch.viewed`; `down()` detaches and deletes the code — B
-- [ ] T084 [US8] `ListPeopleToWatchAction` per research R12 (threshold `flag.pattern_txn_threshold`; four figures; sort by strongest ratio; no thresholds — D6) + `GET /dashboard/people-to-watch` and `/export` (audited read); `#[OA]`; Postman — B
-- [ ] T085 [P] [US8] `tests/Feature/PeopleToWatch/PeopleToWatchTest.php` (each figure, threshold boundary, period filter, sort order, no writes, IGI 403) — B
-- [ ] T086 [US8] Dashboard string; panel `src/components/inspections/PeopleToWatchTable.vue` in `src/pages/inspections/index.vue`, rendered only with `people_to_watch.view`; period chips; export — D
+- [x] T083 [US8] Migration `2026_10_12_000050_people_to_watch.php` seeding `people_to_watch.view` (COO) — D1; enum case; audit event `people_to_watch.viewed`; `down()` detaches and deletes the code — B
+- [x] T084 [US8] `ListPeopleToWatchAction` per research R12 (threshold `flag.pattern_txn_threshold`; four figures; sort by strongest ratio; no thresholds — D6) + `GET /dashboard/people-to-watch` and `/export` (audited read); `#[OA]`; Postman — B
+- [x] T085 [P] [US8] `tests/Feature/PeopleToWatch/PeopleToWatchTest.php` (each figure, threshold boundary, period filter, sort order, no writes, IGI 403) — B
+- [x] T086 [US8] Dashboard string; panel `src/components/inspections/PeopleToWatchTable.vue` in `src/pages/inspections/index.vue`, rendered only with `people_to_watch.view`; period chips; export — D
 
 ## Phase 12: Polish and verification
 
-- [ ] T087 `tests/Feature/Migrations/Spec019RollbackTest.php`: each of the five migrations rolls back on an empty database and refuses with data present — B
-- [ ] T088 `composer swagger:generate`; Postman complete for every new/changed route — B
-- [ ] T089 [P] Technical Spec "Changed by spec 019": Part 1 §4.1–§4.3 (codes and seeds per D1, superseding the "both founders" reading for legal and the CEO-only cells for pause/stop/visibility), Part 2 §10 and §12, Part 3 §8 (6A built, 6B awaiting Finance) and §9.3 (D6) — B
-- [ ] T090 [P] `docs/platform/api-contract.md` and `docs/features/app-content.md` final — B
-- [ ] T091 Dashboard gates: `npm run type-check`, `npm run lint`, `npm run build` — D
-- [ ] T092 Flutter gates: `flutter analyze`, `flutter test`, `flutter build web --release` (report the 2 known withdraw failures) — F
-- [ ] T093 Backend gates on `dahab_wt019` / `dahab_wt019_dev`: `./vendor/bin/pint --test`, `migrate:fresh --seed`, `app-texts:sync` — B
-- [ ] T094 Full `composer test` once (report the 3 known Invoices failures); `CLAUDE.md` current state; Step 5 report listing every AR-DRAFT string and every open sign-off — B
+- [x] T087 `tests/Feature/Migrations/Spec019RollbackTest.php`: each of the five migrations rolls back on an empty database and refuses with data present — B
+- [x] T088 `composer swagger:generate`; Postman complete for every new/changed route — B
+- [x] T089 [P] Technical Spec "Changed by spec 019": Part 1 §4.1–§4.3 (codes and seeds per D1, superseding the "both founders" reading for legal and the CEO-only cells for pause/stop/visibility), Part 2 §10 and §12, Part 3 §8 (6A built, 6B awaiting Finance) and §9.3 (D6) — B
+- [x] T090 [P] `docs/platform/api-contract.md` and `docs/features/app-content.md` final — B
+- [x] T091 Dashboard gates: `npm run type-check`, `npm run lint`, `npm run build` — D
+- [x] T092 Flutter gates: `flutter analyze`, `flutter test`, `flutter build web --release` (report the 2 known withdraw failures) — F
+- [x] T093 Backend gates on `dahab_wt019` / `dahab_wt019_dev`: `./vendor/bin/pint --test`, `migrate:fresh --seed`, `app-texts:sync` — B
+- [x] T094 Full `composer test` once (report the 3 known Invoices failures); `CLAUDE.md` current state; Step 5 report listing every AR-DRAFT string and every open sign-off — B
 
 ## Dependencies
 

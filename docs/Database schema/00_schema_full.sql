@@ -3147,6 +3147,7 @@ CREATE TABLE app_text_key (
   max_length            INTEGER NOT NULL CHECK (max_length > 0),
   inbox                 BOOLEAN NOT NULL DEFAULT TRUE,
   position              INTEGER,
+  pending_position      INTEGER,                          -- FAQ order waiting for Publish changes
   retired_at            TIMESTAMPTZ,
   synced_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -3185,18 +3186,13 @@ CREATE INDEX idx_app_text_version_bundle  ON app_text_version (bundle_version) W
 
 -- History is immutable (DH017). A draft may be edited or discarded and may become
 -- published; a published row may only become superseded; a superseded row never
--- changes; nothing that was published is deleted; a key that is read-only takes no
--- new version at all (D7).
+-- changes; nothing that was published is deleted. Whether a read-only key (a code or link
+-- message, D7) may take a new version is the application's rule: it needs the permission
+-- `content.edit_secure`, so the guard no longer looks at `read_only`.
 CREATE OR REPLACE FUNCTION app_text_version_guard() RETURNS trigger
 LANGUAGE plpgsql AS $$
-DECLARE
-  v_read_only BOOLEAN;
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    SELECT read_only INTO v_read_only FROM app_text_key WHERE text_key = NEW.text_key;
-    IF v_read_only THEN
-      RAISE EXCEPTION 'text key % is read-only', NEW.text_key USING ERRCODE = 'DH017';
-    END IF;
     IF NEW.state <> 'draft' THEN
       RAISE EXCEPTION 'a text version starts as a draft, not %', NEW.state USING ERRCODE = 'DH017';
     END IF;

@@ -484,6 +484,6 @@ If you change your mind after collecting, you may put the piece back on the mark
 | Accept terms (first time, D2), title | Please accept our terms | من فضلك وافق على الشروط بتاعتنا |
 | Request for more time refused on pause | Refused — category paused. Your deadline has not changed. | اترفض — الفئة متوقفة مؤقتاً. ميعادك ما اتغيرش. |
 | Platform stopped banner | Dahab is paused for a short while. Your money and pieces are safe. | دهب متوقفة لفترة قصيرة. فلوسك وقطعك في أمان. |
-| FAQ seed (9 entries) | prototype English | to be drafted in the plan, AR-DRAFT |
+| FAQ seed (9 entries) | prototype English | `database/seeders/LocalFaqSeeder.php` — AR-DRAFT, unpublished drafts (dev DB only) |
 
 The design's "Message to sellers" for a pause and every Dashboard-entered customer message are written by staff, not by this spec. The Stage 1 keys reuse the existing English and Arabic of spec 018 unchanged; the spec 018 estimate line (A6) stays pending owner approval as spec 018 left it.

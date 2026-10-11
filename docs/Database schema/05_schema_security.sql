@@ -1085,7 +1085,7 @@ CREATE CONSTRAINT TRIGGER trg_order_seller_invoice_present
 -- =====================================================================
 -- spec 019 — guards for the app text tables (the tables and functions are in 00_schema_full.sql)
 -- =====================================================================
--- DH017: app_text_version — INSERT only as a draft and never for a read_only key; a draft may be
+-- DH017: app_text_version — INSERT only as a draft; a draft may be
 -- edited, discarded or published; a published row only becomes superseded; a superseded row and
 -- every published or superseded DELETE are refused. app_text_bundle never changes.
 CREATE TRIGGER trg_app_text_version_guard BEFORE INSERT OR UPDATE OR DELETE ON app_text_version
