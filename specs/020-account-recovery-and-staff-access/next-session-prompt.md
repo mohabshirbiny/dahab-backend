@@ -4,12 +4,13 @@ Continue the Dahab platform. Spec 019 is built and committed; specs 020–025 ar
 
 ## 0. State you start from
 
-- Three repositories, each on branch `feature/app-content`, spec 019 committed, **nothing pushed**:
-  - Backend worktree `D:\laragon\www\dahab-backend\.claude\worktrees\new-feature-d10eb8` (last commit `docs(specs): draft specs 020-025 and their roadmap`)
-  - Dashboard `D:\laragon\www\dahab-dashboard`
-  - Customer app `D:\laragon\www\dahab-flutter`
-- Create the spec 020 branch as `feature/account-recovery` in each repo from the current branch (spec 019 is not merged to `main` yet), or tell me if you would rather wait for the merge.
-- Databases: tests on `dahab_wt019`, dev data on `dahab_wt019_dev` (owner `dahab`). **Never run tests, `migrate:fresh` or seeders on the main `dahab` database.** Create `dahab_wt020` and `dahab_wt020_dev` if you need new ones (the `dahab` user has no CREATEDB; ask me).
+- Spec 019 is **merged to `main` in all three repositories** (local merges, **nothing pushed**):
+  - Backend `D:\laragon\www\dahab-backend` (main checkout; merge `f73ad84`)
+  - Dashboard `D:\laragon\www\dahab-dashboard` (merge `5101f84`)
+  - Customer app `D:\laragon\www\dahab-flutter` (merge `b2b9b96`)
+- Work from `main`. Create `feature/account-recovery` in each repo from `main` (same name in all three), or a Backend worktree for it; create branches only when I ask.
+- The main Backend checkout's `.env` points at the primary `dahab` database. **Never run tests, `migrate:fresh` or seeders against it.** Use `dahab_wt019` (suite) and `dahab_wt019_dev` (dev data), or ask me for `dahab_wt020` / `dahab_wt020_dev` (the `dahab` user has no CREATEDB), by overriding `DB_DATABASE` on the command line.
+- Spec 019's migrations (`2026_10_12_0000*`) are not yet applied to the primary `dahab` database.
 - Servers I use: API `127.0.0.1:8000`, Dashboard `localhost:3000`, customer app `127.0.0.1:8765` (static `build/web`).
 
 ## 1. Read first, in this order
