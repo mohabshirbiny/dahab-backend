@@ -3,6 +3,7 @@
 namespace App\Actions\Auth\Customer;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
+use App\Actions\Legal\RecordSignupAcceptancesAction;
 use App\Enums\AuditEvent;
 use App\Enums\AuthErrorCode;
 use App\Enums\CustomerStatus;
@@ -46,9 +47,10 @@ final class SubmitCustomerRegistrationAction
     ) {}
 
     /**
+     * @param  array{terms?: ?int, privacy?: ?int}  $legalDocIds  the legal versions the app showed (optional)
      * @return array{customer: Customer, identity_document: IdentityDocument}
      */
-    public function execute(string $ref, RequestContext $ctx): array
+    public function execute(string $ref, RequestContext $ctx, array $legalDocIds = []): array
     {
         $lock = $this->sessions->lock($ref);
 
@@ -103,7 +105,14 @@ final class SubmitCustomerRegistrationAction
 
             $this->assertStillAvailable($session);
 
+            // Spec 019 FR-026: the terms / privacy versions the app showed, checked before anything is created.
+            $legal = app(RecordSignupAcceptancesAction::class);
+            $acceptedDocs = $legal->validate($legalDocIds);
+
             $result = $this->create($session, $kind, $ctx);
+            if ($acceptedDocs !== []) {
+                $legal->record($result['customer']->customer_id, $acceptedDocs, $ctx);
+            }
 
             // Mark the session as consumed. The record is kept briefly so a
             // duplicate submit gives a specific error rather than a generic

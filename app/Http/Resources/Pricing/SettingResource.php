@@ -14,7 +14,7 @@ use OpenApi\Attributes as OA;
     required: ['key', 'group', 'type', 'value', 'unit', 'description', 'min', 'max', 'integer', 'updated_by', 'updated_at'],
     properties: [
         new OA\Property(property: 'key', type: 'string', example: 'commission.gold_pct'),
-        new OA\Property(property: 'group', type: 'string', enum: ['rates', 'operations'], description: 'rates: pricing.rates.manage; operations: settings.manage'),
+        new OA\Property(property: 'group', type: 'string', enum: ['rates', 'operations', 'visibility'], description: 'rates: pricing.rates.manage; operations: settings.manage; visibility: changed from Switches (visibility.manage)'),
         new OA\Property(property: 'type', type: 'string', enum: ['numeric', 'bool']),
         new OA\Property(property: 'value', description: 'Decimal string (4 dp) or boolean', oneOf: [new OA\Schema(type: 'string'), new OA\Schema(type: 'boolean')]),
         new OA\Property(property: 'unit', type: 'string', example: 'percent'),

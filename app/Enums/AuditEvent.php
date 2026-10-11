@@ -156,6 +156,17 @@ enum AuditEvent: string
     case CONTENT_PUBLISHED = 'content.published';
     case CONTENT_REVERTED = 'content.reverted';
     case CONTENT_EXPORTED = 'content.exported';
+    case CONTENT_FAQ_CREATED = 'content.faq_created';
+    case CONTENT_FAQ_REORDERED = 'content.faq_reordered';
+    case CONTROL_SET = 'control.set';
+    case CONTROL_CLEARED = 'control.cleared';
+    case VISIBILITY_CHANGED = 'visibility.changed';
+    case PROMO_CREATED = 'promo.created';
+    case PROMO_UPDATED = 'promo.updated';
+    case MARKET_MAKER_APPROVED = 'market_maker.approved';
+    case PEOPLE_TO_WATCH_VIEWED = 'people_to_watch.viewed';
+    case LEGAL_PUBLISHED = 'legal.published';
+    case LEGAL_ACCEPTED = 'legal.accepted';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -301,6 +312,17 @@ enum AuditEvent: string
             self::CONTENT_PUBLISHED => 'App texts published',
             self::CONTENT_REVERTED => 'App text reverted',
             self::CONTENT_EXPORTED => 'App texts exported',
+            self::CONTENT_FAQ_CREATED => 'Help entry created',
+            self::CONTENT_FAQ_REORDERED => 'Help entries reordered',
+            self::CONTROL_SET => 'Category control set',
+            self::CONTROL_CLEARED => 'Category control cleared',
+            self::VISIBILITY_CHANGED => 'What customers can see changed',
+            self::PROMO_CREATED => 'Promo code created',
+            self::PROMO_UPDATED => 'Promo code changed',
+            self::MARKET_MAKER_APPROVED => 'Piece approved for market makers',
+            self::PEOPLE_TO_WATCH_VIEWED => 'People to watch read',
+            self::LEGAL_PUBLISHED => 'Legal text published',
+            self::LEGAL_ACCEPTED => 'Customer accepted a legal text',
         };
     }
 
@@ -311,7 +333,9 @@ enum AuditEvent: string
             self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
             self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED => AuditCategory::ACCOUNTS,
             self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
-            self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED => AuditCategory::SYSTEM,
+            self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
+            self::CONTROL_SET, self::CONTROL_CLEARED, self::VISIBILITY_CHANGED, self::PEOPLE_TO_WATCH_VIEWED => AuditCategory::SYSTEM,
+            self::PROMO_CREATED, self::PROMO_UPDATED, self::MARKET_MAKER_APPROVED => AuditCategory::PROMO,
             self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
             self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,
             self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED,
@@ -339,7 +363,7 @@ enum AuditEvent: string
             self::CUSTOMER_EMAIL_CHANGED, self::CUSTOMER_ACCOUNT_CLOSED => AuditCategory::ACCOUNTS,
             self::CUSTOMER_PASSWORD_CHANGED, self::CUSTOMER_SESSION_SIGNED_OUT => AuditCategory::SESSIONS,
             self::LISTING_REPORT_CREATED, self::LISTING_REPORT_DISMISSED, self::LISTING_REPORT_ACTIONED => AuditCategory::LISTINGS,
-            self::CONTENT_DRAFT_SAVED, self::CONTENT_DRAFT_DISCARDED, self::CONTENT_PUBLISHED, self::CONTENT_REVERTED, self::CONTENT_EXPORTED => AuditCategory::CONTENT,
+            self::CONTENT_DRAFT_SAVED, self::CONTENT_DRAFT_DISCARDED, self::CONTENT_PUBLISHED, self::CONTENT_REVERTED, self::CONTENT_EXPORTED, self::CONTENT_FAQ_CREATED, self::CONTENT_FAQ_REORDERED, self::LEGAL_PUBLISHED, self::LEGAL_ACCEPTED => AuditCategory::CONTENT,
         };
     }
 

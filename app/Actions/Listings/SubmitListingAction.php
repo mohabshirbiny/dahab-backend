@@ -8,6 +8,7 @@ use App\Enums\ListingState;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\Listing;
+use App\Support\Controls\Controls;
 use App\Support\Listings\ListingTransitions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -28,6 +29,9 @@ final class SubmitListingAction
     {
         return DB::transaction(function () use ($seller, $listingId) {
             $listing = $this->lockListing($listingId);
+
+            // Spec 019 US7: nothing new goes to review while the category (or everything) is stopped.
+            app(Controls::class)->assertCanList($listing->category);
 
             // The state first: a listing that cannot be submitted is a 409, whatever it lacks.
             if (! $this->transitions->allows($listing->state, ListingState::IN_REVIEW)) {

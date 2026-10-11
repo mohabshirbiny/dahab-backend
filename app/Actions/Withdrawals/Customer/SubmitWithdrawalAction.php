@@ -10,6 +10,7 @@ use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\Withdrawal;
 use App\Models\WithdrawalConfirmation;
+use App\Support\Controls\Controls;
 use App\Support\Pricing\Money;
 use App\Support\RequestContext;
 use App\Support\Withdrawals\WithdrawalLedger;
@@ -35,6 +36,9 @@ final class SubmitWithdrawalAction
 
     public function handle(Customer $customer, string $confirmationId, string $amount, string $accountId, ?RequestContext $ctx = null): Withdrawal
     {
+        // Spec 019 US7 D5: no new withdrawal while everything is stopped.
+        app(Controls::class)->assertPlatformRunning();
+
         $amount = Money::fixed4($amount);
 
         return DB::transaction(function () use ($customer, $confirmationId, $amount, $accountId, $ctx) {

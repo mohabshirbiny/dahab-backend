@@ -9,6 +9,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -65,7 +66,7 @@ class AccountNotification extends Notification implements InboxNotification, Sho
     {
         $arabic = $this->arabic($notifiable);
 
-        return (new MailMessage)->subject($this->subject($arabic))->line($this->body($arabic));
+        return (new MailMessage)->subject($this->subject($arabic))->line($this->mailLine($arabic));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
@@ -89,53 +90,43 @@ class AccountNotification extends Notification implements InboxNotification, Sho
 
     public function subject(bool $arabic): string
     {
-        return match ($this->event) {
-            AccountEvent::PHONE_CHANGED => $arabic ? 'رقم موبايلك اتغير' : 'Your phone number was changed',
-            AccountEvent::EMAIL_CHANGED => $arabic ? 'إيميلك اتغير' : 'Your email was changed',
-            AccountEvent::PASSWORD_CHANGED => $arabic ? 'كلمة السر اتغيرت' : 'Your password was changed',
-            AccountEvent::NEW_DEVICE => $arabic ? 'دخول من جهاز جديد' : 'A sign-in from a new device',
-            AccountEvent::ACCOUNT_CLOSED => $arabic ? 'حسابك اتقفل' : 'Your account is closed',
-        };
+        return Templates::text("account.{$this->event->value}.mail_subject", $arabic);
     }
 
+    /** The SMS sentence (also the inbox text): the template of the event, filled. */
     public function body(bool $arabic): string
     {
-        $phone = (string) config('dahab-support.phone');
-        $notYou = $arabic
-            ? " لو مش انت اللي عملت كده، كلمنا فوراً على {$phone}."
-            : " If this was not you, call us now on {$phone}.";
-        $stop = $this->stopLine($arabic);
+        return Templates::text("account.{$this->event->value}.sms", $arabic, $this->params($arabic));
+    }
 
-        return match ($this->event) {
-            AccountEvent::PHONE_CHANGED => ($arabic
-                ? "رقم الموبايل في حسابك على دهب اتغير لـ {$this->detail}."
-                : "The phone number on your Dahab account was changed to {$this->detail}.").$stop.$notYou,
-            AccountEvent::EMAIL_CHANGED => ($arabic
-                ? "الإيميل في حسابك على دهب اتغير لـ {$this->detail}."
-                : "The email on your Dahab account was changed to {$this->detail}.").$stop.$notYou,
-            AccountEvent::PASSWORD_CHANGED => ($arabic
-                ? 'كلمة السر بتاعة حسابك على دهب اتغيرت، والأجهزة التانية خرجت من الحساب.'
-                : 'The password of your Dahab account was changed and your other devices were signed out.').$notYou,
-            AccountEvent::NEW_DEVICE => ($arabic
-                ? "حد دخل حسابك على دهب من جهاز جديد ({$this->detail})."
-                : "Someone signed in to your Dahab account from a new device ({$this->detail}).").$notYou,
-            AccountEvent::ACCOUNT_CLOSED => $arabic
-                ? 'حسابك على دهب اتقفل. السجلات اللي القانون بيطلبها محفوظة للمدة المطلوبة. شكراً إنك كنت معانا.'
-                : 'Your Dahab account is closed. Records the law requires are kept for the period it sets. Thank you for using Dahab.',
-        };
+    /** The email line: its own template when staff wrote one, else the SMS sentence. */
+    public function mailLine(bool $arabic): string
+    {
+        return Templates::mailBody("account.{$this->event->value}", $arabic, $this->params($arabic));
+    }
+
+    /** @return array<string, scalar|null> */
+    private function params(bool $arabic): array
+    {
+        return [
+            'detail' => $this->detail,
+            'phone' => (string) config('dahab-support.phone'),
+            'stop' => $this->stopLine($arabic),
+            'not_you' => ' '.Templates::text('account.not_you.note', $arabic, ['phone' => (string) config('dahab-support.phone')]),
+        ];
     }
 
     private function stopLine(bool $arabic): string
     {
         $line = '';
+
         if ($this->cancelledWithdrawals > 0) {
-            $line .= $arabic
-                ? " طلبات السحب اللي ماخرجتش ({$this->cancelledWithdrawals}) اتلغت والفلوس رجعت محفظتك."
-                : " Withdrawals that had not left ({$this->cancelledWithdrawals}) were cancelled and the money is back in your wallet.";
+            $line .= ' '.Templates::text('account.stop_cancelled.note', $arabic, ['count' => $this->cancelledWithdrawals]);
         }
+
         if ($this->pauseUntil !== null) {
             $until = CarbonImmutable::parse($this->pauseUntil)->setTimezone('Africa/Cairo')->format('j M, H:i');
-            $line .= $arabic ? " السحب متوقف لحد {$until}." : " Withdrawals are paused until {$until}.";
+            $line .= ' '.Templates::text('account.stop_paused.note', $arabic, ['until' => $until]);
         }
 
         return $line;

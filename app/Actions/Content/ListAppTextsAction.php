@@ -60,7 +60,7 @@ final class ListAppTextsAction
             ->when(array_key_exists('changed', $filters) && $filters['changed'] !== null, fn (Builder $q) => $q->whereRaw(($filters['changed'] ? '' : 'NOT ').$overridden))
             ->when($filters['state'] ?? null, function (Builder $q, string $state) use ($overridden, $hasDraft) {
                 match ($state) {
-                    'draft' => $q->whereRaw($hasDraft),
+                    'draft' => $q->where(fn (Builder $w) => $w->whereRaw($hasDraft)->orWhereNotNull('pending_position')),
                     'published' => $q->whereRaw($overridden),
                     'default' => $q->whereRaw("NOT {$overridden}"),
                     default => null,

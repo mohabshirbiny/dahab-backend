@@ -3,9 +3,11 @@
 namespace App\Http\Resources\Customer;
 
 use App\Enums\CustomerStatus;
+use App\Enums\CustomerType;
 use App\Enums\Governorate;
 use App\Enums\SuspendedReason;
 use App\Models\Customer;
+use App\Support\Legal\LegalAcceptanceRequirement;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use OpenApi\Attributes as OA;
@@ -29,6 +31,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'suspended_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'trade_allowed', type: 'boolean', description: 'True only when status = active'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
+        new OA\Property(property: 'customer_type', type: 'string', enum: ['ordinary', 'market_maker'], description: 'A market-maker account sees approved pieces marked (spec 019 6B)'),
+        new OA\Property(property: 'legal_acceptance_required', type: 'array', items: new OA\Items(ref: '#/components/schemas/LegalAcceptanceRequired'), description: 'Terms or privacy owed before any state-changing request (spec 019); empty when nothing is owed'),
     ],
 )]
 class CustomerResource extends JsonResource
@@ -54,6 +58,8 @@ class CustomerResource extends JsonResource
             'suspended_at' => optional($c->suspended_at)->toIso8601String(),
             'trade_allowed' => $c->tradeAllowed(),
             'created_at' => optional($c->created_at)->toIso8601String(),
+            'legal_acceptance_required' => LegalAcceptanceRequirement::for($c->customer_id),
+            'customer_type' => ($c->customer_type ?? CustomerType::ORDINARY)->value,
         ];
     }
 }

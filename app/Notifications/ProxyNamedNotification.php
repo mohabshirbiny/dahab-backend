@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -41,10 +42,10 @@ class ProxyNamedNotification extends Notification implements ShouldQueue
 
     public function body(): string
     {
-        $n = $this->buyerFirstName;
-
-        return $this->arabic
-            ? "{$n} اختارك تستلم ({$this->titleAr}) بالنيابة عنه من IGI {$this->branchAr}. هات بطاقتك، وهو هيبعتلك كود الاستلام."
-            : "{$n} named you to collect ({$this->title}) for them at IGI {$this->branch}. Bring your ID; they will give you the collection code.";
+        return Templates::text('proxy.named.sms', $this->arabic, [
+            'first_name' => $this->buyerFirstName,
+            'piece' => $this->arabic ? $this->titleAr : $this->title,
+            'branch' => $this->arabic ? $this->branchAr : $this->branch,
+        ]);
     }
 }

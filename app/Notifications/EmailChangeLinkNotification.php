@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -34,12 +35,12 @@ class EmailChangeLinkNotification extends Notification implements ShouldQueue
     {
         $arabic = $this->lang === 'ar';
 
+        $p = ['minutes' => $this->minutes];
+
         return (new MailMessage)
-            ->subject($arabic ? 'أكد إيميلك الجديد في دهب' : 'Confirm your new Dahab email')
-            ->line($arabic
-                ? "افتح اللينك ده عشان تأكد إن الإيميل ده بتاعك. صالح لمدة {$this->minutes} دقيقة ولمرة واحدة."
-                : "Open this link to confirm this address is yours. It works once, for {$this->minutes} minutes.")
-            ->action($arabic ? 'أكد الإيميل' : 'Confirm email', $this->url)
-            ->line($arabic ? 'لو مش انت اللي طلبت ده، تجاهل الرسالة.' : 'If you did not ask for this, ignore this email.');
+            ->subject(Templates::text('auth.email_change_link.mail_subject', $arabic))
+            ->line(Templates::text('auth.email_change_link.mail_body', $arabic, $p))
+            ->action(Templates::text('auth.email_change_link.mail_action', $arabic), $this->url)
+            ->line(Templates::text('auth.email_change_link.mail_ignore', $arabic));
     }
 }

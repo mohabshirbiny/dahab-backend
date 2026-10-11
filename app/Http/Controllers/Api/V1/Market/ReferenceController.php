@@ -13,6 +13,7 @@ use App\Models\Karat;
 use App\Models\LegalDocument;
 use App\Models\PieceType;
 use App\Support\Content\BundleBuilder;
+use App\Support\Controls\ControlsSnapshot;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -134,11 +135,17 @@ class ReferenceController extends Controller
                 new OA\Property(property: 'version', type: 'integer', nullable: true),
                 new OA\Property(property: 'published_at', type: 'string', format: 'date-time', nullable: true),
             ], type: 'object')),
+            new OA\Property(property: 'declarations', type: 'array', description: 'Spec 019: the declarations ticked inside a form (ownership, deposit, collection authorisation, payout account), with the live version.', items: new OA\Items(properties: [
+                new OA\Property(property: 'code', type: 'string', enum: ['ownership_declaration', 'deposit_agreement', 'collection_proxy_authorisation', 'payout_account_declaration']),
+                new OA\Property(property: 'published', type: 'boolean'),
+                new OA\Property(property: 'version', type: 'integer', nullable: true),
+                new OA\Property(property: 'published_at', type: 'string', format: 'date-time', nullable: true),
+            ], type: 'object')),
         ]))],
     )]
     public function legalDocuments(): JsonResponse
     {
-        return response()->json(['data' => array_map(function (LegalDocumentCode $code) {
+        $row = function (LegalDocumentCode $code) {
             $doc = LegalDocument::current($code->value);
 
             return [
@@ -147,7 +154,28 @@ class ReferenceController extends Controller
                 'version' => $doc?->version,
                 'published_at' => $doc?->published_at?->toIso8601String(),
             ];
-        }, LegalDocumentCode::cases())]);
+        };
+
+        return response()->json([
+            'data' => array_map($row, LegalDocumentCode::documents()),
+            'declarations' => array_map($row, LegalDocumentCode::declarations()),
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/reference/controls',
+        operationId: 'referenceControls',
+        summary: 'What is stopped or paused, and what customers can see',
+        description: 'Spec 019 US7. Whether everything is stopped (with the banner text), the paused or stopped categories with their messages, and the four visibility flags. Public, read-only, rate limited.',
+        tags: ['Reference'],
+        responses: [
+            new OA\Response(response: 200, description: 'The switches'),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function controls(ControlsSnapshot $snapshot): JsonResponse
+    {
+        return response()->json(['data' => $snapshot->customer()]);
     }
 
     #[OA\Get(

@@ -6,6 +6,7 @@ use App\Http\Middleware\ElevateDatabaseScope;
 use App\Http\Middleware\EnforceIdempotency;
 use App\Http\Middleware\EnforceStaffPermission;
 use App\Http\Middleware\EnsureCustomerStanding;
+use App\Http\Middleware\EnsureLegalAccepted;
 use App\Http\Middleware\EnsureStaffStanding;
 use App\Http\Middleware\SetDatabaseActor;
 use App\Http\Middleware\SetRequestContext;
@@ -49,6 +50,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff.standing' => EnsureStaffStanding::class,
             // Customer verified gate, default-deny (spec 002 FR-030, App\Http\CustomerRouteAccess).
             'customer.gate' => EnsureCustomerStanding::class,
+            // Required acceptance of the live terms / privacy before any write (spec 019 FR-025).
+            'customer.legal' => EnsureLegalAccepted::class,
             // Row-level-security bootstrap for unauthenticated customer auth routes (spec 003).
             'db.elevate' => ElevateDatabaseScope::class,
             // The public market's read-only row-level-security scope (spec 010). Only on /market/*.
@@ -127,6 +130,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH016' => DomainApiException::ratingImmutable(),
                 // Spec 019: published app text history never changes.
                 'DH017' => DomainApiException::contentHistoryImmutable(),
+                // Spec 019: a published legal version never changes.
+                'DH018' => DomainApiException::legalHistoryImmutable(),
+                // Spec 019: a category control is cleared once and never edited.
+                'DH019' => DomainApiException::controlHistoryImmutable(),
+                'DH020' => DomainApiException::promoHistoryImmutable(),
                 // Spec 016: the credit-note cap answers like the Action; any other DH012
                 // (an invoice or credit note not matching its entry) is a bug — a 500.
                 'DH012' => match (true) {
@@ -168,6 +176,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 // Spec 018: a rating (or the free-relist window) never changes.
                 'DH016' => DomainApiException::ratingImmutable(),
                 'DH017' => DomainApiException::contentHistoryImmutable(),
+                // Spec 019: a published legal version never changes.
+                'DH018' => DomainApiException::legalHistoryImmutable(),
+                // Spec 019: a category control is cleared once and never edited.
+                'DH019' => DomainApiException::controlHistoryImmutable(),
+                'DH020' => DomainApiException::promoHistoryImmutable(),
                 default => $e,
             };
         });

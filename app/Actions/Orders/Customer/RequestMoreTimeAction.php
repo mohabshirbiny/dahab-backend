@@ -8,10 +8,13 @@ use App\Enums\AuditEvent;
 use App\Enums\ExtensionRequestReason;
 use App\Enums\ExtensionRequestState;
 use App\Enums\OrderState;
+use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
+use App\Models\Listing;
 use App\Models\Order;
 use App\Models\OrderExtensionRequest;
+use App\Support\Controls\Controls;
 use App\Support\DatabaseActor;
 use App\Support\RequestContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -39,6 +42,11 @@ final class RequestMoreTimeAction
         return DatabaseActor::order(fn () => DB::transaction(function () use ($seller, $order, $reason, $detail, $ctx) {
             $order = $this->lockOrder($order->order_id);
             $this->assertNotFrozen($order);
+            // Spec 019 US7 D4: the category is paused, so no request for more time; the order keeps its deadline.
+            $category = Listing::query()->whereKey($order->listing_id)->value('category');
+            if ($category !== null) {
+                app(Controls::class)->assertNotPaused(PieceCategory::from((string) ($category instanceof \BackedEnum ? $category->value : $category)));
+            }
             if ($order->state !== OrderState::AWAITING_DELIVERY) {
                 throw DomainApiException::illegalOrderTransition();
             }

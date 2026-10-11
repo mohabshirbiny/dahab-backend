@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -35,16 +36,12 @@ class CustomerRegistrationEmailOtpNotification extends Notification implements S
         $arabic = $this->lang === 'ar';
         $appName = (string) config('app.name');
 
+        $p = ['app' => $appName, 'minutes' => $minutes];
+
         return (new MailMessage)
-            ->subject($arabic
-                ? 'رمز التحقق من '.$appName
-                : $appName.' verification code')
-            ->line($arabic
-                ? 'استخدم الرمز التالي لتأكيد بريدك الإلكتروني في '.$appName.':'
-                : 'Use the following code to confirm your email on '.$appName.':')
+            ->subject(Templates::text('auth.registration_email_otp.mail_subject', $arabic, $p))
+            ->line(Templates::text('auth.registration_email_otp.mail_intro', $arabic, $p))
             ->line('**'.$this->code.'**')
-            ->line($arabic
-                ? "الرمز صالح لمدة {$minutes} دقائق. لا تشاركه مع أي شخص."
-                : "The code is valid for {$minutes} minutes. Do not share it with anyone.");
+            ->line(Templates::text('auth.registration_email_otp.mail_expiry', $arabic, $p));
     }
 }

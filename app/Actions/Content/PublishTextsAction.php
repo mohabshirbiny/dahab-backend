@@ -9,6 +9,7 @@ use App\Models\AppTextBundle;
 use App\Models\AppTextKey;
 use App\Models\AppTextVersion;
 use App\Models\Staff;
+use App\Notifications\Templates\Templates;
 use App\Support\Content\PlaceholderValidator;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,9 @@ final class PublishTextsAction
             DB::statement("SELECT pg_advisory_xact_lock(hashtext('app_text_publish'))");
 
             $drafts = AppTextVersion::query()->draft()->orderBy('text_key')->lockForUpdate()->get();
-            if ($drafts->isEmpty()) {
+            // A Help reorder waits for this same button: the keys whose `pending_position` is set.
+            $reordered = AppTextKey::query()->whereNotNull('pending_position')->orderBy('text_key')->lockForUpdate()->get();
+            if ($drafts->isEmpty() && $reordered->isEmpty()) {
                 throw DomainApiException::contentNothingToPublish();
             }
 
@@ -65,7 +68,8 @@ final class PublishTextsAction
                         }
                     } else {
                         $this->validator->validate($key, $draft->text_en, $draft->text_ar);
-                        if ($before['en'] === $draft->text_en && $before['ar'] === $draft->text_ar) {
+                        $sameHidden = $key->kind !== AppTextKey::KIND_FAQ || (bool) $draft->is_hidden === ($overridden && (bool) $current->is_hidden);
+                        if ($before['en'] === $draft->text_en && $before['ar'] === $draft->text_ar && $sameHidden) {
                             throw DomainApiException::contentUnchanged();
                         }
                     }
@@ -90,11 +94,19 @@ final class PublishTextsAction
                 throw DomainApiException::contentInvalid($errors);
             }
 
+            foreach ($reordered as $key) {
+                $changes[] = [
+                    'text_key' => $key->text_key,
+                    'kind' => $key->kind,
+                    'reorder' => ['from' => $key->position, 'to' => $key->pending_position],
+                ];
+            }
+
             // Numbered here, under the lock: consecutive even after a rolled-back attempt.
             $bundle = AppTextBundle::query()->create([
                 'bundle_version' => ((int) AppTextBundle::query()->max('bundle_version')) + 1,
                 'published_by' => $actor->staff_id,
-                'key_count' => $drafts->count(),
+                'key_count' => count($changes),
                 'kinds' => array_values(array_unique(array_column($changes, 'kind'))),
             ])->refresh();
 
@@ -109,6 +121,13 @@ final class PublishTextsAction
                     'published_at' => DB::raw('(SELECT published_at FROM app_text_bundle WHERE bundle_version = '.(int) $bundle->bundle_version.')'),
                     'bundle_version' => $bundle->bundle_version,
                 ]);
+
+            foreach ($reordered as $key) {
+                $key->forceFill(['position' => $key->pending_position, 'pending_position' => null])->save();
+            }
+
+            // Messages are rendered by long-running workers: they forget what they cached once this commits.
+            DB::afterCommit(fn () => Templates::flush());
 
             $this->audit->execute(
                 AuditEvent::CONTENT_PUBLISHED,

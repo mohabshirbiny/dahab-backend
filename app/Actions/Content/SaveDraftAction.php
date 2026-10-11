@@ -4,6 +4,7 @@ namespace App\Actions\Content;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
+use App\Enums\StaffPermission;
 use App\Exceptions\DomainApiException;
 use App\Models\AppTextKey;
 use App\Models\AppTextVersion;
@@ -42,7 +43,7 @@ final class SaveDraftAction
         return DB::transaction(function () use ($actor, $textKey, $en, $ar, $draftVersion, $isHidden, $ctx) {
             // The key row is the lock: two people saving one text run one after the other.
             $key = AppTextKey::query()->whereKey($textKey)->lockForUpdate()->firstOrFail();
-            self::assertEditable($key);
+            self::assertEditable($actor, $key);
 
             $draft = $key->draftVersion;
             if ($draft !== null && $draftVersion !== null && $draft->draft_version !== $draftVersion) {
@@ -52,11 +53,13 @@ final class SaveDraftAction
             $this->validator->validate($key, $en, $ar);
 
             $live = $key->effective();
-            if ($live['en'] === $en && $live['ar'] === $ar) {
+            $hidden = $key->kind === AppTextKey::KIND_FAQ ? (bool) $isHidden : false;
+            // Hiding or showing a Help entry is a change even when its words are the same.
+            $liveHidden = $key->kind === AppTextKey::KIND_FAQ && (bool) $key->publishedVersion?->is_hidden;
+            if ($live['en'] === $en && $live['ar'] === $ar && $hidden === $liveHidden) {
                 throw DomainApiException::contentUnchanged();
             }
 
-            $hidden = $key->kind === AppTextKey::KIND_FAQ ? (bool) $isHidden : false;
             $fields = [
                 'is_default_marker' => false,
                 'text_en' => $en,
@@ -91,10 +94,13 @@ final class SaveDraftAction
         });
     }
 
-    /** A template that carries a code or a link is shown, not edited (D7); a retired key is gone from the app. */
-    public static function assertEditable(AppTextKey $key): void
+    /**
+     * A template that carries a code or a link is edited only with `content.edit_secure` (D7);
+     * it still has to keep its `{code}` / `{link}` (the validator). A retired key is gone from the app.
+     */
+    public static function assertEditable(Staff $actor, AppTextKey $key): void
     {
-        if ($key->read_only) {
+        if ($key->read_only && ! $actor->can(StaffPermission::CONTENT_EDIT_SECURE->value)) {
             throw DomainApiException::contentKeyReadOnly();
         }
         if ($key->isRetired()) {

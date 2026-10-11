@@ -9,6 +9,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -53,7 +54,7 @@ class WalletNotification extends Notification implements InboxNotification, Shou
     {
         $arabic = $this->arabic($notifiable);
 
-        return (new MailMessage)->subject($arabic ? 'محفظتك في دهب' : 'Your Dahab wallet')->line($this->body($arabic));
+        return (new MailMessage)->subject(Templates::text('wallet.mail_subject', $arabic))->line($this->mailLine($arabic));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
@@ -66,21 +67,34 @@ class WalletNotification extends Notification implements InboxNotification, Shou
         return $notifiable instanceof Customer && $notifiable->preferred_lang === 'ar';
     }
 
+    /** The template key of this event (a staff correction has one text per direction). */
+    private function base(): string
+    {
+        return match ($this->event) {
+            WalletEvent::COMPENSATION_PAID => 'wallet.compensation_paid',
+            WalletEvent::WALLET_ADJUSTED => $this->direction === 'credit' ? 'wallet.adjusted_credit' : 'wallet.adjusted_debit',
+            WalletEvent::CREDIT_NOTE_ISSUED => 'wallet.credit_note_issued',
+        };
+    }
+
     public function body(bool $arabic): string
     {
-        $money = number_format((float) $this->amount, 2).' EGP';
+        return Templates::text($this->base().'.sms', $arabic, $this->params($arabic));
+    }
 
-        return match ($this->event) {
-            WalletEvent::COMPENSATION_PAID => $arabic
-                ? "تعويض من دهب ({$money}) وصل محفظتك: {$this->reasonAr}."
-                : "Compensation from Dahab ({$money}) is in your wallet: {$this->reason}.",
-            WalletEvent::WALLET_ADJUSTED => $this->direction === 'credit'
-                ? ($arabic ? "دهب صححت محفظتك وضافت {$money} لرصيدك المتاح." : "Dahab corrected your wallet: {$money} was added to your available balance.")
-                : ($arabic ? "دهب صححت محفظتك وخصمت {$money} من رصيدك المتاح." : "Dahab corrected your wallet: {$money} was taken from your available balance."),
-            WalletEvent::CREDIT_NOTE_ISSUED => $arabic
-                ? "دهب صححت الفاتورة {$this->reference} وضافت {$money} لمحفظتك."
-                : "Dahab corrected invoice {$this->reference}: {$money} was added to your wallet.",
-        };
+    public function mailLine(bool $arabic): string
+    {
+        return Templates::mailBody($this->base(), $arabic, $this->params($arabic));
+    }
+
+    /** @return array<string, scalar|null> */
+    private function params(bool $arabic): array
+    {
+        return [
+            'amount' => number_format((float) $this->amount, 2).' EGP',
+            'reason' => $arabic ? $this->reasonAr : $this->reason,
+            'reference' => $this->reference,
+        ];
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

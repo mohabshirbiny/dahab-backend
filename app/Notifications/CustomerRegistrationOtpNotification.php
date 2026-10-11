@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -35,9 +36,11 @@ class CustomerRegistrationOtpNotification extends Notification implements Should
     {
         $minutes = (int) ceil(((int) config('dahab-auth.otp.ttl_seconds')) / 60);
 
-        return SmsMessage::make($this->lang === 'ar'
-            ? "رمز التحقق الخاص بك في {$this->appName()} هو {$this->code}. صالح لمدة {$minutes} دقائق. لا تشاركه مع أحد."
-            : "Your {$this->appName()} verification code is {$this->code}. It expires in {$minutes} minutes. Do not share it with anyone.");
+        return SmsMessage::make(Templates::text('auth.registration_otp.sms', $this->lang === 'ar', [
+            'app' => $this->appName(),
+            'code' => $this->code,
+            'minutes' => $minutes,
+        ]));
     }
 
     private function appName(): string

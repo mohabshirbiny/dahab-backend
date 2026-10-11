@@ -8,6 +8,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use App\Support\TopUpMoney;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -48,23 +49,22 @@ class TopUpCreditedNotification extends Notification implements InboxNotificatio
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $amount = TopUpMoney::display($this->amount);
 
         return (new MailMessage)
-            ->subject($arabic ? 'تمت إضافة تحويلك إلى محفظتك' : 'Your transfer is in your wallet')
-            ->line($arabic
-                ? "أضفنا {$amount} جنيه إلى محفظتك ({$this->number})."
-                : "We added {$amount} EGP to your wallet ({$this->number}).");
+            ->subject(Templates::text('topup.credited.mail_subject', $arabic))
+            ->line(Templates::text('topup.credited.mail_body', $arabic, $this->params()));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
     {
         /** @var Customer $notifiable */
-        $amount = TopUpMoney::display($this->amount);
+        return SmsMessage::make(Templates::text('topup.credited.sms', $notifiable->preferred_lang === 'ar', $this->params()));
+    }
 
-        return SmsMessage::make($notifiable->preferred_lang === 'ar'
-            ? "أضفنا {$amount} جنيه إلى محفظتك في ".config('app.name')." ({$this->number})."
-            : "We added {$amount} EGP to your ".config('app.name')." wallet ({$this->number}).");
+    /** @return array<string, scalar|null> */
+    private function params(): array
+    {
+        return ['amount' => TopUpMoney::display($this->amount), 'number' => $this->number, 'app' => (string) config('app.name')];
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

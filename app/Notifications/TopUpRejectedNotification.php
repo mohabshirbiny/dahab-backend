@@ -9,6 +9,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -48,18 +49,22 @@ class TopUpRejectedNotification extends Notification implements InboxNotificatio
         $arabic = $notifiable->preferred_lang === 'ar';
 
         return (new MailMessage)
-            ->subject($arabic ? 'لم نتمكن من إضافة تحويلك' : 'We could not add your transfer')
-            ->line($arabic
-                ? $this->reason->labelAr()." ({$this->number}). لم تتم إضافة أي مبلغ إلى محفظتك."
-                : $this->reason->label()." ({$this->number}). Nothing was added to your wallet.");
+            ->subject(Templates::text('topup.rejected.mail_subject', $arabic))
+            ->line(Templates::mailBody('topup.rejected', $arabic, $this->params($arabic)));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
     {
         /** @var Customer $notifiable */
-        return SmsMessage::make($notifiable->preferred_lang === 'ar'
-            ? config('app.name').': '.$this->reason->labelAr()." ({$this->number})."
-            : config('app.name').': '.$this->reason->label()." ({$this->number}).");
+        $arabic = $notifiable->preferred_lang === 'ar';
+
+        return SmsMessage::make(config('app.name').': '.Templates::text('topup.rejected.sms', $arabic, $this->params($arabic)));
+    }
+
+    /** @return array<string, scalar|null> */
+    private function params(bool $arabic): array
+    {
+        return ['reason' => $arabic ? $this->reason->labelAr() : $this->reason->label(), 'number' => $this->number];
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

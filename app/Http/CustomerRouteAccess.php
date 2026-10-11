@@ -48,6 +48,8 @@ final class CustomerRouteAccess
         'api.v1.customer.me.saved-pieces.destroy',
         'api.v1.customer.me.account.close-check',
         'api.v1.customer.me.account.close',
+        // Spec 019: accepting the live terms / privacy — every state (D2).
+        'api.v1.customer.me.legal-acceptances.store',
     ];
 
     public const GATES = ['customer.gate:verified', 'customer.gate:trade'];

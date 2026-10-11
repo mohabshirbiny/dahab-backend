@@ -659,6 +659,18 @@ class DomainApiException extends RuntimeException
         return new self('content_too_long', 422, "This text is longer than the {$max} characters allowed.", ['max_length' => $max, 'languages' => $languages]);
     }
 
+    /** A Help entry with this slug already exists. */
+    public static function contentFaqExists(string $slug): self
+    {
+        return new self('content_faq_exists', 409, 'A Help entry with this name already exists.', ['slug' => $slug]);
+    }
+
+    /** The slug names no Help entry. */
+    public static function contentFaqUnknown(): self
+    {
+        return new self('content_faq_unknown', 404, 'There is no such Help entry.');
+    }
+
     /** Publishing or saving the text it already has. */
     public static function contentUnchanged(): self
     {
@@ -680,5 +692,160 @@ class DomainApiException extends RuntimeException
     public static function contentHistoryImmutable(): self
     {
         return new self('content_history_immutable', 409, 'Published text history cannot be changed.');
+    }
+
+    // ---- Spec 019: legal publishing and acceptance ----
+
+    /**
+     * Every state-changing customer request is refused until the live terms or privacy are accepted.
+     *
+     * @param  list<array{code: string, version: int, legal_doc_id: int, reason: string}>  $required
+     */
+    public static function legalAcceptanceRequired(array $required): self
+    {
+        return new self('legal_acceptance_required', 409, 'Please read and accept the updated terms to continue.', ['required' => $required]);
+    }
+
+    /** The id sent is not the live version of a document that is accepted this way. */
+    public static function legalDocumentNotCurrent(): self
+    {
+        return new self('legal_document_not_current', 422, 'This version of the document is no longer the current one.');
+    }
+
+    /** Nothing waits to be accepted for this document. */
+    public static function legalAcceptanceNotRequired(): self
+    {
+        return new self('legal_acceptance_not_required', 409, 'There is nothing to accept for this document.');
+    }
+
+    public static function legalBodyRequired(): self
+    {
+        return new self('legal_body_required', 422, 'Both the English and the Arabic text are required.');
+    }
+
+    public static function legalCodeUnknown(): self
+    {
+        return new self('legal_code_unknown', 404, 'There is no such legal document.');
+    }
+
+    /** Two publishes of one document raced, or the version number was taken. */
+    public static function legalVersionConflict(): self
+    {
+        return new self('legal_version_conflict', 409, 'Another version of this document was just published. Reload and try again.');
+    }
+
+    /** Guard DH018: a published legal version never changes. A bug if reached through the API. */
+    public static function legalHistoryImmutable(): self
+    {
+        return new self('legal_document_immutable', 409, 'A published legal version cannot be changed.');
+    }
+
+    // ---- Spec 019 US7: category controls and what customers can see ----
+
+    /**
+     * New listings in a category are stopped (also the answer while everything is stopped).
+     *
+     * @param  array{en: string, ar: string}  $message  what staff wrote for customers
+     */
+    public static function categoryStopped(array $message): self
+    {
+        return new self('category_stopped', 409, $message['en'] !== '' ? $message['en'] : 'New listings in this category are paused for a short while.', ['message' => $message]);
+    }
+
+    /**
+     * A category is paused: no request for more time on its orders.
+     *
+     * @param  array{en: string, ar: string}  $message
+     */
+    public static function categoryPaused(array $message): self
+    {
+        return new self('category_paused', 409, $message['en'] !== '' ? $message['en'] : 'This category is paused for a short while.', ['message' => $message]);
+    }
+
+    /**
+     * Everything is stopped: no new listing, buy request or withdrawal, and no release.
+     *
+     * @param  array{en: string, ar: string}  $message
+     */
+    public static function platformStopped(array $message): self
+    {
+        return new self('platform_stopped', 409, $message['en'] !== '' ? $message['en'] : 'Dahab is paused for a short while. Your money and pieces are safe.', ['message' => $message]);
+    }
+
+    public static function controlCategoryRequired(): self
+    {
+        return new self('control_category_required', 422, 'Choose the category this control is for.');
+    }
+
+    public static function controlAlreadyActive(): self
+    {
+        return new self('control_already_active', 409, 'This control is already on.');
+    }
+
+    public static function controlNotActive(): self
+    {
+        return new self('control_not_active', 409, 'This control is not on.');
+    }
+
+    /** Guard DH019: a control is cleared once and never edited. A bug if reached through the API. */
+    public static function controlHistoryImmutable(): self
+    {
+        return new self('control_history_immutable', 409, 'A category control cannot be edited or deleted.');
+    }
+
+    /** The generic settings PATCH does not change the `visibility` group. */
+    public static function settingNotEditableHere(): self
+    {
+        return new self('setting_not_editable_here', 422, 'This setting is changed from Switches.');
+    }
+
+    // ---- Spec 019 US6: market makers ----
+
+    public static function promoKindNotAvailable(): self
+    {
+        return new self('promo_kind_not_available', 422, 'Only market-maker codes can be made here.');
+    }
+
+    public static function promoCustomerNotMarketMaker(): self
+    {
+        return new self('promo_customer_not_market_maker', 422, 'The account a code is tied to must be a market maker.');
+    }
+
+    public static function promoCodeExists(): self
+    {
+        return new self('promo_code_exists', 409, 'There is already a code with this name, or this account already has one.');
+    }
+
+    public static function alreadyApproved(): self
+    {
+        return new self('already_approved', 409, 'This piece is already approved for market makers.');
+    }
+
+    public static function listingTooNew(int $days): self
+    {
+        return new self('listing_too_new', 422, "A piece must have been listed for {$days} days before it is approved.", ['min_days' => $days]);
+    }
+
+    public static function listingNotLive(): self
+    {
+        return new self('listing_not_live', 409, 'Only a live piece can be approved.');
+    }
+
+    /** Guard DH020: market-maker records are append-only. A bug if reached through the API. */
+    public static function promoHistoryImmutable(): self
+    {
+        return new self('promo_history_immutable', 409, 'Market-maker records cannot be changed or deleted.');
+    }
+
+    /** A market-maker code cannot be used for this request (spec 019 FR-063): the reason says why. */
+    public static function promoCodeInvalid(string $reason): self
+    {
+        return new self('promo_code_invalid', 422, 'This code cannot be used for this piece.', ['reason' => $reason]);
+    }
+
+    /** The account holds no active market-maker code. */
+    public static function marketMakerOnly(): self
+    {
+        return new self('market_maker_only', 403, 'This is for market-maker accounts.');
     }
 }

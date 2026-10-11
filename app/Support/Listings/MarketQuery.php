@@ -55,6 +55,10 @@ final class MarketQuery
                 ->whereColumn('listing_branch_option.listing_id', 'listing.listing_id')
                 ->where('listing_branch_option.branch_id', (int) $filters['branch']));
         }
+        if (($filters['mm_approved'] ?? false) === true) {
+            $query->whereExists(fn ($q) => $q->selectRaw('1')->from('market_maker_approval')
+                ->whereColumn('market_maker_approval.listing_id', 'listing.listing_id'));
+        }
         if (filled($filters['min_g'] ?? null)) {
             $query->where('listing.stated_weight_g', '>=', $filters['min_g']);
         }

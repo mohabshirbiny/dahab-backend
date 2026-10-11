@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Staff;
 
+use App\Enums\StaffPermission;
 use App\Models\AppTextKey;
 use App\Models\AppTextVersion;
 use Illuminate\Http\Request;
@@ -24,9 +25,10 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'placeholders', type: 'array', items: new OA\Items(type: 'string')),
         new OA\Property(property: 'required_placeholders', type: 'array', items: new OA\Items(type: 'string')),
         new OA\Property(property: 'max_length', type: 'integer'),
-        new OA\Property(property: 'read_only', type: 'boolean'),
+        new OA\Property(property: 'read_only', type: 'boolean', description: 'Locked for the viewer: carries a code or link and the viewer lacks content.edit_secure'),
         new OA\Property(property: 'retired', type: 'boolean', description: 'The app no longer uses this key'),
-        new OA\Property(property: 'position', type: 'integer', nullable: true),
+        new OA\Property(property: 'position', type: 'integer', nullable: true, description: 'Help order customers see now'),
+        new OA\Property(property: 'pending_position', type: 'integer', nullable: true, description: 'Help order waiting for Publish changes'),
     ],
 )]
 class AppTextResource extends JsonResource
@@ -51,9 +53,11 @@ class AppTextResource extends JsonResource
             'placeholders' => $k->placeholders,
             'required_placeholders' => $k->required_placeholders,
             'max_length' => $k->max_length,
-            'read_only' => $k->read_only,
+            // Locked for this viewer: a code or link template needs `content.edit_secure` (D7).
+            'read_only' => $k->read_only && ! ($request->user()?->can(StaffPermission::CONTENT_EDIT_SECURE->value) ?? false),
             'retired' => $k->isRetired(),
             'position' => $k->position,
+            'pending_position' => $k->pending_position,
         ];
     }
 
@@ -64,6 +68,7 @@ class AppTextResource extends JsonResource
             'version' => $v->version,
             'en' => $v->text_en,
             'ar' => $v->text_ar,
+            'is_hidden' => (bool) $v->is_hidden,
             'published_at' => $v->published_at?->toIso8601String(),
             'published_by' => $v->publisher === null ? null : ['id' => $v->publisher->staff_id, 'full_name' => $v->publisher->full_name],
             'bundle_version' => $v->bundle_version,

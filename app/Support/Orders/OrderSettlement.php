@@ -66,7 +66,7 @@ final class OrderSettlement
 
         $breakdown = $this->calculator->lockedBreakdown(
             // Spec 018: a free relist is sold without commission, its VAT or the minimum (the spread stays).
-            Piece::locked($listing->category, $weight, $listing->making_charge_per_g === null ? null : (string) $listing->making_charge_per_g, $asking, $listing->isFreeRelist()),
+            Piece::locked($listing->category, $weight, $listing->making_charge_per_g === null ? null : (string) $listing->making_charge_per_g, $asking, $listing->isFreeRelist() || $request->promo_code !== null),
             $request->locked_unit_rate === null ? null : (string) $request->locked_unit_rate,
             $this->sellerRate($order, $listing),
             $rates ?? $this->context->rates(),
@@ -97,29 +97,33 @@ final class OrderSettlement
      */
     public function post(Order $order, SettlementFigures $f): LedgerTransaction
     {
+        // Spec 019 6B: a market-maker purchase gives a positive spread to the dealer (the buyer) instead of Dahab.
+        $toDealer = BuyRequest::query()->whereKey($order->buy_request_id)->whereNotNull('promo_code')->exists()
+            && Money::cmp($f->spread, '0') > 0;
+
         if (Money::cmp($f->proceeds, '0') <= 0) {
             throw DomainApiException::settlementNotPossible();
         }
 
-        $lines = DatabaseActor::ledger(function () use ($order, $f) {
+        $lines = DatabaseActor::ledger(function () use ($order, $f, $toDealer) {
             $buyerAvailable = Account::forCustomerKind($order->buyer_id, AccountKind::CUST_AVAILABLE);
             $escrow = Account::internal(AccountKind::ESCROW);
 
+            // The buyer's available money: the balance leaves it, an excess deposit and the dealer's spread return.
+            $availableNet = Money::sub(Money::add($f->excess, $toDealer ? $f->spread : '0'), $f->balance);
+
             $lines = [];
-            if (Money::cmp($f->balance, '0') > 0) {
-                $lines[] = new LedgerLine($buyerAvailable, '-'.$f->balance);
+            if (Money::cmp($availableNet, '0') !== 0) {
+                $lines[] = new LedgerLine($buyerAvailable, Money::fixed4($availableNet));
             }
             $lines[] = new LedgerLine(Account::forCustomerKind($order->buyer_id, AccountKind::CUST_HELD), '-'.$f->deposit);
-            if (Money::cmp($f->excess, '0') > 0) {
-                $lines[] = new LedgerLine($buyerAvailable, $f->excess);
-            }
             $lines[] = new LedgerLine($escrow, $f->buyerTotal);
             $lines[] = new LedgerLine($escrow, '-'.$f->buyerTotal);
             $lines[] = new LedgerLine(Account::forCustomerKind($order->seller_id, AccountKind::CUST_AVAILABLE), $f->proceeds);
             foreach ([
                 [AccountKind::DAHAB_COMMISSION, $f->commission],
                 [AccountKind::VAT_PAYABLE, $f->vat],
-                [AccountKind::DAHAB_SPREAD, $f->spread],
+                [AccountKind::DAHAB_SPREAD, $toDealer ? '0' : $f->spread],
             ] as [$kind, $amount]) {
                 if (Money::cmp($amount, '0') !== 0) {
                     $lines[] = new LedgerLine(Account::internal($kind), $amount);

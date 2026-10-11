@@ -9,6 +9,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -59,7 +60,7 @@ class PayoutNotification extends Notification implements InboxNotification, Shou
     {
         $arabic = $this->arabic($notifiable);
 
-        return (new MailMessage)->subject($this->subject($arabic))->line($this->body($arabic));
+        return (new MailMessage)->subject($this->subject($arabic))->line($this->mailLine($arabic));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
@@ -84,56 +85,41 @@ class PayoutNotification extends Notification implements InboxNotification, Shou
 
     public function subject(bool $arabic): string
     {
-        return match ($this->event) {
-            PayoutEvent::ACCOUNT_ADDED, PayoutEvent::ACCOUNT_VERIFIED, PayoutEvent::ACCOUNT_REFUSED,
-            PayoutEvent::ACCOUNT_IN_USE, PayoutEvent::ACCOUNT_REMOVED => $arabic ? 'حساب استلام الفلوس' : 'Your payout account',
-            default => $arabic ? 'سحب الفلوس' : 'Your withdrawal',
-        };
+        // The five payout-account events share one subject, the withdrawals the other.
+        return Templates::text("payout.{$this->event->value}.mail_subject", $arabic);
     }
 
+    /** The SMS sentence (also the inbox text): the template of the event, filled. */
     public function body(bool $arabic): string
     {
-        $a = (string) $this->account;
-        $n = (string) $this->number;
-        $money = $this->money();
-        $when = $this->when();
+        return Templates::text("payout.{$this->event->value}.sms", $arabic, $this->params($arabic));
+    }
 
-        return match ($this->event) {
-            PayoutEvent::ACCOUNT_ADDED => $arabic
-                ? "اتضاف حساب استلام جديد ({$a}) وهنراجع الاسم مع هويتك. لو مش انت اللي ضفته كلمنا فوراً."
-                : "A new payout account ({$a}) was added and will be checked against your ID. If this was not you, contact us at once.",
-            PayoutEvent::ACCOUNT_VERIFIED => $arabic
-                ? "حساب الاستلام ({$a}) اتراجع واتأكد."
-                : "Your payout account ({$a}) was checked and confirmed.",
-            PayoutEvent::ACCOUNT_REFUSED => $arabic
-                ? "مقدرناش نقبل حساب الاستلام ({$a}): {$this->reasonAr}. ضيف حساب تاني باسمك."
-                : "We could not accept the payout account ({$a}): {$this->reason}. Add another account in your name.",
-            PayoutEvent::ACCOUNT_IN_USE => $arabic
-                ? "الفلوس هتتسحب دلوقتي لحساب ({$a})."
-                    .($this->until !== null ? " السحب متوقف لحد {$when}." : '')
-                    .' لو مش انت اللي غيرته كلمنا فوراً.'
-                : "Withdrawals now go to ({$a})."
-                    .($this->until !== null ? " New withdrawals are paused until {$when}." : '')
-                    .' If this was not you, contact us at once.',
-            PayoutEvent::ACCOUNT_REMOVED => $arabic
-                ? "حساب الاستلام ({$a}) اتشال."
-                : "The payout account ({$a}) was removed.",
-            PayoutEvent::WITHDRAWAL_HELD => $arabic
-                ? "السحب {$n} ({$money}) متوقف للمراجعة: {$this->message}"
-                : "Withdrawal {$n} ({$money}) is on hold: {$this->message}",
-            PayoutEvent::WITHDRAWAL_RELEASED => $arabic
-                ? "السحب {$n} ({$money}) اتبعت لحساب ({$a})."
-                : "Withdrawal {$n} ({$money}) was sent to ({$a}).",
-            PayoutEvent::WITHDRAWAL_REJECTED => $arabic
-                ? "السحب {$n} ({$money}) اترفض: {$this->reasonAr}. الفلوس رجعت لرصيدك المتاح."
-                : "Withdrawal {$n} ({$money}) was rejected: {$this->reason}. The money is back in your available balance.",
-            PayoutEvent::WITHDRAWALS_CANCELLED_BY_CHANGE => $arabic
-                ? "عشان حساب الاستلام اتغير، اتلغى {$this->cancelledCount} سحب لسه ما طلعش والفلوس رجعت لرصيدك المتاح."
-                : "Because your payout account changed, {$this->cancelledCount} withdrawal(s) that had not left were cancelled and the money is back in your available balance.",
-            PayoutEvent::WITHDRAWALS_OPEN => $arabic
-                ? 'فترة إيقاف السحب خلصت. تقدر تسحب تاني.'
-                : 'The withdrawal pause has ended. You can withdraw again.',
-        };
+    /** The email line: its own template when staff wrote one, else the SMS sentence. */
+    public function mailLine(bool $arabic): string
+    {
+        return Templates::mailBody("payout.{$this->event->value}", $arabic, $this->params($arabic));
+    }
+
+    /** @return array<string, scalar|null> */
+    private function params(bool $arabic): array
+    {
+        $p = [
+            'account' => (string) $this->account,
+            'amount' => $this->money(),
+            'number' => (string) $this->number,
+            'until' => $this->when(),
+            'reason' => $arabic ? $this->reasonAr : $this->reason,
+            'message' => $this->message,
+            'count' => $this->cancelledCount,
+            'paused' => '',
+        ];
+
+        if ($this->event === PayoutEvent::ACCOUNT_IN_USE && $this->until !== null) {
+            $p['paused'] = ' '.Templates::text('payout.account_in_use.paused.note', $arabic, $p);
+        }
+
+        return $p;
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

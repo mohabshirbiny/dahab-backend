@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Actions\Content\CreateFaqEntryAction;
 use App\Actions\Content\DiscardDraftAction;
 use App\Actions\Content\ExportAppTextsAction;
 use App\Actions\Content\ListAppTextsAction;
 use App\Actions\Content\PublishTextsAction;
+use App\Actions\Content\ReorderFaqAction;
 use App\Actions\Content\RevertTextAction;
 use App\Actions\Content\SaveDraftAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\Content\CreateFaqEntryRequest;
 use App\Http\Requests\Dashboard\Content\ListAppTextsRequest;
+use App\Http\Requests\Dashboard\Content\MoveFaqEntryRequest;
 use App\Http\Requests\Dashboard\Content\RevertAppTextRequest;
 use App\Http\Requests\Dashboard\Content\SaveAppTextDraftRequest;
 use App\Http\Resources\Staff\AppTextResource;
@@ -245,6 +249,57 @@ class AppTextController extends Controller
             array_keys(SettingPlaceholders::MAP),
             array_values(SettingPlaceholders::MAP),
         )]);
+    }
+
+    #[OA\Post(
+        path: '/dashboard/faq',
+        operationId: 'dashboardCreateFaqEntry',
+        summary: 'Add a Help entry',
+        description: 'Spec 019 FR-030. Creates the two keys help.faq.<slug>.question and .answer, each with a draft in both languages, at the end of the list. Customers see it only after Publish changes; is_hidden keeps it out of the app. Audited (content.faq_created). Requires content.edit and an Idempotency-Key.',
+        security: [['dashboardBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DashboardCreateFaqEntry')),
+        tags: ['Dashboard App text'],
+        responses: [
+            new OA\Response(response: 201, description: 'Created', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
+                new OA\Property(property: 'slug', type: 'string'),
+                new OA\Property(property: 'position', type: 'integer'),
+            ], type: 'object')])),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'content_faq_exists', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed | content_language_missing | content_too_long | a content placeholder rule', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function createFaq(CreateFaqEntryRequest $request, CreateFaqEntryAction $create): JsonResponse
+    {
+        $result = $create->handle($request->user('staff'), (string) $request->input('slug'), $request->texts(), $request->attributes->get('context'));
+
+        return response()->json(['data' => $result], 201);
+    }
+
+    #[OA\Patch(
+        path: '/dashboard/faq/{slug}/position',
+        operationId: 'dashboardMoveFaqEntry',
+        summary: 'Move a Help entry',
+        description: 'Spec 019 FR-031. Moves the entry to a position (1 = first). The new order is a draft (pending_position on the entry\'s keys) and goes live with Publish changes. Audited (content.faq_reordered). Requires content.edit and an Idempotency-Key.',
+        security: [['dashboardBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DashboardMoveFaqEntry')),
+        tags: ['Dashboard App text'],
+        parameters: [new OA\Parameter(name: 'slug', in: 'path', required: true, schema: new OA\Schema(type: 'string'))],
+        responses: [
+            new OA\Response(response: 200, description: 'Moved', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
+                new OA\Property(property: 'slug', type: 'string'),
+                new OA\Property(property: 'position', type: 'integer'),
+            ], type: 'object')])),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 404, description: 'content_faq_unknown', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed | content_unchanged', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function moveFaq(MoveFaqEntryRequest $request, string $slug, ReorderFaqAction $reorder): JsonResponse
+    {
+        $result = $reorder->handle($request->user('staff'), $slug, (int) $request->input('position'), $request->attributes->get('context'));
+
+        return response()->json(['data' => $result]);
     }
 
     public static function keyPattern(): string

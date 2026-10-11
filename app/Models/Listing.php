@@ -146,10 +146,25 @@ class Listing extends Model
         return $this->hasOne(Order::class, 'listing_id', 'listing_id')->orderByDesc('accepted_at')->orderByDesc('order_id');
     }
 
-    /** What the public market shows (spec 010 FR-020). */
+    /**
+     * What the public market shows (spec 010 FR-020): live and reserved pieces, minus the live
+     * ones of a paused category (spec 019 US7). A piece somebody asked for stays, and so does
+     * anything with a locked price: only pieces nobody has asked for are hidden, and they
+     * return by themselves when the pause is cleared.
+     */
     public function scopePubliclyVisible(Builder $query): Builder
     {
-        return $query->whereIn('listing.state', array_map(fn (ListingState $s) => $s->value, ListingState::PUBLIC));
+        return $query->whereIn('listing.state', array_map(fn (ListingState $s) => $s->value, ListingState::PUBLIC))
+            ->notHiddenByPause();
+    }
+
+    /** Leaves out `live` pieces of a category with an active pause (spec 019 US7, FR-071). */
+    public function scopeNotHiddenByPause(Builder $query): Builder
+    {
+        return $query->whereRaw(
+            "NOT (listing.state = 'live' AND EXISTS (SELECT 1 FROM category_control cc"
+            ." WHERE cc.category = listing.category AND cc.is_active AND cc.level = 'pause_category'))",
+        );
     }
 
     /** "Gold ring, 21K" — for messages to the seller and the staff queue. */

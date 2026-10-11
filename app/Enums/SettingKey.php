@@ -40,6 +40,12 @@ enum SettingKey: string
     /** Spec 017: most pieces one customer may keep in Saved (user decision 2026-10-06). */
     case SAVED_MAX_PER_CUSTOMER = 'saved.max_per_customer';
 
+    /** Spec 019 US7: what customers can see (the design's "What customers can see"). */
+    case VISIBILITY_RAPAPORT_REFERENCE = 'visibility.rapaport_reference';
+    case VISIBILITY_PAYOUT_AVERAGES = 'visibility.payout_averages';
+    case VISIBILITY_LISTING_STATS = 'visibility.listing_stats';
+    case VISIBILITY_SHARING = 'visibility.sharing';
+
     /** Money and price rules (Finance + CEO) or operations (founders) — research R1. */
     public function group(): SettingGroup
     {
@@ -49,13 +55,25 @@ enum SettingKey: string
             self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::PRICEFEED_STALE_AFTER_MINUTES,
             self::COMPENSATION_CAP_PER_PAYMENT_EGP, self::COMPENSATION_CAP_PER_DAY_EGP,
             self::PAYOUT_FIRST_SALE_CAP_EGP => SettingGroup::RATES,
+            self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
+            self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING => SettingGroup::VISIBILITY,
             default => SettingGroup::OPERATIONS,
         };
     }
 
     public function isBool(): bool
     {
-        return $this === self::MANUALPRICE_CONFIRMER_MUST_DIFFER;
+        return match ($this) {
+            self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
+            self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING => true,
+            default => false,
+        };
+    }
+
+    /** The key's name on the Switches API (`rapaport_reference`), for the visibility keys. */
+    public function visibilityName(): ?string
+    {
+        return str_starts_with($this->value, 'visibility.') ? substr($this->value, strlen('visibility.')) : null;
     }
 
     /** Whole numbers only (durations and counts). */
@@ -76,7 +94,8 @@ enum SettingKey: string
     public function min(): ?string
     {
         return match ($this) {
-            self::MANUALPRICE_CONFIRMER_MUST_DIFFER => null,
+            self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
+            self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING => null,
             self::DEADLINE_SELLER_REPLY_HOURS, self::DEADLINE_REACH_BRANCH_WORKING_HOURS,
             self::DEADLINE_BUYER_PAY_DAYS, self::DEADLINE_COLLECT_WEEKS, self::DEADLINE_SELLER_RETURN_WEEKS,
             self::SUSPENSION_CANCELLATIONS_THRESHOLD, self::FLAG_PATTERN_TXN_THRESHOLD,
@@ -103,8 +122,10 @@ enum SettingKey: string
 
     public function permission(): StaffPermission
     {
-        return $this->group() === SettingGroup::RATES
-            ? StaffPermission::PRICING_RATES_MANAGE
-            : StaffPermission::SETTINGS_MANAGE;
+        return match ($this->group()) {
+            SettingGroup::RATES => StaffPermission::PRICING_RATES_MANAGE,
+            SettingGroup::VISIBILITY => StaffPermission::VISIBILITY_MANAGE,
+            default => StaffPermission::SETTINGS_MANAGE,
+        };
     }
 }

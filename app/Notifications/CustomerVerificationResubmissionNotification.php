@@ -8,6 +8,7 @@ use App\Notifications\Concerns\RendersInbox;
 use App\Notifications\Contracts\InboxNotification;
 use App\Notifications\Messages\InboxMessage;
 use App\Notifications\Messages\SmsMessage;
+use App\Notifications\Templates\Templates;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -44,37 +45,32 @@ class CustomerVerificationResubmissionNotification extends Notification implemen
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
+        $p = ['app' => (string) config('app.name')];
 
         $message = (new MailMessage)
-            ->subject($arabic ? $appName.' — نحتاج نسخة أخرى من الوثيقة' : $appName.' — we need another copy of your document')
-            ->line($arabic
-                ? 'راجعنا الوثيقة التي أرسلتها ونحتاج منك إعادة إرسالها. الأسباب:'
-                : 'We reviewed your submitted document and need you to resubmit it. Reasons:');
+            ->subject(Templates::text('customer.resubmission.mail_subject', $arabic, $p))
+            ->line(Templates::text('customer.resubmission.mail_body', $arabic, $p));
 
         foreach ($this->reasons as $reason) {
             $message->line('• '.$reason);
         }
 
         if ($this->note !== null) {
-            $message->line(($arabic ? 'ملاحظة من المراجع: ' : 'Reviewer note: ').$this->note);
+            $message->line(Templates::text('customer.resubmission.mail_note', $arabic).$this->note);
         }
 
-        return $message->line($arabic
-            ? 'يرجى تسجيل الدخول ورفع نسخة جديدة عند جاهزيتها.'
-            : 'Please sign in and upload a new copy when ready.');
+        return $message->line(Templates::text('customer.resubmission.mail_footer', $arabic));
     }
 
     public function toSms(mixed $notifiable): SmsMessage
     {
         /** @var Customer $notifiable */
         $arabic = $notifiable->preferred_lang === 'ar';
-        $appName = (string) config('app.name');
-        $reasons = implode(', ', $this->reasons);
 
-        return SmsMessage::make($arabic
-            ? "{$appName}: نحتاج إعادة إرسال وثيقتك ({$reasons})."
-            : "{$appName}: please resubmit your identity document ({$reasons}).");
+        return SmsMessage::make(Templates::text('customer.resubmission.sms', $arabic, [
+            'app' => (string) config('app.name'),
+            'reasons' => implode(', ', $this->reasons),
+        ]));
     }
 
     public function toInbox(Customer $customer): ?InboxMessage

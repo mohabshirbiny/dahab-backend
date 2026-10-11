@@ -36,7 +36,7 @@ final class RevertTextAction
     {
         return DB::transaction(function () use ($actor, $textKey, $to, $ctx) {
             $key = AppTextKey::query()->whereKey($textKey)->lockForUpdate()->firstOrFail();
-            SaveDraftAction::assertEditable($key);
+            SaveDraftAction::assertEditable($actor, $key);
 
             $live = $key->effective();
             $source = null;
