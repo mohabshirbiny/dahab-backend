@@ -1,6 +1,6 @@
 # Spec 020 — Account recovery and staff access
 
-**Status**: DRAFT for the owner's confirmation · **Repos**: Backend, Dashboard, Customer app · **Priority**: first (nothing else depends on it being late; launch depends on it)
+**Status**: PLANNED — D20-1…5 confirmed by the owner 2026-10-11; clarifications C1–C6 below proposed, awaiting confirmation · **Repos**: Backend, Dashboard, Customer app · **Priority**: first (nothing else depends on it being late; launch depends on it)
 
 ## Why
 
@@ -38,7 +38,7 @@ A staff member asks for a link to the email on file; the link is single-use and 
 
 | Repo | Change |
 |---|---|
-| Backend | the two reset endpoints for customers, the staff reset pair, `POST /dashboard/staff`, `POST /dashboard/staff/{id}/disable|enable`, permission `staff.manage`, audit events, error codes, notifications (SMS + email templates, editable in App text), Postman, OpenAPI |
+| Backend | the two reset endpoints for customers (`POST /customer/auth/password/reset-request|reset-confirm`), the staff reset pair (`POST /dashboard/auth/password/reset-request|reset-confirm`), `POST /dashboard/staff`, `POST /dashboard/staff/{id}/disable|enable`, permission `staff.manage`, audit events, error codes, notifications (SMS + email templates, editable in App text), Postman, OpenAPI |
 | Dashboard | *Forgot password?* on the sign-in page and a set-password page; Users → Staff: *Add staff member*, *Disable / Enable*, a Disabled tab |
 | Customer app | *Forgot password?* on sign-in, a two-step flow (phone, then code and new password), English and Arabic, texts in the App text catalogue |
 
@@ -48,15 +48,26 @@ A staff member asks for a link to the email on file; the link is single-use and 
 - **021** (founder security) builds on staff accounts that can be created and disabled.
 - Independent of 022–025.
 
-## Decisions needed from the owner
+## Decisions (owner, 2026-10-11)
 
-| ID | Question | Proposed |
+| ID | Question | Decision |
 |---|---|---|
 | D20-1 | Customer reset channel | SMS code to the phone on file; email only as a notice |
-| D20-2 | Does a password reset open the withdrawal pause that a phone or email change opens (spec 017)? | Yes, 24 h by the same setting, because a reset proves only the phone |
+| D20-2 | Does a password reset open the withdrawal pause that a phone or email change opens (spec 017)? | Yes, same setting (`withdrawal.account_change_pause_hours`, 24 h) |
 | D20-3 | Staff recovery | Emailed single-use link; a founder never sees or sets the password |
 | D20-4 | Who holds `staff.manage` | CEO only (the CEO holds every code); no role seeded |
 | D20-5 | Password rule for reset | The same rule as sign-up and change |
+
+## Clarifications proposed (planned on the recommended answer; confirm or override)
+
+| ID | Where the spec is silent or in tension | Recommended (as planned) |
+|---|---|---|
+| C1 | Story 1.4 says a closed account gets `account_closed`, but Story 1.1 says the answer is the same whether or not the phone is registered. A distinct answer would reveal that a closed account exists. | Both reset endpoints answer uniformly: a closed or unknown phone gets no code, `reset-request` answers as usual and `reset-confirm` answers `otp_invalid`. `account_closed` stays where it is today (password sign-in). Story 1.4 is met by "a closed account cannot reset". |
+| C2 | D20-2 names only the pause. Spec 017's phone change also cancels withdrawals not yet released (one shared function). | A reset runs the same safety stop: unreleased withdrawals are cancelled (money back to available) and the pause opens. Reason: a reset proves only the phone. |
+| C3 | "Enabling restores sign-in after a new password link." | Enabling also deletes the old password, so the link is the only way back in (the account may have been disabled because of a compromise). The authenticator enrolment is kept. |
+| C4 | Reason on the new staff actions. Role changes already require one (spec 002 FR-055). | `reason` required on create, disable and enable (`422 reason_required`), audited. |
+| C5 | "Short-lived" link. | Recovery link 30 minutes (as the email-change and withdrawal links); invitation and enable link 48 hours. A new request voids older open links. |
+| C6 | The Dashboard needs to tell an invited member from an active one. | Optional field `password_set` (boolean) on the staff member; and optional `status=active|disabled` filter on the staff list (default unchanged: all). |
 
 ## Out of scope
 
