@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Customer;
 use App\Models\Staff;
+use App\Support\Auth\DeviceFingerprint;
 use App\Support\RequestContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -36,8 +37,7 @@ final class SetRequestContext
         if ($id === null) {
             return null;
         }
-        $platform = $request->header('X-Device-Platform', 'web');
 
-        return hash('sha256', $id.'|'.$platform);
+        return DeviceFingerprint::hash($id, $request->header('X-Device-Platform', 'web'));
     }
 }

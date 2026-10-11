@@ -25,6 +25,8 @@ use App\Http\Controllers\Api\V1\Customer\WalletController as CustomerWalletContr
 use App\Http\Controllers\Api\V1\Customer\WithdrawalController as CustomerWithdrawalController;
 use App\Http\Controllers\Api\V1\Dashboard\AppTextController as DashboardAppTextController;
 use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLogController;
+use App\Http\Controllers\Api\V1\Dashboard\Auth\FounderDeviceApprovalStatusController;
+use App\Http\Controllers\Api\V1\Dashboard\Auth\FrozenFounderController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffPasswordResetController;
@@ -39,6 +41,7 @@ use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustome
 use App\Http\Controllers\Api\V1\Dashboard\DailyCloseController as DashboardDailyCloseController;
 use App\Http\Controllers\Api\V1\Dashboard\DisputeController as DashboardDisputeController;
 use App\Http\Controllers\Api\V1\Dashboard\ExtensionRequestController as DashboardExtensionRequestController;
+use App\Http\Controllers\Api\V1\Dashboard\FounderSecurityController;
 use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPriceController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
 use App\Http\Controllers\Api\V1\Dashboard\InspectionController as DashboardInspectionController;
@@ -58,6 +61,7 @@ use App\Http\Controllers\Api\V1\Dashboard\ReceivingAccountController as Dashboar
 use App\Http\Controllers\Api\V1\Dashboard\RoleController as DashboardRoleController;
 use App\Http\Controllers\Api\V1\Dashboard\SettingController as DashboardSettingController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffController as DashboardStaffController;
+use App\Http\Controllers\Api\V1\Dashboard\StaffNoticeController;
 use App\Http\Controllers\Api\V1\Dashboard\StaffUploadController as DashboardStaffUploadController;
 use App\Http\Controllers\Api\V1\Dashboard\TopUpController as DashboardTopUpController;
 use App\Http\Controllers\Api\V1\Dashboard\WalletAdjustmentController as DashboardWalletAdjustmentController;
@@ -422,6 +426,14 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/enroll', [StaffMfaController::class, 'enroll'])->name('enroll');
             });
 
+            // Spec 021: a founder's held sign-in from a new device polls its approval. Public.
+            Route::post('/device-approval/status', FounderDeviceApprovalStatusController::class)
+                ->middleware(['db.elevate:bootstrap', 'throttle:auth.staff.device_approval'])->name('device-approval.status');
+
+            // Spec 021: the frozen founder's first unfreeze confirmation. Public; never a token.
+            Route::post('/frozen/confirm-unfreeze', FrozenFounderController::class)
+                ->middleware(['db.elevate:bootstrap', 'throttle:auth.staff.login', 'throttle:auth.staff.mfa'])->name('frozen.confirm-unfreeze');
+
             Route::middleware('auth:staff')->group(function () {
                 Route::post('/refresh', [StaffAuthController::class, 'refresh'])
                     ->middleware(['abilities:staff:refresh', 'staff.standing', 'throttle:auth.refresh'])
@@ -435,6 +447,34 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 });
             });
         });
+
+        // Founder-account security (spec 021): founders only — a flag, never a permission (R13).
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('founder')->name('founder.')->group(function () {
+                Route::middleware('staff.founder')->group(function () {
+                    Route::get('/device-approvals', [FounderSecurityController::class, 'deviceApprovals'])->name('device-approvals.index');
+                    Route::post('/device-approvals/{approval}/approve', [FounderSecurityController::class, 'approve'])
+                        ->whereUuid('approval')->middleware('idempotent')->name('device-approvals.approve');
+                    Route::post('/device-approvals/{approval}/refuse', [FounderSecurityController::class, 'refuse'])
+                        ->whereUuid('approval')->middleware('idempotent')->name('device-approvals.refuse');
+                    Route::get('/devices', [FounderSecurityController::class, 'devices'])->name('devices');
+                    Route::post('/freeze', [FounderSecurityController::class, 'freeze'])->middleware('idempotent')->name('freeze');
+                });
+
+                // Also the stand-in who may give the first unfreeze confirmation (C1).
+                Route::middleware('staff.founder_or:'.StaffPermission::FOUNDER_UNFREEZE_SECOND->value)->group(function () {
+                    Route::get('/freezes', [FounderSecurityController::class, 'freezes'])->name('freezes.index');
+                    Route::post('/unfreeze', [FounderSecurityController::class, 'unfreeze'])->middleware('idempotent')->name('unfreeze');
+                });
+            });
+
+        // Dashboard notices, the bell (spec 021): any staff member, own only, no permission.
+        Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])
+            ->prefix('notices')->name('notices.')->group(function () {
+                Route::get('/', [StaffNoticeController::class, 'index'])->name('index');
+                Route::post('/read-all', [StaffNoticeController::class, 'readAll'])->name('read-all');
+                Route::post('/{notice}/read', [StaffNoticeController::class, 'read'])->whereUuid('notice')->name('read');
+            });
 
         // Dashboard "Users and Verification" page.
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])

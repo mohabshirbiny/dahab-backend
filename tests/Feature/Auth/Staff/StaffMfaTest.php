@@ -275,8 +275,9 @@ it('refuses to finish a sign-in once the account was disabled or frozen after th
         Staff::factory()->role(SeedRole::CEO)->frozen()->create(); // unrelated freeze must not matter
         AccountFreeze::query()->create([
             'frozen_staff_id' => $staff->staff_id,
-            'frozen_by' => Staff::factory()->role(SeedRole::COO)->create()->staff_id,
+            'frozen_by' => Staff::factory()->role(SeedRole::COO)->founder()->create()->staff_id,
             'frozen_at' => now(),
+            'reason' => 'Frozen for a test',
         ]);
     }
 

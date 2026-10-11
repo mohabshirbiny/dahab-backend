@@ -7,6 +7,7 @@ use App\Exceptions\AuthApiException;
 use App\Models\PersonalAccessToken;
 use App\Notifications\Channels\InboxChannel;
 use App\Notifications\Channels\SmsChannel;
+use App\Notifications\Channels\StaffNoticeChannel;
 use App\Services\PriceFeed\ProviderGoldPriceFeed;
 use App\Services\Sms\HttpSmsSender;
 use App\Services\Sms\LogSmsSender;
@@ -74,6 +75,8 @@ class AppServiceProvider extends ServiceProvider
         Notification::resolved(function (ChannelManager $service) {
             $service->extend('sms', fn ($app) => $app->make(SmsChannel::class));
             $service->extend('inbox', fn ($app) => $app->make(InboxChannel::class));
+            // Spec 021: Dashboard notices to staff.
+            $service->extend('staff_notice', fn ($app) => $app->make(StaffNoticeChannel::class));
         });
     }
 
@@ -214,6 +217,16 @@ class AppServiceProvider extends ServiceProvider
             return [
                 $this->limit($mfa['per_session_max'], $mfa['per_session_window'], 'staff-mfa-session:'.$this->identity($request, 'session_ref')),
                 $this->limit($mfa['per_ip_max'], $mfa['per_ip_window'], 'staff-mfa-ip:'.$request->ip()),
+            ];
+        });
+
+        // Spec 021: the held device polls its approval (every 5 s); per ref and per IP. The ref is
+        // hashed so the bucket key never holds it.
+        $poll = config('dahab-auth.rate_limits.staff_device_approval');
+        RateLimiter::for('auth.staff.device_approval', function (Request $request) use ($poll) {
+            return [
+                $this->limit($poll['per_ref_max'], $poll['per_ref_window'], 'staff-device-approval-ref:'.hash('sha256', $this->identity($request, 'approval_ref'))),
+                $this->limit($poll['per_ip_max'], $poll['per_ip_window'], 'staff-device-approval-ip:'.$request->ip()),
             ];
         });
 

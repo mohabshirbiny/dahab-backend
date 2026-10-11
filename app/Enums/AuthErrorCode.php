@@ -33,6 +33,10 @@ enum AuthErrorCode: string
     case TOKEN_INVALID = 'token_invalid';
     case TOKEN_EXPIRED = 'token_expired';
     case REFRESH_INVALID = 'refresh_invalid';
+    // Spec 021: a founder sign-in from a device the other founder must approve.
+    case DEVICE_ID_REQUIRED = 'device_id_required';
+    case DEVICE_APPROVAL_REFUSED = 'device_approval_refused';
+    case DEVICE_APPROVAL_INVALID = 'device_approval_invalid';
     case TOO_MANY_REQUESTS = 'too_many_requests';
     case NOT_FOUND = 'not_found';
     case SERVER_ERROR = 'server_error';

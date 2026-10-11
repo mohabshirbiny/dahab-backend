@@ -60,7 +60,9 @@ it('refuses a frozen staff member and any POST without an Idempotency-Key', func
     }
 
     $finance = Finance::staff($this, SeedRole::FINANCE);
-    AccountFreeze::query()->create(['frozen_staff_id' => $finance->staff_id, 'frozen_by' => $ceo->staff_id, 'frozen_at' => now()]);
+    // Spec 021 (DH022): only a founder freezes, with a reason.
+    $ceo->forceFill(['is_founder' => true])->save();
+    AccountFreeze::query()->create(['frozen_staff_id' => $finance->staff_id, 'frozen_by' => $ceo->staff_id, 'frozen_at' => now(), 'reason' => 'Frozen for a test']);
     $this->getJson('/api/v1/dashboard/compensation')->assertForbidden()->assertJsonPath('code', 'account_frozen');
     $this->postJson('/api/v1/dashboard/daily-close', ['date' => now('Africa/Cairo')->subDay()->toDateString(), 'bank_balance' => '0'], Finance::key())
         ->assertForbidden()->assertJsonPath('code', 'account_frozen');

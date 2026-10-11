@@ -119,6 +119,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
         'api/v1/dashboard/auth/password/reset-confirm',
         'api/v1/dashboard/auth/mfa/verify',
         'api/v1/dashboard/auth/mfa/enroll',
+        // Spec 021: credentialed by the approval_ref + device id, and by password + TOTP; never a token.
+        'api/v1/dashboard/auth/device-approval/status',
+        'api/v1/dashboard/auth/frozen/confirm-unfreeze',
     ];
 
     $checked = 0;
@@ -183,7 +186,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
     // spec 018:  free-relist and rating on the customer orders (2).
     // spec 019:  App text — seven /dashboard/app-texts* routes and /dashboard/content/placeholders (8).
     // spec 020: create, disable and enable staff (3); the four recovery routes are public.
-    expect($checked)->toBe(236);
+    // spec 021: founder device-approvals index/approve/refuse, devices, freeze, freezes, unfreeze (7),
+    //            notices index/read/read-all (3); device-approval/status and frozen/confirm-unfreeze are public.
+    expect($checked)->toBe(246);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

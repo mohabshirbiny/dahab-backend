@@ -28,10 +28,13 @@ final class EnrollStaffMfaAction
         private readonly RecordAuditLogAction $audit,
         private readonly StaffMfaSessionStore $mfaSessions,
         private readonly Google2FA $google2fa,
+        private readonly FounderDeviceGate $deviceGate,
     ) {}
 
     /**
-     * @return array{staff: Staff, session: SessionDto, recovery_codes: list<string>}
+     * The session with the recovery codes, or (spec 021) the held answer for a founder on a new device.
+     *
+     * @return array{staff: Staff, session: SessionDto, recovery_codes: list<string>}|array<string, mixed>
      */
     public function execute(string $sessionRef, string $code, RequestContext $ctx): array
     {
@@ -70,6 +73,12 @@ final class EnrollStaffMfaAction
             });
 
             $this->mfaSessions->forget($sessionRef);
+
+            // Spec 021: the enrollment is stored; a founder on a new device still waits for approval.
+            $held = $this->deviceGate->hold($staff, $ctx);
+            if ($held !== null) {
+                return $held;
+            }
 
             return [
                 'staff' => $staff,

@@ -21,7 +21,15 @@
             "script": {
                 "type": "text/javascript",
                 "exec": [
-                    ""
+                    "// Spec 021: every Dashboard request identifies its device (a founder needs it at sign-in).",
+                    "if (pm.request.url.toString().includes('/api/v1/dashboard/')) {",
+                    "    if (!pm.request.headers.has('X-Device-Id')) {",
+                    "        pm.request.headers.upsert({ key: 'X-Device-Id', value: pm.variables.replaceIn('{{device_id}}') });",
+                    "    }",
+                    "    if (!pm.request.headers.has('X-Device-Platform')) {",
+                    "        pm.request.headers.upsert({ key: 'X-Device-Platform', value: 'web' });",
+                    "    }",
+                    "}"
                 ]
             }
         },
@@ -307,6 +315,31 @@
         {
             "key": "credit_note_id",
             "value": ""
+        },
+        {
+            "key": "approval_ref",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "approval_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "freeze_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "founder_staff_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "notice_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -355,7 +388,7 @@
                                         "login"
                                     ]
                                 },
-                                "description": "Email + password. 200 with data.session (roles without MFA), OR data.mfa_required, OR data.mfa_enrollment_required (otpauth_url + one-time recovery_codes). 401 invalid_credentials is identical for unknown email, wrong password and a disabled account; 403 account_frozen; 429 account_locked after 5 failures / 30 min per email (auth.staff.login)."
+                                "description": "Email + password. 200 with data.session (roles without MFA), OR data.mfa_required, OR data.mfa_enrollment_required (otpauth_url + one-time recovery_codes). 401 invalid_credentials is identical for unknown email, wrong password and a disabled account; 403 account_frozen; 429 account_locked after 5 failures / 30 min per email (auth.staff.login). Spec 021: a founder must send X-Device-Id; a founder on a device not yet known gets device_approval_required (no token) and the test script saves approval_ref / approval_id; 422 device_id_required without the header."
                             },
                             "event": [
                                 {
@@ -368,6 +401,10 @@
                                             "    if (data.session) {",
                                             "        pm.collectionVariables.set('staff_access_token', data.session.access_token);",
                                             "        pm.collectionVariables.set('staff_refresh_token', data.session.refresh_token);",
+                                            "    } else if (data.device_approval_required) {",
+                                            "        // Spec 021: a founder on a new device is held; poll Staff Device Approval Status.",
+                                            "        pm.collectionVariables.set('approval_ref', data.approval_ref);",
+                                            "        pm.collectionVariables.set('approval_id', data.approval_id);",
                                             "    } else if (data.session_ref) {",
                                             "        pm.collectionVariables.set('staff_mfa_session_ref', data.session_ref);",
                                             "    }",
@@ -417,7 +454,7 @@
                                         "verify"
                                     ]
                                 },
-                                "description": "Completes an mfa_required sign-in. Send the current 6-digit TOTP as code, or a single-use recovery_code instead of code. session_ref is single-use and expires after 5 minutes. 401 mfa_invalid for a wrong/replayed code or a dead session_ref; 429 after 5 attempts per session_ref (auth.staff.mfa)."
+                                "description": "Completes an mfa_required sign-in. Send the current 6-digit TOTP as code, or a single-use recovery_code instead of code. session_ref is single-use and expires after 5 minutes. 401 mfa_invalid for a wrong/replayed code or a dead session_ref; 429 after 5 attempts per session_ref (auth.staff.mfa). Spec 021: a founder must send X-Device-Id; a founder on a device not yet known gets device_approval_required (no token) and the test script saves approval_ref / approval_id; 422 device_id_required without the header."
                             },
                             "event": [
                                 {
@@ -426,9 +463,17 @@
                                         "type": "text/javascript",
                                         "exec": [
                                             "if (pm.response.code === 200) {",
-                                            "    const body = pm.response.json();",
-                                            "    pm.collectionVariables.set('staff_access_token', body.data.session.access_token);",
-                                            "    pm.collectionVariables.set('staff_refresh_token', body.data.session.refresh_token);",
+                                            "    const data = pm.response.json().data;",
+                                            "    if (data.session) {",
+                                            "        pm.collectionVariables.set('staff_access_token', data.session.access_token);",
+                                            "        pm.collectionVariables.set('staff_refresh_token', data.session.refresh_token);",
+                                            "    } else if (data.device_approval_required) {",
+                                            "        // Spec 021: a founder on a new device is held; poll Staff Device Approval Status.",
+                                            "        pm.collectionVariables.set('approval_ref', data.approval_ref);",
+                                            "        pm.collectionVariables.set('approval_id', data.approval_id);",
+                                            "    } else if (data.session_ref) {",
+                                            "        pm.collectionVariables.set('staff_mfa_session_ref', data.session_ref);",
+                                            "    }",
                                             "}"
                                         ]
                                     }
@@ -475,7 +520,7 @@
                                         "enroll"
                                     ]
                                 },
-                                "description": "Completes an mfa_enrollment_required sign-in: scan the otpauth_url from Staff Login in an authenticator app, then send its current 6-digit code. Nothing is stored until the code is right. Returns the session and the one-time recovery_codes. 401 mfa_invalid; 429 after 5 attempts per session_ref (auth.staff.mfa)."
+                                "description": "Completes an mfa_enrollment_required sign-in: scan the otpauth_url from Staff Login in an authenticator app, then send its current 6-digit code. Nothing is stored until the code is right. Returns the session and the one-time recovery_codes. 401 mfa_invalid; 429 after 5 attempts per session_ref (auth.staff.mfa). Spec 021: a founder must send X-Device-Id; a founder on a device not yet known gets device_approval_required (no token) and the test script saves approval_ref / approval_id; 422 device_id_required without the header."
                             },
                             "event": [
                                 {
@@ -484,9 +529,17 @@
                                         "type": "text/javascript",
                                         "exec": [
                                             "if (pm.response.code === 200) {",
-                                            "    const body = pm.response.json();",
-                                            "    pm.collectionVariables.set('staff_access_token', body.data.session.access_token);",
-                                            "    pm.collectionVariables.set('staff_refresh_token', body.data.session.refresh_token);",
+                                            "    const data = pm.response.json().data;",
+                                            "    if (data.session) {",
+                                            "        pm.collectionVariables.set('staff_access_token', data.session.access_token);",
+                                            "        pm.collectionVariables.set('staff_refresh_token', data.session.refresh_token);",
+                                            "    } else if (data.device_approval_required) {",
+                                            "        // Spec 021: a founder on a new device is held; poll Staff Device Approval Status.",
+                                            "        pm.collectionVariables.set('approval_ref', data.approval_ref);",
+                                            "        pm.collectionVariables.set('approval_id', data.approval_id);",
+                                            "    } else if (data.session_ref) {",
+                                            "        pm.collectionVariables.set('staff_mfa_session_ref', data.session_ref);",
+                                            "    }",
                                             "}"
                                         ]
                                     }
@@ -705,6 +758,125 @@
                                     }
                                 }
                             ],
+                            "response": []
+                        },
+                        {
+                            "name": "Staff Device Approval Status",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/device-approval/status",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "device-approval",
+                                        "status"
+                                    ]
+                                },
+                                "description": "Spec 021: the held founder device polls its approval with the same X-Device-Id ({{device_id}}). pending → {status: pending}; approved → staff + session, once (the device becomes known; the test script saves the tokens); 403 device_approval_refused; 401 device_approval_invalid (expired, already collected, unknown or another device); 403 account_frozen / 401 invalid_credentials when the founder was frozen or disabled meanwhile. Throttled per ref (30/min) and per IP (60/min). Public. Bootstrap a first device on the server with: php artisan founder:trust-device <email> <device-id>.",
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"approval_ref\": \"{{approval_ref}}\"\n}"
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const data = pm.response.json().data;",
+                                            "    if (data.session) {",
+                                            "        pm.collectionVariables.set('staff_access_token', data.session.access_token);",
+                                            "        pm.collectionVariables.set('staff_refresh_token', data.session.refresh_token);",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Frozen: Confirm Unfreeze",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/frozen/confirm-unfreeze",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "frozen",
+                                        "confirm-unfreeze"
+                                    ]
+                                },
+                                "description": "Spec 021: the frozen founder gives the first unfreeze confirmation (slot 1) without a session: email + password + a TOTP code (or recovery_code instead of code), from a device already known for them (X-Device-Id). No token is ever issued. Checks in order: 401 invalid_credentials; 409 not_frozen; 422 device_id_required / 403 device_not_known; 401 mfa_invalid; 409 unfreeze_already_confirmed. Shares the login and MFA limiters. The other founder confirms last with Founder → Unfreeze.",
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"email\": \"coo@dahab.test\",\n    \"password\": \"seeded-password-1\",\n    \"code\": \"123456\",\n    \"note\": \"It was me, phone found\"\n}"
+                                }
+                            },
                             "response": []
                         }
                     ]
@@ -8854,6 +9026,605 @@
                                     ]
                                 },
                                 "description": "Spec 019 US8. The same figures as CSV; audited."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Founder",
+                    "description": "Spec 021: founder-account security. Held device requests and known devices (founders only); freeze and dual unfreeze (founders; the freezes and Unfreeze also for holders of founder.unfreeze_second).",
+                    "item": [
+                        {
+                            "name": "Device Approvals",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/founder/device-approvals?status=pending&page=1&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "founder",
+                                        "device-approvals"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 021: every founder's held device requests, newest first, each with can_decide; meta.pending_for_me. status = pending (default) | approved | refused | expired | all. Founders only (403 founder_only). Saves approval_id (the first row)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const rows = pm.response.json().data;",
+                                            "    if (rows.length) { pm.collectionVariables.set('approval_id', rows[0].id); }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Approve Device",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/founder/device-approvals/{{approval_id}}/approve",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "founder",
+                                        "device-approvals",
+                                        "{{approval_id}}",
+                                        "approve"
+                                    ]
+                                },
+                                "description": "Spec 021: approve the other founder's new device while the request is pending (15 minutes). 403 founder_self_action (your own); 409 device_approval_not_pending; 404 not_found. The held device collects its session on its next poll. Audited founder.device_approved (note = reason); both founders are told.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"note\": \"Called her, it is her new laptop\"\n}"
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Refuse Device",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/founder/device-approvals/{{approval_id}}/refuse",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "founder",
+                                        "device-approvals",
+                                        "{{approval_id}}",
+                                        "refuse"
+                                    ]
+                                },
+                                "description": "Spec 021: refuse the other founder's new device. Same rules as Approve Device. A refusal freezes nothing (Freeze is separate). Audited founder.device_refused.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"note\": \"Not her, she is with me\"\n}"
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Founder Devices",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/founder/devices",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "founder",
+                                        "devices"
+                                    ]
+                                },
+                                "description": "Spec 021: each founder's known devices (device_ref, first_seen_at, last_seen_at). No removal (recovery is manual, D21-1). Founders only."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Freeze",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/founder/freeze",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "founder",
+                                        "freeze"
+                                    ]
+                                },
+                                "description": "Spec 021: freeze the other founder ({{founder_staff_id}}) with a reason: every token is deleted, every request answers 403 account_frozen, pending device approvals end. 201 with sessions_ended and pending_approvals_ended. 422 reason_required / freeze_target_invalid; 403 founder_self_action / account_frozen; 409 already_frozen. Audited founder.frozen; email + notice + SMS to both founders. Saves freeze_id.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"staff_id\": \"{{founder_staff_id}}\",\n    \"reason\": \"Lost phone, possible compromise\"\n}"
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('freeze_id', pm.response.json().data.id);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Freezes",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/founder/freezes?state=open&page=1&per_page=20",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "founder",
+                                        "freezes"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "state",
+                                            "value": "open"
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "20"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 021: freezes with their confirmations, can_confirm and my_slot for you. state = open (default) | all. Founders, or holders of founder.unfreeze_second. Saves freeze_id (the first row)."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const rows = pm.response.json().data;",
+                                            "    if (rows.length) { pm.collectionVariables.set('freeze_id', rows[0].id); }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Unfreeze",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/founder/unfreeze",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "founder",
+                                        "unfreeze"
+                                    ]
+                                },
+                                "description": "Spec 021: one confirmation per call; the server picks the slot. A founder who is not frozen → slot 2 (always last; 409 unfreeze_order before slot 1) and the account is unfrozen (no session comes back). Otherwise a holder of founder.unfreeze_second → slot 1 (second_approver; 409 unfreeze_already_confirmed when taken). 409 not_frozen; 403 permission_denied. Audited founder.unfreeze_confirmed (+ founder.unfrozen).",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"freeze_id\": \"{{freeze_id}}\",\n    \"note\": \"Phone found, checked together\"\n}"
+                                }
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Notices",
+                    "description": "Spec 021: Dashboard notices (the bell). Your own only; no permission.",
+                    "item": [
+                        {
+                            "name": "List Notices",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/notices?unread=&page=1",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "notices"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "unread",
+                                            "value": ""
+                                        },
+                                        {
+                                            "key": "page",
+                                            "value": "1"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 021: your own Dashboard notices, newest first, paginated; meta.unread_count. unread=1 keeps the unread ones. Any staff member. Saves notice_id."
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const rows = pm.response.json().data;",
+                                            "    if (rows.length) { pm.collectionVariables.set('notice_id', rows[0].id); }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Read Notice",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/notices/{{notice_id}}/read",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "notices",
+                                        "{{notice_id}}",
+                                        "read"
+                                    ]
+                                },
+                                "description": "Spec 021: mark one of your notices read (someone else's → 404 not_found). An already read notice keeps its time."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Read All Notices",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/notices/read-all",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "notices",
+                                        "read-all"
+                                    ]
+                                },
+                                "description": "Spec 021: mark every notice of yours read; data.marked is how many."
                             },
                             "response": []
                         }

@@ -55,3 +55,16 @@ it('gives staff.manage to the CEO only', function () {
         ->and(StaffPermission::STAFF_MANAGE->seedRoles())->toBe([])
         ->and(StaffPermission::STAFF_MANAGE->group())->toBe('Access control');
 });
+
+// Spec 021 R14 / plan Q1: `founder.unfreeze_second` is held by the CEO role only, so the CEO can
+// name a stand-in through a role; founders still confirm an unfreeze as founders.
+it('gives founder.unfreeze_second to the CEO only', function () {
+    $holders = collect(SeedRole::cases())
+        ->filter(fn (SeedRole $role) => Role::findByName($role->value, 'staff')->hasPermissionTo(StaffPermission::FOUNDER_UNFREEZE_SECOND->value))
+        ->map->value->all();
+
+    expect($holders)->toBe([SeedRole::CEO->value])
+        ->and(StaffPermission::FOUNDER_UNFREEZE_SECOND->value)->toBe('founder.unfreeze_second')
+        ->and(StaffPermission::FOUNDER_UNFREEZE_SECOND->seedRoles())->toBe([])
+        ->and(StaffPermission::FOUNDER_UNFREEZE_SECOND->group())->toBe('Access control');
+});

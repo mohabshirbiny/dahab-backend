@@ -187,6 +187,12 @@ enum StaffPermission: string
     /** Spec 020 D20-4: create, disable or enable staff accounts. The CEO's alone — no seed role. */
     case STAFF_MANAGE = 'staff.manage';
 
+    /**
+     * Spec 021 C1: give the first unfreeze confirmation when a frozen founder cannot. No seed role;
+     * the CEO holds it (every code, plan Q1) only so they can name a stand-in through a role.
+     */
+    case FOUNDER_UNFREEZE_SECOND = 'founder.unfreeze_second';
+
     /** Any of these opens the inspection work list (spec 012 research R18). */
     public const WORK_LIST_ANY = 'inspection.enter|order.receive|order.handover';
 
@@ -273,6 +279,7 @@ enum StaffPermission: string
             self::MARKET_MAKER_APPROVE => 'Approve pieces for market makers',
             self::PEOPLE_TO_WATCH_VIEW => 'See People to watch',
             self::STAFF_MANAGE => 'Create, disable or enable staff accounts',
+            self::FOUNDER_UNFREEZE_SECOND => 'Give the first unfreeze confirmation when a frozen founder cannot',
         };
     }
 
@@ -281,7 +288,7 @@ enum StaffPermission: string
         return match ($this) {
             self::CUSTOMER_VIEW, self::CUSTOMER_SUSPEND, self::PAYOUT_ACCOUNT_VERIFY => 'Customers',
             self::IDENTITY_VIEW, self::IDENTITY_REVIEW => 'Identity',
-            self::STAFF_VIEW, self::ROLES_MANAGE, self::STAFF_MANAGE => 'Access control',
+            self::STAFF_VIEW, self::ROLES_MANAGE, self::STAFF_MANAGE, self::FOUNDER_UNFREEZE_SECOND => 'Access control',
             self::REFERENCE_VIEW, self::KARATS_TOGGLE, self::KARATS_CREATE, self::BRANCHES_MANAGE => 'Reference data',
             self::PRICING_VIEW, self::PRICING_RATES_MANAGE, self::SETTINGS_MANAGE,
             self::GOLD_PRICE_ENTER, self::GOLD_PRICE_CONFIRM => 'Pricing',
@@ -404,6 +411,8 @@ enum StaffPermission: string
             self::PEOPLE_TO_WATCH_VIEW => [SeedRole::COO->value],
             // Spec 020 D20-4: the CEO's alone (the CEO holds every code) — no role.
             self::STAFF_MANAGE => [],
+            // Spec 021 R14 / plan Q1: the CEO (every code, so the migration and the sync give it) — no role.
+            self::FOUNDER_UNFREEZE_SECOND => [],
         };
     }
 }

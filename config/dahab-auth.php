@@ -104,6 +104,13 @@ return [
             'per_ip_max' => 20,
             'per_ip_window' => 60,
         ],
+        // Spec 021: the held founder device polls its approval every 5 seconds.
+        'staff_device_approval' => [
+            'per_ref_max' => 30,
+            'per_ref_window' => 60,
+            'per_ip_max' => 60,
+            'per_ip_window' => 60,
+        ],
         'password_reset_request' => [
             'per_identity_max' => 3,
             'per_identity_window' => 60 * 60, // 1 hour
@@ -142,6 +149,27 @@ return [
     */
 
     'mfa_enforced' => (bool) env('DAHAB_AUTH_MFA_ENFORCED', true) || env('APP_ENV') === 'production',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Founder device approval (spec 021 Story 1)
+    |--------------------------------------------------------------------------
+    | A founder signing in from a device not yet known for them gets no token
+    | until the other founder approves it. The switch exists only so local
+    | development can turn the hold off; it is forced on in production, like
+    | `mfa_enforced`. An approval lasts `ttl_minutes` and is single use (D21-4);
+    | the held device polls every `poll_interval_seconds`.
+    */
+
+    'founder_device_approval_enforced' => (bool) env('DAHAB_AUTH_FOUNDER_DEVICE_APPROVAL', true) || env('APP_ENV') === 'production',
+
+    'founder_device_approval' => [
+        'ttl_minutes' => 15,
+        'poll_interval_seconds' => 5,
+    ],
+
+    // The Dashboard's origin, for links in staff emails (spec 021 founder alerts).
+    'dashboard_url' => rtrim((string) env('DASHBOARD_URL', 'http://localhost:3000'), '/'),
 
     /*
     |--------------------------------------------------------------------------

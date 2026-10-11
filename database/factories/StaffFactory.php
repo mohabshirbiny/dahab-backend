@@ -6,9 +6,11 @@ use App\Enums\SeedRole;
 use App\Models\AccountFreeze;
 use App\Models\Branch;
 use App\Models\Staff;
+use App\Models\StaffDeviceFingerprint;
 use App\Models\StaffMfa;
 use App\Models\StaffPassword;
 use App\Models\StaffRoleModel;
+use App\Support\Auth\DeviceFingerprint;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use WeakMap;
@@ -114,6 +116,23 @@ class StaffFactory extends Factory
                 'frozen_staff_id' => $staff->staff_id,
                 'frozen_by' => Staff::factory()->role(SeedRole::CEO)->founder()->create()->staff_id,
                 'frozen_at' => now(),
+                'reason' => 'Frozen for a test',
+            ]);
+        });
+    }
+
+    /**
+     * A device already known for this member (spec 021): a founder signing in with
+     * `X-Device-Id: $deviceId` (and `X-Device-Platform: $platform`) is not held.
+     */
+    public function withKnownDevice(string $deviceId = 'dev-1', string $platform = 'web'): static
+    {
+        return $this->afterCreating(function (Staff $staff) use ($deviceId, $platform) {
+            StaffDeviceFingerprint::query()->create([
+                'staff_id' => $staff->staff_id,
+                'fingerprint_hash' => DeviceFingerprint::hash($deviceId, $platform),
+                'first_seen_at' => now(),
+                'last_seen_at' => now(),
             ]);
         });
     }

@@ -6,19 +6,16 @@ use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
 use App\Exceptions\AuthApiException;
 use App\Models\Staff;
-use App\Models\StaffMfa;
 use App\Services\StaffMfaSessionStore;
+use App\Support\Auth\StaffTotpVerifier;
 use App\Support\RequestContext;
 use App\Support\SessionDto;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use PragmaRX\Google2FA\Google2FA;
 
 /**
  * Second step of a staff sign-in for an already-enrolled account: redeem the
  * `session_ref` from login with a TOTP code (or a one-time recovery code).
+ * A founder on a device not yet known is held for the other founder's
+ * approval instead of signed in (spec 021).
  */
 final class VerifyStaffMfaAction
 {
@@ -26,11 +23,12 @@ final class VerifyStaffMfaAction
         private readonly CompleteStaffSignInAction $complete,
         private readonly RecordAuditLogAction $audit,
         private readonly StaffMfaSessionStore $mfaSessions,
-        private readonly Google2FA $google2fa,
+        private readonly StaffTotpVerifier $totp,
+        private readonly FounderDeviceGate $deviceGate,
     ) {}
 
     /**
-     * @return array{staff: Staff, session: SessionDto}
+     * @return array{staff: Staff, session: SessionDto}|array<string, mixed> the session, or the held answer (spec 021 R18)
      */
     public function execute(string $sessionRef, ?string $code, ?string $recoveryCode, RequestContext $ctx): array
     {
@@ -53,8 +51,8 @@ final class VerifyStaffMfaAction
 
             $method = $code !== null ? 'totp' : 'recovery_code';
             $valid = $code !== null
-                ? $this->verifyTotp($staff, $code)
-                : $this->redeemRecoveryCode($staff, (string) $recoveryCode);
+                ? $this->totp->verifyTotp($staff, $code)
+                : $this->totp->redeemRecoveryCode($staff, (string) $recoveryCode);
 
             if (! $valid) {
                 $this->fail($actorCtx, 'wrong_code', $method);
@@ -71,50 +69,12 @@ final class VerifyStaffMfaAction
                 $actorCtx,
             );
 
-            return ['staff' => $staff, 'session' => $this->complete->execute($staff, $ctx, 'mfa')];
-        });
-    }
-
-    /** A code is good once: the last accepted time-step is remembered and never accepted again. */
-    private function verifyTotp(Staff $staff, string $code): bool
-    {
-        $replayKey = 'staff-mfa-last-timestep:'.$staff->staff_id;
-
-        // The 0 seed matters: with a null "old" step the library answers `true`
-        // instead of the matched time-step, and there would be nothing to remember.
-        $timestep = $this->google2fa->verifyKeyNewer(
-            $staff->mfa->mfa_secret_encrypted,
-            $code,
-            (int) Cache::get($replayKey, 0),
-        );
-
-        if (! is_int($timestep)) {
-            return false;
-        }
-
-        Cache::put($replayKey, $timestep, now()->addMinutes(5));
-
-        return true;
-    }
-
-    private function redeemRecoveryCode(Staff $staff, string $recoveryCode): bool
-    {
-        $recoveryCode = Str::lower(trim($recoveryCode));
-
-        return DB::transaction(function () use ($staff, $recoveryCode) {
-            $mfa = StaffMfa::query()->whereKey($staff->staff_id)->lockForUpdate()->firstOrFail();
-            $hashes = $mfa->recovery_codes_hash ?? [];
-
-            foreach ($hashes as $i => $hash) {
-                if (Hash::check($recoveryCode, $hash)) {
-                    unset($hashes[$i]);
-                    $mfa->update(['recovery_codes_hash' => array_values($hashes)]);
-
-                    return true;
-                }
+            $held = $this->deviceGate->hold($staff, $ctx);
+            if ($held !== null) {
+                return $held;
             }
 
-            return false;
+            return ['staff' => $staff, 'session' => $this->complete->execute($staff, $ctx, 'mfa')];
         });
     }
 

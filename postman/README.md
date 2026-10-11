@@ -20,6 +20,16 @@ Spec 020 variables: `reset_code` (the customer's reset code, `123456` locally), 
 `new_staff_id` (filled by **Create Staff**). The staff set-password link in the mail is built from `DASHBOARD_URL` (default
 `http://localhost:3000`, see `.env.example`); set it in the Backend's `.env` when the Dashboard runs elsewhere.
 
+Spec 021 (founder-account security): a collection-level pre-request script adds `X-Device-Id: {{device_id}}` and
+`X-Device-Platform: web` to every Dashboard request that does not set them. A founder signing in from a device the Backend does
+not know is held: **Staff MFA Verify** (or **Staff Login** with MFA off) answers `device_approval_required` and saves
+`approval_ref` / `approval_id`; poll **Staff Device Approval Status** with the same `device_id` until the other founder runs
+**Founder → Approve Device** (it then saves the session). Trust a founder's first device on the server, never over HTTP:
+`php artisan founder:trust-device <email> <device-id>` (the id shown on the Dashboard's *Waiting for approval* screen, or the
+`device_id` variable here). **Founder → Freeze / Freezes / Unfreeze** and **Auth → Frozen: Confirm Unfreeze** use `founder_staff_id`
+and `freeze_id`; **Notices** saves `notice_id`. New variables: `approval_ref`, `approval_id`, `freeze_id`, `founder_staff_id`,
+`notice_id`.
+
 There are two API surfaces with **separate tokens**:
 
 | Surface | Prefix | Bearer variable | Refresh variable |

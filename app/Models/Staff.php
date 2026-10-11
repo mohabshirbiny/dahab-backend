@@ -83,6 +83,25 @@ class Staff extends Authenticatable implements HasApiTokensContract
         return $this->hasMany(StaffDeviceFingerprint::class, 'staff_id', 'staff_id');
     }
 
+    /** Spec 021: a device is known when a completed sign-in (or the console) recorded its fingerprint. */
+    public function isKnownDevice(?string $fingerprintHash): bool
+    {
+        return $fingerprintHash !== null
+            && $this->deviceFingerprints()->where('fingerprint_hash', $fingerprintHash)->exists();
+    }
+
+    /** Recipient for the `sms` notification channel (spec 021: the freeze SMS to founders). */
+    public function routeNotificationForSms(): ?string
+    {
+        return $this->phone;
+    }
+
+    /** Dashboard notices (spec 021). */
+    public function notices(): HasMany
+    {
+        return $this->hasMany(StaffNotice::class, 'staff_id', 'staff_id');
+    }
+
     public function activeFreeze(): HasOne
     {
         return $this->hasOne(AccountFreeze::class, 'frozen_staff_id', 'staff_id')

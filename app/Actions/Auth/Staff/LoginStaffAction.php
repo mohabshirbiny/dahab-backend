@@ -19,13 +19,16 @@ final class LoginStaffAction
         private readonly RecordAuditLogAction $audit,
         private readonly StaffMfaSessionStore $mfaSessions,
         private readonly Google2FA $google2fa,
+        private readonly FounderDeviceGate $deviceGate,
     ) {}
 
     /**
-     * One of three shapes, told apart by key:
+     * One of four shapes, told apart by key:
      *  - `staff` + `session`: signed in;
      *  - `mfa_required` + `session_ref` + `expires_at`: TOTP challenge;
-     *  - `mfa_enrollment_required` + `otpauth_url` + `recovery_codes` + `session_ref` + `expires_at`: first enrollment.
+     *  - `mfa_enrollment_required` + `otpauth_url` + `recovery_codes` + `session_ref` + `expires_at`: first enrollment;
+     *  - `device_approval_required` + `approval_id` + `approval_ref` + `expires_at` + `poll_interval_seconds`:
+     *    a founder on a new device, held for the other founder (spec 021; only when MFA is off locally).
      *
      * @return array<string, mixed>
      */
@@ -68,7 +71,8 @@ final class LoginStaffAction
         return match ($this->mfaStep($staff)) {
             'enroll' => $this->beginEnrollment($staff),
             'challenge' => $this->beginChallenge($staff),
-            default => ['staff' => $staff, 'session' => $this->complete->execute($staff, $ctx, 'password')],
+            default => $this->deviceGate->hold($staff, $ctx)
+                ?? ['staff' => $staff, 'session' => $this->complete->execute($staff, $ctx, 'password')],
         };
     }
 

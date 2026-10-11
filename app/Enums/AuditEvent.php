@@ -171,6 +171,16 @@ enum AuditEvent: string
     case PEOPLE_TO_WATCH_VIEWED = 'people_to_watch.viewed';
     case LEGAL_PUBLISHED = 'legal.published';
     case LEGAL_ACCEPTED = 'legal.accepted';
+    // Spec 021: founder-account security.
+    case FOUNDER_DEVICE_APPROVAL_REQUESTED = 'founder.device_approval_requested';
+    case FOUNDER_DEVICE_APPROVED = 'founder.device_approved';
+    case FOUNDER_DEVICE_REFUSED = 'founder.device_refused';
+    case FOUNDER_DEVICE_APPROVAL_COLLECTED = 'founder.device_approval_collected';
+    case FOUNDER_DEVICE_TRUSTED_BY_CONSOLE = 'founder.device_trusted_by_console';
+    case FOUNDER_FROZEN = 'founder.frozen';
+    case FOUNDER_UNFREEZE_CONFIRMED = 'founder.unfreeze_confirmed';
+    case FOUNDER_UNFROZEN = 'founder.unfrozen';
+    case FOUNDER_UNFREEZE_CONFIRM_FAILED = 'founder.unfreeze_confirm_failed';
 
     /** Plain words for the audit log viewer (spec 006). No default arm: a new case must get a label. */
     public function label(): string
@@ -331,6 +341,15 @@ enum AuditEvent: string
             self::PEOPLE_TO_WATCH_VIEWED => 'People to watch read',
             self::LEGAL_PUBLISHED => 'Legal text published',
             self::LEGAL_ACCEPTED => 'Customer accepted a legal text',
+            self::FOUNDER_DEVICE_APPROVAL_REQUESTED => 'Founder sign-in from a new device held for approval',
+            self::FOUNDER_DEVICE_APPROVED => 'New founder device approved',
+            self::FOUNDER_DEVICE_REFUSED => 'New founder device refused',
+            self::FOUNDER_DEVICE_APPROVAL_COLLECTED => 'Approved founder device signed in',
+            self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE => 'Founder device trusted from the server',
+            self::FOUNDER_FROZEN => 'Founder account frozen',
+            self::FOUNDER_UNFREEZE_CONFIRMED => 'Unfreeze confirmation given',
+            self::FOUNDER_UNFROZEN => 'Founder account unfrozen',
+            self::FOUNDER_UNFREEZE_CONFIRM_FAILED => 'Unfreeze confirmation refused',
         };
     }
 
@@ -340,6 +359,9 @@ enum AuditEvent: string
         return match ($this) {
             self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_PASSWORD_RESET_REQUESTED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
             self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED, self::STAFF_CREATED, self::STAFF_DISABLED, self::STAFF_ENABLED => AuditCategory::ACCOUNTS,
+            self::FOUNDER_DEVICE_APPROVAL_REQUESTED, self::FOUNDER_DEVICE_APPROVED, self::FOUNDER_DEVICE_REFUSED,
+            self::FOUNDER_DEVICE_APPROVAL_COLLECTED, self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE, self::FOUNDER_FROZEN,
+            self::FOUNDER_UNFREEZE_CONFIRMED, self::FOUNDER_UNFROZEN, self::FOUNDER_UNFREEZE_CONFIRM_FAILED => AuditCategory::ACCOUNTS,
             self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
             self::CONTROL_SET, self::CONTROL_CLEARED, self::VISIBILITY_CHANGED, self::PEOPLE_TO_WATCH_VIEWED => AuditCategory::SYSTEM,
@@ -373,6 +395,47 @@ enum AuditEvent: string
             self::LISTING_REPORT_CREATED, self::LISTING_REPORT_DISMISSED, self::LISTING_REPORT_ACTIONED => AuditCategory::LISTINGS,
             self::CONTENT_DRAFT_SAVED, self::CONTENT_DRAFT_DISCARDED, self::CONTENT_PUBLISHED, self::CONTENT_REVERTED, self::CONTENT_EXPORTED, self::CONTENT_FAQ_CREATED, self::CONTENT_FAQ_REORDERED, self::LEGAL_PUBLISHED, self::LEGAL_ACCEPTED => AuditCategory::CONTENT,
         };
+    }
+
+    /**
+     * Spec 021 research R11 (Story 3): the events both founders are told about. The sensitive
+     * actions only when a founder did them ("on either founder account"); see founderSecurity().
+     *
+     * @return list<self>
+     */
+    public static function founderAlert(): array
+    {
+        return [...self::founderSensitive(), ...self::founderSecurity()];
+    }
+
+    /** @return list<self> the Story 3 list: alerted only when the actor is a founder (plan Q2: nothing more) */
+    public static function founderSensitive(): array
+    {
+        return [
+            self::WALLET_ADJUSTED,
+            self::SETTING_CHANGED,
+            self::ADJUSTMENT_CHANGED,
+            self::PROMO_CREATED,
+            self::PROMO_UPDATED,
+            self::MANUAL_PRICE_ENTERED,
+            self::MANUAL_PRICE_CONFIRMED,
+            self::STAFF_CREATED,
+            self::STAFF_DISABLED,
+        ];
+    }
+
+    /** @return list<self> founder security events: alerted whoever the actor is */
+    public static function founderSecurity(): array
+    {
+        return [
+            self::FOUNDER_DEVICE_APPROVAL_REQUESTED,
+            self::FOUNDER_DEVICE_APPROVED,
+            self::FOUNDER_DEVICE_REFUSED,
+            self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE,
+            self::FOUNDER_FROZEN,
+            self::FOUNDER_UNFREEZE_CONFIRMED,
+            self::FOUNDER_UNFROZEN,
+        ];
     }
 
     /** @return list<string> the stored action codes of one category */

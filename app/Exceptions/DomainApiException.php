@@ -870,4 +870,53 @@ class DomainApiException extends RuntimeException
     {
         return new self('market_maker_only', 403, 'This is for market-maker accounts.');
     }
+
+    // ---- Spec 021: founder-account security ----
+
+    public static function deviceApprovalNotPending(): self
+    {
+        return new self('device_approval_not_pending', 409, 'This request is no longer waiting for a decision.');
+    }
+
+    public static function founderOnly(): self
+    {
+        return new self('founder_only', 403, 'Only a founder can do this.');
+    }
+
+    /** Approving or refusing your own device, or freezing yourself. */
+    public static function founderSelfAction(): self
+    {
+        return new self('founder_self_action', 403, 'You cannot do this for your own account.');
+    }
+
+    public static function freezeTargetInvalid(): self
+    {
+        return new self('freeze_target_invalid', 422, 'Only the other founder, while active, can be frozen.');
+    }
+
+    public static function alreadyFrozen(): self
+    {
+        return new self('already_frozen', 409, 'This account is already frozen.');
+    }
+
+    public static function notFrozen(): self
+    {
+        return new self('not_frozen', 409, 'This account is not frozen.');
+    }
+
+    /** A founder confirms before the first confirmation exists. */
+    public static function unfreezeOrder(): self
+    {
+        return new self('unfreeze_order', 409, 'The first confirmation comes first: the frozen founder or the named stand-in.');
+    }
+
+    public static function unfreezeAlreadyConfirmed(): self
+    {
+        return new self('unfreeze_already_confirmed', 409, 'This confirmation has already been given.');
+    }
+
+    public static function deviceNotKnown(): self
+    {
+        return new self('device_not_known', 403, 'Use a device this account has signed in from before.');
+    }
 }

@@ -2,6 +2,7 @@
 
 use App\Actions\Auth\Shared\IssueTokenFamilyAction;
 use App\Http\Resources\Customer\CustomerResource;
+use App\Models\AccountFreeze;
 use App\Models\Customer;
 use App\Models\CustomerTrustedDevice;
 use App\Models\Staff;
@@ -83,4 +84,29 @@ function pngBytes(): string
 function staffAccessToken(Staff $staff): string
 {
     return app(IssueTokenFamilyAction::class)->forStaff($staff)->accessToken;
+}
+
+/**
+ * Lifts an open freeze the way spec 021 allows (both confirmations in order): slot 1 by the
+ * frozen member, slot 2 by the founder who froze them. The CHECKs and guard DH022 refuse a bare
+ * `unfrozen_at`.
+ */
+function liftFreeze(AccountFreeze $freeze): AccountFreeze
+{
+    $freeze->forceFill([
+        'unfreeze_confirm_1' => $freeze->frozen_staff_id,
+        'unfreeze_confirm_1_at' => now(),
+        'unfreeze_confirm_1_kind' => AccountFreeze::KIND_FROZEN_FOUNDER,
+        'unfreeze_confirm_2' => $freeze->frozen_by,
+        'unfreeze_confirm_2_at' => now(),
+        'unfrozen_at' => now(),
+    ])->save();
+
+    return $freeze;
+}
+
+/** The headers of a Dashboard request from device `$deviceId` (spec 021: a founder's known device). */
+function deviceHeaders(string $deviceId = 'dev-1', string $platform = 'web'): array
+{
+    return ['X-Device-Id' => $deviceId, 'X-Device-Platform' => $platform];
 }
