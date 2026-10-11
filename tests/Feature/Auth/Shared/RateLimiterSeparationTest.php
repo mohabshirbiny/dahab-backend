@@ -128,6 +128,8 @@ it('registers a separate limiter for each auth concern with disjoint bucket keys
         'auth.customer.login',
         'auth.staff.login',
         'auth.password_reset.request',
+        'auth.password_reset.confirm',
+        'auth.staff.password_reset.confirm',
         'auth.otp.send',
         'auth.otp.verify',
         'auth.refresh',
@@ -149,7 +151,8 @@ it('registers a separate limiter for each auth concern with disjoint bucket keys
     $prefixes = collect($keys)->map(fn ($k) => Str::before($k, ':'))->unique()->values()->all();
     expect($prefixes)->toEqualCanonicalizing([
         'cust-register-id', 'cust-register-ip', 'cust-login-id', 'cust-login-ip',
-        'staff-login-id', 'staff-login-ip', 'reset-id', 'reset-ip',
+        'staff-login-id', 'staff-login-ip', 'reset-id', 'reset-ip', 'reset-device',
+        'reset-confirm-id', 'reset-confirm-ip', 'staff-reset-confirm-ip',
         'otp-cooldown', 'otp-hourly', 'otp-verify', 'refresh',
     ]);
 });

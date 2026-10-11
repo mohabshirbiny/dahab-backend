@@ -18,12 +18,19 @@ class ListStaffRequest extends FormRequest
         return [
             'role' => ['sometimes', 'string', Rule::exists('roles', 'name')->where('guard_name', Staff::GUARD)],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'status' => ['sometimes', 'string', Rule::in(['active', 'disabled'])],
         ];
     }
 
     public function role(): ?string
     {
         return $this->validated('role');
+    }
+
+    /** @return 'active'|'disabled'|null */
+    public function status(): ?string
+    {
+        return $this->validated('status');
     }
 
     public function perPage(): int

@@ -24,6 +24,7 @@ use App\Notifications\EmailChangeLinkNotification;
 use App\Notifications\ListingDecisionNotification;
 use App\Notifications\ListingReportNotification;
 use App\Notifications\OrderNotification;
+use App\Notifications\PasswordResetCodeNotification;
 use App\Notifications\PayoutNotification;
 use App\Notifications\PhoneChangeCodeNotification;
 use App\Notifications\ProxyNamedNotification;
@@ -106,6 +107,7 @@ final class NotificationCases
         $c['auth.registration_otp'] = fn (string $lang) => new CustomerRegistrationOtpNotification('123456', $lang);
         $c['auth.registration_email_otp'] = fn (string $lang) => new CustomerRegistrationEmailOtpNotification('123456', $lang);
         $c['auth.phone_change_code'] = fn (string $lang) => new PhoneChangeCodeNotification('654321', $lang);
+        $c['auth.password_reset_code'] = fn (string $lang) => new PasswordResetCodeNotification('654321', $lang);
         $c['auth.email_change_link'] = fn (string $lang) => new EmailChangeLinkNotification('https://app.example.test/email-confirm?t=abc', $lang, 30);
         $c['withdrawal.confirmation_link'] = fn (string $lang) => new WithdrawalConfirmationNotification('https://app.example.test/withdraw-confirm?t=abc', '1000.0', 'CIB •••• 4417', 30);
 

@@ -3381,6 +3381,120 @@
             }
         }
     },
+    "account.password_reset.plain": {
+        "en": {
+            "mail": {
+                "subject": "Your password was reset",
+                "intro": [
+                    "The password of your Dahab account was reset and all your devices were signed out. If this was not you, call us now on 16000."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: The password of your Dahab account was reset and all your devices were signed out. If this was not you, call us now on 16000.",
+            "inbox": {
+                "type": "account.password_reset",
+                "title_en": "Your password was reset",
+                "title_ar": "كلمة السر اتعملها إعادة تعيين",
+                "body_en": "The password of your Dahab account was reset and all your devices were signed out. If this was not you, call us now on 16000.",
+                "body_ar": "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "كلمة السر اتعملها إعادة تعيين",
+                "intro": [
+                    "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. لو مش انت اللي عملت كده، كلمنا فوراً على 16000.",
+            "inbox": {
+                "type": "account.password_reset",
+                "title_en": "Your password was reset",
+                "title_ar": "كلمة السر اتعملها إعادة تعيين",
+                "body_en": "The password of your Dahab account was reset and all your devices were signed out. If this was not you, call us now on 16000.",
+                "body_ar": "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+            }
+        }
+    },
+    "account.password_reset.stopped": {
+        "en": {
+            "mail": {
+                "subject": "Your password was reset",
+                "intro": [
+                    "The password of your Dahab account was reset and all your devices were signed out. Withdrawals that had not left (2) were cancelled and the money is back in your wallet. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: The password of your Dahab account was reset and all your devices were signed out. Withdrawals that had not left (2) were cancelled and the money is back in your wallet. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000.",
+            "inbox": {
+                "type": "account.password_reset",
+                "title_en": "Your password was reset",
+                "title_ar": "كلمة السر اتعملها إعادة تعيين",
+                "body_en": "The password of your Dahab account was reset and all your devices were signed out. Withdrawals that had not left (2) were cancelled and the money is back in your wallet. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000.",
+                "body_ar": "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. طلبات السحب اللي ماخرجتش (2) اتلغت والفلوس رجعت محفظتك. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "كلمة السر اتعملها إعادة تعيين",
+                "intro": [
+                    "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. طلبات السحب اللي ماخرجتش (2) اتلغت والفلوس رجعت محفظتك. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. طلبات السحب اللي ماخرجتش (2) اتلغت والفلوس رجعت محفظتك. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000.",
+            "inbox": {
+                "type": "account.password_reset",
+                "title_en": "Your password was reset",
+                "title_ar": "كلمة السر اتعملها إعادة تعيين",
+                "body_en": "The password of your Dahab account was reset and all your devices were signed out. Withdrawals that had not left (2) were cancelled and the money is back in your wallet. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000.",
+                "body_ar": "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. طلبات السحب اللي ماخرجتش (2) اتلغت والفلوس رجعت محفظتك. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+            }
+        }
+    },
+    "account.password_reset.paused": {
+        "en": {
+            "mail": {
+                "subject": "Your password was reset",
+                "intro": [
+                    "The password of your Dahab account was reset and all your devices were signed out. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: The password of your Dahab account was reset and all your devices were signed out. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000.",
+            "inbox": {
+                "type": "account.password_reset",
+                "title_en": "Your password was reset",
+                "title_ar": "كلمة السر اتعملها إعادة تعيين",
+                "body_en": "The password of your Dahab account was reset and all your devices were signed out. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000.",
+                "body_ar": "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "كلمة السر اتعملها إعادة تعيين",
+                "intro": [
+                    "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000.",
+            "inbox": {
+                "type": "account.password_reset",
+                "title_en": "Your password was reset",
+                "title_ar": "كلمة السر اتعملها إعادة تعيين",
+                "body_en": "The password of your Dahab account was reset and all your devices were signed out. Withdrawals are paused until 12 Oct, 10:30. If this was not you, call us now on 16000.",
+                "body_ar": "كلمة السر بتاعة حسابك على دهب اتعملها إعادة تعيين، وكل الأجهزة خرجت من الحساب. السحب متوقف لحد 12 Oct, 10:30. لو مش انت اللي عملت كده، كلمنا فوراً على 16000."
+            }
+        }
+    },
     "account.new_device.plain": {
         "en": {
             "mail": {
@@ -5309,6 +5423,14 @@
         },
         "ar": {
             "sms": "رمز تغيير رقم الموبايل في Dahab هو 654321. صالح لمدة 5 دقائق. لا تشاركه مع أحد."
+        }
+    },
+    "auth.password_reset_code": {
+        "en": {
+            "sms": "Your Dahab code to reset your password is 654321. It expires in 5 minutes. Do not share it with anyone."
+        },
+        "ar": {
+            "sms": "رمز إعادة تعيين كلمة السر في Dahab هو 654321. صالح لمدة 5 دقائق. لا تشاركه مع أحد."
         }
     },
     "auth.email_change_link": {

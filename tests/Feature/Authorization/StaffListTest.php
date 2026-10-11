@@ -30,7 +30,7 @@ it('lists staff with their roles, founder flag and permissions, ordered by name,
         ->assertJsonPath('data.1.branch_id', Branch::query()->value('branch_id'))
         ->assertJsonPath('meta.per_page', 25);
 
-    expect(array_keys($response->json('data.0')))->toBe(['id', 'full_name', 'email', 'phone', 'is_active', 'is_founder', 'branch_id', 'roles', 'permissions', 'mfa_enrolled']);
+    expect(array_keys($response->json('data.0')))->toBe(['id', 'full_name', 'email', 'phone', 'is_active', 'is_founder', 'branch_id', 'roles', 'permissions', 'mfa_enrolled', 'password_set']);
 });
 
 it('filters by role and paginates', function () {

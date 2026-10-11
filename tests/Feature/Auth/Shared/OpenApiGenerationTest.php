@@ -45,6 +45,9 @@ const OPENAPI_CUSTOMER_PATHS = [
     'post /customer/auth/logout-all',
     'post /customer/auth/otp/verify',
     'post /customer/auth/otp/resend',
+    // Spec 020: a forgotten password.
+    'post /customer/auth/password/reset-request',
+    'post /customer/auth/password/reset-confirm',
 ];
 
 const OPENAPI_DASHBOARD_PATHS = [
@@ -55,6 +58,9 @@ const OPENAPI_DASHBOARD_PATHS = [
     'get /dashboard/auth/me',
     'post /dashboard/auth/logout',
     'post /dashboard/auth/logout-all',
+    // Spec 020: staff recovery.
+    'post /dashboard/auth/password/reset-request',
+    'post /dashboard/auth/password/reset-confirm',
 ];
 
 const OPENAPI_CUSTOMER_IDENTITY_PATHS = [
@@ -91,6 +97,10 @@ const OPENAPI_DASHBOARD_ACCESS_PATHS = [
     'get /dashboard/staff/{staff}',
     'put /dashboard/staff/{staff}/roles',
     'put /dashboard/staff/{staff}/branch',
+    // Spec 020: create, disable and enable.
+    'post /dashboard/staff',
+    'post /dashboard/staff/{staff}/disable',
+    'post /dashboard/staff/{staff}/enable',
 ];
 
 const OPENAPI_DASHBOARD_REFERENCE_PATHS = [
@@ -499,6 +509,10 @@ it('secures every operation with its own surface scheme and never the generic sa
         'post /customer/auth/logout-all' => 'customerBearer',
         'post /customer/auth/otp/verify' => null,
         'post /customer/auth/otp/resend' => null,
+        'post /customer/auth/password/reset-request' => null,
+        'post /customer/auth/password/reset-confirm' => null,
+        'post /dashboard/auth/password/reset-request' => null,
+        'post /dashboard/auth/password/reset-confirm' => null,
         'post /dashboard/auth/login' => null,
         'post /dashboard/auth/mfa/verify' => null,
         'post /dashboard/auth/mfa/enroll' => null,
@@ -631,6 +645,8 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'CustomerOtpChallenge', 'VerifyLoginOtpRequest', 'ResendLoginOtpRequest',
         'DashboardPermission', 'DashboardRole', 'DashboardRoleRef', 'DashboardStaffMember',
         'DashboardStoreRole', 'DashboardUpdateRole', 'DashboardDeleteRole', 'DashboardSetStaffRoles',
+        'PasswordResetRequestRequest', 'PasswordResetConfirmRequest', 'StaffResetRequestRequest', 'StaffResetConfirmRequest',
+        'DashboardCreateStaff', 'DashboardStaffStatusChange',
         'DashboardSetStaffBranch', 'DashboardKarat', 'DashboardStoreKarat', 'DashboardBranch', 'DashboardBranchHour',
         'DashboardStoreBranch', 'DashboardUpdateBranch', 'DashboardBranchClosure', 'DashboardStoreBranchClosure',
         'DashboardStaffRef', 'DashboardManualPrice', 'DashboardEnterManualPrice', 'DashboardGoldPrice', 'DashboardKaratPrice',

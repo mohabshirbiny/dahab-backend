@@ -67,6 +67,28 @@ class DomainApiException extends RuntimeException
         return new self('role_in_use', 409, "This role is held by {$count} staff member(s). Reassign them before deleting it.");
     }
 
+    /** The staff set-password link is unknown, used, voided, expired, or its member is disabled (spec 020 R3). */
+    public static function resetLinkInvalid(): self
+    {
+        return new self('reset_link_invalid', 422, 'This link is no longer valid. Ask for a new one from the sign-in page.');
+    }
+
+    /** A founder is never disabled through the API (spec 020, Part 2 §10). */
+    public static function founderProtected(): self
+    {
+        return new self('founder_protected', 403, 'A founder account cannot be disabled.');
+    }
+
+    public static function staffAlreadyDisabled(): self
+    {
+        return new self('staff_already_disabled', 409, 'This staff member is already disabled.');
+    }
+
+    public static function staffNotDisabled(): self
+    {
+        return new self('staff_not_disabled', 409, 'This staff member is not disabled.');
+    }
+
     public static function reasonRequired(): self
     {
         return new self('reason_required', 422, 'A reason is required for this change.');

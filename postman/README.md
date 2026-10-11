@@ -16,6 +16,10 @@ test scripts: `staff_mfa_session_ref` by **Staff Login** (MFA roles), `upload_to
 **Upload ID Image**, `document_id` by **Submit Identity Document** / **List Identity
 Documents**, `role_name` by **Create Role**, `staff_id` by **List Staff**.
 
+Spec 020 variables: `reset_code` (the customer's reset code, `123456` locally), `staff_reset_token` (the `token` of the emailed link) and
+`new_staff_id` (filled by **Create Staff**). The staff set-password link in the mail is built from `DASHBOARD_URL` (default
+`http://localhost:3000`, see `.env.example`); set it in the Backend's `.env` when the Dashboard runs elsewhere.
+
 There are two API surfaces with **separate tokens**:
 
 | Surface | Prefix | Bearer variable | Refresh variable |

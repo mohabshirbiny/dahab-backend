@@ -20,6 +20,7 @@ enum AuditEvent: string
     case STAFF_MFA_ENROLLED = 'auth.staff.mfa_enrolled';
     case STAFF_MFA_VERIFIED = 'auth.staff.mfa_verified';
     case STAFF_MFA_FAILED = 'auth.staff.mfa_failed';
+    case STAFF_PASSWORD_RESET_REQUESTED = 'auth.staff.password_reset_requested';
     case STAFF_PASSWORD_RESET_COMPLETED = 'auth.staff.password_reset_completed';
     case STAFF_PERMISSION_DENIED = 'auth.staff.permission_denied';
     case IDENTITY_DOCUMENT_SUBMITTED = 'identity.document.submitted';
@@ -52,6 +53,9 @@ enum AuditEvent: string
     case CLOSURE_ADDED = 'reference.closure.added';
     case CLOSURE_REMOVED = 'reference.closure.removed';
     case STAFF_BRANCH_CHANGED = 'authz.staff.branch_changed';
+    case STAFF_CREATED = 'authz.staff.created';
+    case STAFF_DISABLED = 'authz.staff.disabled';
+    case STAFF_ENABLED = 'authz.staff.enabled';
     case SETTING_CHANGED = 'pricing.setting.changed';
     case ADJUSTMENT_CHANGED = 'pricing.adjustment.changed';
     case MANUAL_PRICE_ENTERED = 'pricing.manual_price.entered';
@@ -188,6 +192,7 @@ enum AuditEvent: string
             self::STAFF_MFA_ENROLLED => 'Authenticator app set up',
             self::STAFF_MFA_VERIFIED => 'Two-step code accepted',
             self::STAFF_MFA_FAILED => 'Two-step code refused',
+            self::STAFF_PASSWORD_RESET_REQUESTED => 'Staff asked for a password link',
             self::STAFF_PASSWORD_RESET_COMPLETED => 'Staff password reset',
             self::STAFF_PERMISSION_DENIED => 'Action refused: no permission',
             self::IDENTITY_DOCUMENT_SUBMITTED => 'Identity document submitted',
@@ -220,6 +225,9 @@ enum AuditEvent: string
             self::CLOSURE_ADDED => 'Holiday or closure added',
             self::CLOSURE_REMOVED => 'Holiday or closure removed',
             self::STAFF_BRANCH_CHANGED => "Staff member's branch changed",
+            self::STAFF_CREATED => 'Staff member created',
+            self::STAFF_DISABLED => 'Staff member disabled',
+            self::STAFF_ENABLED => 'Staff member enabled',
             self::SETTING_CHANGED => 'Setting changed',
             self::ADJUSTMENT_CHANGED => 'Karat price adjustment changed',
             self::MANUAL_PRICE_ENTERED => 'Manual gold price entered',
@@ -330,8 +338,8 @@ enum AuditEvent: string
     public function category(): AuditCategory
     {
         return match ($this) {
-            self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
-            self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED => AuditCategory::ACCOUNTS,
+            self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_PASSWORD_RESET_REQUESTED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
+            self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED, self::STAFF_CREATED, self::STAFF_DISABLED, self::STAFF_ENABLED => AuditCategory::ACCOUNTS,
             self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
             self::CONTROL_SET, self::CONTROL_CLEARED, self::VISIBILITY_CHANGED, self::PEOPLE_TO_WATCH_VIEWED => AuditCategory::SYSTEM,

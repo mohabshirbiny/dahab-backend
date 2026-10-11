@@ -29,6 +29,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Staff set-password link (spec 020 R3)
+    |--------------------------------------------------------------------------
+    | recovery_minutes — "Forgot password?" link; invitation_hours — the link a new
+    | or re-enabled member gets. url — the Dashboard page that takes the token.
+    */
+
+    'password_reset' => [
+        'staff_link' => [
+            'recovery_minutes' => (int) env('DAHAB_STAFF_RECOVERY_LINK_MINUTES', 30),
+            'invitation_hours' => (int) env('DAHAB_STAFF_INVITATION_LINK_HOURS', 48),
+            'url' => rtrim((string) env('DASHBOARD_URL', 'http://localhost:3000'), '/').'/set-password',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Multi-step customer registration
     |--------------------------------------------------------------------------
     | How long an in-flight registration (start → OTP → complete) stays alive.
@@ -91,6 +107,20 @@ return [
         'password_reset_request' => [
             'per_identity_max' => 3,
             'per_identity_window' => 60 * 60, // 1 hour
+            'per_ip_max' => 20,
+            'per_ip_window' => 60 * 60,
+            // Spec 020: a third bucket per device (X-Device-Id, else the IP).
+            'per_device_max' => 10,
+            'per_device_window' => 60 * 60,
+        ],
+        // Spec 020: the customer's code is spent here (the per-code cap of 5 wrong tries is `otp`).
+        'password_reset_confirm' => [
+            'per_identity_max' => 10,
+            'per_identity_window' => 60 * 60,
+            'per_ip_max' => 30,
+            'per_ip_window' => 60 * 60,
+        ],
+        'staff_password_reset_confirm' => [
             'per_ip_max' => 20,
             'per_ip_window' => 60 * 60,
         ],

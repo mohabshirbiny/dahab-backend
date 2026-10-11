@@ -41,7 +41,7 @@ function pauseClear(string $level, ?string $category = null)
         array_filter(['level' => $level, 'category' => $category]), ['Idempotency-Key' => (string) Str::uuid()]);
 }
 
-function marketIds($test): array
+function pauseMarketIds($test): array
 {
     return collect(Listings::anonymous($test)->getJson(Listings::MARKET_URL.'?per_page=100')->assertOk()->json('data'))->pluck('id')->all();
 }
@@ -50,12 +50,12 @@ it('hides live pieces nobody asked for, keeps requested ones, and brings the res
     $free = Orders::ring();
     $asked = Orders::ring();
     BuyRequests::queued($this, BuyRequests::funded('60000'), $asked);
-    expect(marketIds($this))->toContain($free->listing_id)->toContain($asked->listing_id);
+    expect(pauseMarketIds($this))->toContain($free->listing_id)->toContain($asked->listing_id);
 
     TopUps::actAsStaff($this, SeedRole::COO);
     pauseSet('pause_category', 'gold')->assertCreated();
 
-    $ids = marketIds($this);
+    $ids = pauseMarketIds($this);
     expect($ids)->not->toContain($free->listing_id)->toContain($asked->listing_id);
     Listings::anonymous($this)->getJson(Listings::MARKET_URL."/{$free->listing_id}")->assertNotFound();
 
@@ -65,7 +65,7 @@ it('hides live pieces nobody asked for, keeps requested ones, and brings the res
 
     TopUps::actAsStaff($this, SeedRole::COO);
     pauseClear('pause_category', 'gold')->assertOk();
-    expect(marketIds($this))->toContain($free->listing_id);
+    expect(pauseMarketIds($this))->toContain($free->listing_id);
 });
 
 it('answers a waiting request for more time as refused, in the name of who paused, and refuses new ones', function () {

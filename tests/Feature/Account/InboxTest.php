@@ -59,7 +59,7 @@ function acc017Items(Customer $customer)
 it('opts every customer notification in, except codes, confirmation links and the proxy notice', function () {
     $never = [
         'CustomerLoginOtpNotification', 'CustomerRegistrationOtpNotification', 'CustomerRegistrationEmailOtpNotification',
-        'WithdrawalConfirmationNotification', 'FounderAlertNotification', 'ProxyNamedNotification', 'PhoneChangeCodeNotification', 'EmailChangeLinkNotification',
+        'WithdrawalConfirmationNotification', 'FounderAlertNotification', 'StaffPasswordLinkNotification', 'ProxyNamedNotification', 'PhoneChangeCodeNotification', 'PasswordResetCodeNotification', 'EmailChangeLinkNotification',
     ];
     foreach (glob(app_path('Notifications/*Notification.php')) as $file) {
         $class = 'App\\Notifications\\'.basename($file, '.php');
