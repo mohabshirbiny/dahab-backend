@@ -1,6 +1,6 @@
 # Prompt for the local session: implement spec 021 (Founder-account security)
 
-Implement spec 021 on the owner's machine. The plan is finished and approved; this session builds it. Work through `tasks.md` in order.
+Implement spec 021 on the owner's machine. The plan is finished and approved; this session builds it. Work through `tasks.md` in order, all six phases, to the end.
 
 ## 0. State you start from
 
@@ -60,7 +60,7 @@ Phase 1 setup → 2 foundational → 3 (US1) → 4 (US2) → 5 (US3) → 6 docs 
 
 - Inside each phase: Backend → contract (`composer swagger:generate`) → Dashboard.
 - Existing tests that sign founders in through `/dashboard/auth/*` must get `withKnownDevice()` (T019).
-- Show the owner the result after Phase 2's checkpoint and after each phase.
+- **Work through all six phases without stopping for approval between them** (owner's instruction, 2026-10-11). Run each phase's checkpoint yourself (targeted tests, type-check/lint/build) and carry on. Pause only for a real blocker: a missing database, a spec/code disagreement, or a failure you cannot fix within the plan. Report once at the end in the Step 5 shape.
 
 ## 4. Rules that still apply
 
