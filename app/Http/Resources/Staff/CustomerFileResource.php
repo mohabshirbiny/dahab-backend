@@ -2,8 +2,11 @@
 
 namespace App\Http\Resources\Staff;
 
+use App\Enums\StaffPermission;
 use App\Models\Customer;
 use App\Models\Dispute;
+use App\Models\FirstSaleAdvance;
+use App\Models\FirstSaleEnablement;
 use App\Models\IdentityDocument;
 use App\Models\PayoutAccount;
 use App\Models\Staff;
@@ -94,7 +97,41 @@ class CustomerFileResource extends CustomerVerificationResource
                 'note' => $c->closed_note,
             ],
             'disputes_raised' => Dispute::query()->where('raised_by', $c->customer_id)->count(),
-        ];
+        ] + $this->firstSale($c, $request);
+    }
+
+    /**
+     * Spec 023 contract staff-promo-api §10: the advance's state for a holder of `first_sale.manage`
+     * (absent otherwise): none, enabled (an open enablement) or used (an advance exists).
+     *
+     * @return array<string, mixed>
+     */
+    private function firstSale(Customer $c, Request $request): array
+    {
+        $staff = $request->user('staff');
+        if ($staff === null || ! $staff->can(StaffPermission::FIRST_SALE_MANAGE->value)) {
+            return [];
+        }
+
+        $advance = FirstSaleAdvance::query()->where('seller_id', $c->customer_id)->first();
+        $enablement = FirstSaleEnablement::query()->where('seller_id', $c->customer_id)
+            ->whereNull('revoked_at')->whereNull('used_advance_id')->first();
+
+        return ['first_sale' => [
+            'state' => $advance !== null ? 'used' : ($enablement !== null ? 'enabled' : 'none'),
+            'enablement' => $enablement === null ? null : [
+                'enablement_id' => $enablement->enablement_id,
+                'reason' => $enablement->reason,
+                'created_at' => $enablement->created_at->toIso8601String(),
+            ],
+            'advance' => $advance === null ? null : [
+                'advance_id' => $advance->advance_id,
+                'amount_egp' => bcadd((string) $advance->amount_egp, '0', 4),
+                'status' => $advance->status->value,
+                'basis' => $advance->basis->value,
+                'advanced_at' => $advance->created_at->toIso8601String(),
+            ],
+        ]];
     }
 
     /** @return array{id: string, full_name: ?string}|null the DashboardStaffRef shape */

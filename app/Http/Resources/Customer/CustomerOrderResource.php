@@ -23,6 +23,7 @@ use App\Support\Pricing\PricingContext;
 use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
 /**
@@ -107,7 +108,7 @@ class CustomerOrderResource extends JsonResource
         $amountDue = null;
         $finalTotal = $o->final_buyer_total === null ? null : bcadd((string) $o->final_buyer_total, '0', 4);
         if (! $seller && $o->state === OrderState::AWAITING_BALANCE) {
-            $f = $settlement->compute($o, $listing, $o->buyRequest, $result, $rates);
+            $f = $settlement->compute($o, $listing, $o->buyRequest, $result, $rates, waivers: false);
             $amountDue = $f->balance;
             $finalTotal = $f->buyerTotal;
         }
@@ -189,6 +190,9 @@ class CustomerOrderResource extends JsonResource
             'free_relist' => ($seller ? FreeRelistOffer::none() : FreeRelistOffer::for($o, $collection, $o->freeRelistListing))->toArray(),
             'rating' => self::rating($o, $seller, $me),
             'no_fee' => $seller && $listing->isFreeRelist(),
+            // Spec 023: the seller's advance and what the commission cost them (null for the buyer).
+            'advance' => $seller ? self::advance($o) : null,
+            'commission' => $seller ? self::commission($o) : null,
         ];
 
         if ($this->withCode) {
@@ -198,6 +202,55 @@ class CustomerOrderResource extends JsonResource
         }
 
         return $data;
+    }
+
+    /**
+     * Spec 023 contract §5: the first-sale advance of a seller's order. A written-off advance is
+     * shown as kept (no wording of Dahab's loss).
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function advance(Order $o): ?array
+    {
+        $a = $o->relationLoaded('advance') ? $o->advance : $o->advance()->first();
+        if ($a === null) {
+            return null;
+        }
+
+        return [
+            'amount_egp' => bcadd((string) $a->amount_egp, '0', 4),
+            'status' => $a->status->value === 'written_off' ? 'kept' : $a->status->value,
+            'paid_at' => $a->created_at->toIso8601String(),
+            'recovered_egp' => $a->recovered_egp === null ? null : bcadd((string) $a->recovered_egp, '0', 4),
+            'shortfall_egp' => $a->shortfall_absorbed_egp === null ? null : bcadd((string) $a->shortfall_absorbed_egp, '0', 4),
+        ];
+    }
+
+    /**
+     * Spec 023 contract §5: what the commission was and what a waiver took off it. Not recorded
+     * (nulls) before settlement and for orders settled before spec 023.
+     *
+     * @return array<string, mixed>
+     */
+    private static function commission(Order $o): array
+    {
+        if ($o->commission_ordinary_amount === null) {
+            return ['recorded' => false, 'ordinary_egp' => null, 'charged_egp' => null, 'saved_egp' => null, 'waiver' => null, 'code' => null];
+        }
+
+        $code = null;
+        if ($o->commission_waiver_credit_id !== null) {
+            $code = DB::table('commission_credit')->where('credit_id', $o->commission_waiver_credit_id)->value('promo_code');
+        }
+
+        return [
+            'recorded' => true,
+            'ordinary_egp' => bcadd((string) $o->commission_ordinary_amount, '0', 4),
+            'charged_egp' => bcadd((string) $o->commission_amount, '0', 4),
+            'saved_egp' => bcadd((string) $o->commission_given_up, '0', 4),
+            'waiver' => $o->commission_waiver_kind,
+            'code' => $code,
+        ];
     }
 
     /** @return list<string> what the caller may do now */

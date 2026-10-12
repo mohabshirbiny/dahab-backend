@@ -5,6 +5,7 @@ namespace App\Actions\Identity;
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
 use App\Enums\CustomerStatus;
+use App\Enums\IdentityDocumentKind;
 use App\Enums\IdentityDocumentStatus;
 use App\Enums\IdentityReviewReason;
 use App\Exceptions\DomainApiException;
@@ -14,6 +15,7 @@ use App\Models\Staff;
 use App\Notifications\CustomerVerificationRejectedNotification;
 use App\Notifications\CustomerVerificationResubmissionNotification;
 use App\Notifications\CustomerVerifiedNotification;
+use App\Support\Promo\CustomerIdKey;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
 
@@ -47,12 +49,13 @@ final class ReviewIdentityDocumentAction
         array $reasons,
         ?string $note,
         RequestContext $ctx,
+        ?string $idNumber = null,
     ): IdentityDocument {
         if (! in_array($decision, [IdentityDocumentStatus::VERIFIED, IdentityDocumentStatus::REJECTED, IdentityDocumentStatus::NEEDS_RESUBMISSION], true)) {
             throw DomainApiException::illegalDocumentTransition('pending', $decision->value);
         }
 
-        [$document, $customer] = DB::transaction(function () use ($actor, $documentId, $decision, $reasons, $note, $ctx) {
+        [$document, $customer] = DB::transaction(function () use ($actor, $documentId, $decision, $reasons, $note, $ctx, $idNumber) {
             $document = IdentityDocument::query()->whereKey($documentId)->lockForUpdate()->firstOrFail();
 
             if (! in_array($document->status, [IdentityDocumentStatus::PENDING, IdentityDocumentStatus::NEEDS_RESUBMISSION], true)) {
@@ -63,8 +66,13 @@ final class ReviewIdentityDocumentAction
 
             $previousStatus = $document->status;
 
+            // Spec 023 R8: the keyed number of an Egyptian ID, kept only as a hash ("once per ID" codes).
+            $recordNumber = $decision === IdentityDocumentStatus::VERIFIED
+                && $document->doc_kind === IdentityDocumentKind::EGYPTIAN_ID && $idNumber !== null;
+
             $document->update([
                 'status' => $decision,
+                'id_number_hash' => $recordNumber ? CustomerIdKey::hash($idNumber) : $document->id_number_hash,
                 'reviewed_by' => $actor->staff_id,
                 'reviewed_at' => now(),
                 'review_reasons' => $reasons === [] ? null : array_map(fn (IdentityReviewReason $r) => $r->value, $reasons),
@@ -86,7 +94,7 @@ final class ReviewIdentityDocumentAction
                     'customer_id' => $customer->customer_id,
                     'customer_status' => $customer->status->value,
                     'reasons' => array_map(fn (IdentityReviewReason $r) => $r->value, $reasons),
-                ],
+                ] + ($recordNumber ? ['id_number_recorded' => true] : []),
                 'identity_document',
                 $document->document_id,
                 $ctx,

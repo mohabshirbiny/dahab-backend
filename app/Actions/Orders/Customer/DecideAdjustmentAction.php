@@ -3,6 +3,7 @@
 namespace App\Actions\Orders\Customer;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
+use App\Actions\FirstSale\AdvanceFirstSaleAction;
 use App\Actions\Listings\Concerns\MovesListing;
 use App\Actions\Orders\Concerns\MovesOrder;
 use App\Actions\Orders\Concerns\TellsOrderParties;
@@ -122,6 +123,9 @@ final class DecideAdjustmentAction
                 'decision_due_deadline' => null,
             ]);
             $this->tellOrder($order->seller_id, OrderEvent::DECISION_ACCEPTED, $order, $listing);
+
+            // Spec 023: the price the buyer accepted is the one the advance is cut from.
+            $this->tellAdvance(app(AdvanceFirstSaleAction::class)->handle($order, $listing, $request, $result), $order, $listing);
         } else {
             $this->moveOrder($order, OrderState::CANCELLED_INSPECTION, $buyer, $system,
                 $buyer === null ? OrderStateChange::NOTE_NO_ANSWER : null, ['decision_due_deadline' => null]);

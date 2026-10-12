@@ -181,6 +181,9 @@ enum StaffPermission: string
     /** Approve a piece for market-maker purchase (spec 019 FR-062: CEO, Finance). */
     case MARKET_MAKER_APPROVE = 'market_maker.approve';
 
+    /** Spec 023 R15: enable or revoke the first-sale advance for a seller; the exposure panel (Finance, the CEO). */
+    case FIRST_SALE_MANAGE = 'first_sale.manage';
+
     /** See who to watch: the measured signals per customer (spec 019 US8: CEO, COO). */
     case PEOPLE_TO_WATCH_VIEW = 'people_to_watch.view';
 
@@ -277,6 +280,7 @@ enum StaffPermission: string
             self::VISIBILITY_MANAGE => 'Change what customers can see',
             self::PROMO_MANAGE => 'Manage market-maker promo codes',
             self::MARKET_MAKER_APPROVE => 'Approve pieces for market makers',
+            self::FIRST_SALE_MANAGE => 'Enable the first-sale advance and see the exposure',
             self::PEOPLE_TO_WATCH_VIEW => 'See People to watch',
             self::STAFF_MANAGE => 'Create, disable or enable staff accounts',
             self::FOUNDER_UNFREEZE_SECOND => 'Give the first unfreeze confirmation when a frozen founder cannot',
@@ -304,7 +308,7 @@ enum StaffPermission: string
             self::ORDER_HANDOVER, self::BUY_REQUEST_VIEW, self::DISPUTE_HANDLE, self::RATING_VIEW => 'Orders',
             self::CONTENT_EDIT, self::LEGAL_PUBLISH, self::CONTENT_EDIT_SECURE => 'Content',
             self::CATEGORY_STOP_NEW, self::CATEGORY_PAUSE, self::PLATFORM_STOP_EVERYTHING, self::VISIBILITY_MANAGE => 'Controls',
-            self::PROMO_MANAGE, self::MARKET_MAKER_APPROVE => 'Market makers',
+            self::PROMO_MANAGE, self::MARKET_MAKER_APPROVE, self::FIRST_SALE_MANAGE => 'Market makers',
             self::PEOPLE_TO_WATCH_VIEW => 'Orders',
         };
     }
@@ -407,7 +411,7 @@ enum StaffPermission: string
             self::CATEGORY_STOP_NEW => [SeedRole::COO->value, SeedRole::OPERATIONS->value],
             self::CATEGORY_PAUSE, self::PLATFORM_STOP_EVERYTHING, self::VISIBILITY_MANAGE => [SeedRole::COO->value],
             // Spec 019 FR-060/FR-062: the CEO (every code) and Finance. FR US8: the CEO and the COO.
-            self::PROMO_MANAGE, self::MARKET_MAKER_APPROVE => [SeedRole::FINANCE->value],
+            self::PROMO_MANAGE, self::MARKET_MAKER_APPROVE, self::FIRST_SALE_MANAGE => [SeedRole::FINANCE->value],
             self::PEOPLE_TO_WATCH_VIEW => [SeedRole::COO->value],
             // Spec 020 D20-4: the CEO's alone (the CEO holds every code) — no role.
             self::STAFF_MANAGE => [],

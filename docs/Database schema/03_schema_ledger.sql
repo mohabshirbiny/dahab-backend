@@ -443,3 +443,8 @@ END $$;
 
 CREATE TRIGGER trg_receiving_account_no_delete BEFORE DELETE ON receiving_account
   FOR EACH ROW EXECUTE FUNCTION receiving_account_no_delete();
+
+-- spec 023 — note
+
+-- spec 023: `first_sale_payout` entries (external_equity -A / seller available +A) are now posted by
+-- AdvanceFirstSaleAction; the entry kind existed since spec 008. No schema change here.

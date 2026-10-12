@@ -33,3 +33,13 @@ Schedule::command('listing-reports:close-gone')->everyFiveMinutes()->withoutOver
 
 // Expired Idempotency-Key records (spec 007 research R2; kept 24 h).
 Schedule::command('idempotency:prune')->hourly()->withoutOverlapping();
+
+// Spec 023: commission credits past their date expire, and a referral whose friend never sold in
+// time lapses (research R2, R22).
+Schedule::command('commission-credits:expire')->hourly()->withoutOverlapping();
+
+// Spec 023 R23: the healer for a lost referral-reward job.
+Schedule::command('referrals:reward-pending')->everyFiveMinutes()->withoutOverlapping();
+
+// Spec 023 R18: listing views are kept for listing.view_retention_days.
+Schedule::command('listing-views:prune')->daily()->withoutOverlapping();

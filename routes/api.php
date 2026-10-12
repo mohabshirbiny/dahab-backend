@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\V1\Customer\MarketMakerListingController;
 use App\Http\Controllers\Api\V1\Customer\NotificationController as CustomerNotificationController;
 use App\Http\Controllers\Api\V1\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Api\V1\Customer\PayoutAccountController as CustomerPayoutAccountController;
+use App\Http\Controllers\Api\V1\Customer\PromoController as CustomerPromoController;
+use App\Http\Controllers\Api\V1\Customer\ReferralController as CustomerReferralController;
 use App\Http\Controllers\Api\V1\Customer\SavedPieceController as CustomerSavedPieceController;
 use App\Http\Controllers\Api\V1\Customer\TopUpController as CustomerTopUpController;
 use App\Http\Controllers\Api\V1\Customer\UploadController;
@@ -41,6 +43,7 @@ use App\Http\Controllers\Api\V1\Dashboard\CustomerController as DashboardCustome
 use App\Http\Controllers\Api\V1\Dashboard\DailyCloseController as DashboardDailyCloseController;
 use App\Http\Controllers\Api\V1\Dashboard\DisputeController as DashboardDisputeController;
 use App\Http\Controllers\Api\V1\Dashboard\ExtensionRequestController as DashboardExtensionRequestController;
+use App\Http\Controllers\Api\V1\Dashboard\FirstSaleController;
 use App\Http\Controllers\Api\V1\Dashboard\FounderSecurityController;
 use App\Http\Controllers\Api\V1\Dashboard\GoldPriceController as DashboardGoldPriceController;
 use App\Http\Controllers\Api\V1\Dashboard\IdentityDocumentController as DashboardIdentityDocumentController;
@@ -242,6 +245,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::delete('/{listing}', [CustomerSavedPieceController::class, 'destroy'])->whereUuid('listing')->name('destroy');
             });
 
+            // Spec 023: Invite a friend and the customer's commission credits (any signed-in customer).
+            Route::get('/referral', [CustomerReferralController::class, 'show'])->name('referral.show');
+            Route::post('/referral/shares', [CustomerReferralController::class, 'share'])
+                ->middleware(['throttle:customer.promo', 'idempotent'])->name('referral.shares');
+            Route::get('/commission-credits', [CustomerReferralController::class, 'credits'])->name('commission-credits.index');
+
             // Spec 017: close my account (any state; refused while anything is open).
             Route::get('/account/close-check', [CustomerCloseAccountController::class, 'check'])->name('account.close-check');
             Route::post('/account/close', [CustomerCloseAccountController::class, 'close'])->middleware('idempotent')->name('account.close');
@@ -293,6 +302,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     // Spec 022: the seller changes the figure of a live piece nobody asked for.
                     Route::post('/{listing}/price', [CustomerListingController::class, 'price'])
                         ->whereUuid('listing')->middleware(['throttle:customer.listings', 'idempotent'])->name('price');
+                    // Spec 023: a promo or invitation code recorded on the listing (one per sale).
+                    Route::put('/{listing}/promo', [CustomerPromoController::class, 'apply'])
+                        ->whereUuid('listing')->middleware(['throttle:customer.listings', 'idempotent'])->name('promo.apply');
+                    Route::delete('/{listing}/promo', [CustomerPromoController::class, 'remove'])
+                        ->whereUuid('listing')->middleware(['throttle:customer.listings', 'idempotent'])->name('promo.remove');
                     Route::post('/{listing}/submit', [CustomerListingController::class, 'submit'])
                         ->whereUuid('listing')->middleware('idempotent')->name('submit');
                     Route::post('/{listing}/withdraw', [CustomerListingController::class, 'withdraw'])
@@ -304,6 +318,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->whereUuid('listing')->middleware('idempotent')->name('decline');
                 });
             });
+
+            // Spec 023: what a code would do to the commission (stateless, 10 a minute).
+            Route::middleware(['customer.gate:trade', 'throttle:customer.promo'])->post('/commission-preview', [CustomerPromoController::class, 'preview'])
+                ->name('commission-preview');
 
             // Spec 019 6B: the market with approved pieces marked, for a market maker's own account.
             Route::middleware('customer.gate:verified')->get('/market/listings', [MarketMakerListingController::class, 'index'])
@@ -918,11 +936,23 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             });
             Route::middleware('staff.permission:market_maker.approve')->prefix('market-maker')->name('market-maker.')->group(function () use ($c) {
                 Route::get('/queue', [$c, 'queue'])->name('queue');
+                Route::post('/queue/{listing}/leave', [$c, 'leave'])->whereUuid('listing')->middleware('idempotent')->name('leave');
+                Route::get('/queue/{listing}/media/{media}', [$c, 'queueMedia'])->whereUuid(['listing', 'media'])->name('queue-media');
                 Route::get('/approvals', [$c, 'approvals'])->name('approvals');
                 Route::post('/approvals', [$c, 'approve'])->middleware('idempotent')->name('approve');
             });
             Route::get('/market-maker/cost', [$c, 'cost'])
                 ->middleware('staff.permission:'.StaffPermission::MARKET_MAKER_READ)->name('market-maker.cost');
+
+            // Spec 023: the first-sale advance, enabled per seller and its exposure (first_sale.manage).
+            Route::middleware('staff.permission:first_sale.manage')->group(function () {
+                $f = FirstSaleController::class;
+                Route::post('/customers/{customer}/first-sale-advance', [$f, 'enable'])->whereUuid('customer')
+                    ->middleware('idempotent')->name('first-sale.enable');
+                Route::delete('/customers/{customer}/first-sale-advance', [$f, 'revoke'])->whereUuid('customer')
+                    ->middleware('idempotent')->name('first-sale.revoke');
+                Route::get('/first-sale-advances', [$f, 'index'])->name('first-sale.index');
+            });
         });
 
         // Spec 019 US8: People to watch. Read-only; every read is audited.

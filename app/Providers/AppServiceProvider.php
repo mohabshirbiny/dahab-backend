@@ -154,6 +154,11 @@ class AppServiceProvider extends ServiceProvider
             return $this->limit((int) config('dahab-listings.listings_per_minute'), 60, 'customer-listings:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
         });
 
+        // Spec 023: code checks and invitation shares per customer (codes cannot be enumerated).
+        RateLimiter::for('customer.promo', function (Request $request) {
+            return $this->limit((int) config('dahab-promo.promo_checks_per_minute'), 60, 'customer-promo:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         // Spec 011: buy requests sent per customer.
         RateLimiter::for('customer.buy_requests', function (Request $request) {
             return $this->limit((int) config('dahab-buy-requests.send_per_minute'), 60, 'customer-buy-requests:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));

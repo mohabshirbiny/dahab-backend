@@ -6,6 +6,7 @@ use App\Enums\InboxLinkKind;
 use App\Enums\OrderEvent;
 use App\Jobs\NotifyCustomerJob;
 use App\Jobs\NotifyWhenFreeJob;
+use App\Models\FirstSaleAdvance;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Notifications\OrderNotification;
@@ -45,6 +46,22 @@ trait TellsOrderParties
             $event, $order->order_ref, $listing->title(), $listing->title(arabic: true),
             $amount, $deadline?->toIso8601String(), $order->branch?->name_en, $order->branch?->name_ar, $code, $message,
         ))->linkTo($linkKind ?? InboxLinkKind::ORDER, $linkId ?? $order->order_id)];
+    }
+
+    /**
+     * Spec 023: tell the seller what the advance step decided (paid ahead, or "you are paid when the
+     * buyer pays"). `$outcome` is what AdvanceFirstSaleAction returned.
+     *
+     * @param  array{advance: FirstSaleAdvance|null, notify: OrderEvent|null}  $outcome
+     */
+    private function tellAdvance(array $outcome, Order $order, Listing $listing): void
+    {
+        if ($outcome['notify'] === null) {
+            return;
+        }
+
+        $this->tellOrder($order->seller_id, $outcome['notify'], $order, $listing,
+            amount: $outcome['advance'] === null ? null : bcadd((string) $outcome['advance']->amount_egp, '0', 4));
     }
 
     /** Send what was collected once the transaction commits (call inside it). */

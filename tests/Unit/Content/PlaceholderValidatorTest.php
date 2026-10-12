@@ -86,6 +86,7 @@ it('names the setting placeholders once, and formats a number as people write it
         'commission_gold_pct', 'commission_stone_pct', 'commission_minimum_egp', 'vat_pct', 'deposit_buyer_pct',
         'reach_branch_hours', 'buyer_pay_days', 'collect_weeks', 'seller_return_weeks', 'free_relist_hours',
         'withdrawal_pause_hours', 'weight_tolerance_pct', 'saved_max',
+        'first_sale_cap', 'referral_friend_pct', 'referral_reward_egp', 'referral_expiry_days', 'referral_friend_sales',
     ])
         ->and(SettingPlaceholders::format('20.0000'))->toBe('20')
         ->and(SettingPlaceholders::format('0.5000'))->toBe('0.5')

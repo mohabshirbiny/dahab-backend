@@ -123,6 +123,8 @@ For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed aski
 - **Minimum commission** (`commission.minimum_egp`, 200) is never broken, "not even by a promo code" (blueprint §3) — except a market-maker code waives commission entirely by design (§8); the minimum floors a *charged* commission, it does not force a charge onto a waived one.
 - **VAT** = `vat.pct × commission`, applied **to commission only** (schema seed note; blueprint §3). VAT is included in the figure the customer sees and shown separately on the invoice. The spread is trading margin, **not** a service fee, and carries **no VAT**.
 
+> **Changed by spec 023** — see [`specs/023-first-sale-and-referral/spec.md`](../../specs/023-first-sale-and-referral/spec.md). The commission the seller pays is the **lowest single commission** among: none, a free relist, a market-maker waiver, or **one** commission credit (a code credit or a referral credit) — never a sum. A percent or amount credit is floored by `commission.minimum_egp`; a waiver is not. The figures (ordinary commission, charged commission, floor, waiver kind and credit) are stored on the `"order"` row at settlement and never recomputed. `POST /customer/me/commission-preview` answers what a code or the seller's credit pool would do, recording nothing.
+
 ### 2.6 What the seller actually receives
 
 ```
@@ -224,6 +226,8 @@ Same escrow pass-through, but **no spread leg** and commission on stone value:
 For gold-with-diamond, the certificate-cost handling (IGI certificate free; another lab's reduced; none full — blueprint §5) is a deduction from `seller_proceeds` taken at settlement, sourced to the party that bears it per the IGI contract; the exact ledger treatment depends on the IGI commercial terms and is specified in **Part 4** (integration), flagged here as the hook — **OI-3.2**.
 
 ---
+
+> **Changed by spec 023** — see [`specs/023-first-sale-and-referral/spec.md`](../../specs/023-first-sale-and-referral/spec.md). §3.3 and §3.4 are unchanged: the figures there are the ordinary commission. With a waiver or credit the seller's net rises by the saving, the commission and its VAT fall by the same, and the escrow lines still sum to zero. With a first-sale advance the pay-balance settlement reconciles at payment (§6): `external_equity` receives `min(advance, proceeds)`, any shortfall is stored on the advance row.
 
 ## 4. The queue: concurrency model in depth
 
@@ -339,6 +343,8 @@ The buyer no-pay sweep (§10.1) still returns the piece to the seller and pays 5
 
 ---
 
+> **Changed by spec 023** — see [`specs/023-first-sale-and-referral/spec.md`](../../specs/023-first-sale-and-referral/spec.md). As built: the advance is **off by default** (`payout.first_sale_enabled`); eligibility, the per-seller cap (`payout.first_sale_cap_egp`) and the platform-wide exposure ceiling (`payout.first_sale_exposure_ceiling_egp`, checked under an advisory lock) are read live; one balanced `first_sale_payout` entry (`external_equity` −A / seller available +A) is posted when IGI confirms the piece. Reconciliation is at the buyer's payment (§6.4). A forfeited or never-paid order writes the advance off as a **status change only** — no posting — and `payout.first_sale_comp_offsets_writeoff` decides whether the seller's share of a forfeited deposit goes to Dahab. A seller sees no loss. `listing_price_locked()` is true for any listing with an advance row.
+
 ## 7. Inspection outcomes and the karat rule
 
 > **Changed by spec 012** — see [`specs/012-orders/spec.md`](../../specs/012-orders/spec.md). As built: the inspector sets two flags — counterfeit (→ `fake_cancel`) and a stone below its claim (→ `stone_regrade`, stone categories). A regrade is priced by staff (`order.price_adjust`), not by IGI. A declined adjustment, or one left unanswered for `deadline.buyer_pay_days`, returns the piece to the seller with no compensation; the seller collects it or relists with the measured figures. Karat / counterfeit suspend the seller with the existing reason `piece_misrepresented`, by the inspector. A correction (§7.3) is allowed only before any decision or payment.
@@ -381,6 +387,8 @@ A market-maker code (`promo_code`, `kind = 'market_maker'`, tied to exactly one 
 - **Scaling caveat:** the controls assume dealers known personally; whether it scales is an open question (open-questions §5) — not a build blocker, but the endpoint assumes no trust beyond the tied customer.
 
 ---
+
+> **Changed by spec 023** — see [`specs/023-first-sale-and-referral/spec.md`](../../specs/023-first-sale-and-referral/spec.md). The market-maker page shows each piece's view counter (one per viewer per piece per Cairo day), the making-charge guide (gold: making charge as % of gold value, red above `marketmaker.making_charge_warn_pct`; stones: none), the piece's media (each open audited), *Leave* (audit only) and a cost panel read from the figures stored at settlement. Code terms (waiting age, approval required, per-seller monthly use) are per code; a code is created with `POST /dashboard/promo-codes`.
 
 ## 9. Suspension rules
 
@@ -431,6 +439,8 @@ Balance-payment sweep (§12), one transaction:
 
 - **Seller collects the returned piece:** listing `awaiting_seller_return → withdrawn`; set `seller_return.collected_at`, `handover_by` (IGI). Or **relist:** `awaiting_seller_return → live`.
 - **Seller never comes** (past `return_deadline`): the seller-return sweep moves listing `awaiting_seller_return → seller_unclaimed`; status shown ("window passed, not our liability"). Disposition (hand over / compensate) is a **manual decision** when the seller makes contact (decision #3). From `seller_unclaimed`: `→ withdrawn` (collected / handed over) or `→ live` (relisted after contact).
+
+> **Changed by spec 023** — see [`specs/023-first-sale-and-referral/spec.md`](../../specs/023-first-sale-and-referral/spec.md). `payout.first_sale_comp_offsets_writeoff` (default false) is the OI-3.3 setting: when true, the seller's share of a forfeited deposit on an order that carried an advance goes to Dahab instead of the seller.
 
 ### 10.2 Buyer pays but never collects (decision #4)
 

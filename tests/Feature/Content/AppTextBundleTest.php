@@ -44,7 +44,7 @@ it('carries the live value of every setting placeholder, as people write the num
 
     expect($settings['commission_gold_pct'])->toBe('17.5')
         ->and($settings['commission_minimum_egp'])->toBe('200')
-        ->and($settings)->toHaveCount(13);
+        ->and($settings)->toHaveCount(18);
 });
 
 it('never serves a draft, a notification template, a retired key or a reverted key', function () {

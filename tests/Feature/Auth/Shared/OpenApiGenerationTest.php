@@ -184,6 +184,13 @@ const OPENAPI_CUSTOMER_LISTING_PATHS = [
     'post /customer/me/listings/{listing}/submit',
     'post /customer/me/listings/{listing}/withdraw',
     'post /customer/me/listings/{listing}/price', // spec 022
+    // Spec 023: codes on the sell form, referral and commission credits.
+    'post /customer/me/commission-preview',
+    'put /customer/me/listings/{listing}/promo',
+    'delete /customer/me/listings/{listing}/promo',
+    'get /customer/me/referral',
+    'post /customer/me/referral/shares',
+    'get /customer/me/commission-credits',
 ];
 
 // spec 011: the buyer's requests and the seller's queue.
@@ -449,6 +456,11 @@ const OPENAPI_SPEC019_LATER_PATHS = [
     'patch /dashboard/promo-codes/{code}',
     'get /dashboard/promo-codes/{code}/uses',
     'get /dashboard/market-maker/queue',
+    'post /dashboard/market-maker/queue/{listing}/leave', // spec 023
+    'get /dashboard/market-maker/queue/{listing}/media/{media}', // spec 023
+    'post /dashboard/customers/{customer}/first-sale-advance', // spec 023
+    'delete /dashboard/customers/{customer}/first-sale-advance', // spec 023
+    'get /dashboard/first-sale-advances', // spec 023
     'get /dashboard/market-maker/approvals',
     'post /dashboard/market-maker/approvals',
     'get /dashboard/market-maker/cost',

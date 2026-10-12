@@ -4,6 +4,7 @@ namespace App\Actions\Listings;
 
 use App\Actions\Listings\Concerns\AttachesListingMedia;
 use App\Actions\Listings\Concerns\MovesListing;
+use App\Actions\Promo\ApplyListingPromoAction;
 use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
 use App\Enums\PieceCategory;
@@ -15,6 +16,8 @@ use App\Models\LegalDocument;
 use App\Models\Listing;
 use App\Models\ListingOwnershipDeclaration;
 use App\Support\Controls\Controls;
+use App\Support\DatabaseActor;
+use App\Support\Promo\SellerCodeGate;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
 
@@ -37,7 +40,23 @@ final class CreateListingAction
         // Spec 019 US7: a stopped or paused category, or everything stopped, takes no new listing.
         app(Controls::class)->assertCanList(PieceCategory::from((string) $data['category']));
 
-        return DB::transaction(function () use ($seller, $data, $ctx) {
+        $promoCode = filled($data['promo_code'] ?? null) ? (string) $data['promo_code'] : null;
+
+        try {
+            return $this->create($seller, $data, $ctx, $promoCode);
+        } catch (DomainApiException $e) {
+            // A refused code is logged on its own, outside the transaction that rolled back.
+            if ($promoCode !== null && $e->errorCode === 'promo_code_invalid') {
+                DatabaseActor::promo(fn () => app(SellerCodeGate::class)->logBlocked($seller, $promoCode, (string) ($e->details['reason'] ?? 'unknown'), null, $ctx));
+            }
+            throw $e;
+        }
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function create(Customer $seller, array $data, ?RequestContext $ctx, ?string $promoCode): Listing
+    {
+        return DB::transaction(function () use ($seller, $data, $ctx, $promoCode) {
             $branchIds = self::enabledBranchIds($data['branch_option_ids'] ?? []);
 
             // The text may have a new version since the form was opened.
@@ -92,6 +111,11 @@ final class CreateListingAction
 
             // Needed before any buy request can take a position (Part 2 §3).
             DB::table('listing_queue_seq')->insert(['listing_id' => $listing->listing_id]);
+
+            // Spec 023: a code typed on the sell form is redeemed with the draft, in this transaction.
+            if ($promoCode !== null) {
+                $listing = DatabaseActor::promo(fn () => app(ApplyListingPromoAction::class)->within($seller, $listing, $promoCode, $ctx));
+            }
 
             return $listing->refresh();
         });

@@ -1053,10 +1053,10 @@
                                         "review"
                                     ]
                                 },
-                                "description": "Approves the document. Customer.status → active; IdentityDocument.status → verified. Dispatches CustomerVerifiedNotification (SMS + email) after commit. Requires identity.review.",
+                                "description": "Approves the document. Customer.status → active; IdentityDocument.status → verified. Dispatches CustomerVerifiedNotification (SMS + email) after commit. Requires identity.review. Spec 023: optional id_number (14 digits) on a verify of an Egyptian ID; only a keyed hash is kept, never returned or logged.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"action\": \"verify\"\n}",
+                                    "raw": "{\n    \"action\": \"verify\",\n    \"id_number\": \"29001011234567\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -8638,7 +8638,7 @@
                                         "promo-codes"
                                     ]
                                 },
-                                "description": "Spec 019 FR-060. promo.manage (CEO, Finance)."
+                                "description": "Spec 023 §1. what_it_does, tied_to (masked phone), conditions, uses_this_month and value_this_month_egp (Cairo month, non-voided). promo.manage."
                             },
                             "response": []
                         },
@@ -8681,10 +8681,10 @@
                                         "promo-codes"
                                     ]
                                 },
-                                "description": "Spec 019 FR-060. Only market_maker codes, tied to one customer of type market_maker. 422 promo_kind_not_available | promo_customer_not_market_maker; 409 promo_code_exists. Audited promo.created.",
+                                "description": "Spec 019 FR-060, spec 023 Story 5. The three kinds from one body (the New-code form): dealer, first-sale (pays_advance) and seller-side discount; for one account (tied_to = account number or phone, or tied_customer_id) or anyone. kind is inferred. Terms are immutable afterwards. 409 promo_code_exists; 422 promo_account_not_found | promo_customer_not_market_maker | validation_failed. Audited promo.created.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"code\": \"AHMED-GOLD\",\n    \"tied_customer_id\": \"{{customer_id}}\",\n    \"monthly_cap_egp\": 500000\n}",
+                                    "raw": "{\n    \"code\": \"WELCOME\",\n    \"audience\": \"anyone\",\n    \"use_limit\": \"once\",\n    \"commission_mode\": \"percent\",\n    \"commission_percent\": 50,\n    \"first_sale_only\": true,\n    \"monthly_cap_egp\": 500000,\n    \"starts_on\": \"2026-10-20\",\n    \"ends_on\": \"2026-12-31\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -8764,7 +8764,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes/AHMED-GOLD/uses",
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes/WELCOME/uses",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -8773,11 +8773,11 @@
                                         "v1",
                                         "dashboard",
                                         "promo-codes",
-                                        "AHMED-GOLD",
+                                        "WELCOME",
                                         "uses"
                                     ]
                                 },
-                                "description": "Spec 019 FR-061. Every attempt, allowed or blocked, with the reason."
+                                "description": "Spec 023 §4. value_egp, listing_ref or buy_request_ref, credit_status and reduction_egp; never the ID hash."
                             },
                             "response": []
                         },
@@ -8810,7 +8810,7 @@
                                         "queue"
                                     ]
                                 },
-                                "description": "Spec 019 FR-062. market_maker.approve. Live pieces listed long enough and not yet approved; views are not measured (null)."
+                                "description": "Spec 023 §5. views (one per account or device per day), requests, media[] (kind + media_id), guide {kind: making_charge|none, value_pct, tone}; meta {min_list_age_days, require_approval}. market_maker.approve."
                             },
                             "response": []
                         },
@@ -8936,6 +8936,240 @@
                                     ]
                                 },
                                 "description": "Spec 019 FR-062. Pieces bought with a code, their value, and the spread paid to dealers."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Promo Code (dealer)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes"
+                                    ]
+                                },
+                                "description": "Spec 023: a dealer code. audience account, tied_to an account number or phone; waives the commission and gives the spread; min_listed_days null follows the setting; requires_approval true.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"code\": \"MM-KARIM\",\n    \"audience\": \"account\",\n    \"tied_to\": \"+201001228842\",\n    \"use_limit\": \"unlimited\",\n    \"commission_mode\": \"waive\",\n    \"gives_spread\": true,\n    \"min_listed_days\": 7,\n    \"requires_approval\": true,\n    \"monthly_cap_egp\": 500000\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Promo Code (first sale, pays the advance)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes"
+                                    ]
+                                },
+                                "description": "Spec 023 P23-3. pays_advance makes the code a first-sale code (first_sale_only forced). The advance itself is behind payout.first_sale_enabled.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"code\": \"FIRST-GOLD\",\n    \"audience\": \"anyone\",\n    \"pays_advance\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Leave the piece",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/market-maker/queue/{{listing_id}}/leave",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "market-maker",
+                                        "queue",
+                                        "{{listing_id}}",
+                                        "leave"
+                                    ]
+                                },
+                                "description": "Spec 023 R20 (D23-7). Changes nothing; logged (market_maker.left). Optional note. 404 when not waiting, 409 listing_not_live.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"note\": \"Price looks fair\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Queue file",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/market-maker/queue/{{listing_id}}/media/{{media_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "market-maker",
+                                        "queue",
+                                        "{{listing_id}}",
+                                        "media",
+                                        "{{media_id}}"
+                                    ]
+                                },
+                                "description": "Spec 023 §7. The decrypted file of a live piece, audited (market_maker.media_viewed). market_maker.approve."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Cost of the programme",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/market-maker/cost?month=2026-10",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "market-maker",
+                                        "cost"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "month",
+                                            "value": "2026-10"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 023 §8. Sums the figures stored at settlement for the Cairo month: pieces_bought, commission_given_up_egp, spread_given_up_egp, total_cost_egp, not_recorded."
                             },
                             "response": []
                         }
@@ -9625,6 +9859,157 @@
                                     ]
                                 },
                                 "description": "Spec 021: mark every notice of yours read; data.marked is how many."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "First Sale",
+                    "item": [
+                        {
+                            "name": "Enable the advance for a seller",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/first-sale-advance",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "first-sale-advance"
+                                    ]
+                                },
+                                "description": "Spec 023 R15. first_sale.manage. The seller's next eligible gold sale is paid ahead. 409 first_sale_not_eligible | first_sale_enablement_open.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"Seen the piece and the invoice in person\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Revoke the enablement",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/first-sale-advance",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "first-sale-advance"
+                                    ]
+                                },
+                                "description": "Spec 023 R15. 404 first_sale_enablement_not_found.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"Seller withdrew the piece\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "First-sale advances and exposure",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/first-sale-advances?status=outstanding",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "first-sale-advances"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "outstanding"
+                                        }
+                                    ]
+                                },
+                                "description": "Spec 023 R13. status = outstanding | recovered | written_off. meta: enabled, cap_egp, ceiling_egp, outstanding_egp, headroom_egp, written-off and shortfall totals."
                             },
                             "response": []
                         }
@@ -11582,6 +11967,149 @@
                                         }
                                     }
                                 }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Commission preview",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/commission-preview",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "commission-preview"
+                                    ]
+                                },
+                                "description": "Spec 023 §1. Stateless. category, karat, weight_g, making_charge_per_g (gold) or asking_price, optional code. 422 promo_code_invalid with details.reason. 10 a minute.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"category\": \"gold\",\n    \"karat\": 21,\n    \"weight_g\": \"10.000\",\n    \"making_charge_per_g\": \"300.00\",\n    \"code\": \"WELCOME\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Apply promo code",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/promo",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "promo"
+                                    ]
+                                },
+                                "description": "Spec 023 §2. A promo or invitation code recorded on the listing (one per sale); replaces an earlier one. 409 listing_promo_locked; 422 promo_code_invalid.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"code\": \"WELCOME\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Remove promo code",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/promo",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "promo"
+                                    ]
+                                },
+                                "description": "Spec 023 §2. 404 promo_not_applied; 409 listing_promo_locked."
                             },
                             "response": []
                         }
@@ -13999,6 +14527,117 @@
                                     ]
                                 },
                                 "description": "Spec 019 FR-064 (6B). Same pieces as the public market with mm_approved; 403 market_maker_only for an account with no active code."
+                            },
+                            "response": []
+                        }
+                    ]
+                },
+                {
+                    "name": "Referral",
+                    "item": [
+                        {
+                            "name": "Show Invite a friend",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/referral",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "referral"
+                                    ]
+                                },
+                                "description": "Spec 023 §1. enabled, code, invites_sent, joined, sold, earned/used/available EGP, terms. enabled false while referral.enabled is off."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Count a share",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/referral/shares",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "referral",
+                                        "shares"
+                                    ]
+                                },
+                                "description": "Spec 023 P23-5. 409 referral_not_open while the programme is off."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "My commission credits",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/commission-credits",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "commission-credits"
+                                    ]
+                                },
+                                "description": "Spec 023 R2. Not money: never in the wallet; only lowers the commission of a later sale."
                             },
                             "response": []
                         }

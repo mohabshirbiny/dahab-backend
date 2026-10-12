@@ -2,6 +2,7 @@
 
 namespace App\Actions\Orders\Concerns;
 
+use App\Actions\FirstSale\WriteOffFirstSaleAdvanceAction;
 use App\Enums\DisputeState;
 use App\Enums\ExtensionRequestState;
 use App\Enums\OrderState;
@@ -88,6 +89,11 @@ trait MovesOrder
             'actor_staff_id' => $byStaff?->staff_id,
             'note' => $note,
         ]);
+
+        // Spec 023 R14: an order that ends unpaid writes off the first-sale advance paid on it.
+        if ($to->isCancelled()) {
+            app(WriteOffFirstSaleAdvanceAction::class)->handle($order, $to, $note, $byCustomer, $byStaff);
+        }
 
         return $order;
     }

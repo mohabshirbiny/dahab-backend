@@ -7,6 +7,7 @@ use App\Models\Listing;
 use App\Models\MarketMakerApproval;
 use App\Models\PromoCode;
 use App\Models\PromoCodeUse;
+use App\Models\Setting;
 use App\Models\Staff;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,7 +15,9 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\Support\BuyRequests;
+use Tests\Support\Ledger;
 use Tests\Support\Listings;
+use Tests\Support\Promo;
 use Tests\Support\TopUps;
 
 uses(RefreshDatabase::class);
@@ -102,4 +105,63 @@ it('shows a market maker the market with approved pieces marked, and nobody else
 
     Listings::as($this, $this->seller)->getJson('/api/v1/customer/me/market/listings')
         ->assertStatus(403)->assertJsonPath('code', 'market_maker_only');
+});
+
+// Spec 023 T026 (research R9, R21): the code's own terms and the master switch decide the age and the
+// approval; dates and use limits are the code's.
+it("lets the master switch and the code's own terms decide the approval and the waiting age", function () {
+    $plain = Listing::factory()->withPhotos(2)->live()->create(['seller_id' => $this->seller->customer_id, 'listed_at' => now()->subDays(30)]);
+    $fresh = Listing::factory()->withPhotos(2)->live()->create(['seller_id' => $this->seller->customer_id, 'listed_at' => now()->subDays(2)]);
+
+    // Approval required by code and setting: an unapproved piece is refused.
+    BuyRequests::send($this, $this->dealer, $plain, ['promo_code' => 'DEALER-1'])->assertStatus(422)->assertJsonPath('details.reason', 'not_approved');
+
+    // The master switch off: no dealer code needs an approval.
+    Setting::query()->whereKey('marketmaker.require_approval')->update(['value_bool' => false]);
+    BuyRequests::send($this, $this->dealer, $plain, ['promo_code' => 'DEALER-1'])->assertCreated();
+
+    // The waiting age is the setting's (7 days) ...
+    BuyRequests::send($this, $this->dealer, $fresh, ['promo_code' => 'DEALER-1'])->assertStatus(422)->assertJsonPath('details.reason', 'too_new');
+    Setting::query()->whereKey('marketmaker.min_list_age_days')->update(['value_numeric' => 1]);
+    BuyRequests::send($this, $this->dealer, $fresh, ['promo_code' => 'DEALER-1'])->assertCreated();
+});
+
+it('lets a code opt out of the approval and set its own age', function () {
+    $staff = $this->staff;
+    $customer = BuyRequests::funded('500000', ['customer_type' => 'market_maker']);
+    Promo::code([
+        'code' => 'FREE-DEALER', 'kind' => 'market_maker', 'audience' => 'account', 'tied_customer_id' => $customer->customer_id,
+        'commission_mode' => 'waive', 'gives_spread' => true, 'requires_approval' => false, 'min_listed_days' => 0,
+    ]);
+    $fresh = Listing::factory()->withPhotos(2)->live()->create(['seller_id' => $this->seller->customer_id, 'listed_at' => now()->subHour()]);
+
+    BuyRequests::send($this, $customer, $fresh, ['promo_code' => 'FREE-DEALER'])->assertCreated();
+});
+
+it("honours the code's dates and use limit, per person", function () {
+    $listing2 = Listing::factory()->withPhotos(2)->live()->create(['seller_id' => $this->seller->customer_id, 'listed_at' => now()->subDays(30)]);
+    MarketMakerApproval::query()->create(['listing_id' => $listing2->listing_id, 'approved_by' => $this->staff->staff_id, 'asking_price' => '1000']);
+
+    $dealer = BuyRequests::funded('500000', ['customer_type' => 'market_maker']);
+    Promo::code([
+        'code' => 'ONCE-ONLY', 'kind' => 'market_maker', 'audience' => 'account', 'tied_customer_id' => $dealer->customer_id,
+        'commission_mode' => 'waive', 'gives_spread' => true, 'use_limit' => 'once',
+        'starts_on' => now('Africa/Cairo')->addDay()->toDateString(),
+    ]);
+
+    // Not started yet.
+    BuyRequests::send($this, $dealer, $this->listing, ['promo_code' => 'ONCE-ONLY'])->assertStatus(422)->assertJsonPath('details.reason', 'not_started');
+
+    // Dates are part of the code and frozen with it: start a fresh code that already began, once per person.
+    Promo::code([
+        'code' => 'ONCE-TODAY', 'kind' => 'market_maker', 'audience' => 'account',
+        'tied_customer_id' => BuyRequests::funded('500000', ['customer_type' => 'market_maker'])->customer_id,
+        'commission_mode' => 'waive', 'gives_spread' => true, 'use_limit' => 'once',
+        'starts_on' => now('Africa/Cairo')->toDateString(), 'ends_on' => now('Africa/Cairo')->toDateString(),
+    ]);
+    $holder = Customer::query()->findOrFail(PromoCode::query()->whereKey('ONCE-TODAY')->value('tied_customer_id'));
+    Ledger::topUp($holder, '500000');
+
+    BuyRequests::send($this, $holder, $this->listing, ['promo_code' => 'ONCE-TODAY'])->assertCreated();
+    BuyRequests::send($this, $holder, $listing2, ['promo_code' => 'ONCE-TODAY'])->assertStatus(422)->assertJsonPath('details.reason', 'already_used');
 });

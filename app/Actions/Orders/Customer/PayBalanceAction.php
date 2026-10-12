@@ -6,13 +6,17 @@ use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Actions\Listings\Concerns\MovesListing;
 use App\Actions\Orders\Concerns\MovesOrder;
 use App\Actions\Orders\Concerns\TellsOrderParties;
+use App\Actions\Promo\SpendCommissionCreditAction;
+use App\Enums\AdvanceStatus;
 use App\Enums\AuditEvent;
 use App\Enums\ListingState;
 use App\Enums\OrderEvent;
 use App\Enums\OrderState;
 use App\Exceptions\DomainApiException;
+use App\Jobs\GrantReferralRewardJob;
 use App\Models\BuyRequest;
 use App\Models\Customer;
+use App\Models\FirstSaleAdvance;
 use App\Models\ListingStateChange;
 use App\Models\Order;
 use App\Models\OrderCollection;
@@ -24,6 +28,7 @@ use App\Support\Orders\DeadlinePolicy;
 use App\Support\Orders\OrderSettlement;
 use App\Support\Pricing\Money;
 use App\Support\Pricing\PricingContext;
+use App\Support\Promo\CommissionCredits;
 use App\Support\RequestContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +56,8 @@ final class PayBalanceAction
         private readonly RecordAuditLogAction $audit,
         private readonly PricingContext $pricing,
         private readonly IssueTaxInvoices $invoices,
+        private readonly CommissionCredits $credits,
+        private readonly SpendCommissionCreditAction $spendCredit,
     ) {}
 
     public function handle(Customer $buyer, string $orderId, ?RequestContext $ctx = null): Order
@@ -75,10 +82,17 @@ final class PayBalanceAction
             $request = BuyRequest::query()->whereKey($order->buy_request_id)->firstOrFail();
             // Read the commission and VAT settings once: the invoice records the VAT rate the settlement used.
             $rates = $this->pricing->rates();
+            // Spec 023: lock the seller's usable commission credits before the figures read them, so
+            // two payments cannot both spend the same one.
+            $this->credits->usable($order->seller_id, $listing->listing_id, lock: true);
             $figures = $this->settlement->compute($order, $listing, $request, $order->latestInspection(), $rates);
 
+            // Spec 023: an advance paid on this order is recovered in the settlement entry.
+            $advance = FirstSaleAdvance::query()->where('order_id', $order->order_id)
+                ->where('status', AdvanceStatus::OUTSTANDING->value)->lockForUpdate()->first();
+
             try {
-                $txn = $this->settlement->post($order, $figures);
+                $txn = $this->settlement->post($order, $figures, $advance);
             } catch (DomainApiException $e) {
                 if ($e->errorCode !== 'insufficient_funds') {
                     throw $e;
@@ -96,6 +110,23 @@ final class PayBalanceAction
                 'collect_deadline' => $this->deadlines->collectWindow(),
             ]);
             $listing = $this->moveListing($listing, ListingState::SOLD, $buyer, null, ListingStateChange::NOTE_BALANCE_PAID);
+            $this->spendCredit->handle($order, $figures, $buyer, $ctx);
+            if ($advance !== null) {
+                $recovered = Money::cmp((string) $advance->amount_egp, $figures->proceeds) < 0 ? (string) $advance->amount_egp : $figures->proceeds;
+                $advance->forceFill([
+                    'status' => AdvanceStatus::RECOVERED,
+                    'recovered_txn_id' => $txn->ledger_txn_id,
+                    'recovered_egp' => Money::fixed4($recovered),
+                    'shortfall_absorbed_egp' => Money::fixed4(Money::sub((string) $advance->amount_egp, $recovered)),
+                ])->save();
+
+                $this->audit->execute(
+                    AuditEvent::FIRST_SALE_RECOVERED, 'success',
+                    ['order_ref' => $order->order_ref, 'recovered' => Money::fixed4($recovered),
+                        'shortfall' => Money::fixed4(Money::sub((string) $advance->amount_egp, $recovered))],
+                    'order', $order->order_id, $ctx, actorCustomerId: $buyer->customer_id,
+                );
+            }
 
             $invoices = $this->invoices->issue($order, $listing, $request, $figures, $rates);
 
@@ -119,6 +150,10 @@ final class PayBalanceAction
                 actorCustomerId: $buyer->customer_id,
                 before: ['state' => OrderState::AWAITING_BALANCE->value],
             );
+
+            // Spec 023 R23: a friend's first sale rewards the inviter, as the system, after this commits.
+            $soldOrderId = $order->order_id;
+            DB::afterCommit(fn () => GrantReferralRewardJob::dispatch($soldOrderId));
 
             $this->tellOrder($order->seller_id, OrderEvent::PAID, $order, $listing, amount: $figures->proceeds);
             $this->tellOrder($order->buyer_id, OrderEvent::COLLECTION_CODE, $order, $listing,

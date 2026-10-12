@@ -14,6 +14,7 @@ use App\Support\Orders\OrderTimeline;
 use App\Support\Orders\StaffBranchScope;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
 /**
@@ -123,6 +124,33 @@ class StaffOrderResource extends JsonResource
                 'spread_amount' => (string) $o->spread_amount,
                 'seller_proceeds' => (string) $o->seller_proceeds,
                 'balance_amount' => (string) $o->balance_amount,
+            ],
+            // Spec 023 contract staff-promo-api §10: the commission waiver stored at settlement and the advance.
+            'commission_waiver' => $o->commission_ordinary_amount === null
+                ? ['recorded' => false, 'kind' => null, 'ordinary_egp' => null, 'charged_egp' => null, 'given_up_egp' => null,
+                    'floor_egp' => null, 'floor_applied' => null, 'code' => null, 'spread_given_up_egp' => null]
+                : [
+                    'recorded' => true,
+                    'kind' => $o->commission_waiver_kind,
+                    'ordinary_egp' => bcadd((string) $o->commission_ordinary_amount, '0', 4),
+                    'charged_egp' => bcadd((string) $o->commission_amount, '0', 4),
+                    'given_up_egp' => bcadd((string) $o->commission_given_up, '0', 4),
+                    'floor_egp' => bcadd((string) $o->commission_floor_egp, '0', 4),
+                    'floor_applied' => (bool) $o->commission_floor_applied,
+                    'code' => $o->commission_waiver_credit_id === null ? null
+                        : DB::table('commission_credit')->where('credit_id', $o->commission_waiver_credit_id)->value('promo_code'),
+                    'spread_given_up_egp' => bcadd((string) $o->spread_given_up, '0', 4),
+                ],
+            'advance' => ($a = $o->relationLoaded('advance') ? $o->advance : $o->advance()->first()) === null ? null : [
+                'advance_id' => $a->advance_id,
+                'amount_egp' => bcadd((string) $a->amount_egp, '0', 4),
+                'basis' => $a->basis->value,
+                'promo_code' => $a->promo_code,
+                'status' => $a->status->value,
+                'advanced_at' => $a->created_at->toIso8601String(),
+                'recovered_egp' => $a->recovered_egp === null ? null : bcadd((string) $a->recovered_egp, '0', 4),
+                'shortfall_absorbed_egp' => $a->shortfall_absorbed_egp === null ? null : bcadd((string) $a->shortfall_absorbed_egp, '0', 4),
+                'written_off_reason' => $a->written_off_reason?->value,
             ],
             'inspections' => $o->inspections->map(fn ($r) => InspectionResultResource::shape($r, withOrder: false)
                 + ['superseded' => in_array($r->inspection_id, $superseded, true)])->values()->all(),

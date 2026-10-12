@@ -3,6 +3,7 @@
 namespace App\Actions\Inspections;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
+use App\Actions\FirstSale\AdvanceFirstSaleAction;
 use App\Actions\Listings\Concerns\MovesListing;
 use App\Actions\Orders\Concerns\MovesOrder;
 use App\Actions\Orders\Concerns\TellsOrderParties;
@@ -197,9 +198,12 @@ final class RecordInspectionResultAction
                     'balance_due_deadline' => $this->deadlines->payWindow(),
                     'decision_due_deadline' => null,
                 ]);
+
+                // Spec 023: a first gold seller with a first-sale code (or an enablement) is paid ahead now.
+                $this->tellAdvance(app(AdvanceFirstSaleAction::class)->handle($order, $listing, $request, $result), $order, $listing);
             }
 
-            $f = $this->settlement->compute($order, $listing, $request, $result);
+            $f = $this->settlement->compute($order, $listing, $request, $result, waivers: false);
             $this->tellOrder($order->buyer_id, OrderEvent::RESULT_PASSED, $order, $listing, amount: $f->buyerTotal);
             $this->tellOrder($order->seller_id, OrderEvent::RESULT_PASSED, $order, $listing, amount: $f->buyerTotal);
 

@@ -1014,6 +1014,611 @@
       "max_length": 212
     },
     {
+      "key": "promo.advance.released_label",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 3",
+      "default_en": "Money released",
+      "default_ar": "الفلوس بتتحرر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.card.title",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "Promo code",
+      "default_ar": "كود خصم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.card.hint",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "If you have a promo code, enter it here.",
+      "default_ar": "لو معاك كود خصم اكتبه هنا.",
+      "placeholders": [],
+      "max_length": 80
+    },
+    {
+      "key": "promo.card.apply",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "Apply",
+      "default_ar": "تطبيق",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.card.remove",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "Remove",
+      "default_ar": "شيل الكود",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.card.enter_first",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "Enter a code first.",
+      "default_ar": "اكتب الكود الأول.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.result.percent",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "{percent}% off the commission",
+      "default_ar": "خصم {percent}% على العمولة",
+      "placeholders": [
+        "percent"
+      ],
+      "max_length": 58
+    },
+    {
+      "key": "promo.result.waive",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "No commission on this sale",
+      "default_ar": "من غير عمولة على البيعة دي",
+      "placeholders": [],
+      "max_length": 52
+    },
+    {
+      "key": "promo.result.amount",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "{amount} off the commission",
+      "default_ar": "خصم {amount} من العمولة",
+      "placeholders": [
+        "amount"
+      ],
+      "max_length": 54
+    },
+    {
+      "key": "promo.result.minimum",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "The {minimum} EGP minimum commission still applies.",
+      "default_ar": "الحد الأدنى للعمولة {minimum} جنيه لسه ساري.",
+      "placeholders": [
+        "minimum"
+      ],
+      "max_length": 102
+    },
+    {
+      "key": "promo.result.first_sale_only",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "For your first sale only.",
+      "default_ar": "للبيعة الأولى بس.",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "promo.result.applied",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "Applied to this piece.",
+      "default_ar": "اتطبّق على القطعة دي.",
+      "placeholders": [],
+      "max_length": 44
+    },
+    {
+      "key": "promo.result.removed",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "Code removed.",
+      "default_ar": "الكود اتشال.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.result.credit_waiting",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "You have {amount} of commission credit. It is used on your next sale.",
+      "default_ar": "عندك رصيد عمولة {amount}. هيتخصم من بيعتك الجاية.",
+      "placeholders": [
+        "amount"
+      ],
+      "max_length": 138
+    },
+    {
+      "key": "promo.estimate.saving",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1",
+      "default_en": "Promo saving",
+      "default_ar": "توفير الكود",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.advance.available",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 3",
+      "default_en": "Paid as soon as IGI confirms your piece, up to {cap}.",
+      "default_ar": "هتتدفعلك أول ما IGI تأكد القطعة، لحد {cap}.",
+      "placeholders": [
+        "cap"
+      ],
+      "max_length": 106
+    },
+    {
+      "key": "promo.advance.not_first_gold",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 3",
+      "default_en": "This code pays a first gold sale early. This is not your first gold sale.",
+      "default_ar": "الكود ده بيدفع أول بيعة دهب بدري. دي مش أول بيعة دهب ليك.",
+      "placeholders": [],
+      "max_length": 146
+    },
+    {
+      "key": "promo.advance.unavailable",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 3",
+      "default_en": "Paying you early is not available right now. You are paid when the buyer pays.",
+      "default_ar": "الدفع بدري مش متاح دلوقتي. هتتدفعلك لما المشتري يدفع.",
+      "placeholders": [],
+      "max_length": 156
+    },
+    {
+      "key": "promo.error.unknown",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "That code is not valid.",
+      "default_ar": "الكود ده مش صحيح.",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "promo.error.not_started",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "This code has not started yet.",
+      "default_ar": "الكود ده لسه ما بدأش.",
+      "placeholders": [],
+      "max_length": 60
+    },
+    {
+      "key": "promo.error.ended",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "This code has ended.",
+      "default_ar": "الكود ده خلص.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.error.first_sale_only",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "This code is for your first sale only.",
+      "default_ar": "الكود ده لأول بيعة ليك بس.",
+      "placeholders": [],
+      "max_length": 76
+    },
+    {
+      "key": "promo.error.already_used",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "You have already used this code.",
+      "default_ar": "إنت استخدمت الكود ده قبل كده.",
+      "placeholders": [],
+      "max_length": 64
+    },
+    {
+      "key": "promo.error.cap_reached",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "This code has reached its limit for the month.",
+      "default_ar": "الكود ده وصل للحد بتاعه الشهر ده.",
+      "placeholders": [],
+      "max_length": 92
+    },
+    {
+      "key": "promo.error.not_open",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "Codes are not open yet.",
+      "default_ar": "الأكواد لسه ما اتفتحتش.",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "promo.error.own_referral",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "You cannot use your own invitation code.",
+      "default_ar": "ما تقدرش تستخدم كود الدعوة بتاعك.",
+      "placeholders": [],
+      "max_length": 80
+    },
+    {
+      "key": "promo.error.referral_joined",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "You have already joined with an invitation code.",
+      "default_ar": "إنت انضممت بكود دعوة قبل كده.",
+      "placeholders": [],
+      "max_length": 96
+    },
+    {
+      "key": "promo.error.referral_full",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "This invitation code has reached its limit.",
+      "default_ar": "كود الدعوة ده وصل للحد بتاعه.",
+      "placeholders": [],
+      "max_length": 86
+    },
+    {
+      "key": "promo.error.device_limit",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "This device has already been used with an invitation code.",
+      "default_ar": "الجهاز ده اتستخدم قبل كده مع كود دعوة.",
+      "placeholders": [],
+      "max_length": 116
+    },
+    {
+      "key": "promo.error.locked",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card",
+      "default_en": "The code cannot change once a buyer has asked for the piece.",
+      "default_ar": "الكود ما يتغيّرش بعد ما مشتري يطلب القطعة.",
+      "placeholders": [],
+      "max_length": 120
+    },
+    {
+      "key": "promo.order.advance_paid",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Order",
+      "default_en": "Advance paid",
+      "default_ar": "السلفة اتدفعت",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.order.advance_note",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Order",
+      "default_en": "{amount} reached your wallet when IGI confirmed your piece. The rest follows when the buyer pays.",
+      "default_ar": "{amount} وصلوا محفظتك لما IGI أكدت القطعة. الباقي بيوصل لما المشتري يدفع.",
+      "placeholders": [
+        "amount"
+      ],
+      "max_length": 194
+    },
+    {
+      "key": "promo.order.paid_earlier",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Order",
+      "default_en": "Paid earlier",
+      "default_ar": "اتدفع بدري",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "promo.order.commission_saved",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Order",
+      "default_en": "You saved {amount} on the commission",
+      "default_ar": "وفّرت {amount} من العمولة",
+      "placeholders": [
+        "amount"
+      ],
+      "max_length": 72
+    },
+    {
+      "key": "promo.order.commission_with_code",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Order",
+      "default_en": "with code {code}",
+      "default_ar": "بكود {code}",
+      "placeholders": [
+        "code"
+      ],
+      "max_length": 40
+    },
+    {
+      "key": "promo.order.commission_with_credit",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Order",
+      "default_en": "with your commission credit",
+      "default_ar": "برصيد العمولة بتاعك",
+      "placeholders": [],
+      "max_length": 54
+    },
+    {
+      "key": "referral.menu_sub",
+      "kind": "app",
+      "area": "Account",
+      "where": "Account menu",
+      "default_en": "Both of you pay less commission",
+      "default_ar": "إنتوا الاتنين بتدفعوا عمولة أقل",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "referral.title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Invite a friend",
+      "default_ar": "ادعو صاحبك",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.intro",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "She pays {referral_friend_pct}% less commission on her first sale. You get {referral_reward_egp} EGP off yours.",
+      "default_ar": "هي بتدفع عمولة أقل {referral_friend_pct}% على أول بيعة. وإنت بتاخد {referral_reward_egp} جنيه خصم من عمولتك.",
+      "placeholders": [
+        "referral_friend_pct",
+        "referral_reward_egp"
+      ],
+      "max_length": 222
+    },
+    {
+      "key": "referral.your_code",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Your code",
+      "default_ar": "الكود بتاعك",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.share",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Share",
+      "default_ar": "شارك",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.copy",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Copy",
+      "default_ar": "انسخ",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.copied",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Copied.",
+      "default_ar": "اتنسخ.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.share_ready",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Ready to share.",
+      "default_ar": "جاهز للمشاركة.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.share_message",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Sell your gold on Dahab with my code {code} and pay less commission on your first sale.",
+      "default_ar": "بيع دهبك على دهب بكودي {code} وادفع عمولة أقل على أول بيعة.",
+      "placeholders": [
+        "code"
+      ],
+      "max_length": 174
+    },
+    {
+      "key": "referral.stands",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Where it stands",
+      "default_ar": "موقفك دلوقتي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.invites_sent",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Invites sent",
+      "default_ar": "الدعوات المبعوتة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.joined",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Joined",
+      "default_ar": "انضموا",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.sold",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Sold something",
+      "default_ar": "باعوا",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.earned",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Earned so far",
+      "default_ar": "اللي كسبته لحد دلوقتي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.available",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Available now",
+      "default_ar": "المتاح دلوقتي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "referral.expires",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Expires {date}",
+      "default_ar": "بينتهي {date}",
+      "placeholders": [
+        "date"
+      ],
+      "max_length": 40
+    },
+    {
+      "key": "referral.reward_note",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "The reward lands as commission credit after your friend completes her first sale, not when she signs up. It lasts {referral_expiry_days} days.",
+      "default_ar": "المكافأة بتوصل رصيد عمولة بعد ما صاحبك تكمّل أول بيعة، مش لما تسجّل. وبتفضل {referral_expiry_days} يوم.",
+      "placeholders": [
+        "referral_expiry_days"
+      ],
+      "max_length": 284
+    },
+    {
+      "key": "referral.not_available",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Invitations are not open yet.",
+      "default_ar": "الدعوات لسه ما اتفتحتش.",
+      "placeholders": [],
+      "max_length": 58
+    },
+    {
+      "key": "referral.load_failed",
+      "kind": "app",
+      "area": "Account",
+      "where": "Invite a friend",
+      "default_en": "Your invitation details could not be loaded.",
+      "default_ar": "مقدرناش نحمّل تفاصيل الدعوة.",
+      "placeholders": [],
+      "max_length": 88
+    },
+    {
+      "key": "referral.rate_card_title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Rating",
+      "default_en": "Know someone with gold in a drawer?",
+      "default_ar": "تعرف حد عنده دهب في الدرج؟",
+      "placeholders": [],
+      "max_length": 70
+    },
+    {
+      "key": "referral.rate_card_body",
+      "kind": "app",
+      "area": "Account",
+      "where": "Rating",
+      "default_en": "Share your code. She pays less commission on her first sale, and so do you on your next.",
+      "default_ar": "شارك كودك. هي بتدفع عمولة أقل على أول بيعة، وإنت كمان على اللي بعدها.",
+      "placeholders": [],
+      "max_length": 176
+    },
+    {
+      "key": "referral.rate_card_button",
+      "kind": "app",
+      "area": "Account",
+      "where": "Rating",
+      "default_en": "See my code",
+      "default_ar": "شوف كودي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",
@@ -1420,16 +2025,6 @@
       "where": "Home screen",
       "default_en": "You get extra",
       "default_ar": "بتحصل على زيادة",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "home.you_would_receive",
-      "kind": "app",
-      "area": "Home",
-      "where": "Home screen",
-      "default_en": "You would receive",
-      "default_ar": "هيوصلك",
       "placeholders": [],
       "max_length": 40
     },
@@ -2074,16 +2669,6 @@
       "max_length": 40
     },
     {
-      "key": "piece.save",
-      "kind": "app",
-      "area": "Browse",
-      "where": "Piece page",
-      "default_en": "Save",
-      "default_ar": "حفظ",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "piece.saved",
       "kind": "app",
       "area": "Browse",
@@ -2302,16 +2887,6 @@
       "default_ar": "الكود ده بتاع حساب تاني.",
       "placeholders": [],
       "max_length": 74
-    },
-    {
-      "key": "piece.this_code_has_reached_its_limit",
-      "kind": "app",
-      "area": "Browse",
-      "where": "Piece cards and listing details",
-      "default_en": "This code has reached its limit for the month.",
-      "default_ar": "الكود ده وصل للحد بتاعه الشهر ده.",
-      "placeholders": [],
-      "max_length": 92
     },
     {
       "key": "piece.this_code_is_not_active",
@@ -2564,6 +3139,36 @@
       "max_length": 40
     },
     {
+      "key": "home.you_would_receive",
+      "kind": "app",
+      "area": "Home",
+      "where": "Home screen",
+      "default_en": "You would receive",
+      "default_ar": "هيوصلك",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "piece.save",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Save",
+      "default_ar": "حفظ",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "piece.this_code_has_reached_its_limit",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece cards and listing details",
+      "default_en": "This code has reached its limit for the month.",
+      "default_ar": "الكود ده وصل للحد بتاعه الشهر ده.",
+      "placeholders": [],
+      "max_length": 92
+    },
+    {
       "key": "buy.add_at_least",
       "kind": "app",
       "area": "Orders",
@@ -2762,16 +3367,6 @@
       "default_ar": "ممكن يكون في مشتريين تانيين في الطابور على القطعة دي، والسعر بيتبع سعر الذهب لحد ما تبعت طلبك.",
       "placeholders": [],
       "max_length": 226
-    },
-    {
-      "key": "buy.remove",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Buying a piece",
-      "default_en": "Remove",
-      "default_ar": "شيل",
-      "placeholders": [],
-      "max_length": 40
     },
     {
       "key": "buy.save_it_for_later",
@@ -3304,16 +3899,6 @@
       "max_length": 40
     },
     {
-      "key": "orders.dahab_commission",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Order steps",
-      "default_en": "Dahab commission",
-      "default_ar": "عمولة دهب",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "orders.dahab_does_not_verify_the_relationsh",
       "kind": "app",
       "area": "Orders",
@@ -3544,26 +4129,6 @@
       "max_length": 66
     },
     {
-      "key": "orders.gold_bracelet_18k_5_20_g",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Order steps",
-      "default_en": "Gold bracelet, 18K, 5.20 g",
-      "default_ar": "أسورة دهب عيار ١٨، ٥٫٢٠ جرام",
-      "placeholders": [],
-      "max_length": 52
-    },
-    {
-      "key": "orders.gold_value",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Order steps",
-      "default_en": "Gold value",
-      "default_ar": "قيمة الذهب",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "orders.i_already_sold_it_elsewhere",
       "kind": "app",
       "area": "Orders",
@@ -3682,26 +4247,6 @@
       "default_ar": "اعرضها تاني",
       "placeholders": [],
       "max_length": 40
-    },
-    {
-      "key": "orders.making_charge_back",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Order steps",
-      "default_en": "Making charge back",
-      "default_ar": "المصنعية المستردة",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "orders.making_charge_updated",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Order steps",
-      "default_en": "Making charge updated.",
-      "default_ar": "المصنعية اتحدثت.",
-      "placeholders": [],
-      "max_length": 44
     },
     {
       "key": "orders.more_time_can_be_asked_only",
@@ -4874,16 +5419,6 @@
       "max_length": 180
     },
     {
-      "key": "orders.you_can_change_your_making_charge",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Order steps",
-      "default_en": "You can change your making charge whenever no one has an open request on the piece. The listing keeps its history, so you don't lose the views it has built up.",
-      "default_ar": "تقدر تغير المصنعية في أي وقت طالما مفيش طلب مفتوح على القطعة. والإعلان بيحتفظ بالتسجلات، يعني مش هتخسر المشاهدات اللي القطعة جمعتها.",
-      "placeholders": [],
-      "max_length": 318
-    },
-    {
       "key": "orders.you_collected_the_piece",
       "kind": "app",
       "area": "Orders",
@@ -4924,16 +5459,6 @@
       "max_length": 40
     },
     {
-      "key": "orders.your_code",
-      "kind": "app",
-      "area": "Orders",
-      "where": "Order screen",
-      "default_en": "Your code",
-      "default_ar": "الكود بتاعك",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "orders.your_making_charge",
       "kind": "app",
       "area": "Orders",
@@ -4952,6 +5477,76 @@
       "default_ar": "قطعتك مستنياك في الفرع. استلمها بالكود بتاعك، أو رجّعها السوق.",
       "placeholders": [],
       "max_length": 202
+    },
+    {
+      "key": "buy.remove",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Buying a piece",
+      "default_en": "Remove",
+      "default_ar": "شيل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "orders.gold_bracelet_18k_5_20_g",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order steps",
+      "default_en": "Gold bracelet, 18K, 5.20 g",
+      "default_ar": "أسورة دهب عيار ١٨، ٥٫٢٠ جرام",
+      "placeholders": [],
+      "max_length": 52
+    },
+    {
+      "key": "orders.making_charge_updated",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order steps",
+      "default_en": "Making charge updated.",
+      "default_ar": "المصنعية اتحدثت.",
+      "placeholders": [],
+      "max_length": 44
+    },
+    {
+      "key": "orders.you_can_change_your_making_charge",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order steps",
+      "default_en": "You can change your making charge whenever no one has an open request on the piece. The listing keeps its history, so you don't lose the views it has built up.",
+      "default_ar": "تقدر تغير المصنعية في أي وقت طالما مفيش طلب مفتوح على القطعة. والإعلان بيحتفظ بالتسجلات، يعني مش هتخسر المشاهدات اللي القطعة جمعتها.",
+      "placeholders": [],
+      "max_length": 318
+    },
+    {
+      "key": "orders.your_code",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen",
+      "default_en": "Your code",
+      "default_ar": "الكود بتاعك",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "orders.gold_value",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Gold value",
+      "default_ar": "قيمة الذهب",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "orders.making_charge_back",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Making charge back",
+      "default_ar": "المصنعية المستردة",
+      "placeholders": [],
+      "max_length": 40
     },
     {
       "key": "selling.21k_gold_ring_worn_twice_small",
@@ -5104,16 +5699,6 @@
       "max_length": 144
     },
     {
-      "key": "selling.apply",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: step 1",
-      "default_en": "Apply",
-      "default_ar": "تطبيق",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "selling.before_it_goes_live",
       "kind": "app",
       "area": "Selling",
@@ -5254,26 +5839,6 @@
       "max_length": 40
     },
     {
-      "key": "selling.e_g_dahab50",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: review and list",
-      "default_en": "e.g. DAHAB50",
-      "default_ar": "مثال: DAHAB50",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "selling.enter_a_code_first",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: review and list",
-      "default_en": "Enter a code first.",
-      "default_ar": "اكتب الكود الأول.",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "selling.excellent",
       "kind": "app",
       "area": "Selling",
@@ -5314,16 +5879,6 @@
       "max_length": 40
     },
     {
-      "key": "selling.have_a_promo_code",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: review and list",
-      "default_en": "Have a promo code?",
-      "default_ar": "عندك كود خصم؟",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "selling.how_to_shoot",
       "kind": "app",
       "area": "Selling",
@@ -5352,16 +5907,6 @@
       "default_ar": "لو المشتري مدفعش خلال المهلة، قطعتك بترجعلك وتاخد ٥٠٪ من عربونه هو، تعويض عن وقتك والمشوار.",
       "placeholders": [],
       "max_length": 308
-    },
-    {
-      "key": "selling.if_you_have_a_promo_code",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: step 1",
-      "default_en": "If you have a promo code, enter it here.",
-      "default_ar": "لو معاك برومو كود، اكتبه هنا.",
-      "placeholders": [],
-      "max_length": 80
     },
     {
       "key": "selling.igi_certificate",
@@ -5430,6 +5975,16 @@
       "where": "Sell: review and list",
       "default_en": "Listing fee",
       "default_ar": "رسوم العرض",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.minimum",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Promo card screen",
+      "default_en": "minimum",
+      "default_ar": "الحد الأدنى",
       "placeholders": [],
       "max_length": 40
     },
@@ -5594,26 +6149,6 @@
       "max_length": 160
     },
     {
-      "key": "selling.promo_code",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: step 1",
-      "default_en": "Promo code",
-      "default_ar": "كود الخصم",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "selling.promo_saving",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: step 1",
-      "default_en": "Promo saving",
-      "default_ar": "خصم الكود",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "selling.record_10_to_15_seconds",
       "kind": "app",
       "area": "Selling",
@@ -5764,26 +6299,6 @@
       "max_length": 40
     },
     {
-      "key": "selling.that_code_is_not_valid",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: step 1",
-      "default_en": "That code is not valid.",
-      "default_ar": "الكود ده مش صالح.",
-      "placeholders": [],
-      "max_length": 46
-    },
-    {
-      "key": "selling.that_code_is_not_valid_or",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: review and list",
-      "default_en": "That code is not valid or has expired.",
-      "default_ar": "الكود ده مش صالح أو صلاحيته انتهت.",
-      "placeholders": [],
-      "max_length": 76
-    },
-    {
       "key": "selling.the_buyer_pays_the_balance",
       "kind": "app",
       "area": "Selling",
@@ -5832,26 +6347,6 @@
       "default_ar": "ده مينفعش يتغير بعد ما الإعلان يتعمل. لو عايز تبيع حاجة تانية، اعمل إعلان جديد.",
       "placeholders": [],
       "max_length": 172
-    },
-    {
-      "key": "selling.this_is_your_first_sale_so",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: review and list",
-      "default_en": "This is your first sale, so you are paid differently.",
-      "default_ar": "دي أول بيعة ليك، فطريقة الدفع مختلفة.",
-      "placeholders": [],
-      "max_length": 106
-    },
-    {
-      "key": "selling.try_welcome_or_eid25",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: step 1",
-      "default_en": "Try WELCOME or EID25.",
-      "default_ar": "جرّب WELCOME أو EID25.",
-      "placeholders": [],
-      "max_length": 42
     },
     {
       "key": "selling.turn_the_piece_slowly_so_every",
@@ -6014,16 +6509,6 @@
       "max_length": 40
     },
     {
-      "key": "selling.when_dahab_receives_the_piece",
-      "kind": "app",
-      "area": "Selling",
-      "where": "Sell: review and list",
-      "default_en": "When Dahab receives the piece",
-      "default_ar": "لما دهب تستلم القطعة",
-      "placeholders": [],
-      "max_length": 58
-    },
-    {
       "key": "selling.when_the_buyer_pays",
       "kind": "app",
       "area": "Selling",
@@ -6142,6 +6627,126 @@
       "default_ar": "سعرك للقطعة كاملة",
       "placeholders": [],
       "max_length": 60
+    },
+    {
+      "key": "selling.apply",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Apply",
+      "default_ar": "تطبيق",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.e_g_dahab50",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: review and list",
+      "default_en": "e.g. DAHAB50",
+      "default_ar": "مثال: DAHAB50",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.enter_a_code_first",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: review and list",
+      "default_en": "Enter a code first.",
+      "default_ar": "اكتب الكود الأول.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.have_a_promo_code",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: review and list",
+      "default_en": "Have a promo code?",
+      "default_ar": "عندك كود خصم؟",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.if_you_have_a_promo_code",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "If you have a promo code, enter it here.",
+      "default_ar": "لو معاك برومو كود، اكتبه هنا.",
+      "placeholders": [],
+      "max_length": 80
+    },
+    {
+      "key": "selling.promo_code",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Promo code",
+      "default_ar": "كود الخصم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.promo_saving",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Promo saving",
+      "default_ar": "خصم الكود",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.that_code_is_not_valid",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "That code is not valid.",
+      "default_ar": "الكود ده مش صالح.",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "selling.that_code_is_not_valid_or",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: review and list",
+      "default_en": "That code is not valid or has expired.",
+      "default_ar": "الكود ده مش صالح أو صلاحيته انتهت.",
+      "placeholders": [],
+      "max_length": 76
+    },
+    {
+      "key": "selling.this_is_your_first_sale_so",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: review and list",
+      "default_en": "This is your first sale, so you are paid differently.",
+      "default_ar": "دي أول بيعة ليك، فطريقة الدفع مختلفة.",
+      "placeholders": [],
+      "max_length": 106
+    },
+    {
+      "key": "selling.try_welcome_or_eid25",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Try WELCOME or EID25.",
+      "default_ar": "جرّب WELCOME أو EID25.",
+      "placeholders": [],
+      "max_length": 42
+    },
+    {
+      "key": "selling.when_dahab_receives_the_piece",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: review and list",
+      "default_en": "When Dahab receives the piece",
+      "default_ar": "لما دهب تستلم القطعة",
+      "placeholders": [],
+      "max_length": 58
     },
     {
       "key": "bank.a_person_checks_the_name_against",
@@ -6982,16 +7587,6 @@
       "default_ar": "اتأكد. تقدر تسحب دلوقتي.",
       "placeholders": [],
       "max_length": 64
-    },
-    {
-      "key": "wallet.copied",
-      "kind": "app",
-      "area": "Wallet",
-      "where": "Wallet screens",
-      "default_en": "Copied.",
-      "default_ar": "اتنسخ.",
-      "placeholders": [],
-      "max_length": 40
     },
     {
       "key": "wallet.corrections",
@@ -7844,6 +8439,16 @@
       "max_length": 40
     },
     {
+      "key": "wallet.copied",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screens",
+      "default_en": "Copied.",
+      "default_ar": "اتنسخ.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "account.16000_chat_whatsapp_or_email",
       "kind": "app",
       "area": "Account",
@@ -7994,16 +8599,6 @@
       "max_length": 40
     },
     {
-      "key": "account.both_of_you_pay_less_commission",
-      "kind": "app",
-      "area": "Account",
-      "where": "Account",
-      "default_en": "Both of you pay less commission",
-      "default_ar": "الاتنين بتدفعوا عمولة أقل",
-      "placeholders": [],
-      "max_length": 62
-    },
-    {
       "key": "account.change_my_number",
       "kind": "app",
       "area": "Account",
@@ -8080,16 +8675,6 @@
       "where": "Settings and legal screens",
       "default_en": "Close your account",
       "default_ar": "إغلاق حسابك",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "account.code",
-      "kind": "app",
-      "area": "Account",
-      "where": "Change phone or email",
-      "default_en": "Code",
-      "default_ar": "الكود",
       "placeholders": [],
       "max_length": 40
     },
@@ -8554,16 +9139,6 @@
       "max_length": 40
     },
     {
-      "key": "account.new_password",
-      "kind": "app",
-      "area": "Account",
-      "where": "Settings and legal screens",
-      "default_en": "New password",
-      "default_ar": "كلمة السر الجديدة",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "account.new_phone_number",
       "kind": "app",
       "area": "Account",
@@ -8810,16 +9385,6 @@
       "where": "Settings and legal screens",
       "default_en": "See what's open",
       "default_ar": "شوف المفتوح",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "account.send_the_code",
-      "kind": "app",
-      "area": "Account",
-      "where": "Change phone or email",
-      "default_en": "Send the code",
-      "default_ar": "ابعت الكود",
       "placeholders": [],
       "max_length": 40
     },
@@ -9344,6 +9909,56 @@
       "max_length": 84
     },
     {
+      "key": "orders.dahab_commission",
+      "kind": "app",
+      "area": "Account",
+      "where": "Settings and legal screens",
+      "default_en": "Dahab commission",
+      "default_ar": "عمولة دهب",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.both_of_you_pay_less_commission",
+      "kind": "app",
+      "area": "Account",
+      "where": "Account",
+      "default_en": "Both of you pay less commission",
+      "default_ar": "الاتنين بتدفعوا عمولة أقل",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "account.code",
+      "kind": "app",
+      "area": "Account",
+      "where": "Change phone or email",
+      "default_en": "Code",
+      "default_ar": "الكود",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.new_password",
+      "kind": "app",
+      "area": "Account",
+      "where": "Settings and legal screens",
+      "default_en": "New password",
+      "default_ar": "كلمة السر الجديدة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.send_the_code",
+      "kind": "app",
+      "area": "Account",
+      "where": "Change phone or email",
+      "default_en": "Send the code",
+      "default_ar": "ابعت الكود",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "auth.accept_the_terms_to_create_your",
       "kind": "app",
       "area": "Auth",
@@ -9374,16 +9989,6 @@
       "max_length": 48
     },
     {
-      "key": "auth.at_least_10_characters",
-      "kind": "app",
-      "area": "Auth",
-      "where": "Sign up",
-      "default_en": "At least 10 characters",
-      "default_ar": "١٠ حروف على الأقل",
-      "placeholders": [],
-      "max_length": 44
-    },
-    {
       "key": "auth.back",
       "kind": "app",
       "area": "Auth",
@@ -9410,16 +10015,6 @@
       "where": "Sign up",
       "default_en": "Choose a password",
       "default_ar": "اختار كلمة سر",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "auth.code_sent_again",
-      "kind": "app",
-      "area": "Auth",
-      "where": "Sign in",
-      "default_en": "Code sent again.",
-      "default_ar": "الكود اتبعت تاني.",
       "placeholders": [],
       "max_length": 40
     },
@@ -9472,16 +10067,6 @@
       "default_ar": "مواعيد التسليم مهمة، تفويت الميعاد ممكن يلغي البيعة أو يكلفك العربون.",
       "placeholders": [],
       "max_length": 154
-    },
-    {
-      "key": "auth.didnt_arrive",
-      "kind": "app",
-      "area": "Auth",
-      "where": "Sign in",
-      "default_en": "Didn't arrive?",
-      "default_ar": "مجاش الكود؟",
-      "placeholders": [],
-      "max_length": 40
     },
     {
       "key": "auth.egyptian_id",
@@ -9542,16 +10127,6 @@
       "default_ar": "اكتب إيميلك.",
       "placeholders": [],
       "max_length": 50
-    },
-    {
-      "key": "auth.enter_your_phone_number",
-      "kind": "app",
-      "area": "Auth",
-      "where": "Sign in",
-      "default_en": "Enter your phone number.",
-      "default_ar": "اكتب رقم موبايلك.",
-      "placeholders": [],
-      "max_length": 48
     },
     {
       "key": "auth.everyone_on_dahab_is_verified_that",
@@ -9727,7 +10302,7 @@
       "key": "auth.phone_number",
       "kind": "app",
       "area": "Auth",
-      "where": "Sign in",
+      "where": "Forgot password screen",
       "default_en": "Phone number",
       "default_ar": "رقم التليفون",
       "placeholders": [],
@@ -9760,16 +10335,6 @@
       "where": "Sign up",
       "default_en": "Read the full terms",
       "default_ar": "اقرأ الشروط كاملة",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "auth.send_it_again",
-      "kind": "app",
-      "area": "Auth",
-      "where": "Sign in",
-      "default_en": "Send it again",
-      "default_ar": "ابعته تاني",
       "placeholders": [],
       "max_length": 40
     },
@@ -11324,16 +11889,6 @@
       "max_length": 56
     },
     {
-      "key": "shared.copy",
-      "kind": "app",
-      "area": "Shared",
-      "where": "Shared texts",
-      "default_en": "Copy",
-      "default_ar": "نسخ",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
       "key": "shared.copy_address",
       "kind": "app",
       "area": "Shared",
@@ -12750,6 +13305,66 @@
       "where": "Screen titles",
       "default_en": "Your orders",
       "default_ar": "طلباتك",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.at_least_10_characters",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign up",
+      "default_en": "At least 10 characters",
+      "default_ar": "١٠ حروف على الأقل",
+      "placeholders": [],
+      "max_length": 44
+    },
+    {
+      "key": "auth.code_sent_again",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in",
+      "default_en": "Code sent again.",
+      "default_ar": "الكود اتبعت تاني.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.didnt_arrive",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in",
+      "default_en": "Didn't arrive?",
+      "default_ar": "مجاش الكود؟",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "auth.enter_your_phone_number",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in",
+      "default_en": "Enter your phone number.",
+      "default_ar": "اكتب رقم موبايلك.",
+      "placeholders": [],
+      "max_length": 48
+    },
+    {
+      "key": "auth.send_it_again",
+      "kind": "app",
+      "area": "Auth",
+      "where": "Sign in",
+      "default_en": "Send it again",
+      "default_ar": "ابعته تاني",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "shared.copy",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Shared texts",
+      "default_en": "Copy",
+      "default_ar": "نسخ",
       "placeholders": [],
       "max_length": 40
     },

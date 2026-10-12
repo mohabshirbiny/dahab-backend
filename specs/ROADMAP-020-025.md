@@ -7,7 +7,7 @@ Built from the audit of 2026-10-11 (sections 1 and 3: the customer-app mock item
 | **020** | Account recovery and staff access | Backend, Dashboard, App | — | D20-1…5 |
 | **021** | Founder-account security | Backend, Dashboard | 020 | D21-1…4 |
 | **022** | Change the price of a live piece | Backend, Dashboard (read), App | — | D22-1…3 |
-| **023** | First-sale advance, customer-side codes, referral, and the *Promo codes* and *Market maker approvals* pages rebuilt to the design | Backend, Dashboard, App | spec 019 codes; touches 022 | D23-1…9 (Finance sign-off) |
+| **023** | First-sale advance, customer-side codes, referral, and the *Promo codes* and *Market maker approvals* pages rebuilt to the design | Backend, Dashboard, App | spec 019 codes; touches 022 | D23-1…9 (Finance sign-off) — built, uncommitted |
 | **024** | Notification preferences and operational alerts | Backend, Dashboard, App | shares OI-1.3 with 021; feeds from 023 | D24-1…4 |
 | **025** | Compliance tools: case files, approved inspection messages | Backend, Dashboard | — | D25-1…4 |
 

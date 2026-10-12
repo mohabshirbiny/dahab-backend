@@ -16,6 +16,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $customer_id
  * @property bool $allowed
  * @property string|null $block_reason
+ * @property string|null $buy_request_id
+ * @property string|null $amount_egp
+ * @property string|null $device_fingerprint
+ * @property string|null $listing_id
+ * @property string|null $id_key
+ * @property string|null $credit_id
  * @property CarbonImmutable $used_at
  */
 class PromoCodeUse extends Model

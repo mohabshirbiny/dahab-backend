@@ -22,6 +22,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'action', type: 'string', enum: ['verify', 'request_resubmission', 'reject']),
         new OA\Property(property: 'reasons', type: 'array', items: new OA\Items(type: 'string', enum: ['blurred_or_glare', 'card_cut_off', 'name_does_not_match', 'card_expired', 'back_missing', 'text_not_readable']), nullable: true),
         new OA\Property(property: 'note', type: 'string', maxLength: 1000, nullable: true),
+        new OA\Property(property: 'id_number', type: 'string', minLength: 14, maxLength: 14, nullable: true, description: 'Spec 023: the 14-digit national-ID number keyed from an Egyptian ID card, honoured only on verify. Only a keyed hash is kept (for "once per ID" codes); the number is never stored, logged or returned.'),
     ],
 )]
 class ReviewIdentityDocumentRequest extends FormRequest
@@ -48,6 +49,7 @@ class ReviewIdentityDocumentRequest extends FormRequest
             ],
             'reasons.*' => [Rule::enum(IdentityReviewReason::class)],
             'note' => ['nullable', 'string', 'max:1000'],
+            'id_number' => ['nullable', 'digits:14'],
         ];
     }
 
@@ -67,6 +69,14 @@ class ReviewIdentityDocumentRequest extends FormRequest
             fn (string $r) => IdentityReviewReason::from($r),
             (array) $this->validated('reasons', []),
         );
+    }
+
+    /** Spec 023 R8: the keyed national-ID number, or null. Only a verify of an Egyptian ID uses it. */
+    public function idNumber(): ?string
+    {
+        $number = $this->validated('id_number');
+
+        return is_string($number) && $number !== '' ? $number : null;
     }
 
     public function note(): ?string

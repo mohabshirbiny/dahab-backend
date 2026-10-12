@@ -189,7 +189,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
     // spec 021: founder device-approvals index/approve/refuse, devices, freeze, freezes, unfreeze (7),
     //            notices index/read/read-all (3); device-approval/status and frozen/confirm-unfreeze are public.
     // spec 022: the seller's price change (1).
-    expect($checked)->toBe(247);
+    // spec 023: customer commission-preview, listing promo put/delete, referral show/shares, commission-credits (6);
+    //            dashboard market-maker queue leave and queue media, first-sale enable/revoke/index (5).
+    expect($checked)->toBe(258);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

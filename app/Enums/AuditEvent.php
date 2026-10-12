@@ -170,6 +170,24 @@ enum AuditEvent: string
     case PROMO_CREATED = 'promo.created';
     case PROMO_UPDATED = 'promo.updated';
     case MARKET_MAKER_APPROVED = 'market_maker.approved';
+    // Spec 023: seller-side codes, commission credits, referral, the first-sale advance.
+    case PROMO_APPLIED = 'promo.applied';
+    case PROMO_REMOVED = 'promo.removed';
+    case COMMISSION_CREDIT_GRANTED = 'commission_credit.granted';
+    case COMMISSION_CREDIT_SPENT = 'commission_credit.spent';
+    case COMMISSION_CREDIT_EXPIRED = 'commission_credit.expired';
+    case COMMISSION_CREDIT_VOIDED = 'commission_credit.voided';
+    case REFERRAL_JOINED = 'referral.joined';
+    case REFERRAL_REWARDED = 'referral.rewarded';
+    case REFERRAL_VOID = 'referral.void';
+    case MARKET_MAKER_LEFT = 'market_maker.left';
+    case MARKET_MAKER_MEDIA_VIEWED = 'market_maker.media_viewed';
+    case FIRST_SALE_ENABLED = 'first_sale.enabled';
+    case FIRST_SALE_REVOKED = 'first_sale.revoked';
+    case FIRST_SALE_ADVANCED = 'first_sale.advanced';
+    case FIRST_SALE_SKIPPED = 'first_sale.skipped';
+    case FIRST_SALE_RECOVERED = 'first_sale.recovered';
+    case FIRST_SALE_WRITTEN_OFF = 'first_sale.written_off';
     case PEOPLE_TO_WATCH_VIEWED = 'people_to_watch.viewed';
     case LEGAL_PUBLISHED = 'legal.published';
     case LEGAL_ACCEPTED = 'legal.accepted';
@@ -341,6 +359,23 @@ enum AuditEvent: string
             self::PROMO_CREATED => 'Promo code created',
             self::PROMO_UPDATED => 'Promo code changed',
             self::MARKET_MAKER_APPROVED => 'Piece approved for market makers',
+            self::PROMO_APPLIED => 'Code applied to a piece',
+            self::PROMO_REMOVED => 'Code removed from a piece',
+            self::COMMISSION_CREDIT_GRANTED => 'Commission credit granted',
+            self::COMMISSION_CREDIT_SPENT => 'Commission credit used on a sale',
+            self::COMMISSION_CREDIT_EXPIRED => 'Commission credit expired',
+            self::COMMISSION_CREDIT_VOIDED => 'Commission credit cancelled',
+            self::REFERRAL_JOINED => 'Friend joined with an invitation code',
+            self::REFERRAL_REWARDED => 'Invitation rewarded',
+            self::REFERRAL_VOID => 'Invitation lapsed',
+            self::MARKET_MAKER_LEFT => 'Piece left as it is',
+            self::MARKET_MAKER_MEDIA_VIEWED => 'Piece file opened from the market-maker queue',
+            self::FIRST_SALE_ENABLED => 'First-sale advance enabled for a seller',
+            self::FIRST_SALE_REVOKED => 'First-sale advance enablement revoked',
+            self::FIRST_SALE_ADVANCED => 'First-sale advance paid',
+            self::FIRST_SALE_SKIPPED => 'First-sale advance skipped',
+            self::FIRST_SALE_RECOVERED => 'First-sale advance recovered at payment',
+            self::FIRST_SALE_WRITTEN_OFF => 'First-sale advance written off',
             self::PEOPLE_TO_WATCH_VIEWED => 'People to watch read',
             self::LEGAL_PUBLISHED => 'Legal text published',
             self::LEGAL_ACCEPTED => 'Customer accepted a legal text',
@@ -368,7 +403,9 @@ enum AuditEvent: string
             self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
             self::CONTROL_SET, self::CONTROL_CLEARED, self::VISIBILITY_CHANGED, self::PEOPLE_TO_WATCH_VIEWED => AuditCategory::SYSTEM,
-            self::PROMO_CREATED, self::PROMO_UPDATED, self::MARKET_MAKER_APPROVED => AuditCategory::PROMO,
+            self::PROMO_CREATED, self::PROMO_UPDATED, self::MARKET_MAKER_APPROVED,
+            self::PROMO_APPLIED, self::PROMO_REMOVED, self::COMMISSION_CREDIT_GRANTED, self::COMMISSION_CREDIT_SPENT, self::COMMISSION_CREDIT_EXPIRED, self::COMMISSION_CREDIT_VOIDED, self::REFERRAL_JOINED, self::REFERRAL_REWARDED, self::REFERRAL_VOID, self::MARKET_MAKER_LEFT, self::MARKET_MAKER_MEDIA_VIEWED => AuditCategory::PROMO,
+            self::FIRST_SALE_ENABLED, self::FIRST_SALE_REVOKED, self::FIRST_SALE_ADVANCED, self::FIRST_SALE_SKIPPED, self::FIRST_SALE_RECOVERED, self::FIRST_SALE_WRITTEN_OFF => AuditCategory::MONEY,
             self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
             self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,
             self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED,

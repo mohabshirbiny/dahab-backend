@@ -24,6 +24,8 @@ final class ShowOrderAction
         'disputes', 'extensionRequests',
         // Spec 018: the free relist made from it, and what it was relisted from.
         'freeRelistListing.pieceType', 'listing.relistedFrom:order_id,order_ref',
+        // Spec 023: the advance paid on the order.
+        'advance',
     ];
 
     public function handle(string $orderId): Order

@@ -19,6 +19,11 @@ function spec019Migration(string $file): object
 }
 
 it('rolls the controls and the market-maker tables back, newest first, on an empty database', function () {
+    // Spec 023 sits on the promo tables: its four migrations go first, newest first.
+    foreach (['2026_10_16_000040_listing_views', '2026_10_16_000030_first_sale_advance', '2026_10_16_000020_commission_credit', '2026_10_16_000010_promo_code_terms'] as $file) {
+        spec019Migration($file)->down();
+    }
+
     spec019Migration('2026_10_12_000045_market_maker_purchases')->down();
     expect(Schema::hasColumn('buy_request', 'promo_code'))->toBeFalse();
 
@@ -55,7 +60,12 @@ it('refuses to roll controls back once a visibility value was changed', function
 it('refuses to roll the market-maker tables back once a code exists', function () {
     $staff = Staff::factory()->create();
     $dealer = Customer::factory()->verified()->create(['customer_type' => 'market_maker']);
-    PromoCode::query()->create(['code' => 'DEALER', 'kind' => 'market_maker', 'tied_customer_id' => $dealer->customer_id, 'created_by' => $staff->staff_id]);
+    PromoCode::query()->create(['code' => 'DEALER', 'kind' => 'market_maker', 'tied_customer_id' => $dealer->customer_id, 'commission_waived' => true, 'gives_spread' => true, 'created_by' => $staff->staff_id]);
+
+    // Spec 023's own rollbacks first (they hold nothing here), then the spec 019 one under test.
+    foreach (['2026_10_16_000040_listing_views', '2026_10_16_000030_first_sale_advance', '2026_10_16_000020_commission_credit', '2026_10_16_000010_promo_code_terms'] as $file) {
+        spec019Migration($file)->down();
+    }
 
     expect(fn () => spec019Migration('2026_10_12_000040_market_makers')->down())
         ->toThrow(RuntimeException::class, 'cannot be rolled back');

@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1\Market;
 
 use App\Actions\Listings\ReadListingMediaAction;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\UseMarketScope;
 use App\Http\Requests\Market\ListMarketListingsRequest;
 use App\Http\Resources\Market\MarketListingDetailResource;
 use App\Http\Resources\Market\MarketListingResource;
+use App\Jobs\RecordListingViewJob;
 use App\Models\Listing;
 use App\Support\Listings\ListingPricer;
 use App\Support\Listings\MarketQuery;
@@ -81,6 +83,13 @@ class MarketListingController extends Controller
     public function show(Request $request, string $listing): JsonResponse
     {
         $model = Listing::query()->publiclyVisible()->with(['pieceType', 'media', 'branches'])->findOrFail($listing);
+
+        // Spec 023 R18: one view per account or device per piece per day, counted after the response.
+        // The seller's own looks and a visitor with neither a token nor a device id are not counted.
+        $viewer = $request->attributes->get(UseMarketScope::VIEWER) ?? $request->header('X-Device-Id');
+        if (is_string($viewer) && $viewer !== '' && $viewer !== $model->seller_id) {
+            RecordListingViewJob::dispatchAfterResponse($model->listing_id, $viewer);
+        }
 
         return response()->json(['data' => MarketListingDetailResource::make($model)->resolve($request)]);
     }

@@ -194,7 +194,9 @@ it('refuses deleting a customer who has ledger lines', function () {
 
 it('rolls back without leaving a ledger object behind', function () {
     // Spec 019 first, newest first: its codes, uses and requests reference buy requests, orders and listings.
-    foreach (['2026_10_12_000045_market_maker_purchases', '2026_10_12_000040_market_makers', '2026_10_12_000030_category_controls',
+    foreach (['2026_10_16_000040_listing_views', '2026_10_16_000030_first_sale_advance', '2026_10_16_000020_commission_credit',
+        '2026_10_16_000010_promo_code_terms', '2026_10_15_000010_listing_price_change',
+        '2026_10_12_000045_market_maker_purchases', '2026_10_12_000040_market_makers', '2026_10_12_000030_category_controls',
         '2026_10_12_000021_content_secure_templates_and_faq_order', '2026_10_12_000020_legal_publishing', '2026_10_12_000010_app_content'] as $file) {
         Artisan::call('migrate:rollback', ['--path' => "database/migrations/{$file}.php", '--force' => true]);
     }

@@ -46,6 +46,10 @@ final class CustomerRouteAccess
         'api.v1.customer.me.saved-pieces.index',
         'api.v1.customer.me.saved-pieces.store',
         'api.v1.customer.me.saved-pieces.destroy',
+        // Spec 023: Invite a friend and the credits (any signed-in customer, like saved pieces).
+        'api.v1.customer.me.referral.show',
+        'api.v1.customer.me.referral.shares',
+        'api.v1.customer.me.commission-credits.index',
         'api.v1.customer.me.account.close-check',
         'api.v1.customer.me.account.close',
         // Spec 019: accepting the live terms / privacy — every state (D2).

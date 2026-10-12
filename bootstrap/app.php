@@ -150,6 +150,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     str_contains($e->getMessage(), 'append-only') => DomainApiException::listingPriceHistoryImmutable(),
                     default => DomainApiException::listingHasRequests(),
                 },
+                // Spec 023: credits and referrals (DH024), the advance (DH025), the stored waiver (DH026),
+                // a listing's code and the view counter (DH027). The Actions refuse first.
+                'DH024' => DomainApiException::commissionCreditImmutable(),
+                'DH025' => DomainApiException::firstSaleAdvanceImmutable(),
+                'DH026' => DomainApiException::settlementTermsMismatch(),
+                'DH027' => DomainApiException::listingPromoLocked(),
                 '23514' => match (true) {
                     str_contains($e->getMessage(), 'approver_is_not_self'),
                     str_contains($e->getMessage(), 'refuser_is_not_self'),
@@ -212,6 +218,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     str_contains($e->getMessage(), 'append-only') => DomainApiException::listingPriceHistoryImmutable(),
                     default => DomainApiException::listingHasRequests(),
                 },
+                // Spec 023: credits and referrals (DH024), the advance (DH025), the stored waiver (DH026),
+                // a listing's code and the view counter (DH027). The Actions refuse first.
+                'DH024' => DomainApiException::commissionCreditImmutable(),
+                'DH025' => DomainApiException::firstSaleAdvanceImmutable(),
+                'DH026' => DomainApiException::settlementTermsMismatch(),
+                'DH027' => DomainApiException::listingPromoLocked(),
                 default => $e,
             };
         });

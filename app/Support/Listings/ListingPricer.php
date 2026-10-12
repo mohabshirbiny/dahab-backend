@@ -11,6 +11,7 @@ use App\Support\Pricing\KaratPricing;
 use App\Support\Pricing\MarketPrice;
 use App\Support\Pricing\Money;
 use App\Support\Pricing\Piece;
+use App\Support\Pricing\PriceBreakdown;
 use App\Support\Pricing\PriceCalculator;
 use App\Support\Pricing\PricingContext;
 use App\Support\Pricing\PricingRates;
@@ -101,6 +102,35 @@ final class ListingPricer
     }
 
     /**
+     * The calculator's figures for a listing as an ORDINARY sale: no free-relist waiver applied
+     * (spec 023 R3 — the resolver decides every waiver on top of it). Null when it cannot be
+     * quoted right now. Also used for an unsaved listing (the sell-form preview).
+     */
+    public function ordinary(Listing $listing): ?PriceBreakdown
+    {
+        $this->load();
+
+        $piece = $this->piece($listing, waived: false);
+        if ($piece === null) {
+            return null;
+        }
+
+        try {
+            return $this->calculator->breakdown($this->market, $piece, $this->rates);
+        } catch (DomainApiException) {
+            return null;
+        }
+    }
+
+    /** The commission and VAT settings the figures above used. */
+    public function rates(): PricingRates
+    {
+        $this->load();
+
+        return $this->rates;
+    }
+
+    /**
      * What a buyer pays per gram of each karat that can be quoted right now,
      * for ordering the market by price in SQL (research R8). The figure shown
      * always comes from quote().
@@ -138,10 +168,10 @@ final class ListingPricer
             : $this->calculator->karatPrices($this->market, $this->karats[$karatCode]);
     }
 
-    private function piece(Listing $listing): ?Piece
+    private function piece(Listing $listing, ?bool $waived = null): ?Piece
     {
         // Spec 018: a free relist carries no commission, its VAT or the minimum (the link is the waiver).
-        $waived = $listing->isFreeRelist();
+        $waived ??= $listing->isFreeRelist();
 
         if ($listing->category === PieceCategory::DIAMOND) {
             return Piece::diamond((string) $listing->asking_price, $waived);
