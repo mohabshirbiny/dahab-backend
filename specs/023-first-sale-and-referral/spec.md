@@ -134,3 +134,10 @@ Consequences:
 ## Mock removed
 
 `MockContentRepository.promo()`, `mockPromoCodes` and the red flag on the sell card (Stories 1-2); the simplified Promo codes and Market maker pages are replaced, not extended; the Invite screen only if D23-3 defines it.
+
+## Planning notes (2026-10-12)
+
+The owner's answers above supersede these earlier sentences, which are kept as history: Story 3's "The Backend refuses these kinds (`promo_kind_not_available`)" and "unbuilt options disabled" (now built, the code removed); Story 4's "Not built unless the owner defines it" (now built); the **Mock removed** line's "only if D23-3 defines it" (it does); Story 1.5's "exposure (advances outstanding × cap)" (the Dashboard shows the exact sum of outstanding advances against the ceiling setting).
+
+Gaps the answers do not close are planning decisions **P23-1…11** in `research.md` R31, each with a recommendation. Story-to-task map: Story 5 → T025–T031, T068–T069, T074; Stories 3 and 2 → T032–T042, T078–T080; Story 1 → T043–T054, T072–T073, T075, T080–T081; Story 4 → T055–T059, T082; Story 6 → T060–T066, T070–T071.
+
