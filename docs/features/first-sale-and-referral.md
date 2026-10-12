@@ -1,7 +1,7 @@
 # First-sale advance, customer-side codes, referral, and the Promo codes / Market maker approvals pages
 
 > File: `docs/features/first-sale-and-referral.md` · Branch: `feature/first-sale-and-referral` in Backend, Dashboard and Customer app
-> Status: draft (planned, nothing built) · Date: 2026-10-12 · Spec: `specs/023-first-sale-and-referral/`
+> Status: built, uncommitted — awaiting the owner's review and merge; Finance sign-off D23-5 still open (the three switches default off) · Date: 2026-10-12 · Spec: `specs/023-first-sale-and-referral/`
 
 ## Goal
 

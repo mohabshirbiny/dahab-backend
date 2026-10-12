@@ -443,3 +443,25 @@ CREATE TABLE price_feed_status (
 -- UPDATE and DELETE with a trigger (same pattern as audit_log).
 
 -- spec 017: setting saved.max_per_customer = 200 (count, operations, 1..1000) — most pieces one customer may keep in Saved.
+
+-- spec 023 — the settings it adds (also in 00_schema_full.sql with the rest).
+
+INSERT INTO setting (setting_key, value_bool, unit, description) VALUES
+  ('payout.first_sale_enabled',               FALSE, 'bool', 'Pay a first-time gold seller ahead, before the buyer pays (Finance to sign off the ledger first)'),
+  ('payout.first_sale_comp_offsets_writeoff', FALSE, 'bool', 'When an advance was paid and the buyer never pays, the seller''s share of the forfeited deposit goes to Dahab'),
+  ('promo.seller_codes_enabled',              FALSE, 'bool', 'Customers may use seller-side commission codes on the sell form'),
+  ('referral.enabled',                        FALSE, 'bool', 'Invite a friend and referral commission credits work'),
+  ('marketmaker.require_approval',            TRUE,  'bool', 'A market-maker purchase needs the piece approved first');
+
+INSERT INTO setting (setting_key, value_numeric, unit, description) VALUES
+  ('payout.first_sale_exposure_ceiling_egp', 1000000, 'egp',     'Most EGP out in first-sale advances at once, across everyone; above it the advance is skipped'),
+  ('referral.friend_percent_off',            50,      'percent', 'The friend''s share off the commission on the sales a referral covers'),
+  ('referral.inviter_reward_egp',            200,     'egp',     'Commission credit the inviter earns when the friend completes a sale'),
+  ('referral.friend_sales_covered',          1,       'count',   'How many of the friend''s sales the percentage off applies to'),
+  ('referral.credit_expiry_days',            90,      'days',    'How long a referral commission credit lasts'),
+  ('referral.max_uses_per_code',             10,      'count',   'Friends who may join with one invitation code'),
+  ('referral.max_invitations_per_account',   100,     'count',   'Share and Copy taps counted per account'),
+  ('referral.max_per_device',                1,       'count',   'Referral redemptions allowed from one device'),
+  ('referral.min_friend_sale_egp',           5000,    'egp',     'Smallest sale of the friend that earns the inviter''s reward'),
+  ('marketmaker.making_charge_warn_pct',     30,      'percent', 'A making charge above this share of the gold value shows red on the approvals page'),
+  ('listing.view_retention_days',            90,      'days',    'How long a listing view is kept');

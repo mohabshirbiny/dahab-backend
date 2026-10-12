@@ -71,6 +71,7 @@ it('shows one listing with everything the seller attached', function () {
         'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw',
         'can_change_price', // spec 022
         'queue_count', 'order', // spec 011
+        'promo', 'pays_advance', // spec 023
     ])
         ->and(array_column($data['media'], 'kind'))->toBe(['photo', 'photo', 'invoice'])
         ->and(collect($data['media'])->firstWhere('kind', 'invoice')['is_private'])->toBeTrue()

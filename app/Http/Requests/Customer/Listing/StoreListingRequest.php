@@ -27,6 +27,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'stone_certificate_token', type: 'string', nullable: true, description: 'Upload token, purpose stone_certificate; public once the listing is live'),
         new OA\Property(property: 'ownership_declaration_accepted', type: 'boolean', description: 'Must be true'),
         new OA\Property(property: 'ownership_legal_doc_id', type: 'integer', description: 'The id of the current ownership declaration (GET /reference/legal-documents/ownership_declaration)'),
+        new OA\Property(property: 'promo_code', type: 'string', nullable: true, description: 'Spec 023: a promo or invitation code, redeemed with the draft in one transaction; a code that cannot be used fails the creation with promo_code_invalid and nothing is created'),
     ],
 )]
 class StoreListingRequest extends FormRequest
@@ -75,6 +76,7 @@ class StoreListingRequest extends FormRequest
             'stone_certificate_token' => ['sometimes', 'nullable', 'string', 'max:200'],
             'ownership_declaration_accepted' => ['required', 'accepted'],
             'ownership_legal_doc_id' => ['required', 'integer'],
+            'promo_code' => ['sometimes', 'nullable', 'string', 'max:64'],
         ];
     }
 }

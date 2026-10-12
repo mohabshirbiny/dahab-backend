@@ -82,6 +82,18 @@ class Listing extends Model
         return $this->relisted_from_order_id !== null;
     }
 
+    /** Spec 023: the code recorded on this sale (one per listing). */
+    public function promo(): HasOne
+    {
+        return $this->hasOne(ListingPromo::class, 'listing_id', 'listing_id');
+    }
+
+    /** Spec 023: the first-sale advance paid on this piece, if any. */
+    public function advance(): HasOne
+    {
+        return $this->hasOne(FirstSaleAdvance::class, 'listing_id', 'listing_id');
+    }
+
     public function relistedFrom(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'relisted_from_order_id', 'order_id');

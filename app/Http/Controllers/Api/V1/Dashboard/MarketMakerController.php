@@ -4,17 +4,22 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\MarketMakers\ApproveForMarketMakersAction;
 use App\Actions\MarketMakers\CreatePromoCodeAction;
+use App\Actions\MarketMakers\LeaveMarketMakerQueueAction;
 use App\Actions\MarketMakers\ListMarketMakerQueueAction;
+use App\Actions\MarketMakers\MarketMakerCostAction;
+use App\Actions\MarketMakers\ReadQueueMediaAction;
 use App\Actions\MarketMakers\UpdatePromoCodeAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\Promo\CreatePromoCodeRequest;
 use App\Models\MarketMakerApproval;
-use App\Models\Order;
 use App\Models\PromoCode;
 use App\Models\PromoCodeUse;
-use Carbon\CarbonImmutable;
+use App\Support\Promo\PromoCodePresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * The market-maker programme, staff side (spec 019 US6 / 6A): codes (`promo.manage`), the
@@ -26,63 +31,33 @@ class MarketMakerController extends Controller
     #[OA\Get(
         path: '/dashboard/promo-codes',
         operationId: 'dashboardPromoCodes',
-        summary: 'Market-maker codes',
-        description: 'Spec 019 FR-060. Each code with its account, monthly cap, whether it is on, and its uses this month. Requires promo.manage.',
+        summary: 'Promo codes',
+        description: 'Spec 019 FR-060, spec 023 Story 5. Each code with what it does (commission mode and percent, the spread, the advance), who it is tied to (the account with a masked phone, or anyone), its conditions (use limit, age and approval for dealer codes, dates), its cap, whether it is on, and its allowed non-voided uses and value this Cairo month. Requires promo.manage.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Market makers'],
         responses: [new OA\Response(response: 200, description: 'Codes'), new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: '#/components/schemas/ApiError'))],
     )]
-    public function codes(): JsonResponse
+    public function codes(PromoCodePresenter $presenter): JsonResponse
     {
-        $monthStart = CarbonImmutable::now()->startOfMonth();
-        $uses = PromoCodeUse::query()->where('allowed', true)->where('used_at', '>=', $monthStart)
-            ->selectRaw('code, count(*) as n')->groupBy('code')->pluck('n', 'code');
+        $codes = PromoCode::query()->with('customer:customer_id,display_ref,full_name,phone')->orderByDesc('created_at')->get();
 
-        $rows = PromoCode::query()->with('customer:customer_id,display_ref,full_name')->orderByDesc('created_at')->get()
-            ->map(fn (PromoCode $c) => [
-                'code' => $c->code,
-                'kind' => $c->kind,
-                'customer' => $c->customer === null ? null : ['id' => $c->customer->customer_id, 'display_ref' => $c->customer->display_ref, 'full_name' => $c->customer->full_name],
-                'monthly_cap_egp' => $c->monthly_cap_egp,
-                'is_active' => $c->is_active,
-                'commission_waived' => $c->commission_waived,
-                'gives_spread' => $c->gives_spread,
-                'uses_this_month' => (int) ($uses[$c->code] ?? 0),
-                'created_at' => $c->created_at->toIso8601String(),
-                'deactivated_at' => $c->deactivated_at?->toIso8601String(),
-            ])->values();
-
-        return response()->json(['data' => $rows]);
+        return response()->json(['data' => $presenter->rows($codes)]);
     }
 
     #[OA\Post(
         path: '/dashboard/promo-codes',
         operationId: 'dashboardCreatePromoCode',
-        summary: 'Create a market-maker code',
-        description: 'Spec 019 FR-060. `kind` must be market_maker (promo_kind_not_available otherwise); the customer must be of type market_maker (promo_customer_not_market_maker). Audited (promo.created). Requires promo.manage and an Idempotency-Key.',
+        summary: 'Create a promo code',
+        description: 'Spec 019 FR-060, spec 023 Story 5. The three kinds from one body: a dealer code (tied to a market maker, waives the commission, gives the spread), a first-sale code (pays the first gold sale in advance) and a seller-side discount (waive or reduce the commission by a percentage), for one account (`tied_to` an account number or phone, or `tied_customer_id`) or anyone. `kind` is inferred when absent; a contradiction is validation_failed. The old body {code, tied_customer_id, monthly_cap_egp} still creates a dealer code. Terms are immutable afterwards. Audited (promo.created). Requires promo.manage and an Idempotency-Key.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Market makers'],
-        responses: [new OA\Response(response: 201, description: 'Created'), new OA\Response(response: 409, description: 'promo_code_exists', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')), new OA\Response(response: 422, description: 'promo_kind_not_available | promo_customer_not_market_maker | validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError'))],
+        responses: [new OA\Response(response: 201, description: 'Created (the list item)'), new OA\Response(response: 409, description: 'promo_code_exists', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')), new OA\Response(response: 422, description: 'promo_account_not_found | promo_customer_not_market_maker | validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError'))],
     )]
-    public function create(Request $request, CreatePromoCodeAction $create): JsonResponse
+    public function create(CreatePromoCodeRequest $request, CreatePromoCodeAction $create, PromoCodePresenter $presenter): JsonResponse
     {
-        $v = $request->validate([
-            'kind' => ['sometimes', 'string', 'in:first_sale,market_maker'],
-            'code' => ['required', 'string', 'regex:/^[A-Za-z0-9-]{3,32}$/'],
-            'tied_customer_id' => ['required', 'uuid'],
-            'monthly_cap_egp' => ['nullable', 'numeric', 'gt:0', 'max:999999999'],
-        ]);
+        $promo = $create->handle($request->user('staff'), $request->terms(), $request->attributes->get('context'));
 
-        $promo = $create->handle(
-            $request->user('staff'),
-            $v['kind'] ?? 'market_maker',
-            $v['code'],
-            $v['tied_customer_id'],
-            isset($v['monthly_cap_egp']) ? (string) $v['monthly_cap_egp'] : null,
-            $request->attributes->get('context'),
-        );
-
-        return response()->json(['data' => ['code' => $promo->code, 'is_active' => $promo->is_active, 'monthly_cap_egp' => $promo->monthly_cap_egp]], 201);
+        return response()->json(['data' => $presenter->one($promo)], 201);
     }
 
     #[OA\Patch(
@@ -129,16 +104,28 @@ class MarketMakerController extends Controller
         $promo = PromoCode::query()->whereKey(strtoupper($code))->firstOrFail();
 
         $rows = PromoCodeUse::query()->where('code', $promo->code)->with('customer:customer_id,display_ref,full_name')
-            ->orderByDesc('used_at')->limit(500)->get()
-            ->map(fn (PromoCodeUse $u) => [
-                'used_at' => $u->used_at->toIso8601String(),
-                'customer' => ['display_ref' => $u->customer?->display_ref, 'full_name' => $u->customer?->full_name],
-                'allowed' => $u->allowed,
-                'block_reason' => $u->block_reason,
-                'order_id' => $u->order_id,
-            ])->values();
+            ->orderByDesc('used_at')->limit(500)->get();
 
-        return response()->json(['data' => $rows]);
+        $credits = $rows->pluck('credit_id')->filter()->unique()->values();
+        $status = $credits->isEmpty() ? collect() : DB::table('commission_credit')->whereIn('credit_id', $credits)->pluck('status', 'credit_id');
+        $reduction = $credits->isEmpty() ? collect() : DB::table('commission_credit_event')
+            ->where('kind', 'spent')->whereIn('credit_id', $credits)->groupBy('credit_id')
+            ->selectRaw('credit_id, sum(reduction_egp) as r')->pluck('r', 'credit_id');
+
+        $out = $rows->map(fn (PromoCodeUse $u) => [
+            'used_at' => $u->used_at->toIso8601String(),
+            'customer' => ['display_ref' => $u->customer?->display_ref, 'full_name' => $u->customer?->full_name],
+            'allowed' => $u->allowed,
+            'block_reason' => $u->block_reason,
+            'order_id' => $u->order_id,
+            'value_egp' => $u->amount_egp === null ? null : number_format((float) $u->amount_egp, 4, '.', ''),
+            'listing_ref' => $u->listing_id,
+            'buy_request_ref' => $u->buy_request_id,
+            'credit_status' => $u->credit_id === null ? null : ($status[$u->credit_id] ?? null),
+            'reduction_egp' => $u->credit_id === null || ! isset($reduction[$u->credit_id]) ? null : number_format((float) $reduction[$u->credit_id], 4, '.', ''),
+        ])->values();
+
+        return response()->json(['data' => $out]);
     }
 
     #[OA\Get(
@@ -154,7 +141,48 @@ class MarketMakerController extends Controller
     {
         $result = $queue->handle();
 
-        return response()->json(['data' => $result['rows']->values(), 'meta' => ['min_list_age_days' => $result['days']]]);
+        return response()->json(['data' => $result['rows']->values(), 'meta' => [
+            'min_list_age_days' => $result['days'],
+            'require_approval' => $result['require_approval'],
+        ]]);
+    }
+
+    #[OA\Post(
+        path: '/dashboard/market-maker/queue/{listing}/leave',
+        operationId: 'dashboardLeaveMarketMakerQueue',
+        summary: 'Leave a piece as it is',
+        description: 'Spec 023 R20 (D23-7). Changes nothing about the piece, which stays in the queue; logged with the figures seen (market_maker.left). Optional note up to 500 characters. 404 when the piece is not waiting, 409 listing_not_live. market_maker.approve. Idempotent.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Market makers'],
+        parameters: [
+            new OA\Parameter(name: 'listing', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'Left'), new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError'))],
+    )]
+    public function leave(Request $request, string $listing, LeaveMarketMakerQueueAction $leave): JsonResponse
+    {
+        $v = $request->validate(['note' => ['sometimes', 'nullable', 'string', 'max:500']]);
+
+        return response()->json(['data' => $leave->handle($request->user('staff'), $listing, $v['note'] ?? null, $request->attributes->get('context'))]);
+    }
+
+    #[OA\Get(
+        path: '/dashboard/market-maker/queue/{listing}/media/{media}',
+        operationId: 'dashboardMarketMakerQueueMedia',
+        summary: 'A file of a piece in the approvals queue',
+        description: 'Spec 023 contract staff-promo-api §7. The decrypted file, streamed, the private invoice included; every open is audited (market_maker.media_viewed). Only a live piece. market_maker.approve.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Market makers'],
+        parameters: [
+            new OA\Parameter(name: 'listing', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'media', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'The file', content: new OA\MediaType(mediaType: 'application/octet-stream', schema: new OA\Schema(type: 'string', format: 'binary'))), new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError'))],
+    )]
+    public function queueMedia(Request $request, string $listing, string $media, ReadQueueMediaAction $read): StreamedResponse
+    {
+        return $read->handle($request->user('staff'), $listing, $media, $request->attributes->get('context'));
     }
 
     #[OA\Get(
@@ -223,29 +251,10 @@ class MarketMakerController extends Controller
         tags: ['Dashboard Market makers'],
         responses: [new OA\Response(response: 200, description: 'The month')],
     )]
-    public function cost(Request $request): JsonResponse
+    public function cost(Request $request, MarketMakerCostAction $cost): JsonResponse
     {
         $v = $request->validate(['month' => ['sometimes', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/']]);
-        $start = CarbonImmutable::createFromFormat('!Y-m', $v['month'] ?? now()->format('Y-m'));
-        $end = $start->addMonth();
 
-        // A use belongs to its buy request; the order is the one that request became.
-        $requestIds = PromoCodeUse::query()->where('allowed', true)->whereNotNull('buy_request_id')
-            ->where('used_at', '>=', $start)->where('used_at', '<', $end)->pluck('buy_request_id');
-        $orderIds = $requestIds->isEmpty() ? collect() : Order::query()->whereIn('buy_request_id', $requestIds)->pluck('order_id');
-
-        $orders = $orderIds->isEmpty() ? collect() : Order::query()->whereIn('order_id', $orderIds)->get(['order_id', 'final_buyer_total', 'locked_total_price', 'spread_amount']);
-
-        $value = $orders->sum(fn (Order $o) => (float) ($o->final_buyer_total ?? $o->locked_total_price));
-        $spread = $orders->sum(fn (Order $o) => max(0.0, (float) $o->spread_amount));
-
-        return response()->json(['data' => [
-            'month' => $start->format('Y-m'),
-            'pieces_bought' => $orders->count(),
-            'value_egp' => number_format($value, 4, '.', ''),
-            'spread_paid_to_dealers_egp' => number_format($spread, 4, '.', ''),
-            // Commission is waived outright on these sales: nothing is charged, so nothing is estimated.
-            'commission_waived' => true,
-        ]]);
+        return response()->json(['data' => $cost->handle($v['month'] ?? null)]);
     }
 }

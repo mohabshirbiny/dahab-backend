@@ -41,4 +41,7 @@ enum OrderEvent: string
     case PROXY_NAMED = 'proxy_named';
     // Spec 018: the buyer's free relist went live.
     case FREE_RELISTED = 'free_relisted';
+    // Spec 023: the first-sale advance reached the seller, or could not be paid this time.
+    case ADVANCE_PAID = 'advance_paid';
+    case ADVANCE_UNAVAILABLE = 'advance_unavailable';
 }

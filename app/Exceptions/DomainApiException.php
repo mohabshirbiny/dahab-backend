@@ -823,9 +823,61 @@ class DomainApiException extends RuntimeException
 
     // ---- Spec 019 US6: market makers ----
 
-    public static function promoKindNotAvailable(): self
+    /** Spec 023: `tied_to` matches no customer. */
+    public static function promoAccountNotFound(): self
     {
-        return new self('promo_kind_not_available', 422, 'Only market-maker codes can be made here.');
+        return new self('promo_account_not_found', 422, 'No account matches that number or phone.');
+    }
+
+    /** Spec 023: removing a code from a listing that has none. */
+    public static function promoNotApplied(): self
+    {
+        return new self('promo_not_applied', 404, 'This piece has no code applied.');
+    }
+
+    /** Spec 023 DH027: the code cannot change once a buyer is in line (or the listing is past review). */
+    public static function listingPromoLocked(): self
+    {
+        return new self('listing_promo_locked', 409, 'The code cannot change once a buyer has asked for the piece.');
+    }
+
+    public static function firstSaleNotEligible(): self
+    {
+        return new self('first_sale_not_eligible', 409, 'This seller has already been paid ahead once.');
+    }
+
+    public static function firstSaleEnablementOpen(): self
+    {
+        return new self('first_sale_enablement_open', 409, 'The advance is already enabled for this seller.');
+    }
+
+    public static function firstSaleEnablementNotFound(): self
+    {
+        return new self('first_sale_enablement_not_found', 404, 'The advance is not enabled for this seller.');
+    }
+
+    /** Spec 023: referral is switched off. */
+    public static function referralNotOpen(): self
+    {
+        return new self('referral_not_open', 409, 'Invitations are not open yet.');
+    }
+
+    /** Spec 023 DH024 (mapping only). */
+    public static function commissionCreditImmutable(): self
+    {
+        return new self('commission_credit_immutable', 409, 'A commission credit only moves forward.');
+    }
+
+    /** Spec 023 DH025 (mapping only). */
+    public static function firstSaleAdvanceImmutable(): self
+    {
+        return new self('first_sale_advance_immutable', 409, 'A first-sale advance only moves forward, once.');
+    }
+
+    /** Spec 023 DH026 (mapping only): the waiver and the credit event disagree; the payment rolls back. */
+    public static function settlementTermsMismatch(): self
+    {
+        return new self('settlement_terms_mismatch', 409, 'The commission reduction does not match the credit that paid for it.');
     }
 
     public static function promoCustomerNotMarketMaker(): self

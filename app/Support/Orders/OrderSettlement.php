@@ -10,6 +10,7 @@ use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
 use App\Models\Account;
 use App\Models\BuyRequest;
+use App\Models\FirstSaleAdvance;
 use App\Models\InspectionResult;
 use App\Models\LedgerTransaction;
 use App\Models\Listing;
@@ -18,11 +19,13 @@ use App\Support\DatabaseActor;
 use App\Support\Ledger\LedgerEntry;
 use App\Support\Ledger\LedgerLine;
 use App\Support\Listings\ListingPricer;
+use App\Support\Pricing\CommissionWaivers;
 use App\Support\Pricing\Money;
 use App\Support\Pricing\Piece;
 use App\Support\Pricing\PriceCalculator;
 use App\Support\Pricing\PricingContext;
 use App\Support\Pricing\PricingRates;
+use App\Support\Promo\CommissionCredits;
 
 /**
  * The settlement of an order at pay-balance (spec 012 FR-014–FR-017,
@@ -38,6 +41,8 @@ final class OrderSettlement
         private readonly PriceCalculator $calculator,
         private readonly PricingContext $context,
         private readonly PostLedgerEntryAction $post,
+        private readonly CommissionWaivers $waivers,
+        private readonly CommissionCredits $credits,
     ) {}
 
     /** The price a buyer is asked to accept after an adjustment (research R6, R11). */
@@ -47,14 +52,16 @@ final class OrderSettlement
             return $order->proposed_price === null ? null : Money::round4((string) $order->proposed_price);
         }
 
-        return $this->compute($order, $listing, $request, $result, $rates)->buyerTotal;
+        // The buyer's total never depends on a waiver: skip reading the seller's credits.
+        return $this->compute($order, $listing, $request, $result, $rates, waivers: false)->buyerTotal;
     }
 
     /**
      * `$rates` lets a list read the commission, VAT and minimum once for all its
      * rows; without it they are read live (a payment always reads them live).
+     * `$waivers` false leaves the seller's commission credits out (buyer-side readers only).
      */
-    public function compute(Order $order, Listing $listing, BuyRequest $request, ?InspectionResult $result, ?PricingRates $rates = null): SettlementFigures
+    public function compute(Order $order, Listing $listing, BuyRequest $request, ?InspectionResult $result, ?PricingRates $rates = null, bool $waivers = true): SettlementFigures
     {
         $weight = $result?->measured_weight_g ?? $listing->stated_weight_g;
         $weight = $weight === null ? null : (string) $weight;
@@ -64,13 +71,28 @@ final class OrderSettlement
             $asking = (string) $order->proposed_price;
         }
 
-        $breakdown = $this->calculator->lockedBreakdown(
-            // Spec 018: a free relist is sold without commission, its VAT or the minimum (the spread stays).
-            Piece::locked($listing->category, $weight, $listing->making_charge_per_g === null ? null : (string) $listing->making_charge_per_g, $asking, $listing->isFreeRelist() || $request->promo_code !== null),
+        $rates ??= $this->context->rates();
+
+        // The ordinary sale first: what the same piece pays with no waiver (spec 023 R3, R17).
+        $ordinary = $this->calculator->lockedBreakdown(
+            Piece::locked($listing->category, $weight, $listing->making_charge_per_g === null ? null : (string) $listing->making_charge_per_g, $asking),
             $request->locked_unit_rate === null ? null : (string) $request->locked_unit_rate,
             $this->sellerRate($order, $listing),
-            $rates ?? $this->context->rates(),
+            $rates,
         );
+
+        // One resolver decides the commission: the lowest of none, a free relist (spec 018), a
+        // market-maker code (spec 019) and one commission credit of the seller (spec 023). Never a sum.
+        $resolution = $this->waivers->resolve(
+            $ordinary->commission,
+            $rates,
+            $listing->isFreeRelist(),
+            $request->promo_code !== null,
+            // A caller that only needs the buyer's side (the totals, the balance) passes `$waivers: false`:
+            // no waiver changes what the buyer pays, and a list must not read credits per order.
+            $waivers ? $this->credits->candidates($this->credits->usable($order->seller_id, $listing->listing_id)) : [],
+        );
+        $breakdown = $resolution->applyTo($ordinary);
 
         $deposit = Money::fixed4((string) $request->deposit_amount);
         $balance = Money::cmp($breakdown->buyerTotal, $deposit) > 0 ? Money::fixed4(Money::sub($breakdown->buyerTotal, $deposit)) : '0.0000';
@@ -87,6 +109,14 @@ final class OrderSettlement
             deposit: $deposit,
             balance: $balance,
             excess: $excess,
+            ordinaryCommission: $resolution->ordinary,
+            commissionGivenUp: $resolution->givenUp,
+            waiverKind: $resolution->kind,
+            waiverCreditId: $resolution->creditId,
+            floor: $resolution->floor,
+            floorApplied: $resolution->floorApplied,
+            // The positive spread a dealer's purchase hands to the dealer instead of Dahab (spec 019 6B).
+            spreadGivenUp: $request->promo_code !== null && Money::cmp($breakdown->spread, '0') > 0 ? Money::fixed4($breakdown->spread) : '0.0000',
         );
     }
 
@@ -95,7 +125,7 @@ final class OrderSettlement
      * tied to the order, the listing and the request. Zero lines are left out
      * (`posting_nonzero`); a negative spread is a negative `dahab_spread` line.
      */
-    public function post(Order $order, SettlementFigures $f): LedgerTransaction
+    public function post(Order $order, SettlementFigures $f, ?FirstSaleAdvance $advance = null): LedgerTransaction
     {
         // Spec 019 6B: a market-maker purchase gives a positive spread to the dealer (the buyer) instead of Dahab.
         $toDealer = BuyRequest::query()->whereKey($order->buy_request_id)->whereNotNull('promo_code')->exists()
@@ -105,7 +135,12 @@ final class OrderSettlement
             throw DomainApiException::settlementNotPossible();
         }
 
-        $lines = DatabaseActor::ledger(function () use ($order, $f, $toDealer) {
+        // Spec 023 R12: an advance already paid to the seller is recovered from their proceeds, and
+        // Dahab's front comes back to external_equity. A final amount below the advance is Dahab's
+        // cost (the seller leg is simply omitted); it is never clawed back from the seller's wallet.
+        $recovered = $advance === null ? '0.0000' : Money::fixed4(Money::cmp((string) $advance->amount_egp, $f->proceeds) < 0 ? (string) $advance->amount_egp : $f->proceeds);
+
+        $lines = DatabaseActor::ledger(function () use ($order, $f, $toDealer, $recovered) {
             $buyerAvailable = Account::forCustomerKind($order->buyer_id, AccountKind::CUST_AVAILABLE);
             $escrow = Account::internal(AccountKind::ESCROW);
 
@@ -119,7 +154,13 @@ final class OrderSettlement
             $lines[] = new LedgerLine(Account::forCustomerKind($order->buyer_id, AccountKind::CUST_HELD), '-'.$f->deposit);
             $lines[] = new LedgerLine($escrow, $f->buyerTotal);
             $lines[] = new LedgerLine($escrow, '-'.$f->buyerTotal);
-            $lines[] = new LedgerLine(Account::forCustomerKind($order->seller_id, AccountKind::CUST_AVAILABLE), $f->proceeds);
+            $sellerLeg = Money::fixed4(Money::sub($f->proceeds, $recovered));
+            if (Money::cmp($sellerLeg, '0') !== 0) {
+                $lines[] = new LedgerLine(Account::forCustomerKind($order->seller_id, AccountKind::CUST_AVAILABLE), $sellerLeg);
+            }
+            if (Money::cmp($recovered, '0') > 0) {
+                $lines[] = new LedgerLine(Account::internal(AccountKind::EXTERNAL_EQUITY), $recovered);
+            }
             foreach ([
                 [AccountKind::DAHAB_COMMISSION, $f->commission],
                 [AccountKind::VAT_PAYABLE, $f->vat],

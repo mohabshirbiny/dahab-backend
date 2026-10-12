@@ -2355,6 +2355,158 @@
             }
         }
     },
+    "order.advance_paid.full": {
+        "en": {
+            "mail": {
+                "subject": "Your first sale is paid ahead",
+                "intro": [
+                    "58,200.50 EGP reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: 58,200.50 EGP reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042.",
+            "inbox": {
+                "type": "order.advance_paid",
+                "title_en": "Your first sale is paid ahead",
+                "title_ar": "بيعتك الأولى اتدفعت بدري",
+                "body_en": "58,200.50 EGP reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042.",
+                "body_ar": "58,200.50 EGP وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "بيعتك الأولى اتدفعت بدري",
+                "intro": [
+                    "58,200.50 EGP وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: 58,200.50 EGP وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042.",
+            "inbox": {
+                "type": "order.advance_paid",
+                "title_en": "Your first sale is paid ahead",
+                "title_ar": "بيعتك الأولى اتدفعت بدري",
+                "body_en": "58,200.50 EGP reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042.",
+                "body_ar": "58,200.50 EGP وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042."
+            }
+        }
+    },
+    "order.advance_paid.bare": {
+        "en": {
+            "mail": {
+                "subject": "Your first sale is paid ahead",
+                "intro": [
+                    "reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab:  reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042.",
+            "inbox": {
+                "type": "order.advance_paid",
+                "title_en": "Your first sale is paid ahead",
+                "title_ar": "بيعتك الأولى اتدفعت بدري",
+                "body_en": " reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042.",
+                "body_ar": " وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "بيعتك الأولى اتدفعت بدري",
+                "intro": [
+                    "وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab:  وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042.",
+            "inbox": {
+                "type": "order.advance_paid",
+                "title_en": "Your first sale is paid ahead",
+                "title_ar": "بيعتك الأولى اتدفعت بدري",
+                "body_en": " reached your wallet before the buyer pays, for (Ring 21K). Order DH-2026-000042.",
+                "body_ar": " وصلوا محفظتك قبل ما المشتري يدفع، عن (خاتم عيار 21). طلب DH-2026-000042."
+            }
+        }
+    },
+    "order.advance_unavailable.full": {
+        "en": {
+            "mail": {
+                "subject": "Order DH-2026-000042",
+                "intro": [
+                    "We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays.",
+            "inbox": {
+                "type": "order.advance_unavailable",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays.",
+                "body_ar": "ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "طلب DH-2026-000042",
+                "intro": [
+                    "ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع.",
+            "inbox": {
+                "type": "order.advance_unavailable",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays.",
+                "body_ar": "ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع."
+            }
+        }
+    },
+    "order.advance_unavailable.bare": {
+        "en": {
+            "mail": {
+                "subject": "Order DH-2026-000042",
+                "intro": [
+                    "We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays.",
+            "inbox": {
+                "type": "order.advance_unavailable",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays.",
+                "body_ar": "ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "طلب DH-2026-000042",
+                "intro": [
+                    "ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع.",
+            "inbox": {
+                "type": "order.advance_unavailable",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "We could not pay order DH-2026-000042 ahead this time. You are paid when the buyer pays.",
+                "body_ar": "ما قدرناش ندفع طلب DH-2026-000042 بدري المرة دي. هتتدفعلك لما المشتري يدفع."
+            }
+        }
+    },
     "buy_request.new_request.full": {
         "en": {
             "mail": {
@@ -5364,6 +5516,44 @@
                 "title_ar": "راجعنا البلاغ بتاعك",
                 "body_en": "Thank you. We looked at your report RPT-17 and took the action we found right.",
                 "body_ar": "شكراً ليك. راجعنا البلاغ RPT-17 وعملنا اللي شايفينه صح."
+            }
+        }
+    },
+    "referral.reward_earned": {
+        "en": {
+            "mail": {
+                "subject": "You earned a commission credit",
+                "intro": [
+                    "Your friend completed a sale. 200.00 EGP of commission credit was added to your account."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: Your friend completed a sale. 200.00 EGP of commission credit was added to your account.",
+            "inbox": {
+                "type": "referral.reward_earned",
+                "title_en": "You earned a commission credit",
+                "title_ar": "كسبت رصيد عمولة",
+                "body_en": "Your friend completed a sale. 200.00 EGP of commission credit was added to your account.",
+                "body_ar": "صاحبك كمّل بيعة. اتضاف 200.00 EGP رصيد عمولة لحسابك."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "كسبت رصيد عمولة",
+                "intro": [
+                    "صاحبك كمّل بيعة. اتضاف 200.00 EGP رصيد عمولة لحسابك."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: صاحبك كمّل بيعة. اتضاف 200.00 EGP رصيد عمولة لحسابك.",
+            "inbox": {
+                "type": "referral.reward_earned",
+                "title_en": "You earned a commission credit",
+                "title_ar": "كسبت رصيد عمولة",
+                "body_en": "Your friend completed a sale. 200.00 EGP of commission credit was added to your account.",
+                "body_ar": "صاحبك كمّل بيعة. اتضاف 200.00 EGP رصيد عمولة لحسابك."
             }
         }
     },

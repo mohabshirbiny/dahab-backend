@@ -41,10 +41,11 @@ class IdentityDocument extends Model
         'review_reasons',
         'review_note',
         'image_deleted_at',
+        'id_number_hash',
     ];
 
     /** Object keys are internal details; no serialisation path may leak them. */
-    protected $hidden = ['front_ref', 'back_ref'];
+    protected $hidden = ['front_ref', 'back_ref', 'id_number_hash'];
 
     protected function casts(): array
     {

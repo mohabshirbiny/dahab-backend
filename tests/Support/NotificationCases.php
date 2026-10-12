@@ -28,6 +28,7 @@ use App\Notifications\PasswordResetCodeNotification;
 use App\Notifications\PayoutNotification;
 use App\Notifications\PhoneChangeCodeNotification;
 use App\Notifications\ProxyNamedNotification;
+use App\Notifications\ReferralRewardNotification;
 use App\Notifications\TopUpCreditedNotification;
 use App\Notifications\TopUpRejectedNotification;
 use App\Notifications\WalletNotification;
@@ -101,6 +102,7 @@ final class NotificationCases
         }
 
         $c['listing_report.reviewed'] = fn (string $lang) => new ListingReportNotification('RPT-17');
+        $c['referral.reward_earned'] = fn (string $lang) => new ReferralRewardNotification('200.0');
         $c['proxy.named'] = fn (string $lang) => new ProxyNamedNotification('Karim', self::PIECE, self::PIECE_AR, 'Nasr City', 'مدينة نصر', $lang === 'ar');
 
         $c['auth.login_otp'] = fn (string $lang) => new CustomerLoginOtpNotification('123456', $lang);

@@ -127,6 +127,7 @@ class IdentityDocumentController extends Controller
             $request->reasons(),
             $request->note(),
             $ctx,
+            $request->idNumber(),
         );
 
         return IdentityDocumentResource::make($reviewed)->response();

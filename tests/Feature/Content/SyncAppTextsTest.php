@@ -125,8 +125,8 @@ it('registers the manifest the app ships with, every key readable and unique', f
         expect($key)->toMatch('/^[a-z][a-z0-9_]*(\.[a-z0-9_]+){1,5}$/');
     }
 
-    // Spec 018 FR-038: no invite or referral text in the Stage 1 catalogue.
-    expect(AppTextKey::query()->where('kind', 'app')->where(fn ($q) => $q->where('default_en', 'ilike', '%invite%')->orWhere('default_en', 'ilike', '%referral%'))->count())->toBe(0);
+    // Spec 018 FR-038: no invite or referral text in the Stage 1 catalogue; spec 023 adds the `referral.*` and `promo.*` keys on purpose.
+    expect(AppTextKey::query()->where('kind', 'app')->where('text_key', 'not like', 'referral.%')->where('text_key', 'not like', 'promo.%')->where(fn ($q) => $q->where('default_en', 'ilike', '%invite%')->orWhere('default_en', 'ilike', '%referral%'))->count())->toBe(0);
 
     // A second run changes nothing.
     $this->artisan('app-texts:sync')->assertSuccessful();

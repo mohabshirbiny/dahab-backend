@@ -15,6 +15,7 @@ use App\Enums\OrderState;
 use App\Enums\SettingKey;
 use App\Models\Account;
 use App\Models\BuyRequest;
+use App\Models\FirstSaleAdvance;
 use App\Models\ListingStateChange;
 use App\Models\Order;
 use App\Models\OrderStateChange;
@@ -65,6 +66,12 @@ final class ForfeitDepositAction
             $deposit = Money::fixed4((string) $request->deposit_amount);
             $raw = Money::percent($deposit, $this->settings->numeric(SettingKey::DEPOSIT_SELLER_FORFEIT_SHARE_PCT));
             $sellerShare = bcadd(bcadd($raw, '0.005', Money::SCALE), '0', 2).'00';
+            // Spec 023 R14 / OI-3.3: when an advance was paid on this order and Finance chose to offset
+            // the write-off, the seller's share of the forfeit goes to Dahab with the rest.
+            if ($this->settings->bool(SettingKey::PAYOUT_FIRST_SALE_COMP_OFFSETS_WRITEOFF)
+                && FirstSaleAdvance::query()->where('order_id', $order->order_id)->exists()) {
+                $sellerShare = '0.0000';
+            }
             $dahabShare = Money::fixed4(Money::sub($deposit, $sellerShare));
 
             $lines = DatabaseActor::ledger(fn () => array_values(array_filter([

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Listings\Concerns;
 
+use App\Actions\Promo\VoidListingCreditsAction;
 use App\Enums\ListingState;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
@@ -56,6 +57,16 @@ trait MovesListing
             'actor_staff_id' => $byStaff?->staff_id,
             'note' => $note,
         ]);
+
+        // Spec 023 T037: a piece that leaves the market without a sale takes its code's credits with it.
+        if ($to === ListingState::WITHDRAWN || $to === ListingState::REJECTED) {
+            app(VoidListingCreditsAction::class)->onLeftMarket(
+                $listing,
+                $to === ListingState::REJECTED ? 'listing_rejected' : ($byStaff !== null ? 'listing_taken_down' : 'listing_withdrawn'),
+                $byCustomer,
+                $byStaff,
+            );
+        }
 
         // state_changed_at and listed_at are stamped by the guard trigger.
         return $listing->refresh();

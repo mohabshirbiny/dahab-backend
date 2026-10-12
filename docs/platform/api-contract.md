@@ -502,3 +502,16 @@ Each frontend's dev origin must be listed (Dashboard Vite :3000, Flutter web :87
   verdict; each read is audited.
 - Classification: non-breaking additions, plus **potentially breaking** new refusal codes on existing POSTs
   (`legal_acceptance_required`, `category_stopped`, `category_paused`, `platform_stopped`) and new permission strings.
+
+## Spec 023 — first-sale advance, codes, referral, market-maker terms (non-breaking)
+
+| Area | Endpoints / fields | Class |
+|---|---|---|
+| Customer codes | `POST /customer/me/commission-preview`, `PUT|DELETE /customer/me/listings/{id}/promo`, `promo_code` on listing create, `pays_advance` / `promo` / `can_change_promo` on `CustomerListing`, `advance` / `commission` on the seller's order | Non-breaking (new optional) |
+| Referral | `GET /customer/me/referral`, `POST /customer/me/referral/shares` | Non-breaking (new endpoints) |
+| First-sale | `POST|DELETE /dashboard/customers/{id}/first-sale-advance`, `GET /dashboard/first-sale-advances`, `first_sale` on the Customer file; permission `first_sale.manage` | Non-breaking |
+| Market maker | `POST /dashboard/promo-codes` takes terms; queue gains view count and guide; `…/leave`, audited media, cost panel | Non-breaking (the old body still works; the Dashboard page was rebuilt in the same change) |
+| Identity | the identity-document review takes the national ID number on approval | Non-breaking (optional `id_number`, 14 digits) |
+
+Error `promo_code_invalid` carries `details.reason`; SQLSTATE DH024–DH027 map to `409 …` per `bootstrap/app.php`. The three
+switches (`payout.first_sale_enabled`, `promo.seller_codes_enabled`, `referral.enabled`) default off.

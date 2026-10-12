@@ -342,7 +342,18 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `listing_has_requests` (reserved … sold), `listing_not_live`, `listing_price_locked` (approved for market makers, read through
   `listing_price_locked(uuid)`, which spec 023 extends); `listing_price_change` is append-only with forced RLS and audit
   `listing.price_changed`; `can_change_price` on the seller's listing, `price_history` on the staff detail; guard DH023
-  (`trg_listing_price_guard`, deferred `trg_listing_price_recorded`; `listing_guard()` untouched).
+  (`trg_listing_price_guard`, deferred `trg_listing_price_recorded`; `listing_guard()` untouched);
+  first-sale advance, codes, referral and market-maker terms (spec 023) — one commission-credit mechanism (`commission_credit`
+  + append-only `commission_credit_event`, never wallet money): the resolver `CommissionWaivers` takes the lowest single
+  commission among none / free relist / market-maker waiver / one credit (never a sum), the minimum floors percent and amount
+  credits, and the cost figures are stored on `"order"` at settlement; seller codes (`POST /customer/me/commission-preview`,
+  `PUT|DELETE /customer/me/listings/{id}/promo`, `promo_code` on create; `promo.seller_codes_enabled`), the referral (`GET
+  /customer/me/referral`, `POST …/referral/shares`; friend's bound percent at join, inviter's EGP credit after the friend's first
+  settled sale, `referral.enabled`), the first-sale advance of Part 3 §6 (`payout.first_sale_enabled`, one balanced
+  `first_sale_payout` entry, exposure ceiling under an advisory lock, reconciled at payment, written off by a status change
+  only, `POST|DELETE /dashboard/customers/{id}/first-sale-advance`, `first_sale.manage`), the national-ID number hashed at
+  identity verify (`CustomerIdKey`), the market-maker page's view counter, guide, audited media, Leave and cost panel, and
+  the `promo` RLS scope; the three switches default off; guards DH024–DH027.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -364,6 +375,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Promo codes, Market maker approvals (with the cost panel) and People to watch (on Inspections) are live.
   Spec 020: *Forgot password?* on sign-in with the forgot-password and set-password pages, Staff: *Add staff member*, *Disable / Enable*, an *Invitation pending* chip and a *Disabled* filter (gated by `staff.manage`), and the customer file's pause trigger *a password reset*.
   Spec 022: the listing detail shows *Price changes* (the seller's changes while live) under *History*.
+  Spec 023: Promo codes is rebuilt to the design (terms, kinds, usage, cost), Market maker approvals shows views, files, *Against the guide*, Leave and the cost panel, Commission rates lists the first-sale exposure, the customer file has the first-sale advance card and the identity review asks for the ID number.
   Spec 021: every request sends `X-Device-Id` (`src/api/device.ts`, `localStorage` `dahab.device_id`) and `X-Device-Platform: web`; the
   *Waiting for approval* screen (`/device-approval`, polling, countdown, the device id with *Copy*), the *Account frozen* screen
   (`/frozen`, *Confirm my unfreeze*; a live session answering `account_frozen` lands there), the *Security* page (founders; holders of
@@ -392,7 +404,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Close my account are live (spec 017); the order screen's free-relist offer with its countdown, the relist form, "No Dahab fee on
   this sale" and the rating screen (no invite card) are live and the mock relist timer is gone (spec 018); Help reads the published entries and the app's texts are
   editable end to end (spec 019); the app shows the stop banner, honours pauses and the sharing switch, accepts the terms before anything else,
-  and a market-maker account sees approved pieces marked and may send its code. Invite a friend is back as a flagged MOCK screen (the referral rules are undefined, spec 019 OD-2; its words are not in App text); the prototype's staff screens are gone. Change fee / Change price on the seller's own live piece (spec 022: the real form, `R.editprice?id=`, the live "You would receive" from `/reference/quote`; the button follows `can_change_price`; a reserved piece says why; `R.editprice` is no longer mock; texts `listing.price.*`, Arabic AR-DRAFT); Forgot password (spec 020): *Forgot your password?* opens the phone step, then the code with a new password (resend countdown), and sign-in shows what the reset stopped (cancelled withdrawals, the pause); texts `auth.reset.*` (Arabic is AR-DRAFT until the owner reviews it).
+  and a market-maker account sees approved pieces marked and may send its code. Invite a friend is live (spec 023: the code, Share/Copy counted, where it stands; shown only while the backend's referral switch is on); the promo card on the sell form previews a code against the backend and the paid-early note follows `pays_advance`; the seller's order shows the advance and what a code saved; the prototype's staff screens are gone. Change fee / Change price on the seller's own live piece (spec 022: the real form, `R.editprice?id=`, the live "You would receive" from `/reference/quote`; the button follows `can_change_price`; a reserved piece says why; `R.editprice` is no longer mock; texts `listing.price.*`, Arabic AR-DRAFT); Forgot password (spec 020): *Forgot your password?* opens the phone step, then the code with a new password (resend countdown), and sign-in shows what the reset stopped (cancelled withdrawals, the pause); texts `auth.reset.*` (Arabic is AR-DRAFT until the owner reviews it).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

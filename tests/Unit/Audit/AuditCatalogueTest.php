@@ -36,6 +36,9 @@ it('lists the codes of a category', function () {
             'compensation.list_exported', 'wallet.adjusted', 'bank.movement_recorded', 'bank.movement_proof_viewed',
             'bank.book_exported', 'bank.movements_exported', 'day.closed', 'day.saved',
             'credit_note.issued', 'invoice.document_viewed', 'credit_note.document_viewed', 'invoices.exported',
+            // Spec 023: the first-sale advance.
+            'first_sale.enabled', 'first_sale.revoked', 'first_sale.advanced', 'first_sale.skipped',
+            'first_sale.recovered', 'first_sale.written_off',
         ])
         ->and(AuditEvent::AUDIT_LOG_EXPORTED->category())->toBe(AuditCategory::SYSTEM);
 });

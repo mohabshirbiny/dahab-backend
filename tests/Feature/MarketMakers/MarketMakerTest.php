@@ -34,8 +34,9 @@ it('creates a market-maker code tied to one dealer, and refuses every other kind
     $this->postJson('/api/v1/dashboard/promo-codes', ['code' => 'ahmed-gold', 'tied_customer_id' => $dealer->customer_id, 'monthly_cap_egp' => 500000], mmKey())
         ->assertCreated()->assertJsonPath('data.code', 'AHMED-GOLD');
 
+    // Spec 023: a first-sale code is built now, but not for a dealer's account (the kind contradicts the tie).
     $this->postJson('/api/v1/dashboard/promo-codes', ['kind' => 'first_sale', 'code' => 'WELCOME', 'tied_customer_id' => $dealer->customer_id], mmKey())
-        ->assertStatus(422)->assertJsonPath('code', 'promo_kind_not_available');
+        ->assertStatus(422)->assertJsonPath('code', 'validation_failed');
 
     $ordinary = Customer::factory()->verified()->create();
     $this->postJson('/api/v1/dashboard/promo-codes', ['code' => 'NOTDEALER', 'tied_customer_id' => $ordinary->customer_id], mmKey())

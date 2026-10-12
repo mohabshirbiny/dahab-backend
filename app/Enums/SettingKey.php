@@ -46,6 +46,26 @@ enum SettingKey: string
     case VISIBILITY_LISTING_STATS = 'visibility.listing_stats';
     case VISIBILITY_SHARING = 'visibility.sharing';
 
+    /** Spec 023: the first-sale advance (Finance sign-off D23-5 before it is switched on). */
+    case PAYOUT_FIRST_SALE_ENABLED = 'payout.first_sale_enabled';
+    case PAYOUT_FIRST_SALE_EXPOSURE_CEILING_EGP = 'payout.first_sale_exposure_ceiling_egp';
+    case PAYOUT_FIRST_SALE_COMP_OFFSETS_WRITEOFF = 'payout.first_sale_comp_offsets_writeoff';
+
+    /** Spec 023: seller-side codes, referral and the market-maker page. */
+    case PROMO_SELLER_CODES_ENABLED = 'promo.seller_codes_enabled';
+    case REFERRAL_ENABLED = 'referral.enabled';
+    case REFERRAL_FRIEND_PERCENT_OFF = 'referral.friend_percent_off';
+    case REFERRAL_INVITER_REWARD_EGP = 'referral.inviter_reward_egp';
+    case REFERRAL_FRIEND_SALES_COVERED = 'referral.friend_sales_covered';
+    case REFERRAL_CREDIT_EXPIRY_DAYS = 'referral.credit_expiry_days';
+    case REFERRAL_MAX_USES_PER_CODE = 'referral.max_uses_per_code';
+    case REFERRAL_MAX_INVITATIONS_PER_ACCOUNT = 'referral.max_invitations_per_account';
+    case REFERRAL_MAX_PER_DEVICE = 'referral.max_per_device';
+    case REFERRAL_MIN_FRIEND_SALE_EGP = 'referral.min_friend_sale_egp';
+    case MARKETMAKER_REQUIRE_APPROVAL = 'marketmaker.require_approval';
+    case MARKETMAKER_MAKING_CHARGE_WARN_PCT = 'marketmaker.making_charge_warn_pct';
+    case LISTING_VIEW_RETENTION_DAYS = 'listing.view_retention_days';
+
     /** Money and price rules (Finance + CEO) or operations (founders) — research R1. */
     public function group(): SettingGroup
     {
@@ -54,7 +74,13 @@ enum SettingKey: string
             self::MANUALPRICE_CONFIRM_DEVIATION_PCT, self::MANUALPRICE_PENDING_EXPIRY_HOURS,
             self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::PRICEFEED_STALE_AFTER_MINUTES,
             self::COMPENSATION_CAP_PER_PAYMENT_EGP, self::COMPENSATION_CAP_PER_DAY_EGP,
-            self::PAYOUT_FIRST_SALE_CAP_EGP => SettingGroup::RATES,
+            self::PAYOUT_FIRST_SALE_CAP_EGP,
+            self::PAYOUT_FIRST_SALE_ENABLED, self::PAYOUT_FIRST_SALE_EXPOSURE_CEILING_EGP,
+            self::PAYOUT_FIRST_SALE_COMP_OFFSETS_WRITEOFF, self::PROMO_SELLER_CODES_ENABLED,
+            self::REFERRAL_ENABLED, self::REFERRAL_FRIEND_PERCENT_OFF, self::REFERRAL_INVITER_REWARD_EGP,
+            self::REFERRAL_FRIEND_SALES_COVERED, self::REFERRAL_CREDIT_EXPIRY_DAYS, self::REFERRAL_MAX_USES_PER_CODE,
+            self::REFERRAL_MAX_INVITATIONS_PER_ACCOUNT, self::REFERRAL_MAX_PER_DEVICE,
+            self::REFERRAL_MIN_FRIEND_SALE_EGP => SettingGroup::RATES,
             self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
             self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING => SettingGroup::VISIBILITY,
             default => SettingGroup::OPERATIONS,
@@ -65,7 +91,9 @@ enum SettingKey: string
     {
         return match ($this) {
             self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
-            self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING => true,
+            self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING,
+            self::PAYOUT_FIRST_SALE_ENABLED, self::PAYOUT_FIRST_SALE_COMP_OFFSETS_WRITEOFF,
+            self::PROMO_SELLER_CODES_ENABLED, self::REFERRAL_ENABLED, self::MARKETMAKER_REQUIRE_APPROVAL => true,
             default => false,
         };
     }
@@ -85,7 +113,10 @@ enum SettingKey: string
             self::DEADLINE_FREE_RELIST_WORKING_HOURS, self::WITHDRAWAL_ACCOUNT_CHANGE_PAUSE_HOURS,
             self::MARKETMAKER_MIN_LIST_AGE_DAYS, self::SUSPENSION_CANCELLATIONS_THRESHOLD,
             self::FLAG_PATTERN_TXN_THRESHOLD, self::MANUALPRICE_PENDING_EXPIRY_HOURS,
-            self::PRICEFEED_STALE_AFTER_MINUTES, self::SAVED_MAX_PER_CUSTOMER => true,
+            self::PRICEFEED_STALE_AFTER_MINUTES, self::SAVED_MAX_PER_CUSTOMER,
+            self::REFERRAL_FRIEND_SALES_COVERED, self::REFERRAL_CREDIT_EXPIRY_DAYS, self::REFERRAL_MAX_USES_PER_CODE,
+            self::REFERRAL_MAX_INVITATIONS_PER_ACCOUNT, self::REFERRAL_MAX_PER_DEVICE,
+            self::LISTING_VIEW_RETENTION_DAYS => true,
             default => false,
         };
     }
@@ -95,7 +126,16 @@ enum SettingKey: string
     {
         return match ($this) {
             self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
-            self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING => null,
+            self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING,
+            self::PAYOUT_FIRST_SALE_ENABLED, self::PAYOUT_FIRST_SALE_COMP_OFFSETS_WRITEOFF,
+            self::PROMO_SELLER_CODES_ENABLED, self::REFERRAL_ENABLED, self::MARKETMAKER_REQUIRE_APPROVAL => null,
+            // A share of a commission strictly between nothing and all of it (data-model §7).
+            self::REFERRAL_FRIEND_PERCENT_OFF => '0.0001',
+            // An amount that must be there (not zero).
+            self::REFERRAL_INVITER_REWARD_EGP => '0.0001',
+            self::REFERRAL_FRIEND_SALES_COVERED, self::REFERRAL_CREDIT_EXPIRY_DAYS, self::REFERRAL_MAX_USES_PER_CODE,
+            self::REFERRAL_MAX_INVITATIONS_PER_ACCOUNT, self::REFERRAL_MAX_PER_DEVICE,
+            self::LISTING_VIEW_RETENTION_DAYS => '1',
             self::DEADLINE_SELLER_REPLY_HOURS, self::DEADLINE_REACH_BRANCH_WORKING_HOURS,
             self::DEADLINE_BUYER_PAY_DAYS, self::DEADLINE_COLLECT_WEEKS, self::DEADLINE_SELLER_RETURN_WEEKS,
             self::SUSPENSION_CANCELLATIONS_THRESHOLD, self::FLAG_PATTERN_TXN_THRESHOLD,
@@ -116,6 +156,8 @@ enum SettingKey: string
             self::MANUALPRICE_PENDING_EXPIRY_HOURS => '168',
             self::PRICEFEED_STALE_AFTER_MINUTES => '1440',
             self::SAVED_MAX_PER_CUSTOMER => '1000',
+            self::REFERRAL_FRIEND_PERCENT_OFF => '99.9999',
+            self::MARKETMAKER_MAKING_CHARGE_WARN_PCT => '1000',
             default => null,
         };
     }

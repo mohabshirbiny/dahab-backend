@@ -54,6 +54,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $release_txn_id
  * @property CarbonImmutable|null $reach_reminder_sent_at
  * @property CarbonImmutable|null $balance_reminder_sent_at
+ * @property string|null $commission_ordinary_amount
+ * @property string|null $commission_given_up
+ * @property string|null $commission_waiver_kind
+ * @property string|null $commission_waiver_credit_id
+ * @property string|null $commission_floor_egp
+ * @property bool|null $commission_floor_applied
+ * @property string|null $spread_given_up
+ * @property CarbonImmutable|null $settled_at
  */
 class Order extends Model
 {
@@ -90,6 +98,8 @@ class Order extends Model
             'completed_at' => 'immutable_datetime',
             'reach_reminder_sent_at' => 'immutable_datetime',
             'balance_reminder_sent_at' => 'immutable_datetime',
+            'commission_floor_applied' => 'boolean',
+            'settled_at' => 'immutable_datetime',
         ];
     }
 
@@ -171,6 +181,12 @@ class Order extends Model
     }
 
     /** Spec 016: the tax invoices issued at payment, one per party (RLS: a customer sees their own only). */
+    /** Spec 023: the first-sale advance paid on this order (the seller reads their own; staff all). */
+    public function advance(): HasOne
+    {
+        return $this->hasOne(FirstSaleAdvance::class, 'order_id', 'order_id');
+    }
+
     /** Spec 018: the buyer's free relist of this order, once made (the new listing links back here). */
     public function freeRelistListing(): HasOne
     {

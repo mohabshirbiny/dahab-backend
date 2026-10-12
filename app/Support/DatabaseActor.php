@@ -37,10 +37,16 @@ use InvalidArgumentException;
  *                 for an order the caller is a party to, and lets the buyer move that
  *                 listing to sold / awaiting_seller_return — not an elevation; every
  *                 write under it is audited with the customer as actor (analysis C1)
+ *  - promo:       the seller-side code Actions only (spec 023 R26): keeps the customer,
+ *                 reads promo codes, reads and writes the use log, and inserts / moves the
+ *                 caller's own commission credit, listing code and referral rows. It reads
+ *                 nobody else's credits, referrals, advances or views: cross-customer facts
+ *                 (uses of a code, redemptions from a device) are answered by SQL functions
+ *                 as numbers. Not an elevation; every write is audited with the customer as actor.
  */
 final class DatabaseActor
 {
-    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market', 'queue', 'order'];
+    public const SCOPES = ['customer', 'staff', 'bootstrap', 'system', 'maintenance', 'ledger', 'market', 'queue', 'order', 'promo'];
 
     public const ELEVATED = ['staff', 'bootstrap', 'system', 'maintenance'];
 
@@ -185,6 +191,33 @@ final class DatabaseActor
 
         $frame = self::current();
         self::push('order', $frame['customer'] ?: null, $frame['staff'] ?: null);
+
+        try {
+            return $work();
+        } finally {
+            self::pop();
+        }
+    }
+
+    /**
+     * Run `$work` in the `promo` scope (spec 023 research R26), keeping the current customer id.
+     * Pushed only by the seller-side code and referral Actions (PromoScopeIsolationTest), with the
+     * transaction opened inside it so the deferred checks fire with the scope still set. An
+     * elevated caller is never narrowed.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public static function promo(Closure $work): mixed
+    {
+        if (self::isElevated()) {
+            return $work();
+        }
+
+        $frame = self::current();
+        self::push('promo', $frame['customer'] ?: null, $frame['staff'] ?: null);
 
         try {
             return $work();

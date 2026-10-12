@@ -29,6 +29,12 @@ final class SettingPlaceholders
         'withdrawal_pause_hours' => SettingKey::WITHDRAWAL_ACCOUNT_CHANGE_PAUSE_HOURS,
         'weight_tolerance_pct' => SettingKey::INSPECTION_WEIGHT_TOLERANCE_PCT,
         'saved_max' => SettingKey::SAVED_MAX_PER_CUSTOMER,
+        // Spec 023 R28: the words of the code card and the Invite screen follow the settings.
+        'first_sale_cap' => SettingKey::PAYOUT_FIRST_SALE_CAP_EGP,
+        'referral_friend_pct' => SettingKey::REFERRAL_FRIEND_PERCENT_OFF,
+        'referral_reward_egp' => SettingKey::REFERRAL_INVITER_REWARD_EGP,
+        'referral_expiry_days' => SettingKey::REFERRAL_CREDIT_EXPIRY_DAYS,
+        'referral_friend_sales' => SettingKey::REFERRAL_FRIEND_SALES_COVERED,
     ];
 
     /** @return list<string> */
