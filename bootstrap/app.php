@@ -143,6 +143,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 // Actions refuse first with the same codes.
                 'DH021' => DomainApiException::deviceApprovalNotPending(),
                 'DH022' => str_contains($e->getMessage(), 'unfrozen') ? DomainApiException::notFrozen() : DomainApiException::unfreezeAlreadyConfirmed(),
+                // Spec 022: a price write outside draft / changes requested / live, on a piece approved
+                // for market makers, or a price history row touched. The Actions refuse first.
+                'DH023' => match (true) {
+                    str_contains($e->getMessage(), 'market-maker') => DomainApiException::listingPriceLocked(),
+                    str_contains($e->getMessage(), 'append-only') => DomainApiException::listingPriceHistoryImmutable(),
+                    default => DomainApiException::listingHasRequests(),
+                },
                 '23514' => match (true) {
                     str_contains($e->getMessage(), 'approver_is_not_self'),
                     str_contains($e->getMessage(), 'refuser_is_not_self'),
@@ -198,6 +205,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 'DH020' => DomainApiException::promoHistoryImmutable(),
                 'DH021' => DomainApiException::deviceApprovalNotPending(),
                 'DH022' => str_contains($e->getMessage(), 'unfrozen') ? DomainApiException::notFrozen() : DomainApiException::unfreezeAlreadyConfirmed(),
+                // Spec 022: a price write outside draft / changes requested / live, on a piece approved
+                // for market makers, or a price history row touched. The Actions refuse first.
+                'DH023' => match (true) {
+                    str_contains($e->getMessage(), 'market-maker') => DomainApiException::listingPriceLocked(),
+                    str_contains($e->getMessage(), 'append-only') => DomainApiException::listingPriceHistoryImmutable(),
+                    default => DomainApiException::listingHasRequests(),
+                },
                 default => $e,
             };
         });

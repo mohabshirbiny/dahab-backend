@@ -69,6 +69,7 @@ it('shows one listing with everything the seller attached', function () {
         'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive',
         'relisted_from_order', // spec 018
         'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw',
+        'can_change_price', // spec 022
         'queue_count', 'order', // spec 011
     ])
         ->and(array_column($data['media'], 'kind'))->toBe(['photo', 'photo', 'invoice'])

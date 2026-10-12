@@ -75,6 +75,8 @@ enum AuditEvent: string
     case LISTING_CHANGES_REQUESTED = 'listing.changes_requested';
     case LISTING_REJECTED = 'listing.rejected';
     case LISTING_TAKEN_DOWN = 'listing.taken_down';
+    // Spec 022: the seller changed the price of a live piece.
+    case LISTING_PRICE_CHANGED = 'listing.price_changed';
     case ORDER_CANCELLED = 'order.cancelled';
 
     // Spec 012: the order's life after acceptance.
@@ -257,6 +259,7 @@ enum AuditEvent: string
             self::LISTING_CHANGES_REQUESTED => 'Changes requested on a listing',
             self::LISTING_REJECTED => 'Listing rejected',
             self::LISTING_TAKEN_DOWN => 'Listing taken down',
+            self::LISTING_PRICE_CHANGED => 'Listing price changed',
             self::ORDER_CANCELLED => 'Acceptance cancelled',
             self::ORDER_RECEIVED => 'Piece received at the branch',
             self::ORDER_BRANCH_CHANGED => 'Order branch changed',
@@ -372,7 +375,7 @@ enum AuditEvent: string
             self::TOPUP_MATCHED, self::TOPUP_CREDITED_BY_HAND, self::TOPUP_HELD, self::TOPUP_UNHELD,
             self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
             self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,
-            self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN => AuditCategory::LISTINGS,
+            self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN, self::LISTING_PRICE_CHANGED => AuditCategory::LISTINGS,
             self::ORDER_CANCELLED, self::ORDER_RECEIVED, self::ORDER_BRANCH_CHANGED, self::ORDER_DEADLINE_EXTENDED,
             self::ORDER_PRICE_PROPOSED, self::ORDER_HANDED_OVER, self::ORDER_HANDOVER_FAILED, self::ORDER_RETURN_HANDED_OVER,
             self::INSPECTION_RESULT_RECORDED, self::ORDER_SELLER_CANCELLED, self::ORDER_DECIDED, self::ORDER_PAID,

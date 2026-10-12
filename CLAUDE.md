@@ -335,7 +335,14 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   (`POST /dashboard/founder/unfreeze`, `GET /dashboard/founder/freezes`); middleware `staff.founder` / `staff.founder_or:<perm>`;
   every active founder told by email + Dashboard notice (`staff_notice`, `GET /dashboard/notices*`) of the Story 3 actions done by a
   founder and of every `founder.*` event, SMS for a freeze, never a secret (hook in `RecordAuditLogAction`, after commit); guards
-  DH021–DH022.
+  DH021–DH022;
+  changing the price of a live piece (spec 022) — `POST /customer/me/listings/{id}/price` (trade gate, `idempotent`,
+  `throttle:customer.listings`): gold sends `making_charge_per_g`, stones `asking_price`; no review, no state move, no
+  notification (`state_changed_at` and `listed_at` stay); refused with `platform_stopped` (stop everything only),
+  `listing_has_requests` (reserved … sold), `listing_not_live`, `listing_price_locked` (approved for market makers, read through
+  `listing_price_locked(uuid)`, which spec 023 extends); `listing_price_change` is append-only with forced RLS and audit
+  `listing.price_changed`; `can_change_price` on the seller's listing, `price_history` on the staff detail; guard DH023
+  (`trg_listing_price_guard`, deferred `trg_listing_price_recorded`; `listing_guard()` untouched).
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -356,6 +363,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Spec 019: App text (Notifications and Help tabs), Terms and versions, Switches (with the stop-everything banner on every page),
   Promo codes, Market maker approvals (with the cost panel) and People to watch (on Inspections) are live.
   Spec 020: *Forgot password?* on sign-in with the forgot-password and set-password pages, Staff: *Add staff member*, *Disable / Enable*, an *Invitation pending* chip and a *Disabled* filter (gated by `staff.manage`), and the customer file's pause trigger *a password reset*.
+  Spec 022: the listing detail shows *Price changes* (the seller's changes while live) under *History*.
   Spec 021: every request sends `X-Device-Id` (`src/api/device.ts`, `localStorage` `dahab.device_id`) and `X-Device-Platform: web`; the
   *Waiting for approval* screen (`/device-approval`, polling, countdown, the device id with *Copy*), the *Account frozen* screen
   (`/frozen`, *Confirm my unfreeze*; a live session answering `account_frozen` lands there), the *Security* page (founders; holders of
@@ -384,7 +392,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Close my account are live (spec 017); the order screen's free-relist offer with its countdown, the relist form, "No Dahab fee on
   this sale" and the rating screen (no invite card) are live and the mock relist timer is gone (spec 018); Help reads the published entries and the app's texts are
   editable end to end (spec 019); the app shows the stop banner, honours pauses and the sharing switch, accepts the terms before anything else,
-  and a market-maker account sees approved pieces marked and may send its code. Invite a friend is back as a flagged MOCK screen (the referral rules are undefined, spec 019 OD-2; its words are not in App text); the prototype's staff screens are gone. Forgot password (spec 020): *Forgot your password?* opens the phone step, then the code with a new password (resend countdown), and sign-in shows what the reset stopped (cancelled withdrawals, the pause); texts `auth.reset.*` (Arabic is AR-DRAFT until the owner reviews it).
+  and a market-maker account sees approved pieces marked and may send its code. Invite a friend is back as a flagged MOCK screen (the referral rules are undefined, spec 019 OD-2; its words are not in App text); the prototype's staff screens are gone. Change fee / Change price on the seller's own live piece (spec 022: the real form, `R.editprice?id=`, the live "You would receive" from `/reference/quote`; the button follows `can_change_price`; a reserved piece says why; `R.editprice` is no longer mock; texts `listing.price.*`, Arabic AR-DRAFT); Forgot password (spec 020): *Forgot your password?* opens the phone step, then the code with a new password (resend countdown), and sign-in shows what the reset stopped (cancelled withdrawals, the pause); texts `auth.reset.*` (Arabic is AR-DRAFT until the owner reviews it).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

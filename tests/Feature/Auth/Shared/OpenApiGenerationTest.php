@@ -183,6 +183,7 @@ const OPENAPI_CUSTOMER_LISTING_PATHS = [
     'get /customer/me/listings/{listing}/media/{media}',
     'post /customer/me/listings/{listing}/submit',
     'post /customer/me/listings/{listing}/withdraw',
+    'post /customer/me/listings/{listing}/price', // spec 022
 ];
 
 // spec 011: the buyer's requests and the seller's queue.
@@ -685,7 +686,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffTopUp', 'StaffReceivingAccount', 'DashboardMatchTopUp', 'DashboardHoldTopUp', 'DashboardRejectTopUp',
         'DashboardCreditTopUpByHand', 'DashboardStoreReceivingAccount', 'DashboardUpdateReceivingAccount',
         'ListingMedia', 'MarketListing', 'MarketListingDetail', 'CustomerListing', 'DashboardListing',
-        'StoreListingRequest', 'UpdateListingRequest', 'RequestListingChangesRequest', 'ListingReasonRequest',
+        'StoreListingRequest', 'UpdateListingRequest', 'ChangeListingPriceRequest', 'RequestListingChangesRequest', 'ListingReasonRequest',
         'BuyRequest', 'SellerQueueItem', 'OrderSummary', 'OrderBranch', 'SendBuyRequestRequest', 'LeaveQueueRequest',
         'AcceptBuyRequestRequest', 'DeclineBuyRequestRequest', 'CancelOrderRequest',
         'CustomerOrder', 'StaffOrder', 'InspectionResult', 'WorkListItem',

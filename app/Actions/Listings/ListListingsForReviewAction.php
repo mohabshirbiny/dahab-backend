@@ -40,7 +40,7 @@ final class ListListingsForReviewAction
      */
     public function show(string $listingId): array
     {
-        $listing = Listing::query()->with([...self::RELATIONS, 'changes.staff', 'karat', 'queuedRequests.buyer', 'order.branch', 'order.buyer', 'order.buyRequest'])->findOrFail($listingId);
+        $listing = Listing::query()->with([...self::RELATIONS, 'changes.staff', 'priceChanges.customer', 'priceChanges.staff', 'karat', 'queuedRequests.buyer', 'order.branch', 'order.buyer', 'order.buyRequest'])->findOrFail($listingId);
 
         $sellerListings = Listing::query()->where('seller_id', $listing->seller_id);
         $sentBack = fn () => ListingStateChange::query()->where('to_state', ListingState::CHANGES_REQUESTED->value);

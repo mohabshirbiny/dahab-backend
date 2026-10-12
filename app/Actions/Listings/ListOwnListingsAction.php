@@ -6,6 +6,7 @@ use App\Enums\ListingState;
 use App\Models\Listing;
 use App\Support\Listings\ListingCursor;
 use App\Support\Listings\ListingPage;
+use App\Support\Listings\ListingPriceLocks;
 use Illuminate\Support\Collection;
 
 /**
@@ -26,12 +27,20 @@ final class ListOwnListingsAction
             $query->where('listing.state', $state->value);
         }
 
-        return ListingPage::byTime($query, 'created_at', true, $cursor, $perPage);
+        $page = ListingPage::byTime($query, 'created_at', true, $cursor, $perPage);
+
+        // Spec 022: `can_change_price` for the whole page in one query.
+        ListingPriceLocks::mark($page['rows']);
+
+        return $page;
     }
 
     /** One of the seller's own listings; 404 for anyone else's. */
     public function show(string $customerId, string $listingId): Listing
     {
-        return Listing::query()->where('seller_id', $customerId)->with(self::RELATIONS)->findOrFail($listingId);
+        $listing = Listing::query()->where('seller_id', $customerId)->with(self::RELATIONS)->findOrFail($listingId);
+        ListingPriceLocks::mark([$listing]);
+
+        return $listing;
     }
 }

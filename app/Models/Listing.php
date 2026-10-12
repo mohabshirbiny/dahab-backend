@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BuyRequestState;
 use App\Enums\ListingMediaKind;
+use App\Enums\ListingPriceField;
 use App\Enums\ListingState;
 use App\Enums\PieceCategory;
 use Carbon\CarbonImmutable;
@@ -124,6 +125,24 @@ class Listing extends Model
     public function changes(): HasMany
     {
         return $this->hasMany(ListingStateChange::class, 'listing_id', 'listing_id')->orderBy('change_id');
+    }
+
+    /** Spec 022: every change of the price while live, oldest first. */
+    public function priceChanges(): HasMany
+    {
+        return $this->hasMany(ListingPriceChange::class, 'listing_id', 'listing_id')->orderBy('change_id');
+    }
+
+    /** Spec 022: the one figure the seller sets, by category. */
+    public function priceField(): ListingPriceField
+    {
+        return ListingPriceField::for($this->category);
+    }
+
+    /** Spec 022: that figure as it is stored. */
+    public function currentPriceFigure(): ?string
+    {
+        return $this->{$this->priceField()->value};
     }
 
     /** Every buy request on this piece (spec 011). */

@@ -7,6 +7,7 @@ use App\Http\Resources\ListingMediaResource;
 use App\Models\Branch;
 use App\Models\Listing;
 use App\Models\ListingStateChange;
+use App\Support\Listings\ListingPriceLocks;
 use App\Support\Listings\ListingPricer;
 use App\Support\Listings\ListingQuote;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'CustomerListing',
     description: 'One of the seller\'s own listings (spec 010). `staff_message` is what Dahab wrote when it asked for changes, rejected the piece or took it down. `current_price` is what a buyer would pay now and `you_would_receive` what would reach the seller after commission and VAT; both are indicative, recomputed on every read, and null when no price can be quoted.',
-    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw', 'queue_count', 'order'],
+    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw', 'can_change_price', 'queue_count', 'order'],
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'state', type: 'string', description: 'A listing_state value; clients must tolerate ones they do not know', example: 'changes_requested'),
@@ -51,6 +52,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'can_edit', type: 'boolean', description: 'Draft or changes requested'),
         new OA\Property(property: 'can_submit', type: 'boolean', description: 'Draft or changes requested'),
         new OA\Property(property: 'can_withdraw', type: 'boolean', description: 'Live, or (spec 011) reserved: the line is then released and refunded'),
+        new OA\Property(property: 'can_change_price', type: 'boolean', description: 'Spec 022: live, and the price is not fixed by a market-maker approval. POST /customer/me/listings/{id}/price'),
         new OA\Property(property: 'queue_count', type: 'integer', description: 'Spec 011: buyers waiting in line'),
         new OA\Property(property: 'order', ref: '#/components/schemas/OrderSummary', nullable: true, description: 'Spec 011: the latest order on the piece (set once a buyer was accepted; state cancelled_staff when Dahab cancelled it)'),
     ],
@@ -78,6 +80,8 @@ class ListingResource extends JsonResource
             'can_submit' => $l->state->isEditable(),
             // Spec 011: withdrawing a reserved piece releases and refunds its line.
             'can_withdraw' => $l->state === ListingState::LIVE || $l->state === ListingState::RESERVED,
+            // Spec 022: only a live piece, and only while its price is not locked (C3).
+            'can_change_price' => $l->state === ListingState::LIVE && ! ListingPriceLocks::isLocked($l),
             'queue_count' => $l->active_queue_count,
             'order' => OrderSummaryResource::shape($l->relationLoaded('order') ? $l->order : null),
         ];
