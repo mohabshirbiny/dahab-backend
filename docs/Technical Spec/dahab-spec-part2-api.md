@@ -198,6 +198,15 @@ Edit a `draft` or `changes_requested` listing (e.g. after a reviewer asks for a 
 - **gate:** `trade_allowed` · **idempotent:** required
 - **Errors:** `listing_not_editable` (409) if state is not `draft`/`changes_requested`.
 
+### `POST /customer/me/listings/{id}/price`  (spec 022)
+Seller changes the one figure of a **live** piece — `making_charge_per_g` (gold) or `asking_price` (diamond, gold with diamond) — with no review and no state move; the piece keeps its place (`state_changed_at`, `listed_at` unchanged). The figure follows the creation rules, must differ from the current one, and the other category's field is `prohibited`. Records a `listing_price_change` row and audits `listing.price_changed`; nobody is notified.
+- **gate:** `trade_allowed` · **idempotent:** required · **throttle:** `customer.listings`
+- **Errors (in order):** `platform_stopped` (409, stop everything only); `listing_has_requests` (409, state `reserved | accepted | at_inspection | settling | sold`); `listing_not_live` (409, any other state); `listing_price_locked` (409, the piece is approved for market makers); `validation_failed` (422).
+- The seller's `CustomerListing` gains `can_change_price`; the staff listing detail gains `price_history[]`.
+- Database backstop: SQLSTATE `DH023` (a price write outside draft / changes requested / live, on a locked piece, with a state move, or without its history row).
+
+> **Changed by spec 022** — see [`specs/022-live-listing-price-change/spec.md`](../../specs/022-live-listing-price-change/spec.md). `PATCH /customer/me/listings/{id}` is unchanged and still answers `listing_not_editable` for a live piece.
+
 ### `POST /customer/me/listings/{id}/withdraw`
 Seller takes a listing down: `live → withdrawn`. **Final** — a withdrawn piece is sold again only as a new listing. `reserved → withdrawn` (releasing and refunding the queue) is wired by the buy-request module; until then only `live` is accepted.
 - **gate:** `trade_allowed` · **idempotent:** required · **audited:** no

@@ -290,6 +290,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->middleware(['throttle:customer.listings', 'idempotent'])->name('store');
                     Route::patch('/{listing}', [CustomerListingController::class, 'update'])
                         ->whereUuid('listing')->middleware('idempotent')->name('update');
+                    // Spec 022: the seller changes the figure of a live piece nobody asked for.
+                    Route::post('/{listing}/price', [CustomerListingController::class, 'price'])
+                        ->whereUuid('listing')->middleware(['throttle:customer.listings', 'idempotent'])->name('price');
                     Route::post('/{listing}/submit', [CustomerListingController::class, 'submit'])
                         ->whereUuid('listing')->middleware('idempotent')->name('submit');
                     Route::post('/{listing}/withdraw', [CustomerListingController::class, 'withdraw'])

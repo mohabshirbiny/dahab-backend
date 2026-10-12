@@ -824,6 +824,196 @@
       "max_length": 184
     },
     {
+      "key": "listing.price.title_stones",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Change price",
+      "default_ar": "غيّر السعر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.note",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "You can change the price while no one has asked to buy the piece. The piece keeps its place and its views.",
+      "default_ar": "تقدر تغيّر السعر طول ما مفيش حد طلب القطعة. القطعة بتفضل في مكانها وبمشاهداتها.",
+      "placeholders": [],
+      "max_length": 212
+    },
+    {
+      "key": "listing.price.making_now",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Making charge now",
+      "default_ar": "المصنعية دلوقتي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.asking_now",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Asking price now",
+      "default_ar": "السعر المطلوب دلوقتي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.making_label",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "New making charge per gram",
+      "default_ar": "المصنعية الجديدة للجرام",
+      "placeholders": [],
+      "max_length": 52
+    },
+    {
+      "key": "listing.price.asking_label",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "New asking price",
+      "default_ar": "السعر المطلوب الجديد",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.you_would_receive",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "You would receive",
+      "default_ar": "هتستلم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.estimate_paused",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "The estimate is paused right now.",
+      "default_ar": "التقدير واقف دلوقتي.",
+      "placeholders": [],
+      "max_length": 66
+    },
+    {
+      "key": "listing.price.save",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Save",
+      "default_ar": "حفظ",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.saved",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Price updated.",
+      "default_ar": "السعر اتحدّث.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.load_failed",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "This piece could not be loaded.",
+      "default_ar": "مقدرناش نحمّل القطعة.",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "listing.price.amount_invalid",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Enter the new figure, with at most two decimals.",
+      "default_ar": "اكتب الرقم الجديد، وبحد أقصى رقمين بعد العلامة.",
+      "placeholders": [],
+      "max_length": 96
+    },
+    {
+      "key": "listing.price.same",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "This is already the price.",
+      "default_ar": "ده هو السعر الحالي.",
+      "placeholders": [],
+      "max_length": 52
+    },
+    {
+      "key": "listing.price.err_has_requests",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Someone has already asked to buy this piece, so its price can't change.",
+      "default_ar": "فيه حد طلب القطعة دي، فالسعر مينفعش يتغيّر.",
+      "placeholders": [],
+      "max_length": 142
+    },
+    {
+      "key": "listing.price.err_locked",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "This piece's price is fixed for now. Contact us if you need to change it.",
+      "default_ar": "سعر القطعة دي ثابت دلوقتي. كلمنا لو محتاج تغيّره.",
+      "placeholders": [],
+      "max_length": 146
+    },
+    {
+      "key": "listing.price.err_not_live",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Only a live piece's price can be changed.",
+      "default_ar": "السعر بيتغيّر بس للقطعة المعروضة.",
+      "placeholders": [],
+      "max_length": 82
+    },
+    {
+      "key": "listing.price.err_stopped",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Change price screen",
+      "default_en": "Dahab is paused for a short while. Your money and pieces are safe.",
+      "default_ar": "دهب واقف شوية. فلوسك وقطعك في أمان.",
+      "placeholders": [],
+      "max_length": 132
+    },
+    {
+      "key": "listing.price.change_price",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Piece page",
+      "default_en": "Change price",
+      "default_ar": "غيّر السعر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "listing.price.reserved_note",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Piece page",
+      "default_en": "Someone is in line for this piece, so its price can't change. You can change it again if the line empties.",
+      "default_ar": "فيه حد في الدور على القطعة دي، فالسعر مينفعش يتغيّر. تقدر تغيّره تاني لو الدور فضي.",
+      "placeholders": [],
+      "max_length": 212
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",

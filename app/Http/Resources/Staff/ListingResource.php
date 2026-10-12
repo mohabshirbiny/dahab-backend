@@ -10,6 +10,7 @@ use App\Http\Resources\Customer\OrderSummaryResource;
 use App\Http\Resources\ListingMediaResource;
 use App\Models\BuyRequest;
 use App\Models\Listing;
+use App\Models\ListingPriceChange;
 use App\Models\ListingStateChange;
 use App\Models\Staff;
 use App\Support\Listings\ListingPricer;
@@ -85,6 +86,16 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'name', type: 'string', nullable: true),
             ], type: 'object'),
             new OA\Property(property: 'note', type: 'string', nullable: true),
+            new OA\Property(property: 'changed_at', type: 'string', format: 'date-time'),
+        ], type: 'object')),
+        new OA\Property(property: 'price_history', type: 'array', description: 'Detail only (spec 022). Changes of the price while the piece was live, oldest first. `field` is making_charge_per_g or asking_price.', items: new OA\Items(properties: [
+            new OA\Property(property: 'field', type: 'string', enum: ['making_charge_per_g', 'asking_price']),
+            new OA\Property(property: 'old_value', type: 'string', example: '250.0000'),
+            new OA\Property(property: 'new_value', type: 'string', example: '220.0000'),
+            new OA\Property(property: 'actor', properties: [
+                new OA\Property(property: 'type', type: 'string', enum: ['customer', 'staff']),
+                new OA\Property(property: 'name', type: 'string', nullable: true),
+            ], type: 'object'),
             new OA\Property(property: 'changed_at', type: 'string', format: 'date-time'),
         ], type: 'object')),
         new OA\Property(property: 'sent_back_count', type: 'integer', description: 'Detail only. Times this piece was sent back for changes'),
@@ -179,6 +190,24 @@ class ListingResource extends JsonResource
                 ? ['type' => 'staff', 'name' => $c->staff?->full_name]
                 : ['type' => 'customer', 'name' => $l->seller?->full_name],
             'note' => $c->note,
+            'changed_at' => $c->changed_at->toIso8601String(),
+        ])->values()->all();
+    }
+
+    /**
+     * Spec 022: the price changes of the detail view, oldest first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function priceHistory(Listing $l): array
+    {
+        return $l->priceChanges->map(fn (ListingPriceChange $c) => [
+            'field' => $c->field->value,
+            'old_value' => bcadd((string) $c->old_value, '0', 4),
+            'new_value' => bcadd((string) $c->new_value, '0', 4),
+            'actor' => $c->actor_staff_id !== null
+                ? ['type' => 'staff', 'name' => $c->staff?->full_name]
+                : ['type' => 'customer', 'name' => $c->customer?->full_name],
             'changed_at' => $c->changed_at->toIso8601String(),
         ])->values()->all();
     }

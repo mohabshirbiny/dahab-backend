@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\Listing;
 use App\Models\ListingMedia;
 use App\Models\ListingStateChange;
+use App\Models\MarketMakerApproval;
 use App\Models\PieceType;
 use App\Services\IdentityDocumentStorage;
 use App\Support\SystemActor;
@@ -141,6 +142,19 @@ class ListingFactory extends Factory
     public function rejected(string $note = 'The photos are not of this piece.'): static
     {
         return $this->afterCreating(fn (Listing $l) => self::walk($l, [ListingState::IN_REVIEW, ListingState::REJECTED], $note));
+    }
+
+    /** Live and approved for market-maker purchase (spec 019), so its price is fixed (spec 022). */
+    public function approvedForMarketMakers(): static
+    {
+        return $this->afterCreating(function (Listing $l) {
+            self::walk($l, [ListingState::IN_REVIEW, ListingState::LIVE]);
+            MarketMakerApproval::query()->create([
+                'listing_id' => $l->listing_id,
+                'approved_by' => SystemActor::id(),
+                'asking_price' => $l->asking_price ?? '1000',
+            ]);
+        });
     }
 
     /** Withdrawn by the seller. */

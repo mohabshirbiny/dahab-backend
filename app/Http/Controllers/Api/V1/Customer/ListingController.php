@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Customer;
 
+use App\Actions\Listings\ChangeListingPriceAction;
 use App\Actions\Listings\CreateListingAction;
 use App\Actions\Listings\ListOwnListingsAction;
 use App\Actions\Listings\ReadListingMediaAction;
@@ -9,6 +10,7 @@ use App\Actions\Listings\SubmitListingAction;
 use App\Actions\Listings\UpdateListingAction;
 use App\Actions\Listings\WithdrawListingAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Customer\Listing\ChangeListingPriceRequest;
 use App\Http\Requests\Customer\Listing\StoreListingRequest;
 use App\Http\Requests\Customer\Listing\UpdateListingRequest;
 use App\Http\Requests\ListListingsRequest;
@@ -160,6 +162,36 @@ class ListingController extends Controller
     public function update(UpdateListingRequest $request, string $listing, UpdateListingAction $update): JsonResponse
     {
         return $this->respond($request, $update->handle($this->customer($request), $listing, $request->validated()));
+    }
+
+    #[OA\Post(
+        path: '/customer/me/listings/{listing}/price',
+        operationId: 'customerChangeListingPrice',
+        summary: 'Change the price of a live piece',
+        description: 'Spec 022. A live piece nobody has asked for: gold changes `making_charge_per_g`, a diamond or gold with diamond changes `asking_price`. No review, no state move, no notification; the piece keeps its place. Refused under stop everything (platform_stopped), once a buyer is in line (listing_has_requests), in any other state (listing_not_live) and while the piece is approved for market makers (listing_price_locked). Trade gate. Idempotent.',
+        security: [['customerBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ChangeListingPriceRequest')),
+        tags: ['Customer Listings'],
+        parameters: [
+            new OA\Parameter(name: 'listing', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The listing with its new figure, `current_price` and `you_would_receive`', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CustomerListing')])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required | account_suspended | account_closed', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'platform_stopped | listing_has_requests | listing_not_live | listing_price_locked | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed (wrong field, more than 2 decimals, negative, zero asking price, or the same figure) | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function price(ChangeListingPriceRequest $request, string $listing, ChangeListingPriceAction $change): JsonResponse
+    {
+        $listing = $change->handle($this->customer($request), $listing, $request->figure(), $request->attributes->get('context'));
+
+        return $this->respond($request, $listing);
     }
 
     #[OA\Post(

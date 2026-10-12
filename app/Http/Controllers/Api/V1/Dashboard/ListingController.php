@@ -239,6 +239,7 @@ class ListingController extends Controller
 
         return response()->json(['data' => ListingResource::make($listing)->resolve($request)
             + ['history' => ListingResource::history($listing)]
+            + ['price_history' => ListingResource::priceHistory($listing)]
             + $found['counters'],
         ]);
     }

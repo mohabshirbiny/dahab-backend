@@ -211,6 +211,8 @@ machine-readable value clients must switch on**; `message` is human text and may
   `insufficient_funds` 409 and `ledger_already_reversed` 409 from the money service (spec 008),
   `illegal_topup_transition` 409 — a top-up status move not allowed, or a lost race (spec 009); from spec 010:
   `illegal_listing_transition` 409 (a listing move not allowed, or a lost race), `listing_not_editable` 409,
+  from spec 022: `listing_has_requests` 409, `listing_price_locked` 409, `listing_price_history_immutable` 409 (SQLSTATE DH023),
+  and `listing_not_live` is reused for a price change on a piece that is not live,
   `seller_suspended` 409 and `karat_disabled` 409 (approving a listing), `gold_needs_karat_weight` 422,
   `branch_options_required` 422, `ownership_declaration_required` 422, `photo_required` 422; from spec 011:
   `price_moved` 409, `price_unavailable` 409, `already_in_queue` 409, `listing_not_purchasable` 409,
@@ -332,7 +334,8 @@ In use on: `POST /dashboard/customers/{id}/suspend`, `POST /dashboard/customers/
 every top-up POST: `POST /customer/me/wallet/topups`, `POST /customer/me/wallet/topups/{id}/cancel`,
 `POST /dashboard/topups` (credit by hand) and `POST /dashboard/topups/{id}/match|hold|unhold|reject`; and since spec 010
 every listing write: `POST /customer/me/listings`, `PATCH /customer/me/listings/{id}`,
-`POST /customer/me/listings/{id}/submit|withdraw` and `POST /dashboard/listings/{id}/approve|request-changes|reject|takedown`;
+`POST /customer/me/listings/{id}/submit|withdraw` and `POST /dashboard/listings/{id}/approve|request-changes|reject|takedown`
+(since spec 022 also `POST /customer/me/listings/{id}/price`);
 and since spec 011 every buy-request write: `POST /customer/me/buy-requests`, `POST /customer/me/buy-requests/{id}/withdraw`,
 `POST /customer/me/listings/{id}/accept|decline` and `POST /dashboard/orders/{id}/cancel`; and since spec 012 every
 order write: `POST /customer/me/orders/{id}/cancel|decision|pay-balance|relist` and

@@ -3,6 +3,8 @@
 > File: `docs/features/listings.md` · Branch: `feature/listings` in `dahab-backend` and `dahab-dashboard` (the Customer App has no repository)
 > Status: in progress · Date: 2026-09-30
 
+> **Later:** changing the price of a live piece is spec 022 — [`live-listing-price-change.md`](live-listing-price-change.md).
+
 ## Goal
 
 A verified customer lists a piece for sale; Dahab staff review it before it goes live; anyone can

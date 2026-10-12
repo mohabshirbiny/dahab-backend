@@ -41,6 +41,12 @@ enum ListingState: string
         return $this === self::DRAFT || $this === self::CHANGES_REQUESTED;
     }
 
+    /** Spec 022: a buyer is in line, or a price was locked at acceptance, so the piece's price stays. */
+    public function holdsRequests(): bool
+    {
+        return in_array($this, [self::RESERVED, self::ACCEPTED, self::AT_INSPECTION, self::SETTLING, self::SOLD], true);
+    }
+
     public function label(): string
     {
         return match ($this) {

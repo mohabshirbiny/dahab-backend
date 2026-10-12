@@ -4193,7 +4193,7 @@
                                         "{{listing_id}}"
                                     ]
                                 },
-                                "description": "Spec 010. Every field and media item (the private invoice included), the seller (reference, name, masked phone), the history and the \"sent back\" counters; can_approve / can_request_changes / can_reject / can_take_down for the signed-in staff member. Saves the first media id as media_id."
+                                "description": "Spec 010. Every field and media item (the private invoice included), the seller (reference, name, masked phone), the history, price_history (spec 022: the seller's price changes while live, oldest first) and the \"sent back\" counters; can_approve / can_request_changes / can_reject / can_take_down for the signed-in staff member. Saves the first media id as media_id."
                             },
                             "response": [],
                             "event": [
@@ -11352,6 +11352,56 @@
                                     ]
                                 },
                                 "description": "Spec 010. draft | changes_requested → in_review. 422 photo_required (2 photos for gold, 3 for stones), validation_failed (description 40–2000; karat or piece type turned off), branch_options_required; 409 illegal_listing_transition. Trade gate; Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Change price of a live piece",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/price",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "price"
+                                    ]
+                                },
+                                "description": "Spec 022. The seller changes the figure of a live piece nobody has asked for: gold sends making_charge_per_g, a diamond or gold with diamond sends asking_price (at most 2 decimals; must differ from the current figure). No review, no state move, no notification. 409 platform_stopped (stop everything), listing_has_requests (reserved / accepted / at inspection / settling / sold), listing_not_live (any other state), listing_price_locked (approved for market makers); 422 validation_failed; 404 for a listing that is not yours. Answers the CustomerListing with can_change_price. Trade gate; Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"making_charge_per_g\": \"220.00\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
                             },
                             "response": []
                         },

@@ -853,6 +853,30 @@ class DomainApiException extends RuntimeException
         return new self('listing_not_live', 409, 'Only a live piece can be approved.');
     }
 
+    /** Spec 022: only a live piece's price can be changed; same code as listingNotLive(). */
+    public static function listingNotLiveForPriceChange(): self
+    {
+        return new self('listing_not_live', 409, "Only a live piece's price can be changed.");
+    }
+
+    /** Spec 022: a buyer is in line (or a price was locked), so the figure stays. */
+    public static function listingHasRequests(): self
+    {
+        return new self('listing_has_requests', 409, "Someone has already asked to buy this piece, so its price can't change.");
+    }
+
+    /** Spec 022 C3: approved for market makers. The message does not name the programme. */
+    public static function listingPriceLocked(): self
+    {
+        return new self('listing_price_locked', 409, "This piece's price is fixed for now. Contact us if you need to change it.");
+    }
+
+    /** Guard DH023: the price history is append-only. A bug if reached through the API. */
+    public static function listingPriceHistoryImmutable(): self
+    {
+        return new self('listing_price_history_immutable', 409, 'Price history cannot be changed.');
+    }
+
     /** Guard DH020: market-maker records are append-only. A bug if reached through the API. */
     public static function promoHistoryImmutable(): self
     {

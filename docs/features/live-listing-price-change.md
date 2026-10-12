@@ -1,7 +1,7 @@
 # Change the price of a live piece
 
 > File: `docs/features/live-listing-price-change.md` · Branch: `feature/live-listing-price-change` in Backend, Dashboard and Customer app
-> Status: approved (planned, not built) · Date: 2026-10-11 · Spec: `specs/022-live-listing-price-change/`
+> Status: done (built, not committed) · Date: 2026-10-11 · Spec: `specs/022-live-listing-price-change/`
 
 ## Goal
 
