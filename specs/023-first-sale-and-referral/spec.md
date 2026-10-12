@@ -22,15 +22,15 @@ The audit said the first-sale advance had "no definition". That was wrong: **Tec
 
 ## Story 2 — The customer enters a code on the sell form
 
-The card becomes real **for first-sale codes only**: a code is checked against the Backend (valid, active, for this account or open to all **[OPEN D23-1]**, first gold sale), the listing records the code, and the screen says plainly what it unlocks ("paid as soon as IGI confirms your piece, up to {cap}"). Nothing else is promised. The mock repository and the fake codes go.
+The card becomes real **for first-sale codes only**: a code is checked against the Backend (valid, active, for this account or open to all **[D23-1: answered]**, first gold sale), the listing records the code, and the screen says plainly what it unlocks ("paid as soon as IGI confirms your piece, up to {cap}"). Nothing else is promised. The mock repository and the fake codes go.
 
-## Story 3 — Percentage-off-commission codes (design only, **[OPEN D23-2]**)
+## Story 3 — Percentage-off-commission codes (design only, **[D23-2: built]**)
 
-The Dashboard design defines the *form* of these codes (Story 5 below) but no behaviour the Backend can post: how the reduced commission is computed on the settlement, whether VAT follows the reduced commission, whether it stacks with a free relist (spec 018) or a market-maker waiver (spec 019), and how often an "Anyone" code may be used. The Backend refuses these kinds (`promo_kind_not_available`) until the owner answers. The Dashboard form is built to the design either way, with the unbuilt options disabled and labelled *Not available yet*.
+Built (owner, 2026-10-12: the design wins where nothing is written; its numbers are settings). The Dashboard design defines the *form* and the code table; the Backend posts the reduced commission on the settlement: the percentage of the code off the commission, never below the minimum commission (a setting, 200 EGP by default), VAT on the commission actually charged, one code per sale, the lowest single commission when a free relist (spec 018) or a market-maker waiver (spec 019) also applies. How often an "Anyone" code may be used is the code's own *Times they can use it*. Finance confirms the VAT treatment with D23-5 before the codes are switched on.
 
-## Story 4 — Referral: Invite a friend (prototype only, **[OPEN D23-3]**)
+## Story 4 — Referral: Invite a friend (prototype only, **[D23-3: built]**)
 
-Only the prototype text exists: "She pays a lower commission on her first sale. You pay a lower one on your next… the reward lands as commission credit after your friend completes her first sale, not when she signs up." Not built unless the owner defines it: the reward and who gets it, one reward per friend, per-account and per-device limits, the abuse rules, how a "commission credit" is held and spent (it is not wallet money), expiry, and the tax treatment. **[PROPOSED]** if both Story 3 and Story 4 are wanted, they share one *commission credit* mechanism, built once.
+Built (owner, 2026-10-12). The prototype text is the definition: "She pays a lower commission on her first sale. You pay a lower one on your next… the reward lands as commission credit after your friend completes her first sale, not when she signs up." The reward for the friend and for the inviter, the number of sales it applies to, the usage cap, the invitation limit per account, the per-account and per-device limits and the expiry of the credit are **settings** (`referral.*`) with proposed defaults for Finance. A *commission credit* is not wallet money: it is a balance that only reduces a later commission, and it shares one mechanism with the percentage-off codes of Story 3.
 
 ## Story 5 — The *Promo codes* page, exactly as designed (`p-promos`)
 
@@ -86,9 +86,9 @@ A closing note: "The minimum commission of 200 EGP is never broken, whatever thi
 **Panel *What this costs*** with the sub-heading *This month*: *Pieces bought by market makers* · *Commission given up* · *Spread given up* · **Total cost** (the large figure), and the note "This is what you pay for liquidity. Sellers get their money faster and the market looks active. Watch it against the sell-through rate to know whether it is working."
 
 **What the Backend needs for this page**
-- **Views** on a listing are not measured today (spec 019 R13). The design shows them, so a view counter is added: one count per account or device per piece per day, shown to staff only, never revealing who viewed. **[OPEN D23-6]**
+- **Views** on a listing are not measured today (spec 019 R13). The design shows them, so a view counter is added: one count per account or device per piece per day, shown to staff only, never revealing who viewed. **[D23-6: answered]**
 - **Against the guide**: for gold, the making charge per gram as a percentage of the rate per gram, which is computable today. For stones the comparison is against **Rapaport**, an external integration left out of this round: until it exists the cell says *No guide yet* in grey.
-- **Leave** changes nothing about the piece; it stays in the queue and the action is logged. **[OPEN D23-7]**
+- **Leave** changes nothing about the piece; it stays in the queue and the action is logged. **[D23-7: answered]**
 - **Commission given up** and **Spread given up** are recorded on the order at settlement as what an ordinary sale of the same piece would have paid (the calculator run with the waiver off, and the spread credited to the dealer), so the monthly figures are sums of stored values, not estimates. *Total cost* is their sum. Orders settled before this spec have none and show as not recorded.
 
 ## Surfaces
@@ -103,19 +103,33 @@ A closing note: "The minimum commission of 200 EGP is never broken, whatever thi
 
 Depends on the spec 019 code tables and the settlement of specs 012 and 016 (the invoice reconciliation must stay balanced with an advance in the entry). Spec 022 (price change) must not alter a price after an advance was paid on it **[OPEN D23-4: confirm]**.
 
-## Decisions needed from the owner
+## Owner's answers (2026-10-12)
 
-| ID | Question | Proposed |
+Two rules from the owner, which settle every open point below:
+
+1. **The design wins where nothing else is written.** Where the Technical Spec is silent, the Dashboard design (`p-promos`, `p-mm`) and the app prototype are the definition.
+2. **The design's numbers are examples, not requirements.** Every figure that the design shows (50 %, 7 days, 200 EGP, a monthly cap, a reward) is a **setting** an authorised staff member can change, with the design's figure as the default. Any figure nobody has given is also a setting, never a constant in code. No business number is hard-coded.
+
+Consequences:
+
+- **D23-2 is built, not deferred.** The percentage-off-commission codes work end to end. The commission is reduced by the code's percentage, never below the minimum commission (a setting; 200 EGP in the design); VAT follows the commission actually charged; one code per sale; where more than one waiver could apply (a code, a free relist, a market-maker waiver) the customer gets the single lowest commission, not a sum. The "Not available yet" options of Story 3 and `promo_kind_not_available` are removed.
+- **D23-3 is built, not deferred.** The referral uses the same *commission credit* mechanism as D23-2. The reward for the friend, the reward for the inviter, how many sales it applies to, the usage cap, the invitation limit per account, and the expiry are all settings (`referral.*`), each with a proposed default for Finance to confirm.
+- **Abuse limits** that the design does not give (one reward per friend, per-account and per-device limits) are settings as well, with conservative defaults.
+- **VAT on a reduced commission and the credit's accounting** are still for Finance to confirm with D23-5 before the codes and the credit are switched on for customers; the build does not wait for it.
+
+## Decisions
+
+| ID | Question | Answer |
 |---|---|---|
-| D23-1 | Is a first-sale code tied to one account or open to any first-time seller? | Open to any first-time seller, once each |
-| D23-2 | Are percentage-off-commission codes wanted, and on what terms? | Not now; remove them from the prototype card |
-| D23-3 | Referral: wanted, and on what terms? | Defer; keep the mock flagged until written |
-| D23-4 | May the price of a piece change after its advance was paid? | No |
-| D23-5 | **Finance** to approve Story 1's ledger, the exposure ceiling, and the write-off rule | before switching on |
-| D23-6 | Count views of a piece (for the *Market maker approvals* page)? | Yes: one per account or device per piece per day, shown to staff only |
-| D23-7 | What does **Leave** do? | Nothing to the piece; the action is logged; the piece stays in the queue |
-| D23-8 | The open-to-anyone options in the form (*Anyone*, *Reduce by a percentage*) | Shown as in the design, refused by the Backend until D23-2 is answered |
-| D23-9 | Is *Once per ID* per national ID or per account? | Per national ID, as the design says |
+| D23-1 | Is a first-sale code tied to one account or open to any first-time seller? | Both, as the design's *Tied to* column: one account, or *Everyone* with *First sale only*. Default for a new code: open to any first-time seller, once each. |
+| D23-2 | Percentage-off-commission codes | **Built** (see above); percentages, caps and dates are per code, the minimum commission is a setting. |
+| D23-3 | Referral | **Built** on the commission-credit mechanism; every figure is a `referral.*` setting. |
+| D23-4 | May the price of a piece change after its advance was paid? | No (`listing_price_locked()` of spec 022 is extended). |
+| D23-5 | **Finance** to approve Story 1's ledger, the exposure ceiling, and the write-off rule | Open: before switching on. The ceiling and the write-off rule are settings. |
+| D23-6 | Count views of a piece? | Yes: one per account or device per piece per day, shown to staff only. |
+| D23-7 | What does **Leave** do? | Nothing to the piece; the action is logged; the piece stays in the queue. |
+| D23-8 | The open-to-anyone options in the form | All shown and working as in the design (follows D23-2). |
+| D23-9 | Is *Once per ID* per national ID or per account? | Per national ID, as the design says. |
 
 ## Mock removed
 
