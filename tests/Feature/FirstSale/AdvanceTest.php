@@ -82,13 +82,13 @@ it('pays the first gold sale ahead with one balanced entry, once the piece passe
 
     // Locked rates 5,236.875 x 10 g + 3,000 making = 55,368.75 gross; commission 600 + VAT 84.
     expect($advance)->not->toBeNull()
-        ->and($advance->amount_egp)->toBe('54684.7500')
+        ->and($advance->amount_egp)->toBe('54768.7500')
         ->and($advance->status->value)->toBe('outstanding')
         ->and($advance->basis->value)->toBe('promo_code')
         ->and($advance->cap_applied_egp)->toBe('100000.0000')
-        ->and($advance->provisional_proceeds_egp)->toBe('54684.7500')
-        ->and(BuyRequests::balances($seller)['available'])->toBe('54684.7500')
-        ->and(equity())->toBe('-54684.7500');
+        ->and($advance->provisional_proceeds_egp)->toBe('54768.7500')
+        ->and(BuyRequests::balances($seller)['available'])->toBe('54768.7500')
+        ->and(equity())->toBe('-54768.7500');
 
     $lines = Orders::lines($order, 'first_sale_payout');
     expect($lines)->toHaveCount(2)
@@ -99,7 +99,7 @@ it('pays the first gold sale ahead with one balanced entry, once the piece passe
 
     // The order says so to the seller, and the price of the piece is now fixed (spec 022).
     Orders::show($this, $seller, $order)->assertOk()
-        ->assertJsonPath('data.advance.amount_egp', '54684.7500')->assertJsonPath('data.advance.status', 'outstanding');
+        ->assertJsonPath('data.advance.amount_egp', '54768.7500')->assertJsonPath('data.advance.status', 'outstanding');
     expect((bool) DB::selectOne('SELECT listing_price_locked(?) AS l', [$order->listing_id])->l)->toBeTrue();
 });
 
@@ -181,7 +181,7 @@ it('waits for the buyer to accept an adjusted price, then advances on that price
     $advance = advanceOf($order);
     expect($advance)->not->toBeNull()
         // 9.7 g: gold 5,236.875 x 9.7 = 50,797.6875 + making 2,910 = 53,707.6875 - 582 - 81.48 (commission + VAT)
-        ->and($advance->amount_egp)->toBe('53044.2075');
+        ->and($advance->amount_egp)->toBe('53125.6875');
 });
 
 it('opens the advance for one seller with a staff enablement, used by the next gold sale', function () {
@@ -206,5 +206,5 @@ it('lets the seller withdraw the advance through the ordinary wallet rules', fun
     $seller = Orders::seller($order);
 
     // The advance sits in the available balance like any other money.
-    expect(BuyRequests::balances($seller)['available'])->toBe('54684.7500')->and(BuyRequests::balances($seller)['held'])->toBe('0.0000');
+    expect(BuyRequests::balances($seller)['available'])->toBe('54768.7500')->and(BuyRequests::balances($seller)['held'])->toBe('0.0000');
 });

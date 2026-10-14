@@ -12044,7 +12044,7 @@
                                         "commission-preview"
                                     ]
                                 },
-                                "description": "Spec 023 §1. Stateless. category, karat, weight_g, making_charge_per_g (gold) or asking_price, optional code. 422 promo_code_invalid with details.reason. 10 a minute.",
+                                "description": "Spec 023 §1. Stateless. category, karat, weight_g, making_charge_per_g (gold) or asking_price, optional code. 422 promo_code_invalid with details.reason. 10 a minute. Package C: the rate is VAT-inclusive; commission.ordinary_egp / charged_egp / saved_egp are net of VAT (as stored on the order), and ordinary_total_egp / charged_total_egp / saved_total_egp are what the seller pays and saves, VAT included.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"category\": \"gold\",\n    \"karat\": 21,\n    \"weight_g\": \"10.000\",\n    \"making_charge_per_g\": \"300.00\",\n    \"code\": \"WELCOME\"\n}",

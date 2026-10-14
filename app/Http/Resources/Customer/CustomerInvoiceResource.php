@@ -29,7 +29,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'document_ready', type: 'boolean'),
         new OA\Property(property: 'piece', type: 'object', description: 'List rows: {category, karat, piece_type_en, piece_type_ar, weight_g, subtotal}'),
         new OA\Property(property: 'vat_rate', type: 'string', description: 'Detail only'),
-        new OA\Property(property: 'lines', type: 'object', description: 'Detail only'),
+        new OA\Property(property: 'lines', type: 'object', description: 'Detail only. Package C: seller invoices issued after the VAT-inclusive change carry commission_vat_inclusive = true; buyer gold invoices may carry seller_unit_rate, gold_value_at_seller_rate and price_difference (shown as Dahab commission, VAT 0; gold at the seller rate + price difference + making = subtotal). Older invoices have none of these keys.'),
         new OA\Property(property: 'issuer', type: 'object', nullable: true, description: 'Detail only'),
         new OA\Property(property: 'credit_notes', type: 'array', items: new OA\Items(ref: '#/components/schemas/CustomerCreditNote'), description: 'Detail only'),
     ],

@@ -111,18 +111,20 @@ final class PriceCalculator
         $buyerTotal = Money::round4($buyerTotal);
         $sellerGross = Money::round4($sellerGross);
 
-        $commission = $piece->commissionWaived
+        // Package C: the rate (or the minimum) is what the seller pays, VAT included; VAT is carved
+        // out of it (VatSplit). `commission` stays the net posted to dahab_commission.
+        $total = $piece->commissionWaived
             ? '0.0000'
             : Money::round4(Money::max(Money::percent($commissionBase, $pct), $rates->minimumEgp));
-        $vat = Money::round4(Money::percent($commission, $rates->vatPct));
+        $split = VatSplit::fromInclusive($total, $rates->vatPct);
 
         return new PriceBreakdown(
             buyerTotal: $buyerTotal,
             sellerGross: $sellerGross,
             spread: Money::fixed4(Money::sub($buyerTotal, $sellerGross)),
-            commission: $commission,
-            vat: $vat,
-            sellerProceeds: Money::fixed4(Money::sub(Money::sub($sellerGross, $commission), $vat)),
+            commission: $split['net'],
+            vat: $split['vat'],
+            sellerProceeds: Money::fixed4(Money::sub($sellerGross, $split['total'])),
             protectedGoldValue: $protectedGoldValue,
             karatPrices: $prices,
         );

@@ -55,7 +55,7 @@ it('computes a breakdown with the current settings', function () {
     $context = app(PricingContext::class);
     $b = $context->breakdown(Piece::gold($context->pricing(21), '10.000', '300'));
 
-    expect($b->sellerProceeds)->toBe('54684.7500');
+    expect($b->sellerProceeds)->toBe('54768.7500');
 });
 
 it('has no market price before the first one is recorded', function () {

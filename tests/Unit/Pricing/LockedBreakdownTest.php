@@ -23,9 +23,9 @@ it('reproduces Part 3 §3.3 on 10.000 g', function () {
     expect($b->buyerTotal)->toBe('55631.2500')
         ->and($b->sellerGross)->toBe('55368.7500')
         ->and($b->spread)->toBe('262.5000')
-        ->and($b->commission)->toBe('600.0000')
-        ->and($b->vat)->toBe('84.0000')
-        ->and($b->sellerProceeds)->toBe('54684.7500');
+        ->and($b->commissionTotal())->toBe('600.0000')
+        ->and($b->vat)->toBe('73.6842')
+        ->and($b->sellerProceeds)->toBe('54768.7500');
 });
 
 it('reproduces Part 3 §3.4 on the IGI weight of 9.900 g', function () {
@@ -36,9 +36,9 @@ it('reproduces Part 3 §3.4 on the IGI weight of 9.900 g', function () {
     expect($b->buyerTotal)->toBe('55074.9375')
         ->and($b->sellerGross)->toBe('54815.0625')
         ->and($b->spread)->toBe('259.8750')
-        ->and($b->commission)->toBe('594.0000')
-        ->and($b->vat)->toBe('83.1600')
-        ->and($b->sellerProceeds)->toBe('54137.9025');
+        ->and($b->commissionTotal())->toBe('594.0000')
+        ->and($b->vat)->toBe('72.9474')
+        ->and($b->sellerProceeds)->toBe('54221.0625');
 });
 
 it('gives a negative spread when the locked rates crossed, and the seller still gets their figure', function () {
@@ -48,7 +48,8 @@ it('gives a negative spread when the locked rates crossed, and the seller still 
 
     expect($b->spread)->toBe('-368.7500')
         ->and($b->sellerGross)->toBe('56000.0000')
-        ->and($b->sellerProceeds)->toBe('55316.0000');
+        // Package C: 600 VAT included leaves the seller 56,000 − 600.
+        ->and($b->sellerProceeds)->toBe('55400.0000');
 });
 
 it('prices a diamond on its asking price with stone commission and no spread', function () {
@@ -58,9 +59,9 @@ it('prices a diamond on its asking price with stone commission and no spread', f
 
     expect($b->buyerTotal)->toBe('120000.0000')
         ->and($b->spread)->toBe('0.0000')
-        ->and($b->commission)->toBe('6000.0000')
-        ->and($b->vat)->toBe('840.0000')
-        ->and($b->sellerProceeds)->toBe('113160.0000');
+        ->and($b->commissionTotal())->toBe('6000.0000')
+        ->and($b->vat)->toBe('736.8421')
+        ->and($b->sellerProceeds)->toBe('114000.0000');
 });
 
 it('protects the gold value of a gold-with-diamond piece at the locked mid', function () {
@@ -70,7 +71,7 @@ it('protects the gold value of a gold-with-diamond piece at the locked mid', fun
     );
 
     expect($b->protectedGoldValue)->toBe('26250.0000')
-        ->and($b->commission)->toBe('2687.5000')
+        ->and($b->commissionTotal())->toBe('2687.5000')
         ->and($b->spread)->toBe('0.0000');
 });
 

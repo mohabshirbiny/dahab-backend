@@ -75,7 +75,7 @@ it('shows the detail with the timeline, the ledger and what the caller may do; n
 
     expect(collect($res->json('data.timeline'))->pluck('event')->all())->toContain('accepted', 'received', 'result', 'paid')
         ->and(collect($res->json('data.ledger'))->pluck('event_kind')->all())->toBe(['deposit_hold', 'balance_payment'])
-        ->and($res->json('data.settlement.seller_proceeds'))->toBe('54684.7500')
+        ->and($res->json('data.settlement.seller_proceeds'))->toBe('54768.7500')
         ->and($res->json('data.can.receive'))->toBeFalse()
         ->and($res->json('data.can.extend'))->toBeTrue()
         ->and($res->json('data.can.handover'))->toBeFalse()

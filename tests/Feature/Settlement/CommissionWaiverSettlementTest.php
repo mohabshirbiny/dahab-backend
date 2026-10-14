@@ -67,26 +67,26 @@ it('settles an ordinary sale with the stored cost figures and a zero-sum entry',
     [$order] = waiverOrder($this);
     $paid = payAndSettle($this, $order);
 
-    expect($paid->commission_ordinary_amount)->toBe('600.0000')
-        ->and($paid->commission_amount)->toBe('600.0000')
+    expect($paid->commission_ordinary_amount)->toBe('526.3158')
+        ->and($paid->commission_amount)->toBe('526.3158')
         ->and($paid->commission_given_up)->toBe('0.0000')
         ->and($paid->commission_waiver_kind)->toBe('none')
         ->and($paid->commission_waiver_credit_id)->toBeNull()
-        ->and($paid->commission_floor_egp)->toBe('200.0000')
+        ->and($paid->commission_floor_egp)->toBe('175.4386') // the VAT-inclusive minimum, net (package C)
         ->and($paid->commission_floor_applied)->toBeTrue()
         ->and($paid->settled_at)->not->toBeNull()
         ->and(entrySum($paid))->toBe('0.0000')
-        ->and(sellerInvoice($paid)->commission_amount ?? $paid->commission_amount)->toBe('600.0000');
+        ->and(sellerInvoice($paid)->commission_amount ?? $paid->commission_amount)->toBe('526.3158');
 });
 
 it('takes half off the commission with a percent credit and spends it', function () {
     [$order, $credit] = waiverOrder($this, ['kind' => 'percent', 'percent_off' => '50']);
     $paid = payAndSettle($this, $order);
 
-    expect($paid->commission_ordinary_amount)->toBe('600.0000')
-        ->and($paid->commission_amount)->toBe('300.0000')
-        ->and($paid->vat_amount)->toBe('42.0000')
-        ->and($paid->commission_given_up)->toBe('300.0000')
+    expect($paid->commission_ordinary_amount)->toBe('526.3158')
+        ->and($paid->commission_amount)->toBe('263.1579')
+        ->and($paid->vat_amount)->toBe('36.8421')
+        ->and($paid->commission_given_up)->toBe('263.1579')
         ->and($paid->commission_waiver_kind)->toBe('credit')
         ->and($paid->commission_waiver_credit_id)->toBe($credit->credit_id)
         ->and(entrySum($paid))->toBe('0.0000');
@@ -94,13 +94,13 @@ it('takes half off the commission with a percent credit and spends it', function
     $credit->refresh();
     expect($credit->status->value)->toBe('exhausted')->and($credit->uses_left)->toBe(0);
     $event = DB::table('commission_credit_event')->where('credit_id', $credit->credit_id)->where('kind', 'spent')->sole();
-    expect($event->order_id)->toBe($order->order_id)->and($event->reduction_egp)->toBe('300.0000')
+    expect($event->order_id)->toBe($order->order_id)->and($event->reduction_egp)->toBe('263.1579')
         ->and($event->actor_customer_id)->toBe($order->buyer_id);
 
     // The seller's proceeds rise by the commission and its VAT given up (300 + 42).
     [$plain] = waiverOrder($this);
     $plainPaid = payAndSettle($this, $plain);
-    expect(bcsub($paid->seller_proceeds, $plainPaid->seller_proceeds, 4))->toBe('342.0000')
+    expect(bcsub($paid->seller_proceeds, $plainPaid->seller_proceeds, 4))->toBe('300.0000')
         ->and($paid->final_buyer_total)->toBe($plainPaid->final_buyer_total)
         ->and($paid->spread_amount)->toBe($plainPaid->spread_amount);
 });
@@ -109,8 +109,8 @@ it('never breaks the minimum with a 99 percent credit', function () {
     [$order] = waiverOrder($this, ['kind' => 'percent', 'percent_off' => '99']);
     $paid = payAndSettle($this, $order);
 
-    expect($paid->commission_amount)->toBe('200.0000')
-        ->and($paid->commission_given_up)->toBe('400.0000')
+    expect($paid->commission_amount)->toBe('175.4386')
+        ->and($paid->commission_given_up)->toBe('350.8772')
         ->and($paid->commission_floor_applied)->toBeTrue();
 });
 
@@ -119,7 +119,7 @@ it('waives the whole commission with a waive credit, without forcing the minimum
     $paid = payAndSettle($this, $order);
 
     expect($paid->commission_amount)->toBe('0.0000')->and($paid->vat_amount)->toBe('0.0000')
-        ->and($paid->commission_given_up)->toBe('600.0000')->and($paid->commission_floor_applied)->toBeFalse()
+        ->and($paid->commission_given_up)->toBe('526.3158')->and($paid->commission_floor_applied)->toBeFalse()
         ->and(sellerInvoice($paid))->toBeNull()
         ->and(entrySum($paid))->toBe('0.0000');
 });
@@ -129,7 +129,7 @@ it('spends an amount credit partially and keeps the rest', function () {
     $paid = payAndSettle($this, $order);
 
     // 600 - 1000 would go below the minimum: charged 200, given up 400, 600 of the credit stays.
-    expect($paid->commission_amount)->toBe('200.0000')->and($paid->commission_given_up)->toBe('400.0000');
+    expect($paid->commission_amount)->toBe('175.4386')->and($paid->commission_given_up)->toBe('350.8772');
     $credit->refresh();
     expect($credit->status->value)->toBe('active')->and($credit->amount_left_egp)->toBe('600.0000');
 });
@@ -139,8 +139,8 @@ it('does not consume a credit that gives nothing', function () {
     [$order, $credit] = waiverOrder($this, ['kind' => 'percent', 'percent_off' => '50'], ['making_charge_per_g' => '10.00']);
     $paid = payAndSettle($this, $order);
 
-    expect($paid->commission_ordinary_amount)->toBe('200.0000')
-        ->and($paid->commission_amount)->toBe('200.0000')
+    expect($paid->commission_ordinary_amount)->toBe('175.4386')
+        ->and($paid->commission_amount)->toBe('175.4386')
         ->and($paid->commission_waiver_kind)->toBe('none');
     expect($credit->refresh()->status->value)->toBe('active');
 });
@@ -150,7 +150,7 @@ it('never sums two credits of the seller: the lowest wins and the other is untou
     $quarter = Promo::credit($seller, $ring, ['kind' => 'percent', 'percent_off' => '25']);
     $paid = payAndSettle($this, $order);
 
-    expect($paid->commission_amount)->toBe('300.0000')->and($paid->commission_waiver_credit_id)->toBe($half->credit_id);
+    expect($paid->commission_amount)->toBe('263.1579')->and($paid->commission_waiver_credit_id)->toBe($half->credit_id);
     expect($quarter->refresh()->status->value)->toBe('active');
 });
 
@@ -175,7 +175,7 @@ it('ignores an expired credit and another seller\'s credit', function () {
     $theirs = Promo::credit($stranger, Listing::factory()->withPhotos(2)->live()->create(['seller_id' => $stranger->customer_id]), ['kind' => 'waive']);
     $paid = payAndSettle($this, $order);
 
-    expect($paid->commission_waiver_kind)->toBe('none')->and($paid->commission_amount)->toBe('600.0000');
+    expect($paid->commission_waiver_kind)->toBe('none')->and($paid->commission_amount)->toBe('526.3158');
     expect($expired->refresh()->status->value)->toBe('active')->and($theirs->refresh()->status->value)->toBe('active');
 });
 
@@ -185,7 +185,7 @@ it('spends the inviter pool credit on the next sale, bound to no listing', funct
     $pool = Promo::credit($seller, null, ['kind' => 'amount', 'amount_egp' => '200', 'amount_left_egp' => '200']);
     $paid = payAndSettle($this, $order);
 
-    expect($paid->commission_amount)->toBe('400.0000')->and($paid->commission_waiver_credit_id)->toBe($pool->credit_id);
+    expect($paid->commission_amount)->toBe('350.8772')->and($paid->commission_waiver_credit_id)->toBe($pool->credit_id);
     expect($pool->refresh()->status->value)->toBe('exhausted');
 });
 
@@ -232,8 +232,8 @@ it('reproduces the worked examples of Part 3 section 3.3 to the piastre with no 
     // Locked rates 5,263.125 and 5,236.875 on 10 g with 300 making: buyer 55,631.25, gross 55,368.75.
     expect($paid->final_buyer_total)->toBe('55631.2500')
         ->and($paid->final_seller_gross)->toBe('55368.7500')
-        ->and($paid->commission_amount)->toBe('600.0000')
-        ->and($paid->vat_amount)->toBe('84.0000')
+        ->and($paid->commission_amount)->toBe('526.3158')
+        ->and($paid->vat_amount)->toBe('73.6842')
         ->and($paid->spread_amount)->toBe('262.5000')
-        ->and($paid->seller_proceeds)->toBe('54684.7500');
+        ->and($paid->seller_proceeds)->toBe('54768.7500');
 });

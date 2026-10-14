@@ -19,4 +19,10 @@ final readonly class PriceBreakdown
         public ?string $protectedGoldValue,
         public ?KaratPrices $karatPrices,
     ) {}
+
+    /** What the seller is charged, VAT included (package C): commission + vat. */
+    public function commissionTotal(): string
+    {
+        return Money::fixed4(Money::add($this->commission, $this->vat));
+    }
 }

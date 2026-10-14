@@ -84,7 +84,7 @@ final class OrderSettlement
         // One resolver decides the commission: the lowest of none, a free relist (spec 018), a
         // market-maker code (spec 019) and one commission credit of the seller (spec 023). Never a sum.
         $resolution = $this->waivers->resolve(
-            $ordinary->commission,
+            $ordinary->commissionTotal(), // package C: options compared VAT-inclusive
             $rates,
             $listing->isFreeRelist(),
             $request->promo_code !== null,
@@ -111,6 +111,7 @@ final class OrderSettlement
             excess: $excess,
             ordinaryCommission: $resolution->ordinary,
             commissionGivenUp: $resolution->givenUp,
+            commissionGivenUpTotal: $resolution->givenUpTotal,
             waiverKind: $resolution->kind,
             waiverCreditId: $resolution->creditId,
             floor: $resolution->floor,

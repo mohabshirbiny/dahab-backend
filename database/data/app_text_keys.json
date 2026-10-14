@@ -2091,6 +2091,38 @@
       "max_length": 158
     },
     {
+      "key": "invoice.vat.commission_before_vat",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice screen",
+      "default_en": "Commission before VAT ({pct}%, VAT included)",
+      "default_ar": "العمولة قبل الضريبة ({pct}٪ شاملة الضريبة)",
+      "placeholders": [
+        "pct"
+      ],
+      "max_length": 88
+    },
+    {
+      "key": "invoice.vat.commission_vat_included",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice screen",
+      "default_en": "Commission, VAT included",
+      "default_ar": "العمولة شاملة الضريبة",
+      "placeholders": [],
+      "max_length": 48
+    },
+    {
+      "key": "invoice.vat.commission",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice screen",
+      "default_en": "Commission",
+      "default_ar": "العمولة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",

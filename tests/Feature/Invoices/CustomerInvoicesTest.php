@@ -34,7 +34,7 @@ it('lists the seller\'s sale and the buyer\'s purchase, each their own', functio
     $sold = Listings::as($this, $this->seller)->getJson(Invoices::CUSTOMER_URL)->assertOk()->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.number', $this->order->order_ref.'-S')
         ->assertJsonPath('data.0.party', 'seller')
-        ->assertJsonPath('data.0.gross', '684.0000')
+        ->assertJsonPath('data.0.gross', '600.0000')
         ->assertJsonPath('data.0.piece.karat', 21)
         ->assertJsonPath('data.0.piece.subtotal', '55368.7500');
     expect($sold->json('data.0'))->not->toHaveKey('customer');
@@ -51,7 +51,7 @@ it('opens and downloads an own invoice and its credit notes, never anyone else\'
     $note = Invoices::credit($this, $seller, '100')->assertCreated()->json('data');
 
     Listings::as($this, $this->seller)->getJson(Invoices::CUSTOMER_URL."/{$seller->invoice_id}")->assertOk()
-        ->assertJsonPath('data.lines.paid_to_wallet', '54684.7500')
+        ->assertJsonPath('data.lines.paid_to_wallet', '54768.7500')
         ->assertJsonPath('data.issuer.legal_name_ar', 'شركة دهب للاختبار')
         ->assertJsonPath('data.status', 'partly_credited')
         ->assertJsonPath('data.credit_notes.0.number', $note['number'])

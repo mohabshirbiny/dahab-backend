@@ -175,8 +175,8 @@ it('never credits more than the invoice when two credit notes race', function ()
 
         expect($waited)->toBeTrue()
             ->and(inv016After(inv016Credit($finance, $invoice->invoice_id, '500')))->toBe('refused:credit_exceeds_invoice')
-            ->and(inv016After(inv016Credit($finance, $invoice->invoice_id, '184')))->toBe('ran')
-            ->and(DatabaseActor::elevate('maintenance', fn () => (string) CreditNote::query()->sum('gross_amount')))->toBe('684.0000');
+            ->and(inv016After(inv016Credit($finance, $invoice->invoice_id, '100')))->toBe('ran')
+            ->and(DatabaseActor::elevate('maintenance', fn () => (string) CreditNote::query()->sum('gross_amount')))->toBe('600.0000');
     });
 });
 

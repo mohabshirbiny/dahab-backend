@@ -65,7 +65,7 @@ final class PreviewCommissionAction
 
         return DatabaseActor::promo(function () use ($seller, $v, $ctx, $ordinary, $rates, $listing) {
             $pool = $this->credits->candidates($this->credits->usable($seller->customer_id, null));
-            $without = $this->waivers->resolve($ordinary->commission, $rates, false, false, $pool);
+            $without = $this->waivers->resolve($ordinary->commissionTotal(), $rates, false, false, $pool);
 
             $code = null;
             $candidate = null;
@@ -77,10 +77,10 @@ final class PreviewCommissionAction
 
             $with = $candidate === null
                 ? $without
-                : $this->waivers->resolve($ordinary->commission, $rates, false, false, [...$pool, $candidate]);
+                : $this->waivers->resolve($ordinary->commissionTotal(), $rates, false, false, [...$pool, $candidate]);
 
             $kind = $with->kind === WaiverKind::CREDIT ? 'credit' : 'none';
-            $limited = $with->isCredit() && $with->floorApplied && Money::cmp($with->charged, $with->floor) === 0;
+            $limited = $with->isCredit() && $with->floorApplied && Money::cmp($with->chargedTotal, Money::fixed4($rates->minimumEgp)) === 0;
 
             return [
                 'code' => $code,
@@ -94,6 +94,10 @@ final class PreviewCommissionAction
                     'charged_egp' => $with->charged,
                     'vat_egp' => $with->vat,
                     'saved_egp' => $with->givenUp,
+                    // Package C: what the seller pays and saves, VAT included.
+                    'ordinary_total_egp' => $with->ordinaryTotal,
+                    'charged_total_egp' => $with->chargedTotal,
+                    'saved_total_egp' => $with->givenUpTotal,
                     'minimum_egp' => Money::fixed4($rates->minimumEgp),
                     'floor_applied' => $limited,
                 ],

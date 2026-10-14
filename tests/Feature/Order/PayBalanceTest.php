@@ -55,10 +55,10 @@ it('pays: ready to collect, the piece sold, a 6-digit code to the buyer only, th
     expect(Listings::as($this, $this->buyer)->getJson(Orders::CUSTOMER_URL)->assertOk()->getContent())->not->toContain($code);
     Orders::show($this, $this->seller, $order)->assertOk()
         ->assertJsonPath('data.collection_code', null)
-        ->assertJsonPath('data.seller_proceeds', '54684.7500');
+        ->assertJsonPath('data.seller_proceeds', '54768.7500');
 
     Bus::assertDispatched(NotifyCustomerJob::class, fn ($job) => $job->customerId === $this->seller->customer_id
-        && $job->notification->event === OrderEvent::PAID && $job->notification->amount === '54684.7500');
+        && $job->notification->event === OrderEvent::PAID && $job->notification->amount === '54768.7500');
     Bus::assertDispatched(NotifyCustomerJob::class, fn ($job) => $job->customerId === $this->buyer->customer_id
         && $job->notification->event === OrderEvent::COLLECTION_CODE && $job->notification->code === $code);
 });

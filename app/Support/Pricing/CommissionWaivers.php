@@ -20,6 +20,13 @@ use App\Enums\WaiverKind;
  *
  * Pure: no database, no clock. The settlement, the advance's provisional proceeds and the sell
  * form's preview all call it with the same inputs, so they agree.
+ *
+ * Package C (VAT-inclusive commission): every option is compared as the TOTAL the seller pays, VAT
+ * included — the ordinary total, the minimum (VAT-inclusive too), a percent or an amount off the
+ * total — and only the winner is split into net + VAT (VatSplit). The resolution keeps its net
+ * figures (`ordinary`, `charged`, `givenUp`, `floor`: what the order columns and the DH026 check
+ * store) and adds the totals (`ordinaryTotal`, `chargedTotal`, `givenUpTotal`) for the customer's
+ * figures and for spending an amount credit.
  */
 final class CommissionWaivers
 {
@@ -34,7 +41,7 @@ final class CommissionWaivers
     private const PRIORITY_NONE = 9;
 
     /**
-     * @param  string  $ordinary  the commission of an ordinary sale (calculator, no waiver), 4 dp
+     * @param  string  $ordinary  what an ordinary sale charges the seller, VAT included (calculator, no waiver), 4 dp
      * @param  list<CreditCandidate>  $credits  the seller's usable credits (active, unexpired, bound to this listing or unbound)
      */
     public function resolve(string $ordinary, PricingRates $rates, bool $freeRelist, bool $marketMaker, array $credits): CommissionResolution
@@ -95,15 +102,21 @@ final class CommissionWaivers
         [$charged, $kind, $creditId, , $floorApplied] = $options[0];
         $charged = Money::fixed4($charged);
 
+        $chargedSplit = VatSplit::fromInclusive($charged, $rates->vatPct);
+        $ordinaryNet = VatSplit::fromInclusive($ordinary, $rates->vatPct)['net'];
+
         return new CommissionResolution(
             kind: $kind,
             creditId: $creditId,
-            ordinary: $ordinary,
-            charged: $charged,
-            vat: Money::round4(Money::percent($charged, $rates->vatPct)),
-            givenUp: Money::fixed4(Money::sub($ordinary, $charged)),
-            floor: $floor,
+            ordinary: $ordinaryNet,
+            charged: $chargedSplit['net'],
+            vat: $chargedSplit['vat'],
+            givenUp: Money::fixed4(Money::sub($ordinaryNet, $chargedSplit['net'])),
+            floor: VatSplit::fromInclusive($floor, $rates->vatPct)['net'],
             floorApplied: $floorApplied,
+            ordinaryTotal: $ordinary,
+            chargedTotal: $charged,
+            givenUpTotal: Money::fixed4(Money::sub($ordinary, $charged)),
         );
     }
 }
