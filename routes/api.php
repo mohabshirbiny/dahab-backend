@@ -265,6 +265,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::get('/transactions', [CustomerWalletController::class, 'transactions'])->name('transactions');
                 // Spec 015: what each buy request and order holds now.
                 Route::get('/held', [CustomerWalletController::class, 'held'])->name('held');
+                // Wallet statement PDF (item 10): the caller's own statement, never another customer's.
+                Route::get('/statement.pdf', [CustomerWalletController::class, 'statementPdf'])
+                    ->middleware('throttle:customer.statement_pdf')->name('statement-pdf');
 
                 // Spec 009: a suspended customer may read and cancel their own notices.
                 Route::get('/topups', [CustomerTopUpController::class, 'index'])->name('topups.index');

@@ -360,6 +360,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `GET /customer/me` (`document_status`, reasons, note, attempt, `can_submit`); `buy_request.accepted` and
   `buy_request.order_cancelled` inbox items link the order; reject from `changes_requested` (manual); the Dahab wallet
   statement shows commission and spread apart (summary, rows, CSV).
+  Package B (`docs/features/wallet-statement-pdf.md`): `GET /customer/me/wallet/statement.pdf` — the caller's own bilingual
+  statement (mPDF via `MpdfDocument`), default 90 days, at most 366, audited `wallet.statement.downloaded`, 10 a minute.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -416,7 +418,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   and a market-maker account sees approved pieces marked and may send its code. Invite a friend is live (spec 023: the code, Share/Copy counted, where it stands; shown only while the backend's referral switch is on); the promo card on the sell form previews a code against the backend and the paid-early note follows `pays_advance`; the seller's order shows the advance and what a code saved; the prototype's staff screens are gone. Change fee / Change price on the seller's own live piece (spec 022: the real form, `R.editprice?id=`, the live "You would receive" from `/reference/quote`; the button follows `can_change_price`; a reserved piece says why; `R.editprice` is no longer mock; texts `listing.price.*`, Arabic AR-DRAFT); Forgot password (spec 020): *Forgot your password?* opens the phone step, then the code with a new password (resend countdown), and sign-in shows what the reset stopped (cancelled withdrawals, the pause); texts `auth.reset.*` (Arabic is AR-DRAFT until the owner reviews it). Testing fixes A: the National ID row and the header pill show
   the real identity state (`verification`), "Upload your ID again" (`R.idAgain`) sends a new attempt, the customer reloads on resume, on
   `verification_required` and on inbox activity, Sell step 1 says to verify first, inbox items open the right screen by type; texts
-  `account.identity.*` (Arabic AR-DRAFT).
+  `account.identity.*` (Arabic AR-DRAFT). Package B: the Wallet's *Download* makes the server PDF for 30 days / 90 days / 12 months (the
+  hard-coded text statement is gone) and the history says when it shows only the latest movements; texts `wallet.statement.*`.
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

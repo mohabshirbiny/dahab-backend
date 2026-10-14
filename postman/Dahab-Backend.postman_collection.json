@@ -10889,6 +10889,45 @@
                             "response": []
                         },
                         {
+                            "name": "My Wallet Statement PDF",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/pdf",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/wallet/statement.pdf?from=2026-07-01&to=2026-09-30",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "wallet",
+                                        "statement.pdf"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "from",
+                                            "value": "2026-07-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-09-30"
+                                        }
+                                    ]
+                                },
+                                "description": "Wallet statement PDF (item 10). Your own movements for a Cairo-day period, oldest first, the same rows and running balance as My Wallet Transactions, bilingual. from/to optional (default the last 90 days ending today; at most 366 days; not past today). 403 verification_required before the ID is verified; 422 validation_failed for a bad period; 429 after 10 a minute. Audited (wallet.statement.downloaded). Use Send and Download."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Top-up Methods",
                             "request": {
                                 "method": "GET",

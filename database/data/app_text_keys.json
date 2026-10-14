@@ -1999,6 +1999,98 @@
       "max_length": 40
     },
     {
+      "key": "wallet.statement.period",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "Period",
+      "default_ar": "الفترة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "wallet.statement.last_30",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "Last 30 days",
+      "default_ar": "آخر 30 يوم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "wallet.statement.last_90",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "Last 90 days",
+      "default_ar": "آخر 90 يوم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "wallet.statement.last_year",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "Last 12 months",
+      "default_ar": "آخر 12 شهر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "wallet.statement.download_pdf",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "Download PDF",
+      "default_ar": "نزّل PDF",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "wallet.statement.note",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "A PDF with your name, every movement of the period and your balances at the start and the end.",
+      "default_ar": "ملف PDF فيه اسمك وكل حركة في الفترة ورصيدك في أولها وآخرها.",
+      "placeholders": [],
+      "max_length": 188
+    },
+    {
+      "key": "wallet.statement.failed",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "The statement could not be made. Try again in a moment.",
+      "default_ar": "ماقدرناش نعمل الكشف. جرّب تاني بعد شوية.",
+      "placeholders": [],
+      "max_length": 110
+    },
+    {
+      "key": "wallet.statement.not_verified",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "Your statement is ready once your ID is verified.",
+      "default_ar": "الكشف بيبقى جاهز أول ما بطاقتك تتأكد.",
+      "placeholders": [],
+      "max_length": 98
+    },
+    {
+      "key": "wallet.statement.showing_latest",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screen, Statement",
+      "default_en": "Showing the latest {count} movements. Download the statement to see older ones.",
+      "default_ar": "معروض آخر {count} حركة. نزّل الكشف عشان تشوف الأقدم.",
+      "placeholders": [
+        "count"
+      ],
+      "max_length": 158
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",
