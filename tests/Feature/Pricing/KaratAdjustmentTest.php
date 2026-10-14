@@ -9,6 +9,7 @@ use App\Models\Staff;
 use App\Support\SystemActor;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\Pricing;
 
 uses(RefreshDatabase::class);
 
@@ -16,6 +17,8 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(DashboardRolesAndPermissionsSeeder::class);
+    // The worked figures below start from the old default adjustments (buy −15 / sell +15).
+    Pricing::legacyAdjustments();
     $this->finance = Staff::factory()->role(SeedRole::FINANCE)->create();
     $this->token = staffAccessToken($this->finance);
     GoldPrice::query()->create(['source' => 'feed', 'bid_24k' => '7944', 'ask_24k' => '7990', 'recorded_by' => SystemActor::id()]);

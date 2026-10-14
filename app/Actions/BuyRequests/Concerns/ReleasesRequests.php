@@ -101,15 +101,19 @@ trait ReleasesRequests
         ?string $branch = null,
         ?string $branchAr = null,
         ?string $reason = null,
+        ?string $orderId = null,
     ): void {
         $listing->loadMissing('pieceType');
 
         $notification = new BuyRequestNotification(
             $event, $listing->title(), $listing->title(arabic: true), $amount, $deadline, $orderRef, $branch, $branchAr, $reason,
         );
-        // Spec 017: the seller's inbox item opens the piece.
+        // Spec 017: the seller's inbox item opens the piece. Testing fixes item 7: an accepted
+        // request and a cancelled sale open the order they belong to.
         if ($event === BuyRequestEvent::NEW_REQUEST) {
             $notification->linkTo(InboxLinkKind::LISTING, $listing->listing_id);
+        } elseif ($orderId !== null && in_array($event, [BuyRequestEvent::ACCEPTED, BuyRequestEvent::ORDER_CANCELLED], true)) {
+            $notification->linkTo(InboxLinkKind::ORDER, $orderId);
         }
         $this->outbox[] = [$customerId, $notification];
     }

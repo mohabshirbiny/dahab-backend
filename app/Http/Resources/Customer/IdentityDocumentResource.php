@@ -13,7 +13,8 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'document_id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'doc_kind', type: 'string', enum: ['egyptian_id', 'passport']),
-        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'approved', 'rejected']),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'verified', 'needs_resubmission', 'rejected', 'superseded']),
+        new OA\Property(property: 'attempt_number', type: 'integer', minimum: 1),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
     ],
 )]
@@ -28,6 +29,7 @@ class IdentityDocumentResource extends JsonResource
             'document_id' => $d->document_id,
             'doc_kind' => $d->doc_kind->value,
             'status' => $d->status->value,
+            'attempt_number' => $d->attempt_number,
             'created_at' => $d->created_at->toIso8601String(),
         ];
     }

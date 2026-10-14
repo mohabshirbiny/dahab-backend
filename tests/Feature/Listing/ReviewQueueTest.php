@@ -151,7 +151,7 @@ it('says what this staff member may do, by state and permission', function (stri
 })->with([
     'in review' => ['inReview', [true, true, true, false]],
     'live' => ['live', [false, false, false, true]],
-    'changes requested' => ['changesRequested', [false, false, false, false]],
+    'changes requested' => ['changesRequested', [false, false, true, false]],
     'rejected' => ['rejected', [false, false, false, false]],
     'withdrawn' => ['withdrawn', [false, false, false, false]],
 ]);

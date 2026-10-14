@@ -13,7 +13,8 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'document_id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'doc_kind', type: 'string', enum: ['egyptian_id', 'passport']),
-        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'verified', 'needs_resubmission', 'rejected']),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'verified', 'needs_resubmission', 'rejected', 'superseded']),
+        new OA\Property(property: 'attempt_number', type: 'integer', minimum: 1, description: 'Which upload attempt of the customer this document is: 1, 2, 3 … (every attempt is kept)'),
         new OA\Property(property: 'has_back', type: 'boolean'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'reviewed_by', type: 'string', format: 'uuid', nullable: true),
@@ -35,6 +36,7 @@ class IdentityDocumentResource extends JsonResource
             'document_id' => $d->document_id,
             'doc_kind' => $d->doc_kind->value,
             'status' => $d->status->value,
+            'attempt_number' => $d->attempt_number,
             'has_back' => $d->back_ref !== null,
             'created_at' => $d->created_at->toIso8601String(),
             'reviewed_by' => $d->reviewed_by,

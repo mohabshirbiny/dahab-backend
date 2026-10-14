@@ -27,7 +27,8 @@ use Illuminate\Support\Facades\DB;
  *
  * Each decision starts from exactly one state (approve, ask for changes and
  * reject from `in_review`; take down from `live`, or since spec 011 from
- * `reserved`, releasing and refunding the line), even where
+ * `reserved`, releasing and refunding the line; since the testing fixes a
+ * reject also from `changes_requested`, manual only), even where
  * `listing_transition` holds other rows into the same target for later
  * modules.
  */
@@ -57,6 +58,11 @@ final class DecideListingAction
             // Spec 011 FR-019: a take-down also works on a reserved piece; its line is released.
             if ($decision === ListingDecision::TAKEN_DOWN && $listing->state === ListingState::RESERVED) {
                 $from = ListingState::RESERVED;
+            }
+
+            // Testing fixes item 8: a listing waiting for the seller's changes may be rejected for good.
+            if ($decision === ListingDecision::REJECTED && $listing->state === ListingState::CHANGES_REQUESTED) {
+                $from = ListingState::CHANGES_REQUESTED;
             }
 
             if ($listing->state !== $from) {

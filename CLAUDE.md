@@ -353,7 +353,13 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `first_sale_payout` entry, exposure ceiling under an advisory lock, reconciled at payment, written off by a status change
   only, `POST|DELETE /dashboard/customers/{id}/first-sale-advance`, `first_sale.manage`), the national-ID number hashed at
   identity verify (`CustomerIdKey`), the market-maker page's view counter, guide, audited media, Leave and cost panel, and
-  the `promo` RLS scope; the three switches default off; guards DH024–DH027.
+  the `promo` RLS scope; the three switches default off; guards DH024–DH027;
+  testing fixes package A (`docs/features/testing-fixes.md`) — karat adjustments start at 0 / 0 (untouched seeded rows reset;
+  edited rows kept); every identity upload is its own row with `attempt_number`, an answered "ask again" becomes the final
+  status `superseded` (images kept; one open document per customer), staff verify / reject while waiting; `verification` on
+  `GET /customer/me` (`document_status`, reasons, note, attempt, `can_submit`); `buy_request.accepted` and
+  `buy_request.order_cancelled` inbox items link the order; reject from `changes_requested` (manual); the Dahab wallet
+  statement shows commission and spread apart (summary, rows, CSV).
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -381,6 +387,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   (`/frozen`, *Confirm my unfreeze*; a live session answering `account_frozen` lands there), the *Security* page (founders; holders of
   `founder.unfreeze_second` see only the freezes: pending approvals, freeze/unfreeze, known devices, history, *Freeze* offered after a
   refusal) and the notices bell in the top bar; the Audit page opens `?entry=<id>`.
+  Testing fixes A: "Attempt N" on identity reviews, the users list and the Customer file (earlier attempts read-only), Verify /
+  Reject while waiting for a new upload with how long it has waited, Reject on a listing waiting for changes, the karat-table note
+  under the manual price preview, and Commission / Spread apart on the Dahab wallet statement.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -404,7 +413,10 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Close my account are live (spec 017); the order screen's free-relist offer with its countdown, the relist form, "No Dahab fee on
   this sale" and the rating screen (no invite card) are live and the mock relist timer is gone (spec 018); Help reads the published entries and the app's texts are
   editable end to end (spec 019); the app shows the stop banner, honours pauses and the sharing switch, accepts the terms before anything else,
-  and a market-maker account sees approved pieces marked and may send its code. Invite a friend is live (spec 023: the code, Share/Copy counted, where it stands; shown only while the backend's referral switch is on); the promo card on the sell form previews a code against the backend and the paid-early note follows `pays_advance`; the seller's order shows the advance and what a code saved; the prototype's staff screens are gone. Change fee / Change price on the seller's own live piece (spec 022: the real form, `R.editprice?id=`, the live "You would receive" from `/reference/quote`; the button follows `can_change_price`; a reserved piece says why; `R.editprice` is no longer mock; texts `listing.price.*`, Arabic AR-DRAFT); Forgot password (spec 020): *Forgot your password?* opens the phone step, then the code with a new password (resend countdown), and sign-in shows what the reset stopped (cancelled withdrawals, the pause); texts `auth.reset.*` (Arabic is AR-DRAFT until the owner reviews it).
+  and a market-maker account sees approved pieces marked and may send its code. Invite a friend is live (spec 023: the code, Share/Copy counted, where it stands; shown only while the backend's referral switch is on); the promo card on the sell form previews a code against the backend and the paid-early note follows `pays_advance`; the seller's order shows the advance and what a code saved; the prototype's staff screens are gone. Change fee / Change price on the seller's own live piece (spec 022: the real form, `R.editprice?id=`, the live "You would receive" from `/reference/quote`; the button follows `can_change_price`; a reserved piece says why; `R.editprice` is no longer mock; texts `listing.price.*`, Arabic AR-DRAFT); Forgot password (spec 020): *Forgot your password?* opens the phone step, then the code with a new password (resend countdown), and sign-in shows what the reset stopped (cancelled withdrawals, the pause); texts `auth.reset.*` (Arabic is AR-DRAFT until the owner reviews it). Testing fixes A: the National ID row and the header pill show
+  the real identity state (`verification`), "Upload your ID again" (`R.idAgain`) sends a new attempt, the customer reloads on resume, on
+  `verification_required` and on inbox activity, Sell step 1 says to verify first, inbox items open the right screen by type; texts
+  `account.identity.*` (Arabic AR-DRAFT).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

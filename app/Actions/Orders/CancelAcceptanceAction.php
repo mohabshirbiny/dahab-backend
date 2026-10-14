@@ -93,9 +93,9 @@ final class CancelAcceptanceAction
             );
 
             $this->tell($order->buyer_id, BuyRequestEvent::ORDER_CANCELLED, $listing,
-                amount: (string) $request->deposit_amount, orderRef: $order->order_ref, reason: $reason);
+                amount: (string) $request->deposit_amount, orderRef: $order->order_ref, reason: $reason, orderId: $order->order_id);
             $this->tell($order->seller_id, BuyRequestEvent::ORDER_CANCELLED, $listing,
-                orderRef: $order->order_ref, reason: $reason);
+                orderRef: $order->order_ref, reason: $reason, orderId: $order->order_id);
             $this->flushAfterCommit();
 
             return ['order' => $order->refresh(), 'listing' => $listing->refresh(), 'refunded' => (string) $request->deposit_amount];

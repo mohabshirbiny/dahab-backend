@@ -33,7 +33,7 @@ it('reads numbers as strings and flags as booleans', function () {
 
 it('seeds both price adjustments for every karat, and a new karat starts at zero', function () {
     expect(KaratPriceAdjustment::query()->count())->toBe(Karat::query()->count() * 2)
-        ->and(KaratPriceAdjustment::query()->where('karat_code', 21)->where('side', 'buy')->value('value'))->toBe('-15.0000');
+        ->and(KaratPriceAdjustment::query()->where('karat_code', 21)->where('side', 'buy')->value('value'))->toBe('0.0000'); // testing fixes: 0 / 0 by default
 
     $karat = Karat::factory()->create(['karat_code' => 14]);
 

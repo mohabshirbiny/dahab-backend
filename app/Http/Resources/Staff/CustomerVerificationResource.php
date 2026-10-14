@@ -26,7 +26,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'latest_document', type: 'object', nullable: true, properties: [
             new OA\Property(property: 'document_id', type: 'string', format: 'uuid'),
             new OA\Property(property: 'doc_kind', type: 'string', enum: ['egyptian_id', 'passport']),
-            new OA\Property(property: 'status', type: 'string', enum: ['pending', 'verified', 'needs_resubmission', 'rejected']),
+            new OA\Property(property: 'status', type: 'string', enum: ['pending', 'verified', 'needs_resubmission', 'rejected', 'superseded']),
+            new OA\Property(property: 'attempt_number', type: 'integer', minimum: 1, description: 'Upload attempt; the latest one is also the number of attempts'),
             new OA\Property(property: 'has_back', type: 'boolean'),
             new OA\Property(property: 'review_reasons', type: 'array', items: new OA\Items(type: 'string'), nullable: true),
             new OA\Property(property: 'review_note', type: 'string', nullable: true),
@@ -66,6 +67,7 @@ class CustomerVerificationResource extends JsonResource
             'document_id' => $d->document_id,
             'doc_kind' => $d->doc_kind->value,
             'status' => $d->status->value,
+            'attempt_number' => $d->attempt_number,
             'has_back' => $d->back_ref !== null,
             'review_reasons' => $d->review_reasons,
             'review_note' => $d->review_note,

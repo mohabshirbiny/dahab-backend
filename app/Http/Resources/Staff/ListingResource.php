@@ -131,7 +131,7 @@ class ListingResource extends JsonResource
             'state_changed_at' => $l->state_changed_at->toIso8601String(),
             'can_approve' => $l->state === ListingState::IN_REVIEW && $can(StaffPermission::LISTING_REVIEW),
             'can_request_changes' => $l->state === ListingState::IN_REVIEW && $can(StaffPermission::LISTING_REQUEST_CHANGES),
-            'can_reject' => $l->state === ListingState::IN_REVIEW && $can(StaffPermission::LISTING_REVIEW),
+            'can_reject' => in_array($l->state, [ListingState::IN_REVIEW, ListingState::CHANGES_REQUESTED], true) && $can(StaffPermission::LISTING_REVIEW),
             // Spec 011: a reserved piece can be taken down too; its line is released and refunded.
             'can_take_down' => in_array($l->state, [ListingState::LIVE, ListingState::RESERVED], true) && $can(StaffPermission::LISTING_TAKEDOWN),
         ] + ($l->relationLoaded('queuedRequests') ? ['queue' => self::queue($l)] : [])

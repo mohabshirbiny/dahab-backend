@@ -42,7 +42,11 @@ final class BuildWalletStatementAction
             WITH {$entriesSql}
             SELECT COALESCE(SUM(GREATEST(delta, 0)), 0)::numeric(18,4)::text AS money_in,
                    COALESCE(SUM(GREATEST(-delta, 0)), 0)::numeric(18,4)::text AS money_out,
-                   COALESCE(SUM(held_change), 0)::numeric(18,4)::text AS held_change
+                   COALESCE(SUM(held_change), 0)::numeric(18,4)::text AS held_change,
+                   COALESCE(SUM(GREATEST(commission_delta, 0)), 0)::numeric(18,4)::text AS commission_in,
+                   COALESCE(SUM(GREATEST(-commission_delta, 0)), 0)::numeric(18,4)::text AS commission_out,
+                   COALESCE(SUM(GREATEST(spread_delta, 0)), 0)::numeric(18,4)::text AS spread_in,
+                   COALESCE(SUM(GREATEST(-spread_delta, 0)), 0)::numeric(18,4)::text AS spread_out
             FROM dated
         ", $bindings);
 
@@ -108,6 +112,8 @@ final class BuildWalletStatementAction
                        MIN(p.posting_id) AS seq,
                        COALESCE(SUM(p.amount) FILTER (WHERE {$p['run']}), 0) AS delta,
                        COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'cust_held'), 0) AS held_change,
+                       COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_commission'), 0) AS commission_delta,
+                       COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_spread'), 0) AS spread_delta,
                        CASE WHEN COUNT(DISTINCT a.customer_id) = 1 THEN MIN(a.customer_id::text) END AS wallet_customer,
                        pt.created_at, pt.event_kind::text AS kind, pt.memo, pt.staff_id, pt.customer_id AS actor_customer_id
                 FROM period_txn pt
@@ -138,7 +144,11 @@ final class BuildWalletStatementAction
                        ?::numeric + COALESCE(SUM(d.held_change) OVER w, 0) + d.held_change AS held_after,
                        SUM(GREATEST(d.delta, 0)) OVER () AS t_in,
                        SUM(GREATEST(-d.delta, 0)) OVER () AS t_out,
-                       SUM(d.held_change) OVER () AS t_held
+                       SUM(d.held_change) OVER () AS t_held,
+                       SUM(GREATEST(d.commission_delta, 0)) OVER () AS t_ci,
+                       SUM(GREATEST(-d.commission_delta, 0)) OVER () AS t_co,
+                       SUM(GREATEST(d.spread_delta, 0)) OVER () AS t_si,
+                       SUM(GREATEST(-d.spread_delta, 0)) OVER () AS t_so
                 FROM dated d
                 WHERE d.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND d.created_at < (?::timestamp AT TIME ZONE '{$tz}')
                 WINDOW w AS (ORDER BY d.seq ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
@@ -153,6 +163,12 @@ final class BuildWalletStatementAction
                    pr.t_in::numeric(18,4)::text AS t_in,
                    pr.t_out::numeric(18,4)::text AS t_out,
                    pr.t_held::numeric(18,4)::text AS t_held,
+                   pr.commission_delta::numeric(18,4)::text AS commission,
+                   pr.spread_delta::numeric(18,4)::text AS spread,
+                   pr.t_ci::numeric(18,4)::text AS t_ci,
+                   pr.t_co::numeric(18,4)::text AS t_co,
+                   pr.t_si::numeric(18,4)::text AS t_si,
+                   pr.t_so::numeric(18,4)::text AS t_so,
                    s.staff_id, s.full_name AS staff_name, s.is_system,
                    ac.full_name AS actor_customer_name,
                    wc.display_ref AS wallet_ref,
@@ -173,7 +189,7 @@ final class BuildWalletStatementAction
 
         return [
             'rows' => array_map(fn ($r) => $this->eachRow($query, $r), $rows),
-            'totals' => isset($rows[0]) ? (object) ['money_in' => $rows[0]->t_in, 'money_out' => $rows[0]->t_out, 'held_change' => $rows[0]->t_held] : null,
+            'totals' => isset($rows[0]) ? $this->totalsOf($rows[0]) : null,
             'next_cursor' => $hasMore && $last !== null ? (new StatementCursor(seq: (int) $last->seq))->encode() : null,
         ];
     }
@@ -210,8 +226,18 @@ final class BuildWalletStatementAction
                 'wallet' => $r->wallet_customer === null ? null : ['customer_id' => $r->wallet_customer, 'display_ref' => $r->wallet_ref],
                 'moved_to_held' => $r->held_change,
             ],
-            default => $row,
+            // Testing fixes item 9: the two Dahab accounts apart; commission + spread = in − out.
+            default => $row + ['commission' => $r->commission, 'spread' => $r->spread],
         };
+    }
+
+    /** The period totals carried on every row of the page (window aggregates). */
+    private function totalsOf(object $r): object
+    {
+        return (object) [
+            'money_in' => $r->t_in, 'money_out' => $r->t_out, 'held_change' => $r->t_held,
+            'commission_in' => $r->t_ci, 'commission_out' => $r->t_co, 'spread_in' => $r->t_si, 'spread_out' => $r->t_so,
+        ];
     }
 
     /**
@@ -231,16 +257,27 @@ final class BuildWalletStatementAction
                        SUM(GREATEST(d.delta, 0)) AS money_in,
                        SUM(GREATEST(-d.delta, 0)) AS money_out,
                        SUM(d.delta) AS net,
-                       SUM(d.held_change) AS held
+                       SUM(d.held_change) AS held,
+                       SUM(d.commission_delta) AS commission,
+                       SUM(d.spread_delta) AS spread,
+                       SUM(GREATEST(d.commission_delta, 0)) AS ci, SUM(GREATEST(-d.commission_delta, 0)) AS co,
+                       SUM(GREATEST(d.spread_delta, 0)) AS si, SUM(GREATEST(-d.spread_delta, 0)) AS so
                 FROM dated d
                 WHERE d.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND d.created_at < (?::timestamp AT TIME ZONE '{$tz}')
                 GROUP BY 1
             ), running AS (
                 SELECT g.*, ?::numeric + COALESCE(SUM(g.net) OVER (ORDER BY g.period ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS before,
-                       SUM(g.money_in) OVER () AS t_in, SUM(g.money_out) OVER () AS t_out, SUM(g.held) OVER () AS t_held
+                       SUM(g.money_in) OVER () AS t_in, SUM(g.money_out) OVER () AS t_out, SUM(g.held) OVER () AS t_held,
+                       SUM(g.ci) OVER () AS t_ci, SUM(g.co) OVER () AS t_co, SUM(g.si) OVER () AS t_si, SUM(g.so) OVER () AS t_so
                 FROM grouped g
             )
             SELECT period, n,
+                   commission::numeric(18,4)::text AS commission,
+                   spread::numeric(18,4)::text AS spread,
+                   t_ci::numeric(18,4)::text AS t_ci,
+                   t_co::numeric(18,4)::text AS t_co,
+                   t_si::numeric(18,4)::text AS t_si,
+                   t_so::numeric(18,4)::text AS t_so,
                    before::numeric(18,4)::text AS before,
                    money_in::numeric(18,4)::text AS money_in,
                    money_out::numeric(18,4)::text AS money_out,
@@ -266,9 +303,9 @@ final class BuildWalletStatementAction
                 'in' => $r->money_in,
                 'out' => $r->money_out,
                 'after' => $r->after,
-            ], $rows),
+            ] + ($query->view === 'dahab' ? ['commission' => $r->commission, 'spread' => $r->spread] : []), $rows),
             'next_cursor' => $hasMore && $last !== null ? (new StatementCursor(period: $last->period))->encode() : null,
-            'totals' => isset($rows[0]) ? (object) ['money_in' => $rows[0]->t_in, 'money_out' => $rows[0]->t_out, 'held_change' => $rows[0]->t_held] : null,
+            'totals' => isset($rows[0]) ? $this->totalsOf($rows[0]) : null,
         ];
     }
 
@@ -305,7 +342,14 @@ final class BuildWalletStatementAction
                 WHERE a.kind = 'vat_payable' AND t.created_at < (?::timestamp AT TIME ZONE '".self::TZ."')
             ", [$end])->vat;
 
-            return $summary + ['vat_payable' => $vat];
+            // Testing fixes item 9: commission and spread apart (display only; in = both ins, out = both outs).
+            return $summary + [
+                'vat_payable' => $vat,
+                'commission_in' => $totals->commission_in,
+                'commission_out' => $totals->commission_out,
+                'spread_in' => $totals->spread_in,
+                'spread_out' => $totals->spread_out,
+            ];
         }
 
         return $summary;

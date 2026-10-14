@@ -70,6 +70,25 @@ it('exports a grain by period', function () {
         ->and($rows[3])->toBe(['2026-08', '2', '0.0000', '1000.0000', '400.0000', '600.0000']);
 });
 
+it('exports the Dahab view with commission and spread apart', function () {
+    // Testing fixes item 9.
+    Ledger::postAt('2026-08-15 12:00', LedgerEventKind::COMMISSION, null, [
+        [Account::internal(AccountKind::EXTERNAL_EQUITY), '-684'],
+        [Account::internal(AccountKind::DAHAB_COMMISSION), '600'],
+        [Account::internal(AccountKind::VAT_PAYABLE), '84'],
+    ], staffId: $this->finance->staff_id);
+    Ledger::postAt('2026-08-15 12:01', LedgerEventKind::SPREAD, null, [
+        [Account::internal(AccountKind::EXTERNAL_EQUITY), '-262.5'], [Account::internal(AccountKind::DAHAB_SPREAD), '262.5'],
+    ], staffId: $this->finance->staff_id);
+
+    $rows = statementCsv(exportStatement($this, $this->finance, ['view' => 'dahab', 'from' => '2026-08-01', 'to' => '2026-08-31'])->assertOk()->getContent());
+
+    expect($rows[2])->toBe(['Commission in', '600.0000', 'Commission out', '0.0000', 'Spread in', '262.5000', 'Spread out', '0.0000'])
+        ->and(array_slice($rows[3], -2))->toBe(['Commission', 'Spread'])
+        ->and(array_slice($rows[4], -2))->toBe(['600.0000', '0.0000'])
+        ->and(array_slice($rows[5], -2))->toBe(['0.0000', '262.5000']);
+});
+
 it('audits every export, whatever the view', function () {
     exportStatement($this, $this->finance, $this->query)->assertOk();
     exportStatement($this, $this->finance, ['view' => 'customers', 'from' => '2026-08-01', 'to' => '2026-08-31'])->assertOk();
