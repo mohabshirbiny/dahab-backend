@@ -32,16 +32,16 @@ it('issues the seller and buyer invoices at payment, equal to what was posted', 
     expect(TaxInvoice::query()->where('order_id', $order->order_id)->count())->toBe(2)
         ->and($seller->invoice_no)->toBe($order->order_ref.'-S')
         ->and($seller->customer_id)->toBe($order->seller_id)
-        ->and((string) $seller->net_amount)->toBe('600.0000')
-        ->and((string) $seller->vat_amount)->toBe('84.0000')
-        ->and((string) $seller->gross_amount)->toBe('684.0000')
+        ->and((string) $seller->net_amount)->toBe('526.3158')
+        ->and((string) $seller->vat_amount)->toBe('73.6842')
+        ->and((string) $seller->gross_amount)->toBe('600.0000')
         ->and((float) $seller->vat_rate)->toBe(14.0)
         ->and($seller->lines['weight_g'])->toBe('10.000')
         ->and($seller->lines['unit_rate'])->toBe('5236.8750')
         ->and($seller->lines['gold_value'])->toBe('52368.7500')
         ->and($seller->lines['making_total'])->toBe('3000.0000')
         ->and($seller->lines['subtotal'])->toBe('55368.7500')
-        ->and($seller->lines['paid_to_wallet'])->toBe('54684.7500')
+        ->and($seller->lines['paid_to_wallet'])->toBe('54768.7500')
         ->and($seller->lines['karat_label'])->toBe('21K')
         ->and($seller->lines['piece_type_en'])->not->toBeNull()
         ->and($buyer->invoice_no)->toBe($order->order_ref.'-B')
@@ -62,8 +62,8 @@ it('issues invoices for stone pieces on the asking price with no spread', functi
     $diamond = Invoices::paidDiamond($this);
     $seller = Invoices::of($diamond, 'seller');
 
-    expect((string) $seller->net_amount)->toBe('6000.0000')
-        ->and((string) $seller->vat_amount)->toBe('840.0000')
+    expect((string) $seller->net_amount)->toBe('5263.1579')
+        ->and((string) $seller->vat_amount)->toBe('736.8421')
         ->and($seller->lines['asking_price'])->toBe('120000.0000')
         ->and($seller->lines['gold_value'])->toBeNull()
         ->and((string) Invoices::of($diamond, 'buyer')->gross_amount)->toBe('120000.0000');
@@ -78,7 +78,7 @@ it('keeps an issued invoice as it was when the VAT setting changes later', funct
     Setting::query()->where('setting_key', 'vat.pct')->update(['value_numeric' => '15']);
 
     $seller = Invoices::of($order, 'seller');
-    expect((string) $seller->vat_amount)->toBe('84.0000')->and((float) $seller->vat_rate)->toBe(14.0);
+    expect((string) $seller->vat_amount)->toBe('73.6842')->and((float) $seller->vat_rate)->toBe(14.0);
 });
 
 it('issues nothing more on a replayed payment', function () {

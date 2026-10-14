@@ -60,7 +60,7 @@ function entryTotal(Order $order, string $kind): string
 it('recovers the advance from the proceeds at the buyer\'s payment', function () {
     $order = advancedOrder($this);
     $seller = Orders::seller($order);
-    expect(BuyRequests::balances($seller)['available'])->toBe('54684.7500');
+    expect(BuyRequests::balances($seller)['available'])->toBe('54768.7500');
 
     Orders::pay($this, Orders::buyer($order), $order)->assertOk();
     balancesAndFire();
@@ -69,10 +69,10 @@ it('recovers the advance from the proceeds at the buyer\'s payment', function ()
 
     // The whole entitlement reached the seller exactly once; Dahab's front is back.
     expect($advance->status->value)->toBe('recovered')
-        ->and($advance->recovered_egp)->toBe('54684.7500')->and($advance->shortfall_absorbed_egp)->toBe('0.0000')
+        ->and($advance->recovered_egp)->toBe('54768.7500')->and($advance->shortfall_absorbed_egp)->toBe('0.0000')
         ->and($advance->recovered_txn_id)->not->toBeNull()
-        ->and($order->seller_proceeds)->toBe('54684.7500')
-        ->and(BuyRequests::balances($seller)['available'])->toBe('54684.7500')
+        ->and($order->seller_proceeds)->toBe('54768.7500')
+        ->and(BuyRequests::balances($seller)['available'])->toBe('54768.7500')
         ->and(Orders::internal(AccountKind::EXTERNAL_EQUITY))->toBe('0.0000')
         ->and(entryTotal($order, 'balance_payment'))->toBe('0.0000');
 
@@ -164,7 +164,7 @@ it('shows staff the exposure, the written-off total and the advances', function 
     $res = $this->getJson('/api/v1/dashboard/first-sale-advances')->assertOk();
     expect($res->json('meta'))->toMatchArray([
         'enabled' => true, 'cap_egp' => '100000.0000', 'ceiling_egp' => '1000000.0000',
-        'outstanding_egp' => '54684.7500', 'outstanding_count' => 1, 'headroom_egp' => '945315.2500',
+        'outstanding_egp' => '54768.7500', 'outstanding_count' => 1, 'headroom_egp' => '945231.2500',
         'written_off_total_egp' => '0.0000', 'shortfall_total_egp' => '0.0000',
     ])
         ->and($res->json('data.0.status'))->toBe('outstanding')

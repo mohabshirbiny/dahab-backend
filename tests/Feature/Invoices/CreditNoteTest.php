@@ -41,23 +41,23 @@ it('credits a seller invoice in full: one balanced entry back to the seller', fu
     $commission = Orders::internal(AccountKind::DAHAB_COMMISSION);
     $vat = Orders::internal(AccountKind::VAT_PAYABLE);
 
-    $res = Invoices::credit($this, $this->invoice, '684', 'The whole commission was charged by mistake.')->assertCreated()
+    $res = Invoices::credit($this, $this->invoice, '600', 'The whole commission was charged by mistake.')->assertCreated()
         ->assertJsonPath('data.invoice_number', $this->invoice->invoice_no)
-        ->assertJsonPath('data.net', '600.0000')
-        ->assertJsonPath('data.vat', '84.0000')
-        ->assertJsonPath('data.gross', '684.0000')
+        ->assertJsonPath('data.net', '526.3158')
+        ->assertJsonPath('data.vat', '73.6842')
+        ->assertJsonPath('data.gross', '600.0000')
         ->assertJsonPath('data.issued_by.id', $finance->staff_id);
 
     expect($res->json('data.number'))->toMatch('/^CN-\d{4}-\d{6}$/')
-        ->and(Finance::available($this->seller))->toBe(bcadd($before, '684', 4))
-        ->and(Orders::internal(AccountKind::DAHAB_COMMISSION))->toBe(bcsub($commission, '600', 4))
-        ->and(Orders::internal(AccountKind::VAT_PAYABLE))->toBe(bcsub($vat, '84', 4))
+        ->and(Finance::available($this->seller))->toBe(bcadd($before, '600', 4))
+        ->and(Orders::internal(AccountKind::DAHAB_COMMISSION))->toBe(bcsub($commission, '526.3158', 4))
+        ->and(Orders::internal(AccountKind::VAT_PAYABLE))->toBe(bcsub($vat, '73.6842', 4))
         ->and(Finance::globalSum())->toBe('0.0000')
         ->and(collect(Orders::lines($this->order, 'credit_note'))->pluck('kind')->sort()->values()->all())
         ->toBe(['cust_available', 'dahab_commission', 'vat_payable']);
 
     $invoice = Invoices::of($this->order, 'seller');
-    expect((string) $invoice->gross_amount)->toBe('684.0000')
+    expect((string) $invoice->gross_amount)->toBe('600.0000')
         ->and($invoice->remaining())->toBe('0.0000')
         ->and($invoice->status()->value)->toBe('credited');
 
@@ -66,7 +66,7 @@ it('credits a seller invoice in full: one balanced entry back to the seller', fu
         ->and($audit->reason)->toBe('The whole commission was charged by mistake.');
 
     Bus::assertDispatched(NotifyCustomerJob::class, fn ($job) => $job->customerId === $this->seller->customer_id
-        && $job->notification->event === WalletEvent::CREDIT_NOTE_ISSUED && $job->notification->amount === '684.0000'
+        && $job->notification->event === WalletEvent::CREDIT_NOTE_ISSUED && $job->notification->amount === '600.0000'
         && $job->notification->reference === $this->invoice->invoice_no);
 });
 
@@ -79,11 +79,11 @@ it('credits in part, splitting the VAT at the invoice rate, then refuses more th
 
     expect(Invoices::of($this->order, 'seller')->status()->value)->toBe('partly_credited');
 
-    Invoices::credit($this, $this->invoice, '384.01')->assertStatus(422)
+    Invoices::credit($this, $this->invoice, '300.01')->assertStatus(422)
         ->assertJsonPath('code', 'credit_exceeds_invoice')
-        ->assertJsonPath('details.remaining', '384.0000');
+        ->assertJsonPath('details.remaining', '300.0000');
 
-    Invoices::credit($this, $this->invoice, '384')->assertCreated();
+    Invoices::credit($this, $this->invoice, '300')->assertCreated();
     expect(Invoices::of($this->order, 'seller')->status()->value)->toBe('credited')
         ->and(CreditNote::query()->count())->toBe(2)
         ->and(Finance::globalSum())->toBe('0.0000');

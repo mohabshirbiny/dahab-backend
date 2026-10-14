@@ -362,6 +362,11 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   statement shows commission and spread apart (summary, rows, CSV).
   Package B (`docs/features/wallet-statement-pdf.md`): `GET /customer/me/wallet/statement.pdf` — the caller's own bilingual
   statement (mPDF via `MpdfDocument`), default 90 days, at most 366, audited `wallet.statement.downloaded`, 10 a minute.
+  Package C (`docs/features/vat-inclusive-commission.md`): **the commission rate includes VAT** — total = max(rate × base,
+  minimum 200 incl. VAT), net = round(total × 100 / (100 + VAT)) posted to `dahab_commission`, VAT = total − net, proceeds =
+  gross − total (`VatSplit`); waivers compare inclusive totals; order cost columns stay net; for every quote and settlement after
+  the deploy (in-flight orders too), nothing posted rewritten; seller invoices flag `commission_vat_inclusive`, buyer gold
+  invoices show the price difference as "Commission" (VAT 0) when it went to `dahab_spread`.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -392,6 +397,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Testing fixes A: "Attempt N" on identity reviews, the users list and the Customer file (earlier attempts read-only), Verify /
   Reject while waiting for a new upload with how long it has waited, Reject on a listing waiting for changes, the karat-table note
   under the manual price preview, and Commission / Spread apart on the Dahab wallet statement.
+  Package C: the order settlement reads "Commission before VAT" / "VAT in the commission"; the invoice detail shows the
+  VAT-inclusive commission rows and the buyer's price-difference "Commission" line.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -419,7 +426,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   the real identity state (`verification`), "Upload your ID again" (`R.idAgain`) sends a new attempt, the customer reloads on resume, on
   `verification_required` and on inbox activity, Sell step 1 says to verify first, inbox items open the right screen by type; texts
   `account.identity.*` (Arabic AR-DRAFT). Package B: the Wallet's *Download* makes the server PDF for 30 days / 90 days / 12 months (the
-  hard-coded text statement is gone) and the history says when it shows only the latest movements; texts `wallet.statement.*`.
+  hard-coded text statement is gone) and the history says when it shows only the latest movements; texts `wallet.statement.*`. Package C: the invoice screen
+  shows the VAT-inclusive commission rows and the buyer's "Commission" line; texts `invoice.vat.*`.
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

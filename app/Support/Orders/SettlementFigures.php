@@ -31,6 +31,8 @@ final readonly class SettlementFigures
         public string $floor = '0.0000',
         public bool $floorApplied = true,
         public string $spreadGivenUp = '0.0000',
+        // Package C: the saving VAT included (what an amount credit is spent by); not stored on the order.
+        public string $commissionGivenUpTotal = '0.0000',
     ) {}
 
     /** @return array<string, mixed> the "order" columns */

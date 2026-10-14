@@ -29,7 +29,12 @@
 
 <table class="lines" style="margin-top:5mm">
     <tr class="section"><td class="c1">{{ $seller ? 'Settlement' : 'Price' }}</td><td class="num c2">EGP</td><td class="ar c3" lang="ar">{{ $seller ? 'التسوية' : 'السعر' }}</td></tr>
-    @if(($l['gold_value'] ?? null) !== null)
+    @if(! $seller && ($l['price_difference'] ?? null) !== null)
+        {{-- Package C item 13: the price difference is shown as Dahab's commission (VAT 0); the total is unchanged. --}}
+        <tr><td class="c1">Gold value at {{ $m($l['seller_unit_rate']) }} per gram</td><td class="num c2">{{ $m($l['gold_value_at_seller_rate']) }}</td><td class="ar c3" lang="ar">قيمة الدهب بسعر {{ $m($l['seller_unit_rate']) }} للجرام</td></tr>
+        <tr><td class="c1">Commission</td><td class="num c2">{{ $m($l['price_difference']) }}</td><td class="ar c3" lang="ar">العمولة</td></tr>
+        <tr><td class="c1">Making charge</td><td class="num c2">{{ $m($l['making_total']) }}</td><td class="ar c3" lang="ar">المصنعية</td></tr>
+    @elseif(($l['gold_value'] ?? null) !== null)
         <tr><td class="c1">Gold value at {{ $m($l['unit_rate']) }} per gram</td><td class="num c2">{{ $m($l['gold_value']) }}</td><td class="ar c3" lang="ar">قيمة الدهب بسعر {{ $m($l['unit_rate']) }} للجرام</td></tr>
         <tr><td class="c1">Making charge</td><td class="num c2">{{ $m($l['making_total']) }}</td><td class="ar c3" lang="ar">المصنعية</td></tr>
     @else
@@ -41,9 +46,13 @@
 @if($seller)
 <table class="lines" style="margin-top:5mm">
     <tr class="section"><td class="c1">Dahab charges</td><td class="num c2">EGP</td><td class="ar c3" lang="ar">رسوم دهب</td></tr>
+    @if($l['commission_vat_inclusive'] ?? false)
+    <tr><td class="c1">Commission before VAT ({{ $pct($l['commission_pct'] ?? '') }}%, minimum {{ $m($l['commission_minimum'] ?? null) }}, VAT included)</td><td class="num c2">{{ $m($invoice->net_amount) }}</td><td class="ar c3" lang="ar">العمولة قبل الضريبة ({{ $pct($l['commission_pct'] ?? '') }}٪ شاملة الضريبة)</td></tr>
+    @else
     <tr><td class="c1">Commission ({{ $pct($l['commission_pct'] ?? '') }}%, minimum {{ $m($l['commission_minimum'] ?? null) }})</td><td class="num c2">{{ $m($invoice->net_amount) }}</td><td class="ar c3" lang="ar">العمولة</td></tr>
+    @endif
     <tr><td class="c1">VAT at {{ $pct($invoice->vat_rate) }}% on the commission</td><td class="num c2">{{ $m($invoice->vat_amount) }}</td><td class="ar c3" lang="ar">ضريبة القيمة المضافة {{ $pct($invoice->vat_rate) }}٪ على العمولة</td></tr>
-    <tr class="total"><td class="c1">Total charges</td><td class="num c2">{{ $m($invoice->gross_amount) }}</td><td class="ar c3" lang="ar">إجمالي الرسوم</td></tr>
+    <tr class="total"><td class="c1">{{ ($l['commission_vat_inclusive'] ?? false) ? 'Commission, VAT included' : 'Total charges' }}</td><td class="num c2">{{ $m($invoice->gross_amount) }}</td><td class="ar c3" lang="ar">إجمالي الرسوم</td></tr>
 </table>
 <table class="lines" style="margin-top:5mm">
     <tr class="total"><td class="c1">Paid to your wallet</td><td class="num c2">{{ $m($l['paid_to_wallet'] ?? null) }}</td><td class="ar c3" lang="ar">اتحول لمحفظتك</td></tr>

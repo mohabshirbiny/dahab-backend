@@ -24,6 +24,10 @@ use LogicException;
  * reduction, with the buyer as actor. The database ties the stored waiver to this event (DH026).
  *
  * Only the winning credit is touched; a sale with no credit waiver does nothing here.
+ *
+ * Package C: an amount credit is EGP off what the seller pays, VAT included, so its balance goes
+ * down by the saving VAT included (`commissionGivenUpTotal`). The event's `reduction_egp` stays the
+ * net saving, equal to the order's `commission_given_up` (DH026); the audit row carries both.
  */
 final class SpendCommissionCreditAction
 {
@@ -37,6 +41,7 @@ final class SpendCommissionCreditAction
 
         $credit = CommissionCredit::query()->whereKey($f->waiverCreditId)->lockForUpdate()->firstOrFail();
         $reduction = $f->commissionGivenUp;
+        $reductionTotal = Money::cmp($f->commissionGivenUpTotal, '0') > 0 ? $f->commissionGivenUpTotal : $reduction;
 
         if ($credit->status !== CreditStatus::ACTIVE || $credit->customer_id !== $order->seller_id) {
             // The credit was locked before the figures were read; reaching this is a bug, not a race.
@@ -44,10 +49,10 @@ final class SpendCommissionCreditAction
         }
 
         if ($credit->kind === CreditKind::AMOUNT) {
-            if (Money::cmp($reduction, (string) $credit->amount_left_egp) > 0) {
+            if (Money::cmp($reductionTotal, (string) $credit->amount_left_egp) > 0) {
                 throw DomainApiException::settlementTermsMismatch();
             }
-            $left = Money::fixed4(Money::sub((string) $credit->amount_left_egp, $reduction));
+            $left = Money::fixed4(Money::sub((string) $credit->amount_left_egp, $reductionTotal));
             $credit->amount_left_egp = $left;
             $exhausted = Money::cmp($left, '0') === 0;
             $usesLeftAfter = null;
@@ -85,6 +90,7 @@ final class SpendCommissionCreditAction
             [
                 'credit_id' => $credit->credit_id, 'order_ref' => $order->order_ref, 'source' => $credit->source->value,
                 'ordinary_commission' => $f->ordinaryCommission, 'charged_commission' => $f->commission, 'reduction' => $reduction,
+                'reduction_vat_included' => $reductionTotal,
             ],
             'commission_credit',
             $credit->credit_id,

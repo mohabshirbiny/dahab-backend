@@ -73,7 +73,8 @@ final class QuoteAction
             'vat' => $b->vat,
             'payout' => $b->sellerProceeds,
             'commission_rate' => Money::fixed4($pct),
-            'minimum_applied' => bccomp($b->commission, Money::round4(Money::percent($base, $pct)), 4) > 0,
+            // Package C: the minimum is VAT-inclusive, like the rate.
+            'minimum_applied' => bccomp($b->commissionTotal(), Money::round4(Money::percent($base, $pct)), 4) > 0,
             'indicative' => true,
             'price_at' => $price?->effective_at->toIso8601String(),
         ];

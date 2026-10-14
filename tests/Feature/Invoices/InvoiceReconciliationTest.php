@@ -36,7 +36,7 @@ it('reconciles every invoice and credit note with the ledger', function () {
 
     $orders = [Invoices::paid($this), Invoices::paid($this, null, '9.900'), Invoices::paidDiamond($this), Invoices::paidGoldWithDiamond($this)];
     Finance::staff($this, SeedRole::FINANCE);
-    Invoices::credit($this, Invoices::of($orders[0], 'seller'), '684')->assertCreated();
+    Invoices::credit($this, Invoices::of($orders[0], 'seller'), '600')->assertCreated();
     Invoices::credit($this, Invoices::of($orders[1], 'seller'), '123.45')->assertCreated();
     Invoices::credit($this, Invoices::of($orders[2], 'seller'), '1000')->assertCreated();
 

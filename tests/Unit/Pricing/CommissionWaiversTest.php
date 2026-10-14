@@ -11,6 +11,8 @@ use App\Support\Pricing\PricingRates;
 // Spec 023 research R3/R4: the lowest single commission, never a sum; the minimum floors percent
 // and amount credits but not a waiver of the whole commission; a credit that gives nothing is not
 // chosen. The numbers below are the rates the test itself passes in (the minimum is a parameter).
+// Package C: the resolver takes and compares what the seller pays VAT included (`*Total`); the
+// winner is split into net + VAT (net = total × 100 / 114 half-up, VAT the rest).
 
 function rates(string $minimum = '200', string $vat = '14'): PricingRates
 {
@@ -26,9 +28,9 @@ it('charges the ordinary commission when nothing applies', function () {
     $r = (new CommissionWaivers)->resolve('600.0000', rates(), false, false, []);
 
     expect($r->kind)->toBe(WaiverKind::NONE)
-        ->and($r->charged)->toBe('600.0000')
-        ->and($r->givenUp)->toBe('0.0000')
-        ->and($r->vat)->toBe('84.0000')
+        ->and($r->chargedTotal)->toBe('600.0000')
+        ->and($r->givenUpTotal)->toBe('0.0000')
+        ->and($r->charged)->toBe('526.3158')->and($r->vat)->toBe('73.6842')
         ->and($r->creditId)->toBeNull()
         ->and($r->floorApplied)->toBeTrue();
 });
@@ -37,9 +39,9 @@ it('waives the whole commission for a free relist, without the minimum', functio
     $r = (new CommissionWaivers)->resolve('600.0000', rates(), true, false, []);
 
     expect($r->kind)->toBe(WaiverKind::FREE_RELIST)
-        ->and($r->charged)->toBe('0.0000')
+        ->and($r->chargedTotal)->toBe('0.0000')
         ->and($r->vat)->toBe('0.0000')
-        ->and($r->givenUp)->toBe('600.0000')
+        ->and($r->givenUpTotal)->toBe('600.0000')
         ->and($r->floorApplied)->toBeFalse();
 });
 
@@ -47,32 +49,35 @@ it('waives the whole commission for a market-maker code', function () {
     $r = (new CommissionWaivers)->resolve('600.0000', rates(), false, true, []);
 
     expect($r->kind)->toBe(WaiverKind::MARKET_MAKER)
-        ->and($r->charged)->toBe('0.0000')
-        ->and($r->givenUp)->toBe('600.0000');
+        ->and($r->chargedTotal)->toBe('0.0000')
+        ->and($r->givenUpTotal)->toBe('600.0000');
 });
 
 it('takes a waive credit to nothing', function () {
     $r = (new CommissionWaivers)->resolve('600.0000', rates(), false, false, [credit('c1', CreditKind::WAIVE)]);
 
     expect($r->kind)->toBe(WaiverKind::CREDIT)->and($r->creditId)->toBe('c1')
-        ->and($r->charged)->toBe('0.0000')->and($r->floorApplied)->toBeFalse();
+        ->and($r->chargedTotal)->toBe('0.0000')->and($r->floorApplied)->toBeFalse();
 });
 
 it('takes a percentage off, and the minimum binds', function () {
     $half = (new CommissionWaivers)->resolve('600.0000', rates(), false, false, [credit('p', CreditKind::PERCENT, '50')]);
     $ninetyNine = (new CommissionWaivers)->resolve('600.0000', rates(), false, false, [credit('p', CreditKind::PERCENT, '99')]);
 
-    expect($half->charged)->toBe('300.0000')->and($half->givenUp)->toBe('300.0000')->and($half->vat)->toBe('42.0000')
-        ->and($ninetyNine->charged)->toBe('200.0000')->and($ninetyNine->givenUp)->toBe('400.0000')
-        ->and($ninetyNine->floorApplied)->toBeTrue();
+    expect($half->chargedTotal)->toBe('300.0000')->and($half->givenUpTotal)->toBe('300.0000')->and($half->charged)->toBe('263.1579')->and($half->vat)->toBe('36.8421')
+        ->and($half->givenUp)->toBe('263.1579')
+        ->and($ninetyNine->chargedTotal)->toBe('200.0000')->and($ninetyNine->givenUpTotal)->toBe('400.0000')
+        ->and($ninetyNine->floorApplied)->toBeTrue()
+        // The stored floor is the net of the VAT-inclusive minimum, so commission_amount >= floor still holds.
+        ->and($ninetyNine->floor)->toBe('175.4386')->and($ninetyNine->charged)->toBe('175.4386');
 });
 
 it('takes an amount off, partially, and the minimum binds', function () {
     $partial = (new CommissionWaivers)->resolve('600.0000', rates(), false, false, [credit('a', CreditKind::AMOUNT, left: '150.0000', source: CreditSource::REFERRAL_INVITER)]);
     $big = (new CommissionWaivers)->resolve('600.0000', rates(), false, false, [credit('a', CreditKind::AMOUNT, left: '5000.0000', source: CreditSource::REFERRAL_INVITER)]);
 
-    expect($partial->charged)->toBe('450.0000')->and($partial->givenUp)->toBe('150.0000')
-        ->and($big->charged)->toBe('200.0000')->and($big->givenUp)->toBe('400.0000');
+    expect($partial->chargedTotal)->toBe('450.0000')->and($partial->givenUpTotal)->toBe('150.0000')
+        ->and($big->chargedTotal)->toBe('200.0000')->and($big->givenUpTotal)->toBe('400.0000');
 });
 
 it('does not choose a credit that cannot lower the commission', function () {
@@ -91,7 +96,7 @@ it('never sums two credits: the lowest commission wins', function () {
     ]);
 
     // 50 % -> 500; 300 off -> 700. The percent credit wins alone.
-    expect($r->creditId)->toBe('half')->and($r->charged)->toBe('500.0000');
+    expect($r->creditId)->toBe('half')->and($r->chargedTotal)->toBe('500.0000');
 });
 
 it('breaks a tie by free relist, then market maker, then a code credit, then a referral credit', function () {
@@ -127,8 +132,8 @@ it('rounds half up to four decimals and lets VAT follow the charged commission',
     // 333.3333 x 50 % = 166.66665 -> 166.6667 before the floor; the floor of 100 does not bind.
     $r = (new CommissionWaivers)->resolve('333.3333', rates('100'), false, false, [credit('p', CreditKind::PERCENT, '50')]);
 
-    expect($r->charged)->toBe('166.6667')->and($r->givenUp)->toBe('166.6666')
-        ->and($r->vat)->toBe('23.3333');
+    expect($r->chargedTotal)->toBe('166.6667')->and($r->givenUpTotal)->toBe('166.6666')
+        ->and($r->charged)->toBe('146.1989')->and($r->vat)->toBe('20.4678');
 });
 
 it('re-derives the seller proceeds from the charged commission', function () {
@@ -136,7 +141,7 @@ it('re-derives the seller proceeds from the charged commission', function () {
     $r = (new CommissionWaivers)->resolve('600.0000', rates(), false, false, [credit('p', CreditKind::PERCENT, '50')]);
     $applied = $r->applyTo($b);
 
-    expect($applied->commission)->toBe('300.0000')->and($applied->vat)->toBe('42.0000')
-        ->and($applied->sellerProceeds)->toBe('8658.0000')
+    expect($applied->commission)->toBe('263.1579')->and($applied->vat)->toBe('36.8421')
+        ->and($applied->sellerProceeds)->toBe('8700.0000')
         ->and($applied->buyerTotal)->toBe('10000.0000')->and($applied->spread)->toBe('1000.0000');
 });

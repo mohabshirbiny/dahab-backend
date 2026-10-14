@@ -134,7 +134,7 @@ it('takes half off the friend\'s commission and rewards the inviter only after t
     $order->refresh();
 
     // The friend paid half the commission (600 -> 300), one use.
-    expect($order->commission_amount)->toBe('300.0000')->and($order->commission_waiver_kind)->toBe('credit');
+    expect($order->commission_amount)->toBe('263.1579')->and($order->commission_waiver_kind)->toBe('credit');
 
     // The inviter's reward: 200 EGP of commission credit, unbound, with the friend's sale as its cause.
     $referral = Referral::query()->where('friend_id', $this->friend->customer_id)->sole();
@@ -211,7 +211,7 @@ it('uses the inviter\'s reward as a candidate on their own next sale, never summ
     Orders::pay($this, Orders::buyer($own), $own)->assertOk();
     $own->refresh();
 
-    expect($own->commission_amount)->toBe('400.0000')->and($own->commission_waiver_kind)->toBe('credit');
+    expect($own->commission_amount)->toBe('350.8772')->and($own->commission_waiver_kind)->toBe('credit');
     $reward = CommissionCredit::query()->where('customer_id', $this->inviter->customer_id)->sole();
     expect($reward->status->value)->toBe('exhausted')->and($reward->amount_left_egp)->toBe('0.0000');
 });

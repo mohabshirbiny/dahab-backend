@@ -36,16 +36,16 @@ it('lists every invoice newest first with the month and period figures', functio
     expect($rows->first()['order_ref'])->toBe($this->second->order_ref)
         ->and($rows->pluck('party')->unique()->sort()->values()->all())->toBe(['buyer', 'seller'])
         ->and($rows->firstWhere('number', $this->first->order_ref.'-S'))->toMatchArray([
-            'net' => '600.0000', 'vat' => '84.0000', 'gross' => '684.0000', 'credited' => '114.0000',
-            'remaining' => '570.0000', 'status' => 'partly_credited', 'document_ready' => true,
+            'net' => '526.3158', 'vat' => '73.6842', 'gross' => '600.0000', 'credited' => '114.0000',
+            'remaining' => '486.0000', 'status' => 'partly_credited', 'document_ready' => true,
         ])
         ->and($rows->firstWhere('number', $this->first->order_ref.'-S')['customer']['id'])->toBe($this->first->seller_id)
         ->and($rows->firstWhere('number', $this->first->order_ref.'-B')['vat'])->toBe('0.0000');
 
-    // 114 at 14% = 100 net + 14 VAT; VAT collected = 2 × 84 − 14.
+    // 114 at 14% = 100 net + 14 VAT; VAT collected = 2 × 73.6842 − 14 (package C: 600 VAT included each).
     foreach (['month', 'period'] as $window) {
         expect($res->json("meta.figures.{$window}"))->toBe([
-            'issued_count' => 4, 'net_invoiced' => '1200.0000', 'vat_collected' => '154.0000',
+            'issued_count' => 4, 'net_invoiced' => '1052.6316', 'vat_collected' => '133.3684',
             'credit_notes_count' => 1, 'credit_notes_amount' => '114.0000',
         ]);
     }
@@ -53,7 +53,7 @@ it('lists every invoice newest first with the month and period figures', functio
 
 it('filters by party, status, search and period, a page at a time', function () {
     Finance::staff($this, SeedRole::FINANCE);
-    Invoices::credit($this, Invoices::of($this->first, 'seller'), '684')->assertCreated();
+    Invoices::credit($this, Invoices::of($this->first, 'seller'), '600')->assertCreated();
 
     $this->getJson(Invoices::STAFF_URL.'?party=buyer')->assertOk()->assertJsonCount(2, 'data');
     $this->getJson(Invoices::STAFF_URL.'?status=credited')->assertOk()->assertJsonCount(1, 'data')
@@ -80,7 +80,7 @@ it('opens one invoice with its lines, details and credit notes', function () {
 
     $this->getJson(Invoices::STAFF_URL."/{$invoice->invoice_id}")->assertOk()
         ->assertJsonPath('data.number', $invoice->invoice_no)
-        ->assertJsonPath('data.lines.paid_to_wallet', '54684.7500')
+        ->assertJsonPath('data.lines.paid_to_wallet', '54768.7500')
         ->assertJsonPath('data.issuer.legal_name_en', 'Dahab Test Company')
         ->assertJsonPath('data.party_details.display_ref', Customer::query()->findOrFail($this->first->seller_id)->display_ref)
         ->assertJsonPath('data.creditable', true)

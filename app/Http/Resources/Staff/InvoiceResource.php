@@ -29,7 +29,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'document_ready', type: 'boolean'),
         new OA\Property(property: 'customer', type: 'object', description: '{id, display_ref, name}'),
         new OA\Property(property: 'vat_rate', type: 'string', description: 'Detail only'),
-        new OA\Property(property: 'lines', type: 'object', description: 'Detail only: the settlement lines snapshot (piece, weight, rate, gold value, making charge, asking price, subtotal; seller: commission pct, minimum, paid to wallet)'),
+        new OA\Property(property: 'lines', type: 'object', description: 'Detail only: the settlement lines snapshot (piece, weight, rate, gold value, making charge, asking price, subtotal; seller: commission pct, minimum, paid to wallet; package C: commission_vat_inclusive (true on invoices issued after the VAT-inclusive change); buyer gold: seller_unit_rate, gold_value_at_seller_rate, price_difference (Dahab commission, VAT 0) when the spread went to Dahab)'),
         new OA\Property(property: 'issuer', type: 'object', nullable: true, description: "Detail only: Dahab's details copied onto the invoice; null until configured"),
         new OA\Property(property: 'party_details', type: 'object', nullable: true, description: 'Detail only: {full_name, display_ref} copied when the document was made'),
         new OA\Property(property: 'creditable', type: 'boolean', description: 'Detail only: a seller invoice with something left to credit'),

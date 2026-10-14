@@ -50,6 +50,10 @@ final class InvoiceLines
                 : (Money::cmp($weight, '0') > 0 ? Money::round4(Money::div($gold, $weight)) : null);
             $lines['gold_value'] = $gold;
             $lines['making_total'] = $making;
+
+            if ($party === PartyRole::BUYER) {
+                $lines += $this->priceDifference($order, $request, $f, $making);
+            }
         } else {
             // A fixed asking price (diamond / gold with diamond; a regrade's agreed price).
             $lines['asking_price'] = $subtotal;
@@ -58,9 +62,45 @@ final class InvoiceLines
         if ($party === PartyRole::SELLER) {
             $lines['commission_pct'] = $listing->category === PieceCategory::GOLD ? $rates->goldPct : $rates->stonePct;
             $lines['commission_minimum'] = $rates->minimumEgp;
+            // Package C: the rate and the minimum include VAT; older invoices (VAT on top) lack the key.
+            $lines['commission_vat_inclusive'] = true;
             $lines['paid_to_wallet'] = $f->proceeds;
         }
 
         return $lines;
+    }
+
+    /**
+     * Package C item 13: on the buyer's gold invoice, the gap between the buyer's and the seller's
+     * locked rates is shown as Dahab's commission (VAT 0, totals unchanged):
+     *
+     *   gold at the seller's rate + price difference + making = subtotal
+     *
+     * The gold at the seller's rate is the seller's gross less the making charge, so the price
+     * difference is exactly buyer total − seller gross = the spread just posted. Shown only when it is
+     * positive and went to `dahab_spread`: not for a market-maker purchase (the spread goes to the
+     * dealer) and not when the rates crossed. Older invoices have none of these keys.
+     *
+     * @return array<string, string>
+     */
+    private function priceDifference(Order $order, BuyRequest $request, SettlementFigures $f, string $making): array
+    {
+        if ($order->locked_seller_unit_rate === null || $request->promo_code !== null || Money::cmp($f->spread, '0') <= 0) {
+            return [];
+        }
+
+        $atSellerRate = Money::fixed4(Money::sub($f->sellerGross, $making));
+        $difference = Money::fixed4(Money::sub(Money::sub($f->buyerTotal, $making), $atSellerRate));
+
+        // The line must be the spread posted for this order; anything else is not shown.
+        if (Money::cmp($difference, $f->spread) !== 0) {
+            return [];
+        }
+
+        return [
+            'seller_unit_rate' => Money::fixed4((string) $order->locked_seller_unit_rate),
+            'gold_value_at_seller_rate' => $atSellerRate,
+            'price_difference' => $difference,
+        ];
     }
 }
