@@ -1,7 +1,7 @@
 # VAT-inclusive commission (testing fixes, package C)
 
 > File: `docs/features/vat-inclusive-commission.md` · Branch: `feature/vat-inclusive-commission` in dahab-backend, dahab-dashboard, dahab-flutter (branched from `feature/wallet-statement-pdf`)
-> Status: done (owner review requested on one point, see "Open point") · Date: 2026-10-14
+> Status: done · Date: 2026-10-14
 
 ## Goal
 
@@ -92,14 +92,14 @@ the ordinary total), `CommissionResolution` (adds `ordinaryTotal`, `chargedTotal
 | `POST /customer/me/commission-preview` | Adds `ordinary_total_egp`, `charged_total_egp`, `saved_total_egp` (VAT included) | Non-breaking |
 | Invoice `lines` | Adds `commission_vat_inclusive`, `seller_unit_rate`, `gold_value_at_seller_rate`, `price_difference` | Non-breaking |
 
-## Open point (owner to confirm)
+## Amount credits (decided by the owner, 2026-10-15)
 
 **Amount credits.** An amount credit (e.g. the inviter's EGP reward) is EGP off what the seller pays, VAT included,
 so its balance now goes down by the saving VAT included. The credit event's `reduction_egp` must equal the order's
 `commission_given_up` (DH026), which is net, so the event records the net saving and the audit row records both
 (`reduction`, `reduction_vat_included`). The balance after the event is therefore before − saving-VAT-included, not
-before − `reduction_egp`. If the owner prefers credits to count in net terms, it is a one-line change in
-`SpendCommissionCreditAction` and `CommissionWaivers`.
+before − `reduction_egp`. Decided by the owner: a credit of EGP 100 saves the seller exactly EGP 100 and its balance goes down by 100
+(VAT included), as built.
 
 The order's `commission.saved_egp` on the customer order and the Dashboard's "Given up" stay net (as stored).
 
