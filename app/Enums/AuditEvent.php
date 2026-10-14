@@ -63,6 +63,8 @@ enum AuditEvent: string
     case AUDIT_LOG_EXPORTED = 'audit.log.exported';
     case LEDGER_STATEMENT_VIEWED = 'ledger.statement.viewed';
     case LEDGER_STATEMENT_EXPORTED = 'ledger.statement.exported';
+    /** The customer downloaded their own wallet statement PDF (wallet statement PDF, item 10). */
+    case WALLET_STATEMENT_DOWNLOADED = 'wallet.statement.downloaded';
     case TOPUP_MATCHED = 'topup.matched';
     case TOPUP_CREDITED_BY_HAND = 'topup.credited_by_hand';
     case TOPUP_HELD = 'topup.held';
@@ -265,6 +267,7 @@ enum AuditEvent: string
             self::AUDIT_LOG_EXPORTED => 'Audit log exported',
             self::LEDGER_STATEMENT_VIEWED => 'Wallet statement opened',
             self::LEDGER_STATEMENT_EXPORTED => 'Wallet statement exported',
+            self::WALLET_STATEMENT_DOWNLOADED => 'Customer downloaded their wallet statement',
             self::TOPUP_MATCHED => 'Incoming transfer matched and credited',
             self::TOPUP_CREDITED_BY_HAND => 'Incoming transfer credited by hand',
             self::TOPUP_HELD => 'Incoming transfer put on hold',
@@ -408,7 +411,7 @@ enum AuditEvent: string
             self::FIRST_SALE_ENABLED, self::FIRST_SALE_REVOKED, self::FIRST_SALE_ADVANCED, self::FIRST_SALE_SKIPPED, self::FIRST_SALE_RECOVERED, self::FIRST_SALE_WRITTEN_OFF => AuditCategory::MONEY,
             self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
             self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,
-            self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED,
+            self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED, self::WALLET_STATEMENT_DOWNLOADED,
             self::TOPUP_MATCHED, self::TOPUP_CREDITED_BY_HAND, self::TOPUP_HELD, self::TOPUP_UNHELD,
             self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
             self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,

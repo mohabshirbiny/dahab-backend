@@ -27,7 +27,7 @@ it('lists the codes of a category', function () {
         // Spec 008: the wallet statement reads; spec 009: top-ups and receiving accounts; spec 013: withdrawals;
         // spec 014: compensation; spec 015: finance operations; spec 016: tax invoices.
         ->and(AuditEvent::codesIn(AuditCategory::MONEY))->toBe([
-            'ledger.statement.viewed', 'ledger.statement.exported',
+            'ledger.statement.viewed', 'ledger.statement.exported', 'wallet.statement.downloaded',
             'topup.matched', 'topup.credited_by_hand', 'topup.held', 'topup.unheld', 'topup.rejected', 'topup.list_exported',
             'receiving_account.created', 'receiving_account.updated',
             'withdrawal.email_confirmed', 'withdrawal.requested', 'withdrawal.cancelled', 'withdrawal.taken_for_review',

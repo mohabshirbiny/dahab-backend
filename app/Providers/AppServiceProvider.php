@@ -200,6 +200,11 @@ class AppServiceProvider extends ServiceProvider
             return $this->limit(10, 86400, 'customer-listing-reports:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
         });
 
+        // Wallet statement PDF (item 10): each one renders a document.
+        RateLimiter::for('customer.statement_pdf', function (Request $request) {
+            return $this->limit(10, 60, 'customer-statement-pdf:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));
+        });
+
         // Spec 018: ratings per customer.
         RateLimiter::for('customer.ratings', function (Request $request) {
             return $this->limit(10, 60, 'customer-ratings:'.($request->user('customer')?->getAuthIdentifier() ?? $request->ip()));

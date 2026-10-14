@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Api\V1\Customer;
 
+use App\Actions\Wallet\DownloadCustomerStatementAction;
 use App\Actions\Wallet\ListCustomerWalletHistoryAction;
 use App\Actions\Wallet\ListHeldItemsAction;
 use App\Actions\Wallet\ShowCustomerWalletAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\WalletHistoryRequest;
+use App\Http\Requests\Customer\WalletStatementPdfRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
@@ -119,6 +122,37 @@ class WalletController extends Controller
         return response()->json([
             'data' => $page['rows'],
             'meta' => ['per_page' => $perPage, 'next_cursor' => $page['next_cursor']],
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/customer/me/wallet/statement.pdf',
+        operationId: 'customerWalletStatementPdf',
+        summary: 'Your own wallet statement as a PDF',
+        description: 'Wallet statement PDF (item 10). The movements of the signed-in customer for a Cairo-day period, oldest first: the same rows, labels and running available balance as /customer/me/wallet/transactions, with the name and number, the period, the available balance at the start and the end, money in and out, and the held balance at the end. Bilingual (English / Arabic). Default period: the last 90 days ending today; at most 366 days; never past today. There is no customer parameter (forced RLS). Verified customers; a suspended customer may still download. Audited (wallet.statement.downloaded). Throttled: 10 a minute.',
+        security: [['customerBearer' => []]],
+        tags: ['Customer Wallet'],
+        parameters: [
+            new OA\Parameter(name: 'from', in: 'query', required: false, description: 'First day (Cairo), YYYY-MM-DD; default 89 days before `to`', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'to', in: 'query', required: false, description: 'Last day (Cairo), YYYY-MM-DD, not after today; default today', schema: new OA\Schema(type: 'string', format: 'date')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The PDF (Content-Disposition: attachment)', content: new OA\MediaType(mediaType: 'application/pdf', schema: new OA\Schema(type: 'string', format: 'binary'))),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 403, description: 'verification_required', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed (a date in the future, the end before the start, more than 366 days)', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function statementPdf(WalletStatementPdfRequest $request, DownloadCustomerStatementAction $download): Response
+    {
+        [$from, $to] = $request->period();
+        $file = $download->handle($request->user('customer'), $from, $to, $request->attributes->get('context'));
+
+        return response($file['pdf'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$file['filename'].'"',
+            'Cache-Control' => 'no-store, private',
         ]);
     }
 }
