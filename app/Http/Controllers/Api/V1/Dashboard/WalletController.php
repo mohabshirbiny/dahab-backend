@@ -89,8 +89,8 @@ class WalletController extends Controller
         responses: [
             new OA\Response(response: 200, description: 'The statement', content: new OA\JsonContent(properties: [
                 new OA\Property(property: 'data', properties: [
-                    new OA\Property(property: 'summary', type: 'object', description: 'view, from, to, opening, in, out, closing; + available, held, total, customer (view=customer); + vat_payable (view=dahab)'),
-                    new OA\Property(property: 'rows', type: 'array', items: new OA\Items(type: 'object', description: 'grain=each: id, created_at, kind, label, reference, memo, by_hand, actor{type,name}, before, in, out, after (+ held_after | wallet, moved_to_held). grain=day|month: period, count, before, in, out, after')),
+                    new OA\Property(property: 'summary', type: 'object', description: 'view, from, to, opening, in, out, closing; + available, held, total, customer (view=customer); + vat_payable, commission_in, commission_out, spread_in, spread_out (view=dahab; commission + spread = in − out)'),
+                    new OA\Property(property: 'rows', type: 'array', items: new OA\Items(type: 'object', description: 'grain=each: id, created_at, kind, label, reference, memo, by_hand, actor{type,name}, before, in, out, after (+ held_after | wallet, moved_to_held | commission, spread for view=dahab: signed, their sum = in − out). grain=day|month: period, count, before, in, out, after (+ commission, spread for view=dahab)')),
                 ], type: 'object'),
                 new OA\Property(property: 'meta', properties: [
                     new OA\Property(property: 'per_page', type: 'integer'),

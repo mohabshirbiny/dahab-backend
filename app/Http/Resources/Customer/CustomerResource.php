@@ -5,8 +5,10 @@ namespace App\Http\Resources\Customer;
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Enums\Governorate;
+use App\Enums\IdentityDocumentStatus;
 use App\Enums\SuspendedReason;
 use App\Models\Customer;
+use App\Models\IdentityDocument;
 use App\Support\Legal\LegalAcceptanceRequirement;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,8 +34,24 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'trade_allowed', type: 'boolean', description: 'True only when status = active'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'customer_type', type: 'string', enum: ['ordinary', 'market_maker'], description: 'A market-maker account sees approved pieces marked (spec 019 6B)'),
+        new OA\Property(property: 'verification', ref: '#/components/schemas/CustomerVerificationState', description: 'Testing fixes, item 4: where the identity check of the customer stands, from their latest document'),
         new OA\Property(property: 'legal_acceptance_required', type: 'array', items: new OA\Items(ref: '#/components/schemas/LegalAcceptanceRequired'), description: 'Terms or privacy owed before any state-changing request (spec 019); empty when nothing is owed'),
     ],
+)]
+#[OA\Schema(
+    schema: 'CustomerVerificationState',
+    description: 'The latest identity document of the customer, as the app needs it. document_status is null when no document was ever sent. Never includes the images or storage refs.',
+    properties: [
+        new OA\Property(property: 'document_status', type: 'string', enum: ['pending', 'needs_resubmission', 'verified', 'rejected'], nullable: true),
+        new OA\Property(property: 'doc_kind', type: 'string', enum: ['egyptian_id', 'passport'], nullable: true),
+        new OA\Property(property: 'reasons', type: 'array', items: new OA\Items(type: 'string', enum: ['blurred_or_glare', 'card_cut_off', 'name_does_not_match', 'card_expired', 'back_missing', 'text_not_readable']), description: 'The reasons of the reviewer for "upload again" or a rejection; empty otherwise'),
+        new OA\Property(property: 'note', type: 'string', nullable: true, description: 'The note of the reviewer to the customer'),
+        new OA\Property(property: 'attempt_number', type: 'integer', nullable: true),
+        new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'reviewed_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'can_submit', type: 'boolean', description: 'True when POST /customer/me/identity-documents would take a new attempt: no document yet, or the latest was sent back or rejected (and the account is not closed)'),
+    ],
+    type: 'object',
 )]
 class CustomerResource extends JsonResource
 {
@@ -60,6 +78,30 @@ class CustomerResource extends JsonResource
             'created_at' => optional($c->created_at)->toIso8601String(),
             'legal_acceptance_required' => LegalAcceptanceRequirement::for($c->customer_id),
             'customer_type' => ($c->customer_type ?? CustomerType::ORDINARY)->value,
+            'verification' => self::verification($c),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public static function verification(Customer $c): array
+    {
+        /** @var IdentityDocument|null $d */
+        $d = IdentityDocument::query()->where('customer_id', $c->customer_id)
+            ->orderByDesc('attempt_number')->first();
+
+        $status = $d?->status;
+        $closed = ($c->status instanceof CustomerStatus ? $c->status : CustomerStatus::tryFrom((string) $c->status)) === CustomerStatus::CLOSED;
+
+        return [
+            'document_status' => $status?->value,
+            'doc_kind' => $d?->doc_kind->value,
+            'reasons' => $d?->review_reasons ?? [],
+            'note' => $d?->review_note,
+            'attempt_number' => $d?->attempt_number,
+            'submitted_at' => $d?->created_at->toIso8601String(),
+            'reviewed_at' => $d?->reviewed_at?->toIso8601String(),
+            'can_submit' => ! $closed && ($status === null
+                || in_array($status, [IdentityDocumentStatus::NEEDS_RESUBMISSION, IdentityDocumentStatus::REJECTED], true)),
         ];
     }
 }

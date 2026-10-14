@@ -45,8 +45,9 @@ it('shows the current price, the pending request and every karat, disabled ones 
     expect(collect($data['karats'])->firstWhere('code', 21))->toBe([
         'code' => 21, 'purity' => '0.87500', 'is_enabled' => true,
         'market_bid' => '6957.9580', 'market_ask' => '6998.2482',
-        'sellers_get' => '6942.9580', 'buyers_pay' => '7013.2482', 'difference' => '70.2902',
-        'adjustments' => ['buy' => ['kind' => 'fixed', 'value' => '-15.0000'], 'sell' => ['kind' => 'fixed', 'value' => '15.0000']],
+        // Testing fixes item 1: a karat starts with no adjustment, so the market figures are the prices.
+        'sellers_get' => '6957.9580', 'buyers_pay' => '6998.2482', 'difference' => '40.2902',
+        'adjustments' => ['buy' => ['kind' => 'fixed', 'value' => '0.0000'], 'sell' => ['kind' => 'fixed', 'value' => '0.0000']],
         'inverted' => false,
     ]);
 });

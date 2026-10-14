@@ -913,7 +913,7 @@
                                         "identity-documents?status=pending&per_page=25"
                                     ]
                                 },
-                                "description": "Oldest-first list. status: pending | verified | needs_resubmission | rejected. Requires identity.view."
+                                "description": "Oldest-first list. status: pending | verified | needs_resubmission | rejected | superseded. Each document carries attempt_number. Requires identity.view."
                             },
                             "response": []
                         },
@@ -3448,7 +3448,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Dahab's earnings: commission + spread; vat_payable in the summary. Not audited."
+                                "description": "Dahab's earnings: commission + spread; vat_payable in the summary. Testing fixes: the two apart, summary commission_in/out and spread_in/out, each row commission and spread (signed, their sum = in − out). Not audited."
                             },
                             "response": []
                         },
@@ -4391,7 +4391,7 @@
                                         "reject"
                                     ]
                                 },
-                                "description": "Spec 010. in_review → rejected with a reason the seller reads (10–1000 characters). Final. Audited (listing.rejected). Requires listing.review and an Idempotency-Key.",
+                                "description": "Spec 010. in_review → rejected (testing fixes: also changes_requested → rejected, while waiting for the seller) with a reason the seller reads (10–1000 characters). Final. Audited (listing.rejected). Requires listing.review and an Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"reason\": \"The photos are not of the piece described.\"\n}",
@@ -10667,7 +10667,8 @@
                                         "auth",
                                         "me"
                                     ]
-                                }
+                                },
+                                "description": "The signed-in customer. verification (testing fixes): document_status (pending | needs_resubmission | verified | rejected | null), doc_kind, reasons[], note, attempt_number, submitted_at, reviewed_at, can_submit."
                             },
                             "response": []
                         },
@@ -10801,7 +10802,7 @@
                                         "identity-documents"
                                     ]
                                 },
-                                "description": "doc_kind is egyptian_id or passport (anything else is 422 unsupported_doc_kind). Creates a pending document; 409 document_already_pending if one is already waiting; 422 upload_token_invalid for an unknown/expired/used/foreign token."
+                                "description": "doc_kind is egyptian_id or passport (anything else is 422 unsupported_doc_kind). Creates a NEW pending document with the next attempt_number every time (earlier attempts and their images are kept; an asked-again one becomes superseded). 409 document_already_pending if one is already waiting; 422 upload_token_invalid for an unknown/expired/used/foreign token."
                             },
                             "event": [
                                 {

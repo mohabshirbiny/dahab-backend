@@ -34,7 +34,7 @@ class IdentityDocumentController extends Controller
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Identity'],
         parameters: [
-            new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['pending', 'verified', 'needs_resubmission', 'rejected'], default: 'pending')),
+            new OA\Parameter(name: 'status', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['pending', 'verified', 'needs_resubmission', 'rejected', 'superseded'], default: 'pending')),
             new OA\Parameter(name: 'per_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 50, default: 25)),
         ],
         responses: [
@@ -104,7 +104,7 @@ class IdentityDocumentController extends Controller
         path: '/dashboard/identity-documents/{document}/review',
         operationId: 'dashboardReviewIdentityDocument',
         summary: 'Verify / Ask again / Reject an identity document',
-        description: 'Requires identity.review. `verify` sets the customer active. `request_resubmission` moves the document to needs_resubmission and keeps the customer at pending_verification. `reject` sets the customer rejected. Reasons are required for the two rejecting outcomes.',
+        description: 'Requires identity.review. `verify` sets the customer active. `request_resubmission` moves the document to needs_resubmission and keeps the customer at pending_verification. `reject` sets the customer rejected. Verify and reject also work on a needs_resubmission document while the customer has not uploaded again (manual only, no expiry); a superseded document is final. Reasons are required for the two rejecting outcomes.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Identity'],
         parameters: [new OA\Parameter(name: 'document', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],

@@ -139,6 +139,35 @@ it('reconciles the Dahab wallet on commission and spread, with VAT beside it', f
     assertReconciles($r->json('data.summary'), $r->json('data.rows'));
 });
 
+it('shows commission and spread apart on the Dahab wallet, adding up to the combined figures', function () {
+    // Testing fixes item 9: display only, nothing in the ledger changes.
+    $r = statement($this, $this->finance, ['view' => 'dahab'] + $this->august)->assertOk();
+    $s = $r->json('data.summary');
+    $rows = $r->json('data.rows');
+
+    expect($s)->toMatchArray([
+        'commission_in' => '600.0000', 'commission_out' => '0.0000',
+        'spread_in' => '262.5000', 'spread_out' => '0.0000',
+    ])
+        ->and(bcadd($s['commission_in'], $s['spread_in'], 4))->toBe($s['in'])
+        ->and(bcadd($s['commission_out'], $s['spread_out'], 4))->toBe($s['out'])
+        ->and(collect($rows)->map(fn ($row) => [$row['kind'], $row['commission'], $row['spread']])->all())
+        ->toBe([['commission', '600.0000', '0.0000'], ['spread', '0.0000', '262.5000']]);
+
+    foreach ($rows as $row) {
+        expect(bcadd($row['commission'], $row['spread'], 4))->toBe(bcsub($row['in'], $row['out'], 4));
+    }
+
+    $month = statement($this, $this->finance, ['view' => 'dahab', 'grain' => 'month'] + $this->august)->assertOk();
+    expect($month->json('data.rows.0'))->toMatchArray(['commission' => '600.0000', 'spread' => '262.5000'])
+        ->and($month->json('data.summary.commission_in'))->toBe('600.0000');
+
+    // The other views do not carry the split.
+    $customers = statement($this, $this->finance, ['view' => 'customers'] + $this->august)->assertOk();
+    expect($customers->json('data.summary'))->not->toHaveKey('commission_in')
+        ->and($customers->json('data.rows.0'))->not->toHaveKey('commission');
+});
+
 it('groups by Cairo day and by month, matching the rows they summarise', function () {
     $each = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id] + $this->august)->json('data.rows');
     $days = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id, 'grain' => 'day'] + $this->august)->assertOk();

@@ -117,7 +117,7 @@ final class AcceptBuyRequestAction
             $this->tell(
                 $head->buyer_id, BuyRequestEvent::ACCEPTED, $listing,
                 deadline: $deadline->toIso8601String(), orderRef: $order->order_ref,
-                branch: $branch->name_en, branchAr: $branch->name_ar,
+                branch: $branch->name_en, branchAr: $branch->name_ar, orderId: $order->order_id,
             );
             $this->flushAfterCommit();
 

@@ -18,7 +18,7 @@ class IdentityDocumentController extends Controller
         path: '/customer/me/identity-documents',
         operationId: 'customerSubmitIdentityDocument',
         summary: 'Submit or resubmit an identity document',
-        description: 'Creates a pending document on first submit. If the customer\'s existing document is in `needs_resubmission`, the same row is updated in place (no duplicate customer, no duplicate audit trail).',
+        description: 'Every submission is a new pending document with the next attempt_number; earlier attempts and their images are kept. If the open document is in `needs_resubmission`, it becomes `superseded` (audit identity_document.resubmitted); after a rejection, or with no document yet, a new attempt starts (identity_document.submitted). No limit on attempts. Refused while a document is pending.',
         security: [['customerBearer' => []]],
         tags: ['Customer Identity'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/SubmitIdentityDocumentRequest')),

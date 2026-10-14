@@ -176,7 +176,7 @@ class ListingController extends Controller
         path: '/dashboard/listings/{listing}/reject',
         operationId: 'dashboardRejectListing',
         summary: 'Reject a listing',
-        description: 'Spec 010 FR-030a. in_review → rejected with a reason the seller reads. Final: a rejected listing cannot be edited, resubmitted or approved. Audited (listing.rejected); the seller gets the reason by SMS/email after commit. Idempotent. Requires listing.review.',
+        description: 'Spec 010 FR-030a. in_review → rejected (or, since the testing fixes, changes_requested → rejected while waiting for the seller) with a reason the seller reads. Final: a rejected listing cannot be edited, resubmitted or approved. Audited (listing.rejected); the seller gets the reason by SMS/email after commit. Idempotent. Requires listing.review.',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ListingReasonRequest')),
         tags: ['Dashboard Listings'],

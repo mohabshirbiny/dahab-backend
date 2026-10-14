@@ -23,7 +23,7 @@ final class ListCustomersForVerificationAction
                 fn ($q) => $q->where(fn ($m) => $m->where('display_ref', $search)->orWhere('phone', $search)),
                 fn ($q) => $q->where('status', $status->value))
             ->with(['identityDocuments' => function ($q) {
-                $q->orderByDesc('created_at')->limit(1);
+                $q->orderByDesc('attempt_number')->limit(1);
             }])
             ->orderBy('created_at')
             ->paginate($perPage);

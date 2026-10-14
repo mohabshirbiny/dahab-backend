@@ -18,15 +18,18 @@ use Illuminate\Support\Facades\DB;
 /**
  * Post-login submission of an identity document (docs Part 2 §5).
  *
- * Two paths, one Action:
- *   1. New submission — no open document exists → insert a `pending` row.
- *   2. Resubmission   — a `needs_resubmission` row exists → replace its
- *      front/back refs on the same row and reset status to `pending`, so
- *      the reviewer sees an audited resubmission on the original document
- *      rather than a duplicate account.
+ * Every submission is a new row with the next `attempt_number` (testing fixes,
+ * item 2); nothing is ever overwritten and no earlier image is deleted:
+ *   1. New submission — no open document (none yet, or the last one was
+ *      rejected) → insert a `pending` row (audit `identity_document.submitted`).
+ *   2. Resubmission   — the open document is `needs_resubmission` → it becomes
+ *      `superseded` (keeping its images, reasons and reviewer) and a new
+ *      `pending` row is inserted (audit `identity_document.resubmitted`).
  *
  * A `pending` row that is already awaiting review is refused with
- * `document_already_pending` — no accidental duplicates.
+ * `document_already_pending` — no accidental duplicates. There is no limit
+ * on attempts (owner's decision); the retention rules (`image_deleted_at`)
+ * still apply to earlier attempts.
  */
 final class SubmitIdentityDocumentAction
 {
@@ -75,33 +78,10 @@ final class SubmitIdentityDocumentAction
                 throw DomainApiException::documentAlreadyPending();
             }
 
-            if ($existing !== null && $existing->status === IdentityDocumentStatus::NEEDS_RESUBMISSION) {
-                // Delete the old (superseded) objects so nothing orphans on disk.
-                $this->forgetIfPresent($existing->front_ref);
-                $this->forgetIfPresent($existing->back_ref);
+            $resubmission = $existing !== null && $existing->status === IdentityDocumentStatus::NEEDS_RESUBMISSION;
 
-                $existing->update([
-                    'doc_kind' => $kind,
-                    'front_ref' => $frontRef,
-                    'back_ref' => $backRef,
-                    'status' => IdentityDocumentStatus::PENDING,
-                    'reviewed_by' => null,
-                    'reviewed_at' => null,
-                    'review_reasons' => null,
-                    'review_note' => null,
-                ]);
-
-                $this->audit->execute(
-                    AuditEvent::IDENTITY_DOCUMENT_RESUBMITTED,
-                    'success',
-                    ['doc_kind' => $kind->value, 'status' => IdentityDocumentStatus::PENDING->value],
-                    'identity_document',
-                    $existing->document_id,
-                    $ctx,
-                    actorCustomerId: $actor->customer_id,
-                );
-
-                return $existing;
+            if ($resubmission) {
+                $existing->update(['status' => IdentityDocumentStatus::SUPERSEDED]);
             }
 
             $document = IdentityDocument::query()->create([
@@ -110,12 +90,13 @@ final class SubmitIdentityDocumentAction
                 'front_ref' => $frontRef,
                 'back_ref' => $backRef,
                 'status' => IdentityDocumentStatus::PENDING,
-            ]);
+            ])->refresh(); // attempt_number is set by trg_identity_document_next_attempt
 
             $this->audit->execute(
-                AuditEvent::IDENTITY_DOCUMENT_SUBMITTED,
+                $resubmission ? AuditEvent::IDENTITY_DOCUMENT_RESUBMITTED : AuditEvent::IDENTITY_DOCUMENT_SUBMITTED,
                 'success',
-                ['doc_kind' => $kind->value, 'status' => IdentityDocumentStatus::PENDING->value],
+                ['doc_kind' => $kind->value, 'status' => IdentityDocumentStatus::PENDING->value, 'attempt_number' => $document->attempt_number]
+                    + ($resubmission ? ['superseded_document_id' => $existing->document_id] : []),
                 'identity_document',
                 $document->document_id,
                 $ctx,
@@ -131,12 +112,5 @@ final class SubmitIdentityDocumentAction
         }
 
         return $document;
-    }
-
-    private function forgetIfPresent(?string $ref): void
-    {
-        if ($ref !== null && $this->storage->exists($ref)) {
-            $this->storage->delete($ref);
-        }
     }
 }

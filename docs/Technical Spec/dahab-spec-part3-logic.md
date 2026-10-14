@@ -66,6 +66,8 @@ An admin extension writes `order_deadline_extension` (`which ∈ reach_branch|ba
 
 > **Changed by spec 005** (product-owner decision 2026-09-27) — see [`specs/005-pricing/spec.md`](../../specs/005-pricing/spec.md). The price provider returns **two** 24K prices, a bid and an ask, not one rate `R`; the two single `price_correction.*` settings became **per-karat, per-side adjustments** (fixed EGP per gram, or a percentage). The rules below are the amended ones; commission, VAT and the "never from the gold value" rule (§2.5, §2.6) are unchanged.
 
+> **Changed by the testing fixes** (product-owner decision 2026-10-14) — see [`docs/features/testing-fixes.md`](../features/testing-fixes.md), item 1. A karat now **starts with a 0 adjustment on both sides** (it was buy −15 / sell +15 EGP per gram): the 24K bid/ask entered is used as is and only purity applies, so `sellers_get = market_bid` and `buyers_pay = market_ask` until Finance sets an adjustment on Pricing → Edit (`pricing.rates.manage`). Adjustments staff had already changed were kept. The worked examples in §3 still state their own 21K adjustments (±13.125) and are unchanged.
+
 Every figure a customer sees is built from four inputs, none typed by hand (blueprint §3): the **gold price** (the provider's feed, Part 4 — or a manual price while the feed is down), the **per-karat adjustments** (buy and sell side), **weight and karat** (seller-stated, IGI-confirmed before settlement), and the **making charge** (seller's, for gold). This section defines how those become the two prices — what the buyer pays and what the seller receives — and the spread between them.
 
 ### 2.1 Purity

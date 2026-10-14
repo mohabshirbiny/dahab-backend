@@ -16,7 +16,7 @@ final class CustomerFileLoader
     {
         return Customer::query()
             ->with([
-                'identityDocuments' => fn ($q) => $q->orderByDesc('created_at'),
+                'identityDocuments' => fn ($q) => $q->orderByDesc('attempt_number'),
                 'identityDocuments.reviewer:staff_id,full_name',
                 'suspender:staff_id,full_name',
                 'payoutAccounts' => fn ($q) => $q->orderByDesc('is_in_use')->orderByDesc('created_at'),

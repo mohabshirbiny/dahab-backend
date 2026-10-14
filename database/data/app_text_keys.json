@@ -576,6 +576,386 @@
       "max_length": 104
     },
     {
+      "key": "account.identity.pill_verified",
+      "kind": "app",
+      "area": "Account",
+      "where": "Account, National ID row",
+      "default_en": "Verified",
+      "default_ar": "متأكد منها",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.pill_waiting",
+      "kind": "app",
+      "area": "Account",
+      "where": "Account, National ID row",
+      "default_en": "Waiting for review",
+      "default_ar": "مستنية المراجعة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.pill_upload_again",
+      "kind": "app",
+      "area": "Account",
+      "where": "Account, National ID row",
+      "default_en": "Upload again",
+      "default_ar": "ارفعها تاني",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.pill_not_approved",
+      "kind": "app",
+      "area": "Account",
+      "where": "Account, National ID row",
+      "default_en": "Not approved",
+      "default_ar": "مااتقبلتش",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.pill_missing",
+      "kind": "app",
+      "area": "Account",
+      "where": "Account, National ID row",
+      "default_en": "Not sent yet",
+      "default_ar": "لسه ماتبعتتش",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Upload your ID again",
+      "default_ar": "ارفع بطاقتك تاني",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.intro_again",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "We could not confirm your ID from the photos you sent. Send new photos and we will check them again.",
+      "default_ar": "ماقدرناش نتأكد من بطاقتك من الصور اللي بعتها. ابعت صور جديدة وهنراجعها تاني.",
+      "placeholders": [],
+      "max_length": 200
+    },
+    {
+      "key": "account.identity.intro_rejected",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Your ID was not approved. You can send it again and we will check it once more.",
+      "default_ar": "بطاقتك مااتقبلتش. تقدر تبعتها تاني وهنراجعها مرة كمان.",
+      "placeholders": [],
+      "max_length": 158
+    },
+    {
+      "key": "account.identity.what_was_wrong",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "What was wrong",
+      "default_ar": "إيه اللي كان غلط",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.note_from_dahab",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "A note from Dahab",
+      "default_ar": "ملحوظة من دهب",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.egyptian_id",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Egyptian ID",
+      "default_ar": "بطاقة رقم قومي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.passport",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Passport",
+      "default_ar": "باسبور",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.front",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Front",
+      "default_ar": "الوش",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.back",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Back",
+      "default_ar": "الضهر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.passport_page",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "The page with your photo",
+      "default_ar": "الصفحة اللي فيها صورتك",
+      "placeholders": [],
+      "max_length": 48
+    },
+    {
+      "key": "account.identity.passport_back",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Another page (optional)",
+      "default_ar": "صفحة تانية (اختياري)",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "account.identity.tap_to_add",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Tap to add",
+      "default_ar": "دوس عشان تضيف",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.added",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Added",
+      "default_ar": "اتضافت",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.photo_tip",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Photograph the whole card, avoid glare, and make sure the text is readable.",
+      "default_ar": "صوّر الكارت كله، وابعد عن اللمعة، واتأكد إن الكلام مقروء.",
+      "placeholders": [],
+      "max_length": 150
+    },
+    {
+      "key": "account.identity.send",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Send for review",
+      "default_ar": "ابعت للمراجعة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.photos_missing",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Add the photos of your ID first.",
+      "default_ar": "ضيف صور بطاقتك الأول.",
+      "placeholders": [],
+      "max_length": 64
+    },
+    {
+      "key": "account.identity.sent",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Sent. We will tell you as soon as it is checked.",
+      "default_ar": "اتبعتت. هنقولك أول ما تتراجع.",
+      "placeholders": [],
+      "max_length": 96
+    },
+    {
+      "key": "account.identity.already_pending",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Your ID is already waiting for review. We will tell you when it is checked.",
+      "default_ar": "بطاقتك مستنية المراجعة بالفعل. هنقولك لما تتراجع.",
+      "placeholders": [],
+      "max_length": 150
+    },
+    {
+      "key": "account.identity.upload_expired",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "The photos took too long to send. Add them again and send.",
+      "default_ar": "الصور اتأخرت في الإرسال. ضيفها تاني وابعت.",
+      "placeholders": [],
+      "max_length": 116
+    },
+    {
+      "key": "account.identity.unsupported_kind",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "An Egyptian ID needs both the front and the back.",
+      "default_ar": "بطاقة الرقم القومي محتاجة الوش والضهر.",
+      "placeholders": [],
+      "max_length": 98
+    },
+    {
+      "key": "account.identity.not_needed",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "There is nothing to send: your ID is verified or waiting for review.",
+      "default_ar": "مفيش حاجة تتبعت: بطاقتك متأكد منها أو مستنية المراجعة.",
+      "placeholders": [],
+      "max_length": 136
+    },
+    {
+      "key": "account.identity.reason_blurred",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "The photo is blurred or has glare",
+      "default_ar": "الصورة مش واضحة أو فيها لمعة",
+      "placeholders": [],
+      "max_length": 66
+    },
+    {
+      "key": "account.identity.reason_cut_off",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Part of the card is cut off",
+      "default_ar": "جزء من الكارت مقصوص",
+      "placeholders": [],
+      "max_length": 54
+    },
+    {
+      "key": "account.identity.reason_name",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "The name does not match your account",
+      "default_ar": "الاسم مش زي اللي على حسابك",
+      "placeholders": [],
+      "max_length": 72
+    },
+    {
+      "key": "account.identity.reason_expired",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "The card has expired",
+      "default_ar": "الكارت منتهي",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "account.identity.reason_back",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "The back of the card is missing",
+      "default_ar": "ضهر الكارت مش موجود",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "account.identity.reason_text",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "The text cannot be read",
+      "default_ar": "الكلام مش مقروء",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "account.identity.sell_waiting_title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Sell, before the form",
+      "default_en": "We are checking your ID",
+      "default_ar": "بنراجع بطاقتك",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "account.identity.sell_waiting_body",
+      "kind": "app",
+      "area": "Account",
+      "where": "Sell, before the form",
+      "default_en": "You can sell as soon as your ID is approved. We will tell you on your phone and email.",
+      "default_ar": "تقدر تبيع أول ما بطاقتك تتقبل. هنقولك على الموبايل والإيميل.",
+      "placeholders": [],
+      "max_length": 172
+    },
+    {
+      "key": "account.identity.sell_again_title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Sell, before the form",
+      "default_en": "Send your ID again to sell",
+      "default_ar": "ابعت بطاقتك تاني عشان تبيع",
+      "placeholders": [],
+      "max_length": 52
+    },
+    {
+      "key": "account.identity.sell_again_body",
+      "kind": "app",
+      "area": "Account",
+      "where": "Sell, before the form",
+      "default_en": "We need new photos of your ID before you can list a piece.",
+      "default_ar": "محتاجين صور جديدة لبطاقتك قبل ما تعرض قطعة.",
+      "placeholders": [],
+      "max_length": 116
+    },
+    {
+      "key": "account.identity.sell_suspended_title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Sell, before the form",
+      "default_en": "Selling is paused on your account",
+      "default_ar": "البيع واقف على حسابك",
+      "placeholders": [],
+      "max_length": 66
+    },
+    {
+      "key": "account.identity.sell_closed_title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Sell, before the form",
+      "default_en": "This account is closed",
+      "default_ar": "الحساب ده مقفول",
+      "placeholders": [],
+      "max_length": 44
+    },
+    {
       "key": "auth.reset.ask_title",
       "kind": "app",
       "area": "Auth",

@@ -52,6 +52,7 @@ class IdentityDocument extends Model
         return [
             'doc_kind' => IdentityDocumentKind::class,
             'status' => IdentityDocumentStatus::class,
+            'attempt_number' => 'integer',
             'review_reasons' => 'array',
             'reviewed_at' => 'immutable_datetime',
             'image_deleted_at' => 'immutable_datetime',

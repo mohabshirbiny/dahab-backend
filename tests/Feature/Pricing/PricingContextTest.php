@@ -8,8 +8,12 @@ use App\Support\Pricing\Piece;
 use App\Support\Pricing\PricingContext;
 use App\Support\SystemActor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\Pricing;
 
 uses(RefreshDatabase::class);
+
+// The worked figures below use the old default adjustments (buy −15 / sell +15).
+beforeEach(fn () => Pricing::legacyAdjustments());
 
 // Spec 005 FR-011: the latest effective price wins; every karat is priced, enabled or not.
 

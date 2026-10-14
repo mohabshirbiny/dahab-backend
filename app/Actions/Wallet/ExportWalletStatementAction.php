@@ -41,15 +41,23 @@ final class ExportWalletStatementAction
         }, $query->from.' to '.$query->to]);
         $put(['Opening', $s['opening'], 'In', $s['in'], 'Out', $s['out'], 'Closing', $s['closing']]);
 
+        // Testing fixes item 9: the Dahab view shows commission and spread apart.
+        $dahab = $query->view === 'dahab';
+        if ($dahab) {
+            $put(['Commission in', $s['commission_in'], 'Commission out', $s['commission_out'], 'Spread in', $s['spread_in'], 'Spread out', $s['spread_out']]);
+        }
+        $split = fn (array $r) => $dahab ? [$r['commission'], $r['spread']] : [];
+        $splitHead = $dahab ? ['Commission', 'Spread'] : [];
+
         if ($query->grain === 'each') {
-            $put(['When', 'What', 'Wallet', 'Reference', 'By', 'Entered by hand', 'Memo', 'Before', 'In', 'Out', 'After']);
+            $put(['When', 'What', 'Wallet', 'Reference', 'By', 'Entered by hand', 'Memo', 'Before', 'In', 'Out', 'After', ...$splitHead]);
             foreach ($statement['rows'] as $r) {
-                $put([$r['created_at'], $r['label'], $r['wallet']['display_ref'] ?? '', $r['reference'] ?? '', $r['actor']['name'] ?? '', $r['by_hand'] ? 'Yes' : 'No', $r['memo'] ?? '', $r['before'], $r['in'], $r['out'], $r['after']]);
+                $put([$r['created_at'], $r['label'], $r['wallet']['display_ref'] ?? '', $r['reference'] ?? '', $r['actor']['name'] ?? '', $r['by_hand'] ? 'Yes' : 'No', $r['memo'] ?? '', $r['before'], $r['in'], $r['out'], $r['after'], ...$split($r)]);
             }
         } else {
-            $put(['Period', 'Movements', 'Before', 'In', 'Out', 'After']);
+            $put(['Period', 'Movements', 'Before', 'In', 'Out', 'After', ...$splitHead]);
             foreach ($statement['rows'] as $r) {
-                $put([$r['period'], $r['count'], $r['before'], $r['in'], $r['out'], $r['after']]);
+                $put([$r['period'], $r['count'], $r['before'], $r['in'], $r['out'], $r['after'], ...$split($r)]);
             }
         }
 
