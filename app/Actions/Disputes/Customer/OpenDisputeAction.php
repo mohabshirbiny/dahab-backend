@@ -11,6 +11,7 @@ use App\Enums\DisputeChangeKind;
 use App\Enums\DisputeReason;
 use App\Enums\OrderEvent;
 use App\Enums\OrderState;
+use App\Enums\StaffNoticeKind;
 use App\Enums\UploadPurpose;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
@@ -21,6 +22,7 @@ use App\Models\Order;
 use App\Models\OrderStateChange;
 use App\Services\UploadTokenStore;
 use App\Support\DatabaseActor;
+use App\Support\Notices\WorkNotices;
 use App\Support\RequestContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -123,6 +125,9 @@ final class OpenDisputeAction
                 actorCustomerId: $raiser->customer_id,
                 before: ['state' => $from->value],
             );
+
+            // Spec 026 E5: the dispute handlers' bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_DISPUTE, $dispute->dispute_id, $order->order_ref);
 
             $this->tellOrder($order->buyer_id, OrderEvent::DISPUTE_OPENED, $order, $listing);
             $this->tellOrder($order->seller_id, OrderEvent::DISPUTE_OPENED, $order, $listing);

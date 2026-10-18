@@ -9,6 +9,7 @@ use App\Enums\ListingDecision;
 use App\Enums\ListingState;
 use App\Enums\ReportReason;
 use App\Enums\ReportState;
+use App\Enums\StaffNoticeKind;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\Listing;
@@ -16,6 +17,7 @@ use App\Models\ListingReport;
 use App\Models\Staff;
 use App\Notifications\ListingReportNotification;
 use App\Support\DatabaseActor;
+use App\Support\Notices\WorkNotices;
 use App\Support\RequestContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -56,6 +58,9 @@ final class ListingReportsAction
             $this->audit->execute(AuditEvent::LISTING_REPORT_CREATED, 'success',
                 ['reference' => $report->reference(), 'listing_id' => $listing->listing_id, 'reason' => $reason->value],
                 'listing_report', $report->report_id, $ctx, actorCustomerId: $reporter->customer_id);
+
+            // Spec 026 E9: the report handlers' bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_LISTING_REPORT, (string) $report->report_id, $report->reference());
 
             return $report;
         });

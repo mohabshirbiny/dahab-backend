@@ -5,12 +5,14 @@ namespace App\Actions\Withdrawals\Customer;
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Actions\Withdrawals\Concerns\WorksWithdrawals;
 use App\Enums\AuditEvent;
+use App\Enums\StaffNoticeKind;
 use App\Enums\WithdrawalState;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\Withdrawal;
 use App\Models\WithdrawalConfirmation;
 use App\Support\Controls\Controls;
+use App\Support\Notices\WorkNotices;
 use App\Support\Pricing\Money;
 use App\Support\RequestContext;
 use App\Support\Withdrawals\WithdrawalLedger;
@@ -77,6 +79,9 @@ final class SubmitWithdrawalAction
             $this->audit->execute(AuditEvent::WITHDRAWAL_REQUESTED, 'success',
                 ['number' => 'WD-'.$number, 'amount' => $amount, 'payout_account_id' => $account->payout_account_id, 'hold_txn_id' => $hold->ledger_txn_id],
                 'withdrawal', $id, $ctx, actorCustomerId: $customer->customer_id);
+
+            // Spec 026 E6: the releasers' bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_WITHDRAWAL, $id, 'WD-'.$number);
 
             return $withdrawal->refresh()->setRelation('account', $account);
         });

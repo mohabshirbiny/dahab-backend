@@ -9,6 +9,7 @@ use App\Enums\AuthErrorCode;
 use App\Enums\CustomerStatus;
 use App\Enums\IdentityDocumentKind;
 use App\Enums\IdentityDocumentStatus;
+use App\Enums\StaffNoticeKind;
 use App\Exceptions\AuthApiException;
 use App\Models\Customer;
 use App\Models\CustomerPassword;
@@ -16,6 +17,7 @@ use App\Models\IdentityDocument;
 use App\Notifications\CustomerRegistrationSubmittedNotification;
 use App\Services\CustomerRegistrationSessionStore;
 use App\Services\IdentityDocumentStorage;
+use App\Support\Notices\WorkNotices;
 use App\Support\RequestContext;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -172,6 +174,9 @@ final class SubmitCustomerRegistrationAction
                     'back_ref' => $session['identity_back_ref'],
                     'status' => IdentityDocumentStatus::PENDING,
                 ]);
+
+                // Spec 026 E1: the reviewers' bell, after commit.
+                WorkNotices::record(StaffNoticeKind::WORK_IDENTITY, $document->document_id);
 
                 $actorCtx = RequestContext::forCustomer(request(), $customer->customer_id, $fingerprint);
 

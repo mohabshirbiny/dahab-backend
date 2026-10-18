@@ -7,12 +7,14 @@ use App\Actions\Withdrawals\Concerns\WorksWithdrawals;
 use App\Enums\AuditEvent;
 use App\Enums\PayoutAccountChangeKind;
 use App\Enums\PayoutEvent;
+use App\Enums\StaffNoticeKind;
 use App\Exceptions\DomainApiException;
 use App\Models\AgreementAcceptance;
 use App\Models\Customer;
 use App\Models\LegalDocument;
 use App\Models\PayoutAccount;
 use App\Notifications\PayoutNotification;
+use App\Support\Notices\WorkNotices;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
 
@@ -61,6 +63,9 @@ final class AddPayoutAccountAction
             $this->audit->execute(AuditEvent::PAYOUT_ACCOUNT_ADDED, 'success',
                 ['payout_account_id' => $account->payout_account_id, 'account' => $account->shortLabel(), 'declaration_version' => $declaration->version],
                 'payout_account', $account->payout_account_id, $ctx, actorCustomerId: $customer->customer_id);
+
+            // Spec 026 E7: the checkers' bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_PAYOUT_ACCOUNT, (string) $account->payout_account_id);
 
             $this->tellPayout($customer->customer_id, new PayoutNotification(PayoutEvent::ACCOUNT_ADDED, account: $account->shortLabel()));
             $this->flushPayoutOutbox();

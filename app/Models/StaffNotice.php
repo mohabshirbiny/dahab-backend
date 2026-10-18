@@ -11,8 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * A Dashboard notice to one staff member (spec 021 research R11/R12), written by the
- * `staff_notice` channel. Staff-facing English; `params` never carries a secret. Only `read_at`
- * ever changes. `kind` is an App\Enums\StaffNoticeKind value (spec 024 adds its own).
+ * `staff_notice` channel or, for work notices, by App\Support\Notices\WorkNotices (spec 026).
+ * Staff-facing English; `params` never carries a secret. `kind` is an App\Enums\StaffNoticeKind
+ * value. A founder alert never changes except `read_at`; an unread work notice is grouped by
+ * `group_key` and counts up (`item_count`, text, link, time) until it is read (spec 026 R2).
  */
 class StaffNotice extends Model
 {
@@ -35,6 +37,8 @@ class StaffNotice extends Model
         'link',
         'audit_id',
         'dedupe_key',
+        'group_key',
+        'item_count',
         'created_at',
         'read_at',
     ];
@@ -43,6 +47,7 @@ class StaffNotice extends Model
     {
         return [
             'params' => 'array',
+            'item_count' => 'integer',
             'created_at' => 'datetime',
             'read_at' => 'datetime',
         ];

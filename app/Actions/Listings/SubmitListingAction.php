@@ -5,11 +5,13 @@ namespace App\Actions\Listings;
 use App\Actions\Listings\Concerns\MovesListing;
 use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
+use App\Enums\StaffNoticeKind;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\Listing;
 use App\Support\Controls\Controls;
 use App\Support\Listings\ListingTransitions;
+use App\Support\Notices\WorkNotices;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -61,7 +63,12 @@ final class SubmitListingAction
                 throw DomainApiException::branchOptionsRequired();
             }
 
-            return $this->moveListing($listing, ListingState::IN_REVIEW, $seller, null);
+            $listing = $this->moveListing($listing, ListingState::IN_REVIEW, $seller, null);
+
+            // Spec 026 E3: the reviewers' bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_LISTING, $listing->listing_id);
+
+            return $listing;
         });
     }
 }
