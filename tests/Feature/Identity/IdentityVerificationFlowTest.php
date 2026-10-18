@@ -64,7 +64,7 @@ it('takes a customer from unverified to trade-allowed through upload, submission
     expect(IdentityDocument::query()->sole()->reviewed_by)->toBe($reviewer->staff_id);
 });
 
-it('lets a rejected customer resubmit and be approved on the second attempt', function () {
+it('locks a rejected customer until staff move them back to waiting, then approves them', function () {
     $customer = Customer::factory()->pendingVerification()->create();
     $customerToken = app(IssueTokenFamilyAction::class)->forCustomer($customer)->accessToken;
     $reviewer = Staff::factory()->role(SeedRole::CEO)->create();
@@ -82,8 +82,19 @@ it('lets a rejected customer resubmit and be approved on the second attempt', fu
     $this->bearer($staffToken)->postJson("/api/v1/dashboard/identity-documents/{$first}/review", ['action' => 'reject', 'reasons' => ['card_cut_off'], 'note' => 'Data page is cut off'])->assertOk();
     expect($customer->fresh()->is_verified)->toBeFalse();
 
-    $second = $submit('passport')->assertCreated()->json('data.document_id');
-    $this->bearer($staffToken)->postJson("/api/v1/dashboard/identity-documents/{$second}/review", ['action' => 'verify'])->assertOk();
+    // Rejected: no new upload; the customer contacts customer service.
+    $submit('passport')->assertStatus(409)->assertJsonPath('code', 'identity_rejected_contact_support');
+    $this->bearer($customerToken)->getJson('/api/v1/customer/auth/me')
+        ->assertOk()->assertJsonPath('data.verification.can_submit', false);
 
-    expect($customer->fresh()->is_verified)->toBeTrue();
+    // Staff move the same attempt back to waiting review, then verify it.
+    $this->bearer($staffToken)->postJson("/api/v1/dashboard/identity-documents/{$first}/reopen", ['reason' => 'Called customer service, ID is fine'])
+        ->assertOk()->assertJsonPath('data.status', 'pending')->assertJsonPath('data.attempt_number', 1);
+    $this->bearer($customerToken)->getJson('/api/v1/customer/auth/me')
+        ->assertOk()->assertJsonPath('data.status', 'pending_verification')->assertJsonPath('data.verification.document_status', 'pending');
+
+    $this->bearer($staffToken)->postJson("/api/v1/dashboard/identity-documents/{$first}/review", ['action' => 'verify'])->assertOk();
+
+    expect($customer->fresh()->is_verified)->toBeTrue()
+        ->and(IdentityDocument::query()->count())->toBe(1);
 });

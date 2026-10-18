@@ -18,13 +18,13 @@ class IdentityDocumentController extends Controller
         path: '/customer/me/identity-documents',
         operationId: 'customerSubmitIdentityDocument',
         summary: 'Submit or resubmit an identity document',
-        description: 'Every submission is a new pending document with the next attempt_number; earlier attempts and their images are kept. If the open document is in `needs_resubmission`, it becomes `superseded` (audit identity_document.resubmitted); after a rejection, or with no document yet, a new attempt starts (identity_document.submitted). No limit on attempts. Refused while a document is pending.',
+        description: 'Every submission is a new pending document with the next attempt_number; earlier attempts and their images are kept. If the open document is in `needs_resubmission`, it becomes `superseded` (audit identity_document.resubmitted); with no document yet, a first attempt starts (identity_document.submitted). No limit on attempts. Refused while a document is pending (`document_already_pending`) and while the latest attempt is rejected (`identity_rejected_contact_support`: the customer contacts customer service; staff move it back to waiting review).',
         security: [['customerBearer' => []]],
         tags: ['Customer Identity'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/SubmitIdentityDocumentRequest')),
         responses: [
             new OA\Response(response: 201, description: 'Submitted', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/IdentityDocument')])),
-            new OA\Response(response: 409, description: 'document_already_pending', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'document_already_pending, identity_rejected_contact_support', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 422, description: 'validation_failed, unsupported_doc_kind, upload_token_invalid', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
         ],
     )]

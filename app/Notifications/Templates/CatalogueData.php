@@ -1190,8 +1190,8 @@ final class CatalogueData
             'desc' => 'Registration received: the reference line',
         ],
         'customer.verification_rejected.sms' => [
-            'en' => '{app}: your registration was rejected. Check your inbox for details.',
-            'ar' => '{app}: تم رفض طلب التسجيل. راجع بريدك للتفاصيل.',
+            'en' => '{app}: your registration was rejected. Please contact customer service.',
+            'ar' => '{app}: تم رفض طلب التسجيل. يرجى التواصل مع خدمة العملاء.',
             'vars' => ['app'],
             'read_only' => false,
             'inbox' => true,
@@ -1206,8 +1206,8 @@ final class CatalogueData
             'desc' => 'Registration rejected: the email subject',
         ],
         'customer.verification_rejected.mail_body' => [
-            'en' => 'We were unable to approve your registration.',
-            'ar' => 'للأسف لم نتمكن من تفعيل حسابك.',
+            'en' => 'We were unable to approve your registration. Please contact customer service if you would like us to look at it again.',
+            'ar' => 'للأسف لم نتمكن من تفعيل حسابك. تواصل مع خدمة العملاء إذا أردت أن نراجع طلبك مرة أخرى.',
             'vars' => [],
             'read_only' => false,
             'inbox' => true,

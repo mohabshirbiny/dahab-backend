@@ -29,6 +29,7 @@ enum AuditEvent: string
     case IDENTITY_DOCUMENT_REJECTED = 'identity.document.rejected';
     case IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED = 'identity.document.resubmission_requested';
     case IDENTITY_DOCUMENT_RESUBMITTED = 'identity.document.resubmitted';
+    case IDENTITY_DOCUMENT_REOPENED = 'identity.document.reopened';
     case CUSTOMER_REGISTRATION_SUBMITTED = 'auth.customer.registration_submitted';
     case CUSTOMER_VERIFICATION_APPROVED = 'auth.customer.verification_approved';
     case CUSTOMER_VERIFICATION_REJECTED = 'auth.customer.verification_rejected';
@@ -233,6 +234,7 @@ enum AuditEvent: string
             self::IDENTITY_DOCUMENT_REJECTED => 'Identity document rejected',
             self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED => 'New identity document requested',
             self::IDENTITY_DOCUMENT_RESUBMITTED => 'Identity document sent again',
+            self::IDENTITY_DOCUMENT_REOPENED => 'Rejected identity moved back to waiting',
             self::CUSTOMER_REGISTRATION_SUBMITTED => 'Registration submitted',
             self::CUSTOMER_VERIFICATION_APPROVED => 'Customer verified',
             self::CUSTOMER_VERIFICATION_REJECTED => 'Customer verification rejected',
@@ -403,7 +405,7 @@ enum AuditEvent: string
             self::FOUNDER_DEVICE_APPROVAL_REQUESTED, self::FOUNDER_DEVICE_APPROVED, self::FOUNDER_DEVICE_REFUSED,
             self::FOUNDER_DEVICE_APPROVAL_COLLECTED, self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE, self::FOUNDER_FROZEN,
             self::FOUNDER_UNFREEZE_CONFIRMED, self::FOUNDER_UNFROZEN, self::FOUNDER_UNFREEZE_CONFIRM_FAILED => AuditCategory::ACCOUNTS,
-            self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
+            self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::IDENTITY_DOCUMENT_REOPENED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
             self::CONTROL_SET, self::CONTROL_CLEARED, self::VISIBILITY_CHANGED, self::PEOPLE_TO_WATCH_VIEWED => AuditCategory::SYSTEM,
             self::PROMO_CREATED, self::PROMO_UPDATED, self::MARKET_MAKER_APPROVED,

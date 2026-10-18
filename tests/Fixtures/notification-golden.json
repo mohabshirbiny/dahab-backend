@@ -5146,7 +5146,7 @@
             "mail": {
                 "subject": "Dahab — your registration was rejected",
                 "intro": [
-                    "We were unable to approve your registration.",
+                    "We were unable to approve your registration. Please contact customer service if you would like us to look at it again.",
                     "• ID unreadable",
                     "• Name mismatch",
                     "Reason: Blurry photo"
@@ -5154,20 +5154,20 @@
                 "outro": [],
                 "action": null
             },
-            "sms": "Dahab: your registration was rejected. Check your inbox for details.",
+            "sms": "Dahab: your registration was rejected. Please contact customer service.",
             "inbox": {
                 "type": "account.verification_rejected",
                 "title_en": "Dahab — your registration was rejected",
                 "title_ar": "Dahab — تم رفض طلب التسجيل",
-                "body_en": "your registration was rejected. Check your inbox for details.",
-                "body_ar": "تم رفض طلب التسجيل. راجع بريدك للتفاصيل."
+                "body_en": "your registration was rejected. Please contact customer service.",
+                "body_ar": "تم رفض طلب التسجيل. يرجى التواصل مع خدمة العملاء."
             }
         },
         "ar": {
             "mail": {
                 "subject": "Dahab — تم رفض طلب التسجيل",
                 "intro": [
-                    "للأسف لم نتمكن من تفعيل حسابك.",
+                    "للأسف لم نتمكن من تفعيل حسابك. تواصل مع خدمة العملاء إذا أردت أن نراجع طلبك مرة أخرى.",
                     "• ID unreadable",
                     "• Name mismatch",
                     "السبب: Blurry photo"
@@ -5175,13 +5175,13 @@
                 "outro": [],
                 "action": null
             },
-            "sms": "Dahab: تم رفض طلب التسجيل. راجع بريدك للتفاصيل.",
+            "sms": "Dahab: تم رفض طلب التسجيل. يرجى التواصل مع خدمة العملاء.",
             "inbox": {
                 "type": "account.verification_rejected",
                 "title_en": "Dahab — your registration was rejected",
                 "title_ar": "Dahab — تم رفض طلب التسجيل",
-                "body_en": "your registration was rejected. Check your inbox for details.",
-                "body_ar": "تم رفض طلب التسجيل. راجع بريدك للتفاصيل."
+                "body_en": "your registration was rejected. Please contact customer service.",
+                "body_ar": "تم رفض طلب التسجيل. يرجى التواصل مع خدمة العملاء."
             }
         }
     },
@@ -5190,36 +5190,36 @@
             "mail": {
                 "subject": "Dahab — your registration was rejected",
                 "intro": [
-                    "We were unable to approve your registration."
+                    "We were unable to approve your registration. Please contact customer service if you would like us to look at it again."
                 ],
                 "outro": [],
                 "action": null
             },
-            "sms": "Dahab: your registration was rejected. Check your inbox for details.",
+            "sms": "Dahab: your registration was rejected. Please contact customer service.",
             "inbox": {
                 "type": "account.verification_rejected",
                 "title_en": "Dahab — your registration was rejected",
                 "title_ar": "Dahab — تم رفض طلب التسجيل",
-                "body_en": "your registration was rejected. Check your inbox for details.",
-                "body_ar": "تم رفض طلب التسجيل. راجع بريدك للتفاصيل."
+                "body_en": "your registration was rejected. Please contact customer service.",
+                "body_ar": "تم رفض طلب التسجيل. يرجى التواصل مع خدمة العملاء."
             }
         },
         "ar": {
             "mail": {
                 "subject": "Dahab — تم رفض طلب التسجيل",
                 "intro": [
-                    "للأسف لم نتمكن من تفعيل حسابك."
+                    "للأسف لم نتمكن من تفعيل حسابك. تواصل مع خدمة العملاء إذا أردت أن نراجع طلبك مرة أخرى."
                 ],
                 "outro": [],
                 "action": null
             },
-            "sms": "Dahab: تم رفض طلب التسجيل. راجع بريدك للتفاصيل.",
+            "sms": "Dahab: تم رفض طلب التسجيل. يرجى التواصل مع خدمة العملاء.",
             "inbox": {
                 "type": "account.verification_rejected",
                 "title_en": "Dahab — your registration was rejected",
                 "title_ar": "Dahab — تم رفض طلب التسجيل",
-                "body_en": "your registration was rejected. Check your inbox for details.",
-                "body_ar": "تم رفض طلب التسجيل. راجع بريدك للتفاصيل."
+                "body_en": "your registration was rejected. Please contact customer service.",
+                "body_ar": "تم رفض طلب التسجيل. يرجى التواصل مع خدمة العملاء."
             }
         }
     },

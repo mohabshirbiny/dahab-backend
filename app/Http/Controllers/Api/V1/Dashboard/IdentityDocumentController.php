@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Identity\ListIdentityDocumentsAction;
+use App\Actions\Identity\ReopenIdentityDocumentAction;
 use App\Actions\Identity\ReviewIdentityDocumentAction;
 use App\Actions\Identity\ShowIdentityDocumentAction;
 use App\Actions\Identity\ViewIdentityDocumentAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Identity\ListIdentityDocumentsRequest;
+use App\Http\Requests\Identity\ReopenIdentityDocumentRequest;
 use App\Http\Requests\Identity\ReviewIdentityDocumentRequest;
 use App\Http\Resources\Staff\IdentityDocumentResource;
 use App\Support\RequestContext;
@@ -24,6 +26,7 @@ class IdentityDocumentController extends Controller
         private readonly ShowIdentityDocumentAction $show,
         private readonly ViewIdentityDocumentAction $view,
         private readonly ReviewIdentityDocumentAction $review,
+        private readonly ReopenIdentityDocumentAction $reopen,
     ) {}
 
     #[OA\Get(
@@ -104,7 +107,7 @@ class IdentityDocumentController extends Controller
         path: '/dashboard/identity-documents/{document}/review',
         operationId: 'dashboardReviewIdentityDocument',
         summary: 'Verify / Ask again / Reject an identity document',
-        description: 'Requires identity.review. `verify` sets the customer active. `request_resubmission` moves the document to needs_resubmission and keeps the customer at pending_verification. `reject` sets the customer rejected. Verify and reject also work on a needs_resubmission document while the customer has not uploaded again (manual only, no expiry); a superseded document is final. Reasons are required for the two rejecting outcomes.',
+        description: 'Requires identity.review. `verify` sets the customer active. `request_resubmission` moves the document to needs_resubmission and keeps the customer at pending_verification. `reject` sets the customer rejected. Verify and reject also work on a needs_resubmission document while the customer has not uploaded again (manual only, no expiry); a superseded document is final; a rejected one only through POST …/reopen. Reasons are required for the two rejecting outcomes.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Identity'],
         parameters: [new OA\Parameter(name: 'document', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
@@ -131,5 +134,31 @@ class IdentityDocumentController extends Controller
         );
 
         return IdentityDocumentResource::make($reviewed)->response();
+    }
+
+    #[OA\Post(
+        path: '/dashboard/identity-documents/{document}/reopen',
+        operationId: 'dashboardReopenIdentityDocument',
+        summary: 'Move a rejected customer back to waiting review',
+        description: 'Requires identity.review. A rejected customer cannot send their ID again (`identity_rejected_contact_support`); after they contact customer service, staff reopen the latest rejected attempt: the document goes back to pending (same images and attempt number; the reviewer, reasons and note are cleared and kept in the audit row) and the customer back to pending_verification (behind a suspension, the state a reinstatement returns to). Then Verify / Ask again / Reject apply as usual. Audited `identity.document.reopened` with the reason. No message is sent to the customer.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Identity'],
+        parameters: [new OA\Parameter(name: 'document', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ReopenIdentityDocumentRequest')),
+        responses: [
+            new OA\Response(response: 200, description: 'Back to waiting review', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/StaffIdentityDocument')])),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'illegal_document_transition (not rejected, or not the latest attempt), account_closed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed, reason_required', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function reopen(ReopenIdentityDocumentRequest $request, string $document): JsonResponse
+    {
+        /** @var RequestContext $ctx */
+        $ctx = $request->attributes->get('context');
+
+        $reopened = $this->reopen->handle($request->user('staff'), $document, $request->validated('reason'), $ctx);
+
+        return IdentityDocumentResource::make($reopened)->response();
     }
 }

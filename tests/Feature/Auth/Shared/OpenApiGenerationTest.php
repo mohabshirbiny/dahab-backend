@@ -73,6 +73,7 @@ const OPENAPI_DASHBOARD_IDENTITY_PATHS = [
     'get /dashboard/identity-documents/{document}',
     'get /dashboard/identity-documents/{document}/image',
     'post /dashboard/identity-documents/{document}/review',
+    'post /dashboard/identity-documents/{document}/reopen',
 ];
 
 const OPENAPI_DASHBOARD_CUSTOMER_PATHS = [
@@ -141,6 +142,8 @@ const OPENAPI_CUSTOMER_WALLET_PATHS = [
     'get /customer/me/wallet/transactions',
     // spec 015: what each buy request and order holds.
     'get /customer/me/wallet/held',
+    // Package B: the caller's own wallet statement PDF.
+    'get /customer/me/wallet/statement.pdf',
 ];
 
 const OPENAPI_DASHBOARD_WALLET_PATHS = [
@@ -564,6 +567,7 @@ it('secures every operation with its own surface scheme and never the generic sa
         'get /dashboard/identity-documents/{document}' => 'dashboardBearer',
         'get /dashboard/identity-documents/{document}/image' => 'dashboardBearer',
         'post /dashboard/identity-documents/{document}/review' => 'dashboardBearer',
+        'post /dashboard/identity-documents/{document}/reopen' => 'dashboardBearer',
         'get /dashboard/customers' => 'dashboardBearer',
         'get /dashboard/customers/{customer}' => 'dashboardBearer',
         'post /dashboard/customers/{customer}/suspend' => 'dashboardBearer',
@@ -679,7 +683,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'UploadRegistrationDocumentRequest', 'SubmitRegistrationRequest',
         'LoginStaffRequest', 'StaffMfaVerifyRequest', 'StaffMfaEnrollRequest', 'StaffMfaChallenge', 'StaffMfaEnrollmentPending',
         'CreateUploadRequest', 'SubmitIdentityDocumentRequest', 'IdentityDocument',
-        'ReviewIdentityDocumentRequest', 'StaffIdentityDocument', 'StaffCustomerVerification',
+        'ReviewIdentityDocumentRequest', 'ReopenIdentityDocumentRequest', 'StaffIdentityDocument', 'StaffCustomerVerification',
         'CustomerOtpChallenge', 'VerifyLoginOtpRequest', 'ResendLoginOtpRequest',
         'DashboardPermission', 'DashboardRole', 'DashboardRoleRef', 'DashboardStaffMember',
         'DashboardStoreRole', 'DashboardUpdateRole', 'DashboardDeleteRole', 'DashboardSetStaffRoles',
@@ -716,7 +720,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffCompensation', 'PayCompensationRequest', 'StaffWalletAdjustment', 'AdjustWalletRequest',
         'StaffBankMovement', 'RecordBankMovementRequest', 'StaffDailyClose', 'CloseDayRequest',
         'StaffInvoice', 'StaffCreditNote', 'InvoiceFigures', 'IssueCreditNoteRequest', 'CustomerInvoice', 'CustomerCreditNote',
-        'CustomerSession', 'RequestPhoneChangeRequest', 'ConfirmPhoneChangeRequest', 'RequestEmailChangeRequest', 'ChangePasswordRequest',
+        'CustomerSession', 'CustomerVerificationState', 'RequestPhoneChangeRequest', 'ConfirmPhoneChangeRequest', 'RequestEmailChangeRequest', 'ChangePasswordRequest',
         'InboxItem', 'SavedPiece', 'CloseBlocker', 'StaffListingReport',
         'StaffLegalDocument', 'StaffLegalVersion', 'AcceptLegalVersionRequest', 'LegalAcceptanceRequired', 'DashboardCreateFaqEntry', 'DashboardMoveFaqEntry', 'DashboardPublishLegalVersion', 'DashboardClearCategoryControl', 'DashboardSetCategoryControl', 'DashboardSetVisibility',
         'StaffAppText', 'StaffAppTextVersion', 'StaffAppTextDraft', 'DashboardSaveAppTextDraft', 'DashboardRevertAppText',

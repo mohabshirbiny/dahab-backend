@@ -549,6 +549,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/{document}/review', [DashboardIdentityDocumentController::class, 'review'])
                     ->whereUuid('document')
                     ->middleware('staff.permission:identity.review')->name('review');
+
+                // A rejected customer back to waiting review (docs/features/rejected-identity-reopen.md).
+                Route::post('/{document}/reopen', [DashboardIdentityDocumentController::class, 'reopen'])
+                    ->whereUuid('document')
+                    ->middleware('staff.permission:identity.review')->name('reopen');
             });
 
         // Access control: roles and their permissions (spec 002).

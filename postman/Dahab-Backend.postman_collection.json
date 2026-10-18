@@ -1161,6 +1161,54 @@
                                 }
                             },
                             "response": []
+                        },
+                        {
+                            "name": "Reopen — Move back to waiting",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/identity-documents/{{document_id}}/reopen",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "identity-documents",
+                                        "{{document_id}}",
+                                        "reopen"
+                                    ]
+                                },
+                                "description": "Requires identity.review. Moves a rejected customer back to waiting review: the latest rejected attempt goes back to pending (same images, same attempt number; the rejection's reviewer, reasons and note are cleared and kept in the audit row) and customer.status → pending_verification (behind a suspension: the state a reinstatement returns to). Then Verify / Ask again / Reject apply. reason is required (5–500). 409 illegal_document_transition when the document is not rejected or not the latest attempt; 409 account_closed; 422 reason_required / validation_failed. A rejected customer's own POST /customer/me/identity-documents answers 409 identity_rejected_contact_support.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"The customer called customer service with a valid ID.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
                         }
                     ]
                 },
@@ -10802,7 +10850,7 @@
                                         "identity-documents"
                                     ]
                                 },
-                                "description": "doc_kind is egyptian_id or passport (anything else is 422 unsupported_doc_kind). Creates a NEW pending document with the next attempt_number every time (earlier attempts and their images are kept; an asked-again one becomes superseded). 409 document_already_pending if one is already waiting; 422 upload_token_invalid for an unknown/expired/used/foreign token."
+                                "description": "doc_kind is egyptian_id or passport (anything else is 422 unsupported_doc_kind). Creates a NEW pending document with the next attempt_number every time (earlier attempts and their images are kept; an asked-again one becomes superseded). 409 document_already_pending if one is already waiting; 409 identity_rejected_contact_support while the latest attempt is rejected (the customer contacts customer service; staff use Reopen); 422 upload_token_invalid for an unknown/expired/used/foreign token."
                             },
                             "event": [
                                 {
