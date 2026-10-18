@@ -20,14 +20,18 @@ use Illuminate\Support\Facades\DB;
  *
  * Every submission is a new row with the next `attempt_number` (testing fixes,
  * item 2); nothing is ever overwritten and no earlier image is deleted:
- *   1. New submission — no open document (none yet, or the last one was
- *      rejected) → insert a `pending` row (audit `identity_document.submitted`).
+ *   1. New submission — no document yet → insert a `pending` row (audit
+ *      `identity_document.submitted`).
  *   2. Resubmission   — the open document is `needs_resubmission` → it becomes
  *      `superseded` (keeping its images, reasons and reviewer) and a new
  *      `pending` row is inserted (audit `identity_document.resubmitted`).
  *
  * A `pending` row that is already awaiting review is refused with
- * `document_already_pending` — no accidental duplicates. There is no limit
+ * `document_already_pending` — no accidental duplicates. While the latest
+ * attempt is `rejected` the customer cannot send again
+ * (`identity_rejected_contact_support`, docs/features/rejected-identity-reopen.md):
+ * they contact customer service and staff move them back to waiting review
+ * (ReopenIdentityDocumentAction). There is no limit
  * on attempts (owner's decision); the retention rules (`image_deleted_at`)
  * still apply to earlier attempts.
  */
@@ -76,6 +80,17 @@ final class SubmitIdentityDocumentAction
 
             if ($existing !== null && $existing->status === IdentityDocumentStatus::PENDING) {
                 throw DomainApiException::documentAlreadyPending();
+            }
+
+            if ($existing === null) {
+                $latest = IdentityDocument::query()
+                    ->where('customer_id', $actor->customer_id)
+                    ->orderByDesc('attempt_number')
+                    ->first();
+
+                if ($latest?->status === IdentityDocumentStatus::REJECTED) {
+                    throw DomainApiException::identityRejectedContactSupport();
+                }
             }
 
             $resubmission = $existing !== null && $existing->status === IdentityDocumentStatus::NEEDS_RESUBMISSION;

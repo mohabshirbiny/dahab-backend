@@ -956,6 +956,36 @@
       "max_length": 44
     },
     {
+      "key": "account.identity.rejected_title",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Your ID was not approved",
+      "default_ar": "بطاقتك مااتقبلتش",
+      "placeholders": [],
+      "max_length": 48
+    },
+    {
+      "key": "account.identity.rejected_body",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "You cannot send your ID again from the app. Contact customer service and they can look at it again.",
+      "default_ar": "مش هتقدر تبعت بطاقتك تاني من التطبيق. كلّم خدمة العملاء وهم يقدروا يراجعوها تاني.",
+      "placeholders": [],
+      "max_length": 198
+    },
+    {
+      "key": "account.identity.contact_support",
+      "kind": "app",
+      "area": "Account",
+      "where": "Upload your ID again screen",
+      "default_en": "Contact customer service",
+      "default_ar": "كلّم خدمة العملاء",
+      "placeholders": [],
+      "max_length": 48
+    },
+    {
       "key": "auth.reset.ask_title",
       "kind": "app",
       "area": "Auth",

@@ -100,15 +100,15 @@ it('keeps the asked-again attempt and its images, and opens attempt 2', function
         ->and($audit->after_json['superseded_document_id'])->toBe($first->document_id);
 });
 
-it('opens attempt N+1 for a rejected customer', function () {
+it('refuses a new attempt while the latest is rejected (contact customer service)', function () {
     $customer = attemptCustomer(Customer::factory()->rejected()->create());
     IdentityDocument::factory()->for($customer)->rejected()->create();
     IdentityDocument::factory()->for($customer)->rejected()->create();
 
-    attemptSubmit($this)->assertCreated()->assertJsonPath('data.attempt_number', 3);
+    attemptSubmit($this)->assertStatus(409)->assertJsonPath('code', 'identity_rejected_contact_support');
 
-    expect(AuditLog::query()->where('action', AuditEvent::IDENTITY_DOCUMENT_SUBMITTED->value)->count())->toBe(1)
-        ->and(IdentityDocument::query()->where('status', 'rejected')->count())->toBe(2);
+    expect(AuditLog::query()->where('action', AuditEvent::IDENTITY_DOCUMENT_SUBMITTED->value)->count())->toBe(0)
+        ->and(IdentityDocument::query()->count())->toBe(2);
 });
 
 it('still refuses a second upload while one is pending', function () {
@@ -206,7 +206,7 @@ it('tells the customer where the check stands on GET /me', function (string $sta
     'waiting' => ['pending', ['pending', [], null, false]],
     'upload again' => ['needs_resubmission', ['needs_resubmission', ['card_expired'], 'Use a valid card.', true]],
     'verified' => ['verified', ['verified', [], null, false]],
-    'not approved' => ['rejected', ['rejected', ['name_does_not_match'], 'Not you.', true]],
+    'not approved' => ['rejected', ['rejected', ['name_does_not_match'], 'Not you.', false]],
 ]);
 
 it('shows the newest attempt on GET /me, not the superseded one', function () {

@@ -149,6 +149,7 @@ final class AuditEntryPresenter
             AuditEvent::IDENTITY_DOCUMENT_VIEWED => [null, isset($after['side']) ? ucfirst((string) $after['side']).' side' : null],
             AuditEvent::CUSTOMER_REGISTRATION_SUBMITTED, AuditEvent::IDENTITY_DOCUMENT_SUBMITTED,
             AuditEvent::IDENTITY_DOCUMENT_RESUBMITTED => [null, self::words($after['doc_kind'] ?? null)],
+            AuditEvent::IDENTITY_DOCUMENT_REOPENED => [self::words($before['status'] ?? null), self::words($after['status'] ?? null)],
             AuditEvent::CUSTOMER_VERIFICATION_DETAILS_VIEWED => [null, self::words($after['status'] ?? null)],
             AuditEvent::LEDGER_STATEMENT_VIEWED, AuditEvent::LEDGER_STATEMENT_EXPORTED => [null, trim(self::words($after['view'] ?? null).' · '.($after['from'] ?? '').' to '.($after['to'] ?? ''), ' ·')],
             AuditEvent::TOPUP_MATCHED, AuditEvent::TOPUP_CREDITED_BY_HAND => [

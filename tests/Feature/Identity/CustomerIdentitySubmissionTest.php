@@ -106,13 +106,15 @@ it('allows only one pending document at a time with document_already_pending', f
     expect(IdentityDocument::query()->count())->toBe(1);
 });
 
-it('lets a customer resubmit after a rejection', function () {
-    $customer = actingAsCustomer();
+it('refuses a resubmission after a rejection: the customer contacts customer service', function () {
+    $customer = actingAsCustomer(Customer::factory()->rejected()->create());
     IdentityDocument::factory()->rejected()->for($customer)->create();
 
-    $this->postJson(SUBMIT_URL, ['doc_kind' => 'passport', 'front_upload_token' => uploadIdentityImage($this)])->assertCreated();
+    $this->postJson(SUBMIT_URL, ['doc_kind' => 'passport', 'front_upload_token' => uploadIdentityImage($this)])
+        ->assertStatus(409)
+        ->assertJsonPath('code', 'identity_rejected_contact_support');
 
-    expect(IdentityDocument::query()->where('customer_id', $customer->customer_id)->count())->toBe(2);
+    expect(IdentityDocument::query()->where('customer_id', $customer->customer_id)->count())->toBe(1);
 });
 
 it('spends the upload token on submission', function () {
@@ -120,8 +122,8 @@ it('spends the upload token on submission', function () {
     $token = uploadIdentityImage($this);
     $this->postJson(SUBMIT_URL, ['doc_kind' => 'passport', 'front_upload_token' => $token])->assertCreated();
 
-    // Rejected in the meantime, so a resubmission is otherwise allowed…
-    IdentityDocument::query()->where('customer_id', $customer->customer_id)->update(['status' => 'rejected']);
+    // Sent back in the meantime, so a resubmission is otherwise allowed…
+    IdentityDocument::query()->where('customer_id', $customer->customer_id)->update(['status' => 'needs_resubmission']);
 
     // …but the same image cannot back a second document.
     $this->postJson(SUBMIT_URL, ['doc_kind' => 'passport', 'front_upload_token' => $token])

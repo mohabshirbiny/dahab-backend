@@ -29,6 +29,12 @@ class DomainApiException extends RuntimeException
         return new self('document_already_pending', 409, 'An identity document is already waiting for review.');
     }
 
+    /** The latest attempt was rejected: no new upload until staff move it back to waiting review. */
+    public static function identityRejectedContactSupport(): self
+    {
+        return new self('identity_rejected_contact_support', 409, 'Your registration was not approved. Please contact customer service.');
+    }
+
     public static function unsupportedDocKind(): self
     {
         return new self('unsupported_doc_kind', 422, 'Unsupported identity document kind.');

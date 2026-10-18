@@ -49,7 +49,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'attempt_number', type: 'integer', nullable: true),
         new OA\Property(property: 'submitted_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'reviewed_at', type: 'string', format: 'date-time', nullable: true),
-        new OA\Property(property: 'can_submit', type: 'boolean', description: 'True when POST /customer/me/identity-documents would take a new attempt: no document yet, or the latest was sent back or rejected (and the account is not closed)'),
+        new OA\Property(property: 'can_submit', type: 'boolean', description: 'True when POST /customer/me/identity-documents would take a new attempt: no document yet, or the latest was sent back (and the account is not closed). False while the latest is rejected: the customer contacts customer service and staff move it back to waiting review'),
     ],
     type: 'object',
 )]
@@ -101,7 +101,7 @@ class CustomerResource extends JsonResource
             'submitted_at' => $d?->created_at->toIso8601String(),
             'reviewed_at' => $d?->reviewed_at?->toIso8601String(),
             'can_submit' => ! $closed && ($status === null
-                || in_array($status, [IdentityDocumentStatus::NEEDS_RESUBMISSION, IdentityDocumentStatus::REJECTED], true)),
+                || $status === IdentityDocumentStatus::NEEDS_RESUBMISSION),
         ];
     }
 }
