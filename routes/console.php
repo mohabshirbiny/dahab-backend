@@ -43,3 +43,6 @@ Schedule::command('referrals:reward-pending')->everyFiveMinutes()->withoutOverla
 
 // Spec 023 R18: listing views are kept for listing.view_retention_days.
 Schedule::command('listing-views:prune')->daily()->withoutOverlapping();
+
+// Spec 026 D26-5: read Dashboard work notices are kept 30 days.
+Schedule::command('staff-notices:prune')->daily()->withoutOverlapping();

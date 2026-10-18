@@ -9,6 +9,7 @@ use App\Enums\ExtensionRequestReason;
 use App\Enums\ExtensionRequestState;
 use App\Enums\OrderState;
 use App\Enums\PieceCategory;
+use App\Enums\StaffNoticeKind;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\Listing;
@@ -16,6 +17,7 @@ use App\Models\Order;
 use App\Models\OrderExtensionRequest;
 use App\Support\Controls\Controls;
 use App\Support\DatabaseActor;
+use App\Support\Notices\WorkNotices;
 use App\Support\RequestContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +71,9 @@ final class RequestMoreTimeAction
             $this->audit->execute(AuditEvent::ORDER_EXTENSION_REQUESTED, 'success',
                 ['order_ref' => $order->order_ref, 'reason' => $reason->value, 'deadline' => $order->reach_branch_deadline->toIso8601String()],
                 'order', $order->order_id, $ctx, actorCustomerId: $seller->customer_id);
+
+            // Spec 026 E8: the branch's bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_EXTENSION, $order->order_id, $order->order_ref, (int) $order->branch_id);
 
             return $request->refresh();
         }));

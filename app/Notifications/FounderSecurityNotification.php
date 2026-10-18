@@ -49,6 +49,17 @@ class FounderSecurityNotification extends Notification implements ShouldQueue, S
         ]));
     }
 
+    /**
+     * Spec 026 D26-4: the Dashboard notice is written straight away (after commit), so the bell
+     * works on a server without a queue worker; email and SMS stay on the queue.
+     *
+     * @return array<string, string>
+     */
+    public function viaConnections(): array
+    {
+        return [StaffNoticeChannel::class => 'sync'];
+    }
+
     public function toMail(mixed $notifiable): MailMessage
     {
         $mail = (new MailMessage)

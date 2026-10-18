@@ -9707,7 +9707,7 @@
                 },
                 {
                     "name": "Notices",
-                    "description": "Spec 021: Dashboard notices (the bell). Your own only; no permission.",
+                    "description": "Spec 021: Dashboard notices (the bell): founder security alerts and (spec 026) work notices. Your own only; no permission.",
                     "item": [
                         {
                             "name": "List Notices",
@@ -9757,7 +9757,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Spec 021: your own Dashboard notices, newest first, paginated; meta.unread_count. unread=1 keeps the unread ones. Any staff member. Saves notice_id."
+                                "description": "Spec 021: your own Dashboard notices, newest first, paginated; meta.unread_count. unread=1 keeps the unread ones. Any staff member. Saves notice_id. Spec 026: also work notices (kind work_identity | work_topup | work_listing | work_order | work_dispute | work_withdrawal | work_payout_account | work_extension | work_listing_report) for the queues you hold the permission for (orders: your branch only); grouped while unread, `count` events, `created_at` the latest, `link` the item for one and the queue page for several. Read work notices are deleted after 30 days."
                             },
                             "response": [],
                             "event": [

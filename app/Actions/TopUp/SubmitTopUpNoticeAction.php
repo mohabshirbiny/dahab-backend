@@ -2,6 +2,7 @@
 
 namespace App\Actions\TopUp;
 
+use App\Enums\StaffNoticeKind;
 use App\Enums\TopUpOrigin;
 use App\Enums\TopUpStatus;
 use App\Enums\UploadPurpose;
@@ -10,6 +11,7 @@ use App\Models\Customer;
 use App\Models\ReceivingAccount;
 use App\Models\TopUp;
 use App\Services\UploadTokenStore;
+use App\Support\Notices\WorkNotices;
 use App\Support\TopUpReference;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -56,6 +58,9 @@ final class SubmitTopUpNoticeAction
             if ($receiptToken !== null) {
                 $this->tokens->forget($receiptToken);
             }
+
+            // Spec 026 E2: the matchers' bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_TOPUP, (string) $topUp->getKey(), $topUp->reference);
 
             return $topUp->refresh();
         });

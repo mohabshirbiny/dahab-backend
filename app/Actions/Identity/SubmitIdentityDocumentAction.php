@@ -6,12 +6,14 @@ use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
 use App\Enums\IdentityDocumentKind;
 use App\Enums\IdentityDocumentStatus;
+use App\Enums\StaffNoticeKind;
 use App\Enums\UploadPurpose;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\IdentityDocument;
 use App\Services\IdentityDocumentStorage;
 use App\Services\UploadTokenStore;
+use App\Support\Notices\WorkNotices;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
 
@@ -91,6 +93,9 @@ final class SubmitIdentityDocumentAction
                 'back_ref' => $backRef,
                 'status' => IdentityDocumentStatus::PENDING,
             ])->refresh(); // attempt_number is set by trg_identity_document_next_attempt
+
+            // Spec 026 E1: the reviewers' bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_IDENTITY, $document->document_id);
 
             $this->audit->execute(
                 $resubmission ? AuditEvent::IDENTITY_DOCUMENT_RESUBMITTED : AuditEvent::IDENTITY_DOCUMENT_SUBMITTED,

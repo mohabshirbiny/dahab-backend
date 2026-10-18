@@ -12,6 +12,7 @@ use App\Enums\ListingState;
 use App\Enums\OrderState;
 use App\Enums\PieceCategory;
 use App\Enums\SettingKey;
+use App\Enums\StaffNoticeKind;
 use App\Exceptions\DomainApiException;
 use App\Models\Branch;
 use App\Models\Customer;
@@ -20,6 +21,7 @@ use App\Models\ListingStateChange;
 use App\Models\Order;
 use App\Support\BuyRequests\OrderReference;
 use App\Support\Listings\ListingPricer;
+use App\Support\Notices\WorkNotices;
 use App\Support\Pricing\Settings;
 use App\Support\WorkingHours\WorkingHoursResolver;
 use App\Support\WorkingHours\WorkingHoursUnavailable;
@@ -104,6 +106,9 @@ final class AcceptBuyRequestAction
                 'locked_seller_unit_rate' => $sellerRate,
             ]);
             $this->recordOrderCreated($order, $seller);
+
+            // Spec 026 E4: the branch's bell, after commit.
+            WorkNotices::record(StaffNoticeKind::WORK_ORDER, $order->order_id, $order->order_ref, (int) $branch->branch_id);
 
             $head->state = BuyRequestState::ACCEPTED;
             $head->save();

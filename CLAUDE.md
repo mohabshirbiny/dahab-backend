@@ -367,6 +367,15 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   gross − total (`VatSplit`); waivers compare inclusive totals; order cost columns stay net; for every quote and settlement after
   the deploy (in-flight orders too), nothing posted rewritten; seller invoices flag `commission_vat_inclusive`, buyer gold
   invoices show the price difference as "Commission" (VAT 0) when it went to `dahab_spread`.
+  Staff work notices (spec 026, `docs/features/staff-work-notices.md`): nine customer actions put a work notice on the
+  Dashboard bell for the holders of that queue's permission — ID document (`identity.review`), top-up notice (`topup.match`),
+  listing sent for review (`listing.review`), new order (`order.receive`) and request for more time
+  (`order.extend_deadline`) for staff assigned to the order's branch only, dispute (`dispute.handle`), withdrawal
+  (`withdrawal.release`), payout account (`payout_account.verify`), listing report (`listing_report.handle`); written
+  after commit in the request by `App\Support\Notices\WorkNotices` (never the queue), grouped per queue while unread
+  (`staff_notice.group_key`, `item_count`; `count` on `GET /dashboard/notices`), read ones deleted after 30 days
+  (`staff-notices:prune`, daily); founder alerts write their Dashboard notice on the `sync` connection. The server still
+  needs a queue worker and the scheduler for every SMS, email, inbox message and sweep.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
