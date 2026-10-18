@@ -84,8 +84,9 @@ it('reads commission and VAT live at payment', function () {
 
     Orders::pay($this, Orders::buyer($order), $order)->assertOk();
 
-    // 10% of 3,000 = 300; VAT 42; proceeds 55,368.75 − 342.
+    // 10% of 3,000 = 300 incl. VAT: net 300 × 100 / 114 = 263.1579, VAT 36.8421;
+    // proceeds 55,368.75 − 300.
     expect((string) $order->refresh()->commission_amount)->toBe('263.1579')
         ->and((string) $order->vat_amount)->toBe('36.8421')
-        ->and((string) $order->seller_proceeds)->toBe('55026.7500');
+        ->and((string) $order->seller_proceeds)->toBe('55068.7500');
 });
