@@ -560,6 +560,12 @@ class DomainApiException extends RuntimeException
     }
 
     /** Raised by guard DH013 when a closed customer would get a new row. */
+    /** Spec 003 FR-002: the database role can bypass row-level security, so the API serves nothing. */
+    public static function databaseIsolationOff(): self
+    {
+        return new self('database_isolation_off', 503, 'The service is unavailable.');
+    }
+
     public static function accountClosed(): self
     {
         return new self('account_closed', 409, 'This account is closed.');

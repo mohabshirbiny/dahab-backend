@@ -36,3 +36,6 @@ Thumbs.db
 
 # Log viewer assets (dev only): republish with `php artisan log-viewer:publish`
 /public/vendor/log-viewer
+
+# Server deploy guide: names the production host and layout, local only (never commit)
+/docs/platform/deployment.md

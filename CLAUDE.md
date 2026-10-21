@@ -6,6 +6,9 @@ Platform docs: [`docs/platform/architecture.md`](docs/platform/architecture.md) 
 [`docs/platform/api-contract.md`](docs/platform/api-contract.md) ·
 [`docs/platform/development-workflow.md`](docs/platform/development-workflow.md) ·
 [`docs/features/`](docs/features/) (feature specs, template `_TEMPLATE.md`).
+**"Deploy" (اعمل ديبلوي)** = pull the Backend on the server, build and upload the Dashboard and the Flutter app —
+follow [`docs/platform/deployment.md`](docs/platform/deployment.md) (gitignored, local only — this repo is public;
+never commit it).
 
 Part 1 covers the platform (all projects). Part 2 covers this Backend repo.
 
