@@ -26,6 +26,10 @@ beforeEach(function () {
 
 function submitNotice($test, Customer $customer, array $body, ?string $key = null)
 {
+    // The receipt is required: a fresh one unless the test sends its own (or null).
+    if (! array_key_exists('receipt_upload_token', $body)) {
+        $body['receipt_upload_token'] = TopUps::receiptToken($test, $customer);
+    }
     app('auth')->forgetGuards();
 
     return $test->withToken(TopUps::customerToken($customer))->postJson(TOPUP_SUBMIT_URL, $body, TopUps::key($key));
@@ -41,7 +45,7 @@ it('records a pending notice without moving money', function () {
         ->assertJsonPath('data.reference', 'DAHAB-004417')
         ->assertJsonPath('data.claimed_amount', '20000.0000')
         ->assertJsonPath('data.credited_amount', null)
-        ->assertJsonPath('data.has_receipt', false)
+        ->assertJsonPath('data.has_receipt', true)
         ->assertJsonPath('data.can_cancel', true)
         ->assertJsonPath('data.reject_reason', null);
 
@@ -53,7 +57,7 @@ it('records a pending notice without moving money', function () {
         ->and($topUp->customer_id)->toBe($this->customer->customer_id)
         ->and((int) $topUp->notice_account_id)->toBe($this->insta->receiving_account_id)
         ->and($topUp->reference)->toBe('DAHAB-004417')
-        ->and($topUp->receipt_ref)->toBeNull()
+        ->and($topUp->receipt_ref)->not->toBeNull()
         ->and(DB::table('ledger_transaction')->count())->toBe($ledgerRows)
         ->and(TopUps::available($this->customer))->toBe('0');
 });
@@ -103,7 +107,7 @@ it('refuses receipt tokens that are not this customer\'s top-up receipts', funct
 
 it('replays the same submission for the same key', function () {
     $key = (string) Str::uuid();
-    $body = ['amount' => '20000', 'receiving_account_id' => $this->insta->receiving_account_id];
+    $body = ['amount' => '20000', 'receiving_account_id' => $this->insta->receiving_account_id, 'receipt_upload_token' => TopUps::receiptToken($this, $this->customer)];
 
     $first = submitNotice($this, $this->customer, $body, $key)->assertCreated();
     $second = submitNotice($this, $this->customer, $body, $key)->assertCreated()->assertHeader('Idempotent-Replayed', 'true');
@@ -140,6 +144,7 @@ it('validates the amount and the account', function (array $body, string $field)
     'missing account' => [['amount' => '100'], 'receiving_account_id'],
     'unknown account' => [['amount' => '100', 'receiving_account_id' => 999999], 'receiving_account_id'],
     'inactive account' => [['amount' => '100', 'receiving_account_id' => 'INACTIVE'], 'receiving_account_id'],
+    'missing receipt' => [['amount' => '100', 'receiving_account_id' => 'ACTIVE', 'receipt_upload_token' => null], 'receipt_upload_token'],
 ]);
 
 it('refuses customers who are not verified', function (string $state) {

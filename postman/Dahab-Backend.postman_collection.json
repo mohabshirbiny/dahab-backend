@@ -5335,7 +5335,7 @@
                                         "accept"
                                     ]
                                 },
-                                "description": "Spec 014 FR-024. hours 6 | 12 | 24 | 48 working hours added to the current reach-branch deadline at the order's branch; written as a staff extension linked to the request; both parties told. order.extend_deadline.",
+                                "description": "Spec 014 FR-024. hours 2 | 4 | 6 | 12 | 24 | 48 working hours added to the current reach-branch deadline at the order's branch; written as a staff extension linked to the request; both parties told. order.extend_deadline.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"hours\": 12,\n  \"note\": \"Extended — please bring the piece first thing tomorrow.\"\n}",
@@ -11061,7 +11061,7 @@
                                         "uploads"
                                     ]
                                 },
-                                "description": "Spec 009. Optional receipt for a notice: JPEG, PNG, WebP or PDF (max 8 MB), encrypted on the private disk. Trade gate for this purpose (403 verification_required / account_suspended). Saves receipt_upload_token (single use)."
+                                "description": "Spec 009. The receipt for a notice (required): JPEG, PNG, WebP or PDF (max 8 MB), encrypted on the private disk. Trade gate for this purpose (403 verification_required / account_suspended). Saves receipt_upload_token (single use)."
                             },
                             "event": [
                                 {
@@ -11119,7 +11119,7 @@
                                         "topups"
                                     ]
                                 },
-                                "description": "Spec 009. \"I've sent the transfer\": records a pending notice; no money moves. amount > 0 with at most 2 decimals; receiving_account_id must be active; receipt_upload_token optional (drop the line if none). Trade gate; Idempotency-Key required; throttle customer.topups (10/min). Saves topup_id.",
+                                "description": "Spec 009. \"I've sent the transfer\": records a pending notice; no money moves. amount > 0 with at most 2 decimals; receiving_account_id must be active; receipt_upload_token required (upload the receipt first; 422 without it). Trade gate; Idempotency-Key required; throttle customer.topups (10/min). Saves topup_id.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"amount\": \"20000.00\",\n    \"receiving_account_id\": {{receiving_account_id}},\n    \"receipt_upload_token\": \"{{receipt_upload_token}}\"\n}",
@@ -12400,7 +12400,8 @@
                                             "const o = Array.isArray(j.data) ? j.data[0] : j.data;",
                                             "if (o && o.id) { pm.collectionVariables.set('order_id', o.id); pm.environment.set('order_id', o.id); }",
                                             "if (o && o.collection_code) { pm.environment.set('collection_code', o.collection_code); }",
-                                            "if (o && o.return_code) { pm.environment.set('return_code', o.return_code); }"
+                                            "if (o && o.return_code) { pm.environment.set('return_code', o.return_code); }",
+                                            "if (o && o.piece && o.piece.photo) { pm.environment.set('order_media_id', o.piece.photo.id); }"
                                         ]
                                     }
                                 }
@@ -12495,6 +12496,37 @@
                                     ]
                                 },
                                 "description": "Spec 012 FR-001. Adds collection_code (the buyer, ready to collect) / return_code (the seller, a returned piece waiting). Saves them. 404 for anyone else's order."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Order Piece Photo",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "image/*",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/orders/{{order_id}}/media/{{order_media_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "media",
+                                        "{{order_media_id}}"
+                                    ]
+                                },
+                                "description": "The piece's public photo for the buyer or the seller of the order, whatever the listing's state (piece.photo.url on the order; set order_media_id to piece.photo.id). 404 for anyone else's order."
                             },
                             "response": []
                         },
@@ -12967,7 +12999,7 @@
                                         "extension-requests"
                                     ]
                                 },
-                                "description": "Spec 014 FR-022. The seller, while awaiting delivery and before the deadline: a reason and a line (Dahab picks the time). 409 extension_request_pending | deadline_not_running.",
+                                "description": "Spec 014 FR-022. The seller, while awaiting delivery and before the deadline: a reason and a line (Dahab picks the time). 409 extension_request_pending | deadline_not_running. None after a refusal (409 extension_request_refused).",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"reason\": \"branch_closed\",\n  \"detail\": \"The branch was closed when I went yesterday evening.\"\n}",

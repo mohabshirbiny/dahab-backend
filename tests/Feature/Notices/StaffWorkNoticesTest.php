@@ -263,7 +263,7 @@ describe('the nine customer events', function () {
         $account = ReceivingAccount::factory()->instapay()->create();
 
         $this->withToken(TopUps::customerToken($customer))
-            ->postJson('/api/v1/customer/me/wallet/topups', ['amount' => '20000', 'receiving_account_id' => $account->receiving_account_id], TopUps::key())
+            ->postJson('/api/v1/customer/me/wallet/topups', ['amount' => '20000', 'receiving_account_id' => $account->receiving_account_id, 'receipt_upload_token' => TopUps::receiptToken($this, $customer)], TopUps::key())
             ->assertCreated();
 
         $notice = wnNotices($matcher, StaffNoticeKind::WORK_TOPUP)->sole();

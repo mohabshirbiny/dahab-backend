@@ -43,7 +43,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'role', type: 'string', enum: ['buyer', 'seller']),
         new OA\Property(property: 'state', type: 'string', description: 'An order_state value'),
         new OA\Property(property: 'stage', type: 'string', enum: ['bring_piece', 'at_igi', 'decide', 'pay', 'collect', 'done', 'cancelled']),
-        new OA\Property(property: 'piece', type: 'object'),
+        new OA\Property(property: 'piece', type: 'object', description: 'listing_id, category, piece_type {id, name_en, name_ar}, karat, weight_g (stated), description, listing_state, photo (ListingMedia or null; its url is GET /customer/me/orders/{order}/media/{media})'),
         new OA\Property(property: 'branch', type: 'object', description: 'id, name_en, name_ar, address_en, address_ar, hours[{dow, opens_at, closes_at}]'),
         new OA\Property(property: 'counterparty_ref', type: 'string', description: 'The other party\'s display reference'),
         new OA\Property(property: 'locked_total_price', type: 'string'),
@@ -123,7 +123,7 @@ class CustomerOrderResource extends JsonResource
             'role' => $seller ? 'seller' : 'buyer',
             'state' => $o->state->value,
             'stage' => $o->state->customerStage(),
-            'piece' => self::piece($listing),
+            'piece' => self::piece($listing, $o->order_id),
             'branch' => self::branch($o->branch),
             'counterparty_ref' => $seller ? $o->buyer?->display_ref : $o->seller?->display_ref,
             'locked_total_price' => bcadd((string) $o->locked_total_price, '0', 4),
@@ -260,8 +260,9 @@ class CustomerOrderResource extends JsonResource
         $report = in_array($o->state, OpenDisputeAction::FREEZABLE, true) && self::ownDispute($o, $me) === null ? 'report_problem' : null;
 
         if ($seller) {
+            // No new request while one waits, nor after a refusal (the seller contacts Dahab instead).
             $waiting = ($o->relationLoaded('extensionRequests') ? $o->extensionRequests : $o->extensionRequests()->get())
-                ->contains(fn ($r) => $r->state === ExtensionRequestState::WAITING);
+                ->contains(fn ($r) => in_array($r->state, [ExtensionRequestState::WAITING, ExtensionRequestState::REFUSED], true));
 
             return array_values(array_filter([
                 $o->state === OrderState::AWAITING_DELIVERY ? 'cancel' : null,
@@ -340,18 +341,28 @@ class CustomerOrderResource extends JsonResource
     }
 
     /** @return array<string, mixed> */
-    public static function piece(Listing $l): array
+    /**
+     * The piece of an order. With `$orderId` (the customer's own order) the photo is served by
+     * the order's media route, which works for both parties whatever the listing's state.
+     */
+    public static function piece(Listing $l, ?string $orderId = null): array
     {
+        $photo = $l->relationLoaded('photos')
+            ? ListingMediaResource::first($l->photos->where('is_private', false), ListingMediaKind::PHOTO, ListingMediaResource::MARKET)
+            : null;
+        if ($photo !== null && $orderId !== null) {
+            $photo['url'] = route('api.v1.customer.me.orders.media', ['order' => $orderId, 'media' => $photo['id']], false);
+        }
+
         return [
             'listing_id' => $l->listing_id,
             'category' => $l->category->value,
             'piece_type' => ['id' => $l->piece_type_id, 'name_en' => $l->pieceType?->name_en, 'name_ar' => $l->pieceType?->name_ar],
             'karat' => $l->karat_code,
             'weight_g' => $l->stated_weight_g === null ? null : bcadd((string) $l->stated_weight_g, '0', 3),
+            'description' => $l->description,
             'listing_state' => $l->state->value,
-            'photo' => $l->relationLoaded('photos')
-                ? ListingMediaResource::first($l->photos->where('is_private', false), ListingMediaKind::PHOTO, ListingMediaResource::MARKET)
-                : null,
+            'photo' => $photo,
         ];
     }
 

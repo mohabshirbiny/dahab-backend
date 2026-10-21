@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Staff answer a seller's request for more time (spec 014 US4, FR-024–FR-025;
  * `order.extend_deadline`). Accept: the new reach-branch deadline is the
- * current one plus 6, 12, 24 or 48 working hours at the order's branch (the
+ * current one plus 2, 4, 6, 12, 24 or 48 working hours at the order's branch (the
  * working-hours resolver), written through the spec 012 extend in the same
  * transaction (its guards, audit and both-party message), and linked to the
  * request. Refuse: the deadline stays; the seller is told with the note.
@@ -34,7 +34,7 @@ final class AnswerExtensionRequestAction
 {
     use MovesListing, MovesOrder, TellsOrderParties;
 
-    public const HOURS = [6, 12, 24, 48];
+    public const HOURS = [2, 4, 6, 12, 24, 48];
 
     public function __construct(
         private readonly ExtendOrderDeadlineAction $extend,

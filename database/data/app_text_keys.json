@@ -6063,6 +6063,16 @@
       "max_length": 40
     },
     {
+      "key": "orders.if_you_have_a_problem_bringing",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order screen",
+      "default_en": "If you have a problem bringing the piece, please contact us. We can look at your deadline again.",
+      "default_ar": "لو عندك مشكلة في توصيل القطعة، كلمنا. ممكن نراجع المهلة بتاعتك تاني.",
+      "placeholders": [],
+      "max_length": 192
+    },
+    {
       "key": "orders.gold_value",
       "kind": "app",
       "area": "Selling",
@@ -7281,6 +7291,16 @@
       "default_ar": "لما دهب تستلم القطعة",
       "placeholders": [],
       "max_length": 58
+    },
+    {
+      "key": "selling.egp_g",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "EGP /g",
+      "default_ar": "جنيه /جم",
+      "placeholders": [],
+      "max_length": 40
     },
     {
       "key": "bank.a_person_checks_the_name_against",
@@ -8981,6 +9001,36 @@
       "default_ar": "اتنسخ.",
       "placeholders": [],
       "max_length": 40
+    },
+    {
+      "key": "wallet.add_a_screenshot_or_receipt_of",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screens",
+      "default_en": "Add a screenshot or receipt of your transfer first.",
+      "default_ar": "ضيف صورة أو إيصال التحويل الأول.",
+      "placeholders": [],
+      "max_length": 102
+    },
+    {
+      "key": "wallet.required_a_screenshot_of_the_transfe",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screens",
+      "default_en": "Required. A screenshot of the transfer is enough.",
+      "default_ar": "مطلوب. صورة شاشة للتحويل كفاية.",
+      "placeholders": [],
+      "max_length": 98
+    },
+    {
+      "key": "wallet.we_need_it_to_match_your",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Wallet screens",
+      "default_en": "We need it to match your transfer, even when you use the reference.",
+      "default_ar": "محتاجينه علشان نطابق تحويلك، حتى لو استخدمت الرقم المرجعي.",
+      "placeholders": [],
+      "max_length": 134
     },
     {
       "key": "account.16000_chat_whatsapp_or_email",
@@ -13903,6 +13953,26 @@
       "max_length": 40
     },
     {
+      "key": "shared.type_the_number",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Shared widgets",
+      "default_en": "Type the number",
+      "default_ar": "اكتب الرقم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "shared.use",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Shared widgets",
+      "default_en": "Use",
+      "default_ar": "استخدم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "pattern.making_charge_amount_per_gram",
       "kind": "app",
       "area": "Shared",
@@ -14901,6 +14971,46 @@
         "weight"
       ],
       "max_length": 40
+    },
+    {
+      "key": "pattern.enter_a_number_above_0_and_up",
+      "kind": "app",
+      "area": "Shared",
+      "where": "A sentence with a number, a name or a date in it",
+      "default_en": "Enter a number above 0 and up to {number}.",
+      "default_ar": "اكتب رقم أكبر من 0 ولحد {number}.",
+      "placeholders": [
+        "number"
+      ],
+      "max_length": 84
+    },
+    {
+      "key": "pattern.igi_weighed_the_piece_at_weight_g",
+      "kind": "app",
+      "area": "Shared",
+      "where": "A sentence with a number, a name or a date in it",
+      "default_en": "IGI weighed the piece at {weight} g, {weight_2} g more than the {weight_3} g listed. The price changed with the weight.",
+      "default_ar": "IGI وزنت القطعة {weight} جم، يعني {weight_2} جم أكتر من الـ {weight_3} جم المكتوبين. السعر اتغير مع الوزن.",
+      "placeholders": [
+        "weight",
+        "weight_2",
+        "weight_3"
+      ],
+      "max_length": 238
+    },
+    {
+      "key": "pattern.igi_weighed_the_piece_at_weight_g_2",
+      "kind": "app",
+      "area": "Shared",
+      "where": "A sentence with a number, a name or a date in it",
+      "default_en": "IGI weighed the piece at {weight} g, {weight_2} g less than the {weight_3} g listed. The price changed with the weight.",
+      "default_ar": "IGI وزنت القطعة {weight} جم، يعني {weight_2} جم أقل من الـ {weight_3} جم المكتوبين. السعر اتغير مع الوزن.",
+      "placeholders": [
+        "weight",
+        "weight_2",
+        "weight_3"
+      ],
+      "max_length": 238
     }
   ],
   "retired": [

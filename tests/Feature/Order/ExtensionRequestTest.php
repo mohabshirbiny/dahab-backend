@@ -19,7 +19,7 @@ use Tests\Support\Orders;
 uses(RefreshDatabase::class);
 
 // Spec 014 US4, FR-022–FR-027, Clarification: the seller asks with a reason
-// and a line; staff accept with 6/12/24/48 working hours or refuse; a request
+// and a line; staff accept with 2/4/6/12/24/48 working hours or refuse; a request
 // lapses when the order moves on.
 
 beforeEach(function () {
@@ -165,4 +165,29 @@ it('lists a month of requests with their outcomes', function () {
     $this->getJson(Disputes::REQUESTS_URL."?state=all&month={$month}")->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.state', 'refused');
     $this->getJson(Disputes::REQUESTS_URL.'?state=all&month='.now('Africa/Cairo')->subMonth()->format('Y-m'))->assertJsonCount(0, 'data');
     $this->getJson(Disputes::REQUESTS_URL)->assertJsonCount(0, 'data');
+});
+
+it('takes no new request once one was refused; the seller is pointed to Dahab', function () {
+    Disputes::askMoreTime($this, $this->order)->assertCreated();
+    $request = extensionRequestOf($this->order);
+    Orders::staff($this, SeedRole::OPERATIONS);
+    $this->postJson(Disputes::REQUESTS_URL."/{$request->request_id}/refuse", ['note' => 'The buyer has waited long enough.'], Listings::key())->assertOk();
+
+    expect(Orders::show($this, Orders::seller($this->order), $this->order)->assertJsonPath('data.extension_request.state', 'refused')
+        ->json('data.actions'))->not->toContain('ask_more_time');
+    Disputes::askMoreTime($this, $this->order)->assertStatus(409)->assertJsonPath('code', 'extension_request_refused');
+    expect(DatabaseActor::elevate('maintenance', fn () => OrderExtensionRequest::query()->where('order_id', $this->order->order_id)->count()))->toBe(1);
+});
+
+it('gives as little as 2 working hours', function () {
+    Disputes::askMoreTime($this, $this->order)->assertCreated();
+    $request = extensionRequestOf($this->order);
+    $old = $this->order->reach_branch_deadline;
+    Orders::staff($this, SeedRole::OPERATIONS);
+
+    $this->postJson(Disputes::REQUESTS_URL."/{$request->request_id}/accept", ['hours' => 2, 'note' => 'Two more hours, please hurry.'], Listings::key())
+        ->assertOk()->assertJsonPath('data.hours_granted', 2);
+
+    $expected = app(WorkingHoursResolver::class)->addWorkingMinutes($old, 120, (int) $this->order->branch_id);
+    expect($this->order->refresh()->reach_branch_deadline->equalTo($expected))->toBeTrue();
 });

@@ -13,14 +13,15 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * database scope of the caller: the market scope returns only public media
  * of live listings, a seller only their own, staff everything. The market
  * caller also asks for `$publicOnly`, so the rule does not rest on the scope
- * alone. Never cached: a file is gone the moment its listing leaves the
+ * alone. A party to an order (order scope, `$publicMediaOnly`) sees the
+ * piece's public media whatever the listing's state. Never cached: a file is gone the moment its listing leaves the
  * market.
  */
 final class ReadListingMediaAction
 {
     public function __construct(private readonly IdentityDocumentStorage $storage) {}
 
-    public function handle(string $listingId, string $mediaId, bool $publicOnly = false, ?string $sellerId = null): StreamedResponse
+    public function handle(string $listingId, string $mediaId, bool $publicOnly = false, ?string $sellerId = null, bool $publicMediaOnly = false): StreamedResponse
     {
         $listing = Listing::query()
             ->when($publicOnly, fn ($q) => $q->publiclyVisible())
@@ -29,7 +30,7 @@ final class ReadListingMediaAction
 
         $media = ListingMedia::query()
             ->where('listing_id', $listing->listing_id)
-            ->when($publicOnly, fn ($q) => $q->where('is_private', false))
+            ->when($publicOnly || $publicMediaOnly, fn ($q) => $q->where('is_private', false))
             ->findOrFail($mediaId);
 
         $ref = $media->storage_ref;

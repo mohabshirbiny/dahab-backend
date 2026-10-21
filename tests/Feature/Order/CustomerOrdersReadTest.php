@@ -85,3 +85,16 @@ it('needs a verified customer', function () {
 
     Listings::as($this, $pending)->getJson(Orders::CUSTOMER_URL)->assertForbidden()->assertJsonPath('code', 'verification_required');
 });
+
+it('shows both parties the piece photo through the order, never to anyone else', function () {
+    $photo = Orders::show($this, $this->seller, $this->order)->assertOk()->json('data.piece.photo');
+    expect($photo['url'])->toBe("/api/v1/customer/me/orders/{$this->order->order_id}/media/{$photo['id']}")
+        ->and(Orders::show($this, $this->buyer, $this->order)->json('data.piece.photo.url'))->toBe($photo['url'])
+        ->and(Orders::show($this, $this->buyer, $this->order)->json('data'))->toHaveKey('piece.description');
+
+    // The listing is off the market now (accepted), so only the order route serves it.
+    foreach ([$this->seller, $this->buyer] as $party) {
+        Listings::as($this, $party)->get($photo['url'], ['Accept' => 'application/json'])->assertOk()->assertHeader('Content-Type', 'image/png');
+    }
+    Listings::as($this, Customer::factory()->verified()->create())->get($photo['url'], ['Accept' => 'application/json'])->assertNotFound();
+});

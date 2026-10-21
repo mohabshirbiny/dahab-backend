@@ -245,6 +245,7 @@ const OPENAPI_DASHBOARD_DISPUTE_PATHS = [
 const OPENAPI_CUSTOMER_ORDER_PATHS = [
     'get /customer/me/orders',
     'get /customer/me/orders/{order}',
+    'get /customer/me/orders/{order}/media/{media}',
     'post /customer/me/orders/{order}/cancel',
     'post /customer/me/orders/{order}/decision',
     'post /customer/me/orders/{order}/pay-balance',
