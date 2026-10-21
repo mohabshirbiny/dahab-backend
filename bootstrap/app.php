@@ -8,6 +8,7 @@ use App\Http\Middleware\EnforceStaffPermission;
 use App\Http\Middleware\EnsureCustomerStanding;
 use App\Http\Middleware\EnsureFounder;
 use App\Http\Middleware\EnsureLegalAccepted;
+use App\Http\Middleware\EnsureRowSecurity;
 use App\Http\Middleware\EnsureStaffStanding;
 use App\Http\Middleware\SetDatabaseActor;
 use App\Http\Middleware\SetRequestContext;
@@ -66,6 +67,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // and `ability:a,b` (any listed). Always placed after an `auth:<guard>`.
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
+        ]);
+
+        // Spec 003 FR-002: nothing is served while the database role can bypass row-level security.
+        $middleware->api(prepend: [
+            EnsureRowSecurity::class,
         ]);
 
         $middleware->api(append: [

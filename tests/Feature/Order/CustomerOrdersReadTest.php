@@ -1,6 +1,9 @@
 <?php
 
+use App\Actions\Orders\Customer\ListOwnOrdersAction;
 use App\Models\Customer;
+use App\Support\DatabaseActor;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -68,6 +71,20 @@ it('never shows an order to anyone else', function () {
 
     Orders::show($this, $stranger, $this->order)->assertNotFound();
     expect(Listings::as($this, $stranger)->getJson(Orders::CUSTOMER_URL)->assertOk()->json('data'))->toBe([]);
+});
+
+it('filters on the caller even when row isolation lets every order through', function () {
+    // Spec 003 FR-002 defence in depth: a role that bypasses RLS must still not list or open
+    // someone else's order. An elevated scope sees every row, like such a role would.
+    $stranger = Customer::factory()->verified()->create();
+    $list = app(ListOwnOrdersAction::class);
+
+    DatabaseActor::elevate('maintenance', function () use ($list, $stranger) {
+        expect($list->handle($stranger->customer_id, null, null, null, 100)['rows'])->toBeEmpty()
+            ->and($list->handle($this->buyer->customer_id, null, null, null, 100)['rows']->pluck('order_id')->all())->toBe([$this->order->order_id])
+            ->and($list->show($this->seller->customer_id, $this->order->order_id)->order_id)->toBe($this->order->order_id)
+            ->and(fn () => $list->show($stranger->customer_id, $this->order->order_id))->toThrow(ModelNotFoundException::class);
+    });
 });
 
 it('never names the other party', function () {

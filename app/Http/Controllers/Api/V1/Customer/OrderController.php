@@ -124,10 +124,14 @@ class OrderController extends Controller
             new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]
-    public function media(string $order, string $media, ReadListingMediaAction $read): StreamedResponse
+    public function media(Request $request, string $order, string $media, ReadListingMediaAction $read): StreamedResponse
     {
-        // Row security returns only an order the caller is a party to.
-        $listingId = Order::query()->findOrFail($order, ['listing_id'])->listing_id;
+        // Row security returns only an order the caller is a party to; the explicit
+        // filter keeps it so if the database role ever bypasses row security (spec 003 FR-002).
+        $me = $this->customer($request)->customer_id;
+        $listingId = Order::query()
+            ->where(fn ($q) => $q->where('buyer_id', $me)->orWhere('seller_id', $me))
+            ->findOrFail($order, ['listing_id'])->listing_id;
 
         return DatabaseActor::order(fn () => $read->handle($listingId, $media, publicMediaOnly: true));
     }
@@ -281,7 +285,7 @@ class OrderController extends Controller
 
         return response()->json(['data' => [
             'listing' => ListingResource::make($listing)->resolve($request),
-            'order' => CustomerOrderResource::make($list->show($order))->withCode()->resolve($request),
+            'order' => CustomerOrderResource::make($list->show($this->customer($request)->customer_id, $order))->withCode()->resolve($request),
         ]], 201);
     }
 
@@ -327,7 +331,7 @@ class OrderController extends Controller
                 'note' => $rating->note,
                 'created_at' => $rating->created_at->toIso8601String(),
             ],
-            'order' => CustomerOrderResource::make($list->show($order))->withCode()->resolve($request),
+            'order' => CustomerOrderResource::make($list->show($this->customer($request)->customer_id, $order))->withCode()->resolve($request),
         ]], 201);
     }
 
@@ -457,6 +461,6 @@ class OrderController extends Controller
 
     private function respond(Request $request, string $orderId, ListOwnOrdersAction $list, int $status = 200): JsonResponse
     {
-        return response()->json(['data' => CustomerOrderResource::make($list->show($orderId))->withCode()->resolve($request)], $status);
+        return response()->json(['data' => CustomerOrderResource::make($list->show($this->customer($request)->customer_id, $orderId))->withCode()->resolve($request)], $status);
     }
 }

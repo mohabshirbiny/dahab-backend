@@ -35,6 +35,9 @@ final class UpdateListingAction
      */
     public function handle(Customer $seller, string $listingId, array $data): Listing
     {
+        // Ownership under the seller's own row isolation: 404 for anyone else's listing.
+        Listing::query()->where('seller_id', $seller->customer_id)->findOrFail($listingId);
+
         return DB::transaction(function () use ($seller, $listingId, $data) {
             $listing = $this->lockListing($listingId);
 

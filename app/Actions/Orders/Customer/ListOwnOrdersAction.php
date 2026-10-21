@@ -11,8 +11,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 /**
  * A customer's own orders, as buyer or seller (spec 012 FR-001, research
- * R19). The rows are read under the customer's plain row isolation, so
- * `order_isolation` alone decides which exist; only then, in the read-only use
+ * R19). The rows are read under the customer's plain row isolation and are also
+ * filtered on the caller's id, so a database role that bypasses `order_isolation`
+ * still returns only the caller's orders; only then, in the read-only use
  * of the `order` scope, are the counterparty's display reference, the request
  * and the piece loaded for those orders (research R2). Newest first, keyset.
  */
@@ -22,6 +23,7 @@ final class ListOwnOrdersAction
     public function handle(string $customerId, ?string $role, ?string $group, ?ListingCursor $cursor, int $perPage): array
     {
         $query = Order::query()
+            ->where(fn (Builder $q) => $q->where('buyer_id', $customerId)->orWhere('seller_id', $customerId))
             ->when($role === 'buyer', fn (Builder $q) => $q->where('buyer_id', $customerId))
             ->when($role === 'seller', fn (Builder $q) => $q->where('seller_id', $customerId))
             ->when($group === 'open', fn (Builder $q) => $q->whereIn('state', array_map(fn ($s) => $s->value, OrderState::open())))
@@ -48,10 +50,12 @@ final class ListOwnOrdersAction
         ];
     }
 
-    /** One of the customer's orders; 404 for anyone else's (row isolation). */
-    public function show(string $orderId): Order
+    /** One of the customer's orders; 404 for anyone else's (row isolation and the explicit owner filter). */
+    public function show(string $customerId, string $orderId): Order
     {
-        $order = Order::query()->findOrFail($orderId);
+        $order = Order::query()
+            ->where(fn (Builder $q) => $q->where('buyer_id', $customerId)->orWhere('seller_id', $customerId))
+            ->findOrFail($orderId);
         $this->load(new Collection([$order]));
 
         return $order;

@@ -253,7 +253,9 @@ machine-readable value clients must switch on**; `message` is human text and may
   `staff_not_disabled` 409; from spec 021: `device_id_required` 422, `device_approval_refused` 403, `device_approval_invalid` 401,
   `device_approval_not_pending` 409 (SQLSTATE DH021), `device_not_known` 403, `founder_only` 403, `founder_self_action` 403,
   `freeze_target_invalid` 422, `already_frozen` 409, `not_frozen` 409, `unfreeze_order` 409, `unfreeze_already_confirmed` 409
-  (SQLSTATE DH022), …).
+  (SQLSTATE DH022); spec 003 FR-002 at run time: `database_isolation_off` **503** on every `api/*` route, health included,
+  while the server's database role can bypass row-level security (`php artisan db:check-isolation` names the role) — clients
+  treat it like any 503, …).
 - Generic: `forbidden` (403, wrong token ability or HTTP 403), `not_found` (404), `method_not_allowed`
   (405), `too_many_requests` (429, with `Retry-After`), `server_error` (500; message hidden unless debug).
 - Extra top-level keys may accompany an error (e.g. `resend_available_at`, `suspended_reason`); clients

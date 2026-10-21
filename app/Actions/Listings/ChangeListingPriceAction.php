@@ -33,6 +33,9 @@ final class ChangeListingPriceAction
 
     public function handle(Customer $seller, string $listingId, string $figure, ?RequestContext $ctx = null): Listing
     {
+        // Ownership under the seller's own row isolation: 404 for anyone else's listing.
+        Listing::query()->where('seller_id', $seller->customer_id)->findOrFail($listingId);
+
         app(Controls::class)->assertPlatformRunning();
 
         return DB::transaction(function () use ($seller, $listingId, $figure, $ctx) {
