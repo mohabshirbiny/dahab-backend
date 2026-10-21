@@ -63,7 +63,7 @@ class ExtensionRequestController extends Controller
         path: '/dashboard/extension-requests/{extensionRequest}/accept',
         operationId: 'dashboardAcceptExtensionRequest',
         summary: 'Accept a request for more time',
-        description: 'Spec 014 FR-024. The new reach-branch deadline is the current one plus the chosen working hours (6, 12, 24 or 48) at the branch of the order, written as a staff extension (order.deadline_extended) linked to the request; both parties are told the new deadline. Audited (order.extension_request_accepted). Idempotent. Requires order.extend_deadline.',
+        description: 'Spec 014 FR-024. The new reach-branch deadline is the current one plus the chosen working hours (2, 4, 6, 12, 24 or 48) at the branch of the order, written as a staff extension (order.deadline_extended) linked to the request; both parties are told the new deadline. Audited (order.extension_request_accepted). Idempotent. Requires order.extend_deadline.',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/AcceptExtensionRequestRequest')),
         tags: ['Dashboard Orders'],

@@ -471,6 +471,12 @@ class DomainApiException extends RuntimeException
         return new self('extension_request_pending', 409, 'Your request for more time is already waiting for an answer.');
     }
 
+    /** Testing notes: once Dahab refused more time on an order, the seller cannot ask again; they contact Dahab. */
+    public static function extensionRequestRefused(): self
+    {
+        return new self('extension_request_refused', 409, 'We already answered your request for more time on this order. Please contact us if you have a problem.');
+    }
+
     /** A request move outside `extension_request_transition`, or a lost race (SQLSTATE DH010). */
     public static function illegalExtensionRequestTransition(): self
     {

@@ -74,7 +74,7 @@ it('snapshots the account fee when the customer files the notice', function () {
     $customer = Customer::factory()->verified()->create();
 
     $this->withToken(TopUps::customerToken($customer))
-        ->postJson('/api/v1/customer/me/wallet/topups', ['amount' => '10000', 'receiving_account_id' => $account->receiving_account_id], TopUps::key())
+        ->postJson('/api/v1/customer/me/wallet/topups', ['amount' => '10000', 'receiving_account_id' => $account->receiving_account_id, 'receipt_upload_token' => TopUps::receiptToken($this, $customer)], TopUps::key())
         ->assertCreated()
         ->assertJsonPath('data.expected_amount', '9900.0000');
 

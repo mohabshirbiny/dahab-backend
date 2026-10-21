@@ -85,4 +85,10 @@ final class TopUps
         return $test->withToken(self::customerToken($customer))
             ->post('/api/v1/customer/me/uploads', ['purpose' => 'topup_receipt', 'file' => $file ?? self::receiptPng()], ['Accept' => 'application/json']);
     }
+
+    /** A receipt token for a notice (the receipt is required); a placeholder when the upload is refused (the gate answers first). */
+    public static function receiptToken(TestCase $test, Customer $customer): string
+    {
+        return (string) (self::uploadReceipt($test, $customer)->json('data.upload_token') ?? 'refused-upload');
+    }
 }

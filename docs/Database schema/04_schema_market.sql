@@ -443,7 +443,7 @@ CREATE TABLE order_extension_request (
   answered_by  UUID REFERENCES staff(staff_id),
   answered_at  TIMESTAMPTZ,
   answer_note  TEXT CHECK (answer_note IS NULL OR char_length(answer_note) BETWEEN 10 AND 1000),
-  hours_granted SMALLINT CHECK (hours_granted IN (6,12,24,48)),
+  hours_granted SMALLINT CHECK (hours_granted IN (2,4,6,12,24,48)),
   extension_id UUID REFERENCES order_deadline_extension(extension_id),
   CONSTRAINT extension_request_hours CHECK ((state = 'accepted') = (hours_granted IS NOT NULL)),
   CONSTRAINT extension_request_link  CHECK ((state = 'accepted') = (extension_id IS NOT NULL)),

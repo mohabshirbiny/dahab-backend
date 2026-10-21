@@ -355,6 +355,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::middleware('customer.gate:verified')->group(function () {
                     Route::get('/', [CustomerOrderController::class, 'index'])->name('index');
                     Route::get('/{order}', [CustomerOrderController::class, 'show'])->whereUuid('order')->name('show');
+                    // Testing notes: the piece's photos for both parties, whatever the listing's state.
+                    Route::get('/{order}/media/{media}', [CustomerOrderController::class, 'media'])
+                        ->whereUuid(['order', 'media'])->name('media');
                     Route::post('/{order}/cancel', [CustomerOrderController::class, 'cancel'])
                         ->whereUuid('order')->middleware('idempotent')->name('cancel');
                     Route::post('/{order}/decision', [CustomerOrderController::class, 'decision'])

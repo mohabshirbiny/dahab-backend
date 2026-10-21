@@ -59,6 +59,11 @@ final class RequestMoreTimeAction
                 ->where('state', ExtensionRequestState::WAITING->value)->exists()) {
                 throw DomainApiException::extensionRequestPending();
             }
+            // Testing notes: a refusal is the answer for this order; staff may still extend the deadline themselves.
+            if (OrderExtensionRequest::query()->where('order_id', $order->order_id)
+                ->where('state', ExtensionRequestState::REFUSED->value)->exists()) {
+                throw DomainApiException::extensionRequestRefused();
+            }
 
             $request = OrderExtensionRequest::query()->create([
                 'order_id' => $order->order_id,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Actions\Disputes\Customer\OpenDisputeAction;
 use App\Actions\Listings\ListOwnListingsAction;
+use App\Actions\Listings\ReadListingMediaAction;
 use App\Actions\Orders\Customer\CancelOrderBySellerAction;
 use App\Actions\Orders\Customer\DecideAdjustmentAction;
 use App\Actions\Orders\Customer\FreeRelistAction;
@@ -26,10 +27,13 @@ use App\Http\Resources\Customer\CustomerOrderResource;
 use App\Http\Resources\Customer\DisputeResource;
 use App\Http\Resources\Customer\ListingResource;
 use App\Models\Customer;
+use App\Models\Order;
+use App\Support\DatabaseActor;
 use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * A customer's orders after acceptance, as buyer or seller (spec 012 US1, US2,
@@ -100,6 +104,32 @@ class OrderController extends Controller
     public function show(Request $request, string $order, ListOwnOrdersAction $list): JsonResponse
     {
         return $this->respond($request, $order, $list);
+    }
+
+    #[OA\Get(
+        path: '/customer/me/orders/{order}/media/{media}',
+        operationId: 'customerOrderMedia',
+        summary: 'A photo of the piece on one of my orders',
+        description: 'Testing notes. The piece\'s public media (never a private item) for the buyer or the seller of the order, whatever the listing\'s state — the market route stops serving a piece once it is sold. `piece.photo.url` on the order points here. 404 for anyone else\'s order.',
+        security: [['customerBearer' => []]],
+        tags: ['Customer Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'media', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The file, streamed (Content-Type is its mime)'),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function media(string $order, string $media, ReadListingMediaAction $read): StreamedResponse
+    {
+        // Row security returns only an order the caller is a party to.
+        $listingId = Order::query()->findOrFail($order, ['listing_id'])->listing_id;
+
+        return DatabaseActor::order(fn () => $read->handle($listingId, $media, publicMediaOnly: true));
     }
 
     #[OA\Post(
@@ -337,7 +367,7 @@ class OrderController extends Controller
         path: '/customer/me/orders/{order}/extension-requests',
         operationId: 'customerRequestMoreTime',
         summary: 'Ask for more time to bring the piece (seller)',
-        description: 'Spec 014 FR-022. While the order waits for delivery and before the reach-branch deadline: a reason and a line — Dahab chooses the time (6, 12, 24 or 48 working hours) or refuses, and you are told by SMS and email. The deadline keeps running meanwhile; one request at a time. If you already sold it elsewhere, cancel the sale instead (POST …/cancel). Audited (order.extension_requested). Verified customers. Idempotent.',
+        description: 'Spec 014 FR-022. While the order waits for delivery and before the reach-branch deadline: a reason and a line — Dahab chooses the time (2, 4, 6, 12, 24 or 48 working hours) or refuses, and you are told by SMS and email. The deadline keeps running meanwhile; one request at a time, and none after a refusal (extension_request_refused: contact Dahab; staff may still extend the deadline). If you already sold it elsewhere, cancel the sale instead (POST …/cancel). Audited (order.extension_requested). Verified customers. Idempotent.',
         security: [['customerBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/RequestMoreTimeRequest')),
         tags: ['Customer Orders'],
@@ -351,7 +381,7 @@ class OrderController extends Controller
             new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 403, description: 'verification_required', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 404, description: 'not_found (not your sale)', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 409, description: 'illegal_order_transition | deadline_not_running | extension_request_pending | order_frozen | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_order_transition | deadline_not_running | extension_request_pending | extension_request_refused | order_frozen | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 422, description: 'validation_failed | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]
