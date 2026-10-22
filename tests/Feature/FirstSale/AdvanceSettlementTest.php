@@ -179,6 +179,7 @@ it('shows staff the exposure, the written-off total and the advances', function 
 });
 
 it('keeps a settlement without an advance exactly as before', function () {
+    Promo::open(firstSale: false);   // the first sale is advanced automatically while the switch is on
     $seller = Customer::factory()->verified()->create();
     $order = Orders::inspected($this, Orders::accepted($this, Orders::ring($seller)));
     Orders::pay($this, Orders::buyer($order), $order)->assertOk();

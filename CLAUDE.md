@@ -352,7 +352,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   credits, and the cost figures are stored on `"order"` at settlement; seller codes (`POST /customer/me/commission-preview`,
   `PUT|DELETE /customer/me/listings/{id}/promo`, `promo_code` on create; `promo.seller_codes_enabled`), the referral (`GET
   /customer/me/referral`, `POST …/referral/shares`; friend's bound percent at join, inviter's EGP credit after the friend's first
-  settled sale, `referral.enabled`), the first-sale advance of Part 3 §6 (`payout.first_sale_enabled`, one balanced
+  settled sale, `referral.enabled`), the first-sale advance of Part 3 §6 (`payout.first_sale_enabled`; automatic since
+  2026-10-22 for the seller's first sale of any category when it is gold — basis `automatic`, a code or enablement still recorded; one balanced
   `first_sale_payout` entry, exposure ceiling under an advisory lock, reconciled at payment, written off by a status change
   only, `POST|DELETE /dashboard/customers/{id}/first-sale-advance`, `first_sale.manage`), the national-ID number hashed at
   identity verify (`CustomerIdKey`), the market-maker page's view counter, guide, audited media, Leave and cost panel, and

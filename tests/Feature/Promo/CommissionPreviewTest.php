@@ -128,6 +128,22 @@ it('reports the first-sale advance only for a code that pays it or an enabled se
     preview($this)->assertOk()->assertJsonPath('data.pays_advance.available', true);
 });
 
+it('promises the first sale paid ahead with no code once the switch is on, and only for gold', function () {
+    Promo::set(SettingKey::PAYOUT_FIRST_SALE_ENABLED, true);
+
+    preview($this)->assertOk()->assertJsonPath('data.pays_advance.available', true)
+        ->assertJsonPath('data.pays_advance.reason', null)->assertJsonPath('data.pays_advance.cap_egp', '100000.0000');
+
+    // A diamond is never paid ahead, so nothing is promised.
+    Listings::as($this, $this->seller)->postJson(Promo::PREVIEW_URL, ['category' => 'diamond', 'asking_price' => '120000.00'])
+        ->assertOk()->assertJsonPath('data.pays_advance', null);
+
+    // The ceiling reached: the seller is told it cannot be paid early now.
+    Promo::set(SettingKey::PAYOUT_FIRST_SALE_EXPOSURE_CEILING_EGP, 0);
+    preview($this)->assertOk()->assertJsonPath('data.pays_advance.available', false)
+        ->assertJsonPath('data.pays_advance.reason', 'ceiling');
+});
+
 it('validates the piece figures', function () {
     preview($this, ['karat' => null, 'weight_g' => null])->assertStatus(422)->assertJsonPath('code', 'validation_failed');
     Listings::as($this, $this->seller)->postJson(Promo::PREVIEW_URL, ['category' => 'diamond', 'karat' => 21, 'asking_price' => '1000'])

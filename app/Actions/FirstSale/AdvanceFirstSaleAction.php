@@ -5,6 +5,7 @@ namespace App\Actions\FirstSale;
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Actions\Ledger\PostLedgerEntryAction;
 use App\Enums\AccountKind;
+use App\Enums\AdvanceBasis;
 use App\Enums\AuditEvent;
 use App\Enums\LedgerEventKind;
 use App\Enums\OrderEvent;
@@ -28,12 +29,13 @@ use App\Support\SystemActor;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Pay a first-time gold seller ahead (spec 023 research R11–R13; TS Part 3 §6.2–6.3).
+ * Pay a seller's first sale ahead when the piece is gold (spec 023 research R11–R13; TS Part 3 §6.2–6.3).
  *
  * Called inside the transaction that moved the order to `awaiting_balance` — at the inspection that
  * passes, or when the buyer accepts an adjusted price. It never throws into the caller for an
  * ineligible seller: an advance problem must not block an inspection result. Behind
- * `payout.first_sale_enabled` (default off). Every check is repeated here, at the moment, under
+ * `payout.first_sale_enabled` (default off). Testing notes: automatic — no code or staff enablement
+ * is needed; one that is there is recorded as the basis. Every check is repeated here, at the moment, under
  * locks: the seller's customer row (no earlier advance), an advisory lock over the exposure sum
  * (two inspections cannot both take the last of the headroom), and `UNIQUE (seller_id)` as the
  * backstop.
@@ -77,11 +79,11 @@ final class AdvanceFirstSaleAction
         $seller = Customer::query()->whereKey($order->seller_id)->lockForUpdate()->firstOrFail();
 
         $gate = $this->eligibility->gate($seller, $listing);
-        if ($gate === null) {
-            return $none;   // never automatic: no code, no enablement
-        }
 
         $reason = $this->eligibility->reason($seller, $listing->category, checkCeiling: false);
+        if ($gate['basis'] === AdvanceBasis::AUTOMATIC->value && ! FirstSaleEligibility::offeredAutomatically($reason)) {
+            return $none;   // never offered (switch off, not gold, not the first sale): nothing to record or say
+        }
         if ($reason === null) {
             // The exposure sum is read under an advisory lock for the rest of this transaction.
             DB::selectOne("SELECT pg_advisory_xact_lock(hashtext('first_sale_exposure'))");

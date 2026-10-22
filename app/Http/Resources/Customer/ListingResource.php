@@ -56,7 +56,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'can_change_price', type: 'boolean', description: 'Spec 022: live, and the price is not fixed by a market-maker approval. POST /customer/me/listings/{id}/price'),
         new OA\Property(property: 'queue_count', type: 'integer', description: 'Spec 011: buyers waiting in line'),
         new OA\Property(property: 'promo', type: 'object', nullable: true, description: 'Spec 023: the code recorded on this sale {code, kind, source, commission{mode, percent}, pays_advance, status: active|spent|voided, can_change}'),
-        new OA\Property(property: 'pays_advance', type: 'object', nullable: true, description: 'Spec 023: {available, cap_egp, reason} when the code or a staff enablement would pay the first gold sale ahead; null otherwise'),
+        new OA\Property(property: 'pays_advance', type: 'object', nullable: true, description: 'Spec 023: {available, cap_egp, reason} when the code or a staff enablement opens the advance, or when the seller\'s first sale (a gold piece) would be paid ahead automatically (also with reason ceiling or seller_not_eligible); null otherwise (switch off, not gold, not the first sale)'),
         new OA\Property(property: 'order', ref: '#/components/schemas/OrderSummary', nullable: true, description: 'Spec 011: the latest order on the piece (set once a buyer was accepted; state cancelled_staff when Dahab cancelled it)'),
     ],
 )]
