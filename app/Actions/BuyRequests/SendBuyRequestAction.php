@@ -7,6 +7,7 @@ use App\Actions\BuyRequests\Concerns\RunsInQueue;
 use App\Enums\BuyRequestEvent;
 use App\Enums\BuyRequestState;
 use App\Enums\ListingState;
+use App\Enums\OrderState;
 use App\Enums\SettingKey;
 use App\Exceptions\DomainApiException;
 use App\Models\AgreementAcceptance;
@@ -15,6 +16,7 @@ use App\Models\Customer;
 use App\Models\LegalDocument;
 use App\Models\Listing;
 use App\Models\ListingStateChange;
+use App\Models\Order;
 use App\Support\BuyRequests\DepositLedger;
 use App\Support\BuyRequests\DepositRule;
 use App\Support\Controls\Controls;
@@ -31,7 +33,9 @@ use Illuminate\Support\Str;
  * A buyer asks to buy a piece and joins its line (spec 011 US1, FR-001–FR-009;
  * Part 2 §4, Part 3 §4). One transaction under the `queue` scope, the listing
  * locked first (the per-listing queue lock): check the piece can be bought
- * and is not the buyer's, the deposit terms, the price against the tolerance;
+ * and is not the buyer's, that the buyer owes nothing on an order won before
+ * (`awaiting_balance`, `weight_adjust_pending` → `balance_due_first`), the
+ * deposit terms, the price against the tolerance;
  * take the next position; hold the deposit through the money service; record
  * the request and the acceptance of the terms; on the first request move the
  * listing `live → reserved`. The seller is told after commit. Not audited — a
@@ -79,6 +83,18 @@ final class SendBuyRequestAction
             }
             if (! $seen->state->isPublic()) {
                 throw DomainApiException::listingNotPurchasable();
+            }
+
+            // A buyer who owes the balance, or an answer to a new price, on an order settles it first.
+            $owed = Order::query()->where('buyer_id', $buyer->customer_id)
+                ->whereIn('state', [OrderState::AWAITING_BALANCE->value, OrderState::WEIGHT_ADJUST_PENDING->value])
+                ->orderBy('created_at')->first(['order_id', 'order_ref', 'state']);
+            if ($owed !== null) {
+                throw DomainApiException::balanceDueFirst([
+                    'order_id' => $owed->order_id,
+                    'order_ref' => $owed->order_ref,
+                    'order_state' => $owed->state->value,
+                ]);
             }
 
             $terms = LegalDocument::current(LegalDocument::DEPOSIT_AGREEMENT);

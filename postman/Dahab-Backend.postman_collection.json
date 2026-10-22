@@ -12242,7 +12242,7 @@
                                         "buy-requests"
                                     ]
                                 },
-                                "description": "Spec 011 FR-001–FR-008. On a live or reserved piece that is not yours: locks the fresh price (refused as price_moved beyond buyrequest.price_tolerance_pct, with details.current_price), holds deposit.buyer_pct of it (deposit_hold on the ledger), takes the next place in line, records the deposit terms. 409 insufficient_funds carries details.deposit_amount / available / shortfall. Run Market › Show Listing and Reference › Deposit Agreement first.",
+                                "description": "Spec 011 FR-001–FR-008. On a live or reserved piece that is not yours: locks the fresh price (refused as price_moved beyond buyrequest.price_tolerance_pct, with details.current_price), holds deposit.buyer_pct of it (deposit_hold on the ledger), takes the next place in line, records the deposit terms. 409 insufficient_funds carries details.deposit_amount / available / shortfall. 409 balance_due_first while one of your orders waits for the balance or your answer to a new price (details.order_id / order_ref / order_state). Run Market › Show Listing and Reference › Deposit Agreement first.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"listing_id\": \"{{market_listing_id}}\",\n  \"confirm_locked_price\": \"{{confirm_locked_price}}\",\n  \"deposit_legal_doc_id\": \"{{deposit_legal_doc_id}}\"\n}",

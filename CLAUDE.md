@@ -385,6 +385,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   staff move it back to waiting with `POST /dashboard/identity-documents/{id}/reopen` (`identity.review`, reason required, same
   row back to `pending`, customer back to `pending_verification`, audit `identity.document.reopened`); the rejection message
   says to contact customer service.
+  Balance due first (`docs/features/balance-due-before-new-request.md`): a buyer with an order in `awaiting_balance` or
+  `weight_adjust_pending` cannot send a new buy request (`409 balance_due_first`, details `order_id|order_ref|order_state`).
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -449,6 +451,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   shows the VAT-inclusive commission rows and the buyer's "Commission" line; texts `invoice.vat.*`.
   Rejected identity (branch): a rejected customer sees "Your ID was not approved" with *Contact customer service* instead of the
   upload form (screen, sell gate, inbox, National ID row); texts `account.identity.rejected_*|contact_support` (AR-DRAFT).
+  Balance due first: a refused buy request opens "Finish your open order first" with *Open the order*; texts
+  `buy_request.balance_due.*` (AR-DRAFT).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 
