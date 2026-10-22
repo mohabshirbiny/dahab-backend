@@ -35,7 +35,9 @@ it('lists orders, results, the work list and buy requests in a fixed number of q
 
     $grow = function (int $n) use ($buyer) {
         foreach (range(1, $n) as $_) {
-            Orders::inspected($this, Orders::accepted($this, null, '0', $buyer), '10.000');
+            // Paid before the next request: a buyer who owes a balance cannot ask for another piece.
+            $order = Orders::inspected($this, Orders::accepted($this, null, '0', $buyer), '10.000');
+            Orders::pay($this, $buyer, $order)->assertOk();
         }
     };
 

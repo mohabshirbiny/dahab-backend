@@ -42,7 +42,7 @@ class BuyRequestController extends Controller
             new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 403, description: 'verification_required | account_suspended', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 404, description: 'not_found (never on the market)', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 409, description: 'listing_not_purchasable | cannot_buy_own_listing | already_in_queue | price_moved (details: current_price, deposit_amount) | price_unavailable | insufficient_funds (details: deposit_amount, available, shortfall) | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'listing_not_purchasable | cannot_buy_own_listing | already_in_queue | balance_due_first (an order of the buyer is awaiting_balance or weight_adjust_pending; details: order_id, order_ref, order_state) | price_moved (details: current_price, deposit_amount) | price_unavailable | insufficient_funds (details: deposit_amount, available, shortfall) | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 422, description: 'deposit_agreement_required | validation_failed | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: self::ERR)),
         ],

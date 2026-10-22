@@ -215,7 +215,8 @@ machine-readable value clients must switch on**; `message` is human text and may
   and `listing_not_live` is reused for a price change on a piece that is not live,
   `seller_suspended` 409 and `karat_disabled` 409 (approving a listing), `gold_needs_karat_weight` 422,
   `branch_options_required` 422, `ownership_declaration_required` 422, `photo_required` 422; from spec 011:
-  `price_moved` 409, `price_unavailable` 409, `already_in_queue` 409, `listing_not_purchasable` 409,
+  `price_moved` 409, `price_unavailable` 409, `already_in_queue` 409, `balance_due_first` 409 (details
+  `order_id`, `order_ref`, `order_state`: the buyer owes the balance or a price answer on an order), `listing_not_purchasable` 409,
   `cannot_buy_own_listing` 409, `deposit_agreement_required` 422, `not_in_queue` 409, `not_queue_head` 409,
   `queue_empty` 409, `branch_not_in_options` 409, `buyer_suspended` 409, `branch_hours_unavailable` 409,
   `order_not_cancellable` 409, `illegal_buy_request_transition` 409; from spec 012: `illegal_order_transition` 409

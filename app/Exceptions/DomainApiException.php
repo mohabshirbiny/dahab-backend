@@ -275,6 +275,17 @@ class DomainApiException extends RuntimeException
         return new self('already_in_queue', 409, 'You already have a request on this piece.');
     }
 
+    /**
+     * The buyer owes a step on an order already won — the balance, or the answer to
+     * a new price — and settles it before asking for another piece.
+     *
+     * @param  array{order_id: string, order_ref: string, order_state: string}  $details
+     */
+    public static function balanceDueFirst(array $details): self
+    {
+        return new self('balance_due_first', 409, 'Pay what you owe on your open order before asking for another piece.', $details);
+    }
+
     public static function listingNotPurchasable(): self
     {
         return new self('listing_not_purchasable', 409, 'This piece cannot be requested now.');
