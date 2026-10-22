@@ -103,12 +103,43 @@ it('pays the first gold sale ahead with one balanced entry, once the piece passe
     expect((bool) DB::selectOne('SELECT listing_price_locked(?) AS l', [$order->listing_id])->l)->toBeTrue();
 });
 
-it('is never automatic: a seller with no code and no enablement is not paid ahead', function () {
+it('pays the first sale ahead automatically, with no code and no enablement', function () {
     Promo::open(firstSale: true);
+    $order = inspectIt($this, Orders::accepted($this));
+    $advance = advanceOf($order);
+
+    expect($advance)->not->toBeNull()
+        ->and($advance->basis->value)->toBe('automatic')
+        ->and($advance->promo_code)->toBeNull()
+        ->and($advance->enablement_id)->toBeNull()
+        ->and(BuyRequests::balances(Orders::seller($order))['available'])->toBe($advance->amount_egp)
+        ->and(DatabaseActor::elevate('maintenance', fn () => AuditLog::query()->where('action', 'first_sale.advanced')->sole()->actor_staff_id))->toBe(SystemActor::id());
+});
+
+it('stays silent with the switch off when nothing opened the advance', function () {
     $order = inspectIt($this, Orders::accepted($this));
 
     expect(advanceOf($order))->toBeNull()
-        ->and(DatabaseActor::elevate('maintenance', fn () => AuditLog::query()->where('action', 'first_sale.skipped')->count()))->toBe(0);
+        ->and(DatabaseActor::elevate('maintenance', fn () => AuditLog::query()->where('action', 'like', 'first_sale.%')->count()))->toBe(0);
+});
+
+it('never advances a seller whose earlier sale was a diamond piece', function () {
+    $seller = Customer::factory()->verified()->create();
+    $diamond = Listing::factory()->diamond()->withPhotos(3)->live()->create(['seller_id' => $seller->customer_id]);
+    $sold = Orders::accepted($this, $diamond, '200000');
+    Orders::staff($this, SeedRole::OPERATIONS);
+    Orders::receive($this, $sold)->assertOk();
+    Orders::staff($this, SeedRole::IGI_BRANCH);
+    Orders::result($this, $sold, ['measured_stone_grade' => 'VS1 G'])->assertCreated();
+    Orders::pay($this, Orders::buyer($sold), $sold)->assertOk();
+    expect($sold->refresh()->settlement_txn_id)->not->toBeNull();
+
+    // Even a first-sale code on the gold piece does not make it the first sale.
+    Promo::open(firstSale: true);
+    $order = inspectIt($this, advanceOrder($this, $seller));
+
+    expect(advanceOf($order))->toBeNull()
+        ->and(DB::table('ledger_transaction')->where('event_kind', 'first_sale_payout')->count())->toBe(0);
 });
 
 it('caps the advance at the first-sale cap', function () {

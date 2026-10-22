@@ -65,19 +65,20 @@ final class ListingPromoShape
         $row = $l->relationLoaded('promo') ? $l->promo : $l->promo()->first();
         $code = $row instanceof ListingPromo && $row->promo_code !== null ? self::code($row->promo_code) : null;
 
-        $opens = $code !== null && $code->pays_advance;
-        if (! $opens) {
-            $enablement = self::once('enablement:'.$l->seller_id, fn () => app(FirstSaleEligibility::class)->openEnablement($l->seller_id));
-            if ($enablement === null) {
-                return null;
-            }
-        }
-
         $reason = self::once('reason:'.$l->seller_id.':'.$l->category->value, function () use ($l) {
             $seller = Customer::query()->find($l->seller_id);
 
             return $seller === null ? FirstSaleEligibility::REASON_SELLER_NOT_ELIGIBLE : app(FirstSaleEligibility::class)->reason($seller, $l->category);
         });
+
+        // Opened by the code or an enablement; otherwise shown only when the automatic advance is offered.
+        $opens = $code !== null && $code->pays_advance;
+        if (! $opens && ! FirstSaleEligibility::offeredAutomatically($reason)) {
+            $enablement = self::once('enablement:'.$l->seller_id, fn () => app(FirstSaleEligibility::class)->openEnablement($l->seller_id));
+            if ($enablement === null) {
+                return null;
+            }
+        }
 
         return [
             'available' => $reason === null,

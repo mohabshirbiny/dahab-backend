@@ -2,6 +2,7 @@
 
 namespace App\Support\FirstSale;
 
+use App\Enums\AdvanceBasis;
 use App\Enums\CustomerStatus;
 use App\Enums\PieceCategory;
 use App\Enums\SettingKey;
@@ -15,13 +16,15 @@ use App\Support\Pricing\Settings;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Whether a seller's first gold sale may be paid ahead (spec 023 research R11–R13; TS Part 3 §6.1).
+ * Whether a seller's first sale may be paid ahead (spec 023 research R11–R13; TS Part 3 §6.1).
  *
  * All must hold at the moment: the switch is on; the piece is gold (never diamond or gold with
  * diamond); the seller has no earlier advance (the database's UNIQUE is the backstop) and no
- * earlier paid gold sale; the seller is not suspended; a gate is open — the listing carries a code
- * that pays the advance, or staff enabled the seller — and the exposure ceiling is not passed.
- * Never automatic. The reasons are plain words the sell form maps.
+ * earlier paid sale of any category (a diamond sold before means this is not the first sale); the
+ * seller is not suspended; and the exposure ceiling is not passed. Testing notes: automatic — a
+ * code that pays the advance or a staff enablement is still recorded as the basis when there is
+ * one, otherwise the basis is `automatic`. The reasons are plain words the sell form maps
+ * (`not_first_gold` keeps its name: not the first sale, or the first sale was not gold).
  */
 final class FirstSaleEligibility
 {
@@ -56,7 +59,7 @@ final class FirstSaleEligibility
             return self::REASON_SELLER_NOT_ELIGIBLE;
         }
         if (DB::table('first_sale_advance')->where('seller_id', $seller->customer_id)->exists()
-            || $this->hasPaidGoldSale($seller)) {
+            || $this->hasPaidSale($seller)) {
             return self::REASON_NOT_FIRST_GOLD;
         }
         if ($checkCeiling && Money::cmp($this->exposure(), $this->settings->numeric(SettingKey::PAYOUT_FIRST_SALE_EXPOSURE_CEILING_EGP)) >= 0) {
@@ -67,11 +70,12 @@ final class FirstSaleEligibility
     }
 
     /**
-     * What opens the gate for this listing: its first-sale code, or an open staff enablement.
+     * What the advance is recorded against: the listing's first-sale code, an open staff
+     * enablement, or neither (`automatic`).
      *
-     * @return array{basis: string, promo_code: string|null, enablement_id: string|null}|null
+     * @return array{basis: string, promo_code: string|null, enablement_id: string|null}
      */
-    public function gate(Customer|string $seller, Listing $listing): ?array
+    public function gate(Customer|string $seller, Listing $listing): array
     {
         $code = DB::table('listing_promo as lp')
             ->join('promo_code as p', 'p.code', '=', 'lp.promo_code')
@@ -83,7 +87,18 @@ final class FirstSaleEligibility
 
         $enablement = $this->openEnablement($seller);
 
-        return $enablement === null ? null : ['basis' => 'staff_enablement', 'promo_code' => null, 'enablement_id' => $enablement];
+        return $enablement === null
+            ? ['basis' => AdvanceBasis::AUTOMATIC->value, 'promo_code' => null, 'enablement_id' => null]
+            : ['basis' => 'staff_enablement', 'promo_code' => null, 'enablement_id' => $enablement];
+    }
+
+    /**
+     * Whether an automatic advance is worth a word to the seller: never while the switch is off, for
+     * a piece that is not gold, or when this is not their first sale — they were never offered it.
+     */
+    public static function offeredAutomatically(?string $reason): bool
+    {
+        return ! in_array($reason, [self::REASON_SWITCH_OFF, self::REASON_NOT_GOLD, self::REASON_NOT_FIRST_GOLD], true);
     }
 
     public function openEnablement(Customer|string $seller): ?string
@@ -95,18 +110,19 @@ final class FirstSaleEligibility
     }
 
     /**
-     * The sell form's "paid early" shape (contract customer-sell-api §1/§4): null unless the code
-     * pays the advance or the seller has an open enablement.
+     * The sell form's "paid early" shape (contract customer-sell-api §1/§4): with a code that pays
+     * the advance or an open enablement, always; otherwise only when the automatic advance is
+     * offered (see offeredAutomatically()), null when it is not.
      *
      * @return array{available: bool, cap_egp: string, reason: string|null}|null
      */
     public function preview(Customer $seller, Listing $draft, ?PromoCode $code, PriceBreakdown $ordinary, CommissionResolution $resolution): ?array
     {
-        if (($code === null || ! $code->pays_advance) && $this->openEnablement($seller) === null) {
+        $reason = $this->reason($seller, $draft->category);
+        if (($code === null || ! $code->pays_advance) && $this->openEnablement($seller) === null
+            && ! self::offeredAutomatically($reason)) {
             return null;
         }
-
-        $reason = $this->reason($seller, $draft->category);
 
         return [
             'available' => $reason === null,
@@ -115,11 +131,9 @@ final class FirstSaleEligibility
         ];
     }
 
-    /** Any settled gold order of the seller (the listing's category is gold). */
-    private function hasPaidGoldSale(Customer $seller): bool
+    /** Any settled order of the seller, whatever the piece. */
+    private function hasPaidSale(Customer $seller): bool
     {
-        return DB::table('order as o')->join('listing as l', 'l.listing_id', '=', 'o.listing_id')
-            ->where('o.seller_id', $seller->customer_id)->whereNotNull('o.settlement_txn_id')
-            ->where('l.category', PieceCategory::GOLD->value)->exists();
+        return DB::table('order')->where('seller_id', $seller->customer_id)->whereNotNull('settlement_txn_id')->exists();
     }
 }
