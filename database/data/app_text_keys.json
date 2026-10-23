@@ -7455,6 +7455,16 @@
       "max_length": 40
     },
     {
+      "key": "selling.upload_the_stone_certificate_or_choo",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Upload the stone certificate, or choose No certificate.",
+      "default_ar": "ارفع شهادة الحجر، أو اختار مفيش شهادة.",
+      "placeholders": [],
+      "max_length": 110
+    },
+    {
       "key": "bank.a_person_checks_the_name_against",
       "kind": "app",
       "area": "Wallet",
