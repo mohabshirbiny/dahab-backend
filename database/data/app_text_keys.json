@@ -5775,6 +5775,16 @@
       "max_length": 152
     },
     {
+      "key": "orders.this_piece_is_sold_the_sale",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Orders list",
+      "default_en": "This piece is sold. The sale is settled and the listing is closed.",
+      "default_ar": "القطعة دي اتباعت. البيعة اتسوّت والإعلان اتقفل.",
+      "placeholders": [],
+      "max_length": 132
+    },
+    {
       "key": "orders.this_listing_was_not_accepted_and",
       "kind": "app",
       "area": "Orders",
