@@ -36,16 +36,17 @@ it('lists every invoice newest first with the month and period figures', functio
     expect($rows->first()['order_ref'])->toBe($this->second->order_ref)
         ->and($rows->pluck('party')->unique()->sort()->values()->all())->toBe(['buyer', 'seller'])
         ->and($rows->firstWhere('number', $this->first->order_ref.'-S'))->toMatchArray([
-            'net' => '526.3158', 'vat' => '73.6842', 'gross' => '600.0000', 'credited' => '114.0000',
+            'net' => '516.0000', 'vat' => '84.0000', 'gross' => '600.0000', 'credited' => '114.0000',
             'remaining' => '486.0000', 'status' => 'partly_credited', 'document_ready' => true,
         ])
         ->and($rows->firstWhere('number', $this->first->order_ref.'-S')['customer']['id'])->toBe($this->first->seller_id)
         ->and($rows->firstWhere('number', $this->first->order_ref.'-B')['vat'])->toBe('0.0000');
 
-    // 114 at 14% = 100 net + 14 VAT; VAT collected = 2 × 73.6842 − 14 (package C: 600 VAT included each).
+    // 600 = 516 net + 84 VAT each; the credit of 114 takes the invoice's share, 114 × 84 / 600 = 15.96 VAT;
+    // VAT collected = 2 × 84 − 15.96.
     foreach (['month', 'period'] as $window) {
         expect($res->json("meta.figures.{$window}"))->toBe([
-            'issued_count' => 4, 'net_invoiced' => '1052.6316', 'vat_collected' => '133.3684',
+            'issued_count' => 4, 'net_invoiced' => '1032.0000', 'vat_collected' => '152.0400',
             'credit_notes_count' => 1, 'credit_notes_amount' => '114.0000',
         ]);
     }

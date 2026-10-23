@@ -46,7 +46,7 @@ it('settles a diamond with no spread line and stone commission', function () {
 
     $order->refresh();
     expect((string) $order->final_buyer_total)->toBe('120000.0000')
-        ->and((string) $order->commission_amount)->toBe('5263.1579')
+        ->and((string) $order->commission_amount)->toBe('5160.0000')
         ->and((string) $order->spread_amount)->toBe('0.0000')
         ->and(collect(Orders::lines($order, 'balance_payment'))->pluck('kind')->all())->not->toContain('dahab_spread');
 });
@@ -58,7 +58,7 @@ it('protects the gold of a gold-with-diamond piece at the locked mid on the meas
     Orders::pay($this, Orders::buyer($order), $order)->assertOk();
 
     // mid(21K) = 5,250 at bid = ask = 5,994; gold 6.1 g = 32,025; 5% of 80,150 − 32,025 = 2,406.25.
-    expect((string) $order->refresh()->commission_amount)->toBe('2110.7456')
+    expect((string) $order->refresh()->commission_amount)->toBe('2069.3750')
         ->and((string) $order->spread_amount)->toBe('0.0000');
 });
 

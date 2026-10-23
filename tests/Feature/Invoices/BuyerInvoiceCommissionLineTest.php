@@ -33,8 +33,8 @@ it('carves VAT out of the seller commission and shows the buyer the price differ
     $buyer = Invoices::of($order, 'buyer');
 
     // §3.3 ring: 20 % of the 3,000 making charge = 600, VAT included.
-    expect((string) $seller->net_amount)->toBe('526.3158')
-        ->and((string) $seller->vat_amount)->toBe('73.6842')
+    expect((string) $seller->net_amount)->toBe('516.0000')
+        ->and((string) $seller->vat_amount)->toBe('84.0000')
         ->and((string) $seller->gross_amount)->toBe('600.0000')
         ->and(bcadd((string) $seller->net_amount, (string) $seller->vat_amount, 4))->toBe((string) $seller->gross_amount)
         ->and($seller->lines['commission_vat_inclusive'])->toBeTrue()
@@ -52,8 +52,8 @@ it('carves VAT out of the seller commission and shows the buyer the price differ
     // The line is the spread posted to dahab_spread; the commission and VAT lines are the invoice's.
     $posted = collect(Orders::lines($order, 'balance_payment'))->mapWithKeys(fn ($r) => [$r->kind => $r->amount]);
     expect($posted[AccountKind::DAHAB_SPREAD->value])->toBe($l['price_difference'])
-        ->and($posted[AccountKind::DAHAB_COMMISSION->value])->toBe('526.3158')
-        ->and($posted[AccountKind::VAT_PAYABLE->value])->toBe('73.6842');
+        ->and($posted[AccountKind::DAHAB_COMMISSION->value])->toBe('516.0000')
+        ->and($posted[AccountKind::VAT_PAYABLE->value])->toBe('84.0000');
 });
 
 it('shows no price difference on a diamond invoice', function () {

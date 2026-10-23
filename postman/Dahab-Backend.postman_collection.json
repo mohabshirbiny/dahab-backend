@@ -11651,7 +11651,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Spec 010. The seller's own listings, newest first; state filter; keyset (cursor = meta.next_cursor). Each carries staff_message (what Dahab asked or why it rejected / took it down), current_price and you_would_receive (indicative). A suspended seller may read. Saves the first listing_id."
+                                "description": "Spec 010. The seller's own listings, newest first; state filter; keyset (cursor = meta.next_cursor). Each carries staff_message (what Dahab asked or why it rejected / took it down), current_price and you_would_receive with what it comes from, seller_gross − commission_vat_included (indicative). A suspended seller may read. Saves the first listing_id."
                             },
                             "response": [],
                             "event": [

@@ -28,8 +28,8 @@ One helper, `App\Support\Pricing\VatSplit::fromInclusive($total, $vatPct)`:
 
 ```
 total = max(rate × commission base, minimum)           -- what the seller pays, VAT included (minimum EGP 200 is VAT-inclusive)
-net   = round_half_up_4dp(total × 100 / (100 + vat_pct))
-vat   = total − net                                     -- the residue stays inside the total
+vat   = round_half_up_4dp(total × vat_pct / 100)       -- owner's decision 2026-10-23 (was total × vat_pct / (100 + vat_pct))
+net   = total − vat                                     -- the residue stays inside the total
 commission (posted to dahab_commission) = net
 vat (posted to vat_payable)             = vat
 seller proceeds                         = seller gross − total
@@ -45,23 +45,29 @@ credit is EGP off the total; the minimum floor compares totals. The figures stor
 the VAT-inclusive minimum), because the database checks `commission_amount + commission_given_up =
 commission_ordinary_amount` and `commission_amount ≥ commission_floor_egp`.
 
-**Credit notes** keep `CreditNoteSplit` (VAT = gross × rate / (100 + rate), rounded first). At 14 % it gives the same
-net/VAT pair as `VatSplit` for every 4-dp total (checked on 20,000 random totals); a tie at the fifth decimal can't
-happen at 14 %.
+**VAT is the rate of the total (owner's decision, 2026-10-23).** 5 % of 39,000 = 1,950 = commission 1,677 + VAT 273
+(VAT = 14 % × 1,950). `vat_pct` is the Dashboard setting, never a constant. This is the owner's rule, not the
+statutory carve-out (1,950 × 14 / 114 = 239.47); the effective VAT on the net is vat_pct / (100 − vat_pct) — have the
+accountant confirm before production. Applies to every quote and settlement after the change; nothing posted is
+rewritten (orders settled before keep their split).
+
+**Credit notes** give back the invoice's own VAT share (`CreditNoteSplit`): VAT = gross × invoice VAT / invoice gross,
+rounded half-up to 4 dp; the note that clears what is left takes the VAT not yet given back, so a fully credited invoice
+reverses its VAT exactly whichever rule split it.
 
 **Seller invoice `-S`:** net = commission (net), VAT, gross = total; the lines carry `commission_vat_inclusive: true`
 and the PDF / Dashboard / app say "Commission before VAT (20 %, VAT included)" and "Commission, VAT included".
 Older invoices keep their wording.
 
-## Worked examples (rates 20 % gold / 5 % stones, minimum 200, VAT 14 %)
+## Worked examples (rates 20 % gold / 5 % stones, minimum 200, VAT 14 %; split as of 2026-10-23)
 
 | Case | Total charged | Net | VAT | Seller receives |
 |---|---|---|---|---|
-| Part 3 §3.3, 21K ring 10 g, making 300/g | 600.0000 | 526.3158 | 73.6842 | 55,368.7500 − 600 = **54,768.7500** |
-| Part 3 §3.4, IGI weight 9.900 g | 594.0000 | 521.0526 | 72.9474 | 54,815.0625 − 594 = **54,221.0625** |
-| Minimum applies (gold, making 150 on 5 g) | 200.0000 | 175.4386 | 24.5614 | gross − 200 |
-| Odd making that rounds (total 333.3333) | 333.3333 | 292.3976 | 40.9357 | gross − 333.3333 |
-| 50 % code on the §3.3 ring | 300.0000 | 263.1579 | 36.8421 | gross − 300 |
+| Part 3 §3.3, 21K ring 10 g, making 300/g | 600.0000 | 516.0000 | 84.0000 | 55,368.7500 − 600 = **54,768.7500** |
+| Part 3 §3.4, IGI weight 9.900 g | 594.0000 | 510.8400 | 83.1600 | 54,815.0625 − 594 = **54,221.0625** |
+| Minimum applies (gold, making 150 on 5 g) | 200.0000 | 172.0000 | 28.0000 | gross − 200 |
+| Odd making that rounds (total 333.3333) | 333.3333 | 286.6666 | 46.6667 | gross − 333.3333 |
+| 50 % code on the §3.3 ring | 300.0000 | 258.0000 | 42.0000 | gross − 300 |
 | Free relist / market maker | 0 | 0 | 0 | gross |
 
 ## Item 13 — buyer invoice `-B`

@@ -1424,6 +1424,26 @@
       "max_length": 212
     },
     {
+      "key": "listing.price.at_seller_rate",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Piece page",
+      "default_en": "Your piece at the seller gold rate",
+      "default_ar": "قطعتك بسعر الدهب للبائع",
+      "placeholders": [],
+      "max_length": 68
+    },
+    {
+      "key": "listing.price.commission_vat_included",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Piece page",
+      "default_en": "Dahab commission, VAT included",
+      "default_ar": "عمولة دهب شاملة الضريبة",
+      "placeholders": [],
+      "max_length": 60
+    },
+    {
       "key": "buy_request.balance_due.title",
       "kind": "app",
       "area": "Buying",

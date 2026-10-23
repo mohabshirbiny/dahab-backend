@@ -43,15 +43,15 @@ it('credits a seller invoice in full: one balanced entry back to the seller', fu
 
     $res = Invoices::credit($this, $this->invoice, '600', 'The whole commission was charged by mistake.')->assertCreated()
         ->assertJsonPath('data.invoice_number', $this->invoice->invoice_no)
-        ->assertJsonPath('data.net', '526.3158')
-        ->assertJsonPath('data.vat', '73.6842')
+        ->assertJsonPath('data.net', '516.0000')
+        ->assertJsonPath('data.vat', '84.0000')
         ->assertJsonPath('data.gross', '600.0000')
         ->assertJsonPath('data.issued_by.id', $finance->staff_id);
 
     expect($res->json('data.number'))->toMatch('/^CN-\d{4}-\d{6}$/')
         ->and(Finance::available($this->seller))->toBe(bcadd($before, '600', 4))
-        ->and(Orders::internal(AccountKind::DAHAB_COMMISSION))->toBe(bcsub($commission, '526.3158', 4))
-        ->and(Orders::internal(AccountKind::VAT_PAYABLE))->toBe(bcsub($vat, '73.6842', 4))
+        ->and(Orders::internal(AccountKind::DAHAB_COMMISSION))->toBe(bcsub($commission, '516.0000', 4))
+        ->and(Orders::internal(AccountKind::VAT_PAYABLE))->toBe(bcsub($vat, '84.0000', 4))
         ->and(Finance::globalSum())->toBe('0.0000')
         ->and(collect(Orders::lines($this->order, 'credit_note'))->pluck('kind')->sort()->values()->all())
         ->toBe(['cust_available', 'dahab_commission', 'vat_payable']);
@@ -70,12 +70,12 @@ it('credits a seller invoice in full: one balanced entry back to the seller', fu
         && $job->notification->reference === $this->invoice->invoice_no);
 });
 
-it('credits in part, splitting the VAT at the invoice rate, then refuses more than is left', function () {
+it('credits in part, splitting the VAT at the invoice share, then refuses more than is left', function () {
     Finance::staff($this, SeedRole::FINANCE);
 
     Invoices::credit($this, $this->invoice, '300')->assertCreated()
-        ->assertJsonPath('data.vat', '36.8421')
-        ->assertJsonPath('data.net', '263.1579');
+        ->assertJsonPath('data.vat', '42.0000')
+        ->assertJsonPath('data.net', '258.0000');
 
     expect(Invoices::of($this->order, 'seller')->status()->value)->toBe('partly_credited');
 
@@ -83,7 +83,8 @@ it('credits in part, splitting the VAT at the invoice rate, then refuses more th
         ->assertJsonPath('code', 'credit_exceeds_invoice')
         ->assertJsonPath('details.remaining', '300.0000');
 
-    Invoices::credit($this, $this->invoice, '300')->assertCreated();
+    Invoices::credit($this, $this->invoice, '300')->assertCreated()
+        ->assertJsonPath('data.vat', '42.0000');
     expect(Invoices::of($this->order, 'seller')->status()->value)->toBe('credited')
         ->and(CreditNote::query()->count())->toBe(2)
         ->and(Finance::globalSum())->toBe('0.0000');

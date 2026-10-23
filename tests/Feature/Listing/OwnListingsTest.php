@@ -67,6 +67,7 @@ it('shows one listing with everything the seller attached', function () {
     expect(array_keys($data))->toBe([
         'id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description',
         'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive',
+        'seller_gross', 'commission_vat_included', // what you_would_receive comes from
         'relisted_from_order', // spec 018
         'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw',
         'can_change_price', // spec 022
@@ -89,9 +90,12 @@ it('shows what a buyer would pay and what the seller would receive', function ()
         ->assertJsonPath('data.current_price', $expected->buyerTotal)
         ->assertJsonPath('data.you_would_receive', $expected->sellerProceeds)
         ->assertJsonPath('data.price_available', true)
-        ->assertJsonPath('data.price_is_indicative', true);
+        ->assertJsonPath('data.price_is_indicative', true)
+        ->assertJsonPath('data.seller_gross', $expected->sellerGross)
+        ->assertJsonPath('data.commission_vat_included', $expected->commissionTotal());
 
-    expect(bccomp($expected->buyerTotal, $expected->sellerProceeds, 4))->toBe(1);
+    expect(bccomp($expected->buyerTotal, $expected->sellerProceeds, 4))->toBe(1)
+        ->and(bcsub($expected->sellerGross, $expected->commissionTotal(), 4))->toBe($expected->sellerProceeds);
 });
 
 it('shows the staff message while it applies', function (string $state, ?string $message) {

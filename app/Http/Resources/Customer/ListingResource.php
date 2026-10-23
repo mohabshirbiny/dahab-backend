@@ -44,6 +44,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'price_available', type: 'boolean'),
         new OA\Property(property: 'price_is_indicative', type: 'boolean'),
         new OA\Property(property: 'you_would_receive', type: 'string', nullable: true, example: '57744.0000'),
+        new OA\Property(property: 'seller_gross', type: 'string', nullable: true, description: 'The piece at the seller rate (gold) or the asking price (stones): you_would_receive + commission_vat_included. Indicative, null when no price can be quoted.', example: '38500.0000'),
+        new OA\Property(property: 'commission_vat_included', type: 'string', nullable: true, description: 'Dahab commission on this sale, VAT included (0 when waived). Indicative, null when no price can be quoted.', example: '1925.0000'),
         new OA\Property(property: 'relisted_from_order', type: 'object', nullable: true, description: 'Spec 018: {id, order_ref} when this is a free relist (no commission) of a collected order'),
         new OA\Property(property: 'staff_message', type: 'string', nullable: true),
         new OA\Property(property: 'staff_message_at', type: 'string', format: 'date-time', nullable: true),
@@ -124,6 +126,9 @@ class ListingResource extends JsonResource
             'price_available' => $quote->priceAvailable(),
             'price_is_indicative' => $quote->priceIsIndicative,
             'you_would_receive' => $quote->youWouldReceive,
+            // What you_would_receive comes from: the piece at the seller's rate less Dahab's commission, VAT included.
+            'seller_gross' => $quote->sellerGross,
+            'commission_vat_included' => $quote->commissionVatIncluded,
             // Spec 018: set when this listing is a buyer's free relist (0% commission) of a collected order.
             'relisted_from_order' => $l->relisted_from_order_id === null ? null : [
                 'id' => $l->relisted_from_order_id,

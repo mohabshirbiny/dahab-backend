@@ -58,7 +58,12 @@ final class IssueCreditNoteAction
                 throw DomainApiException::creditExceedsInvoice($remaining);
             }
 
-            $split = CreditNoteSplit::of($amount, (string) $invoice->vat_rate);
+            $creditedVat = '0';
+            foreach ($invoice->creditNotes as $earlier) {
+                $creditedVat = Money::add($creditedVat, (string) $earlier->vat_amount);
+            }
+            $split = CreditNoteSplit::of($amount, (string) $invoice->gross_amount, (string) $invoice->vat_amount,
+                $invoice->credited(), $creditedVat);
             $number = $this->nextNumber();
 
             $lines = DatabaseActor::ledger(function () use ($invoice, $split) {
