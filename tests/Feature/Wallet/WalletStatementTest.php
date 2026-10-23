@@ -168,6 +168,45 @@ it('shows commission and spread apart on the Dahab wallet, adding up to the comb
         ->and($customers->json('data.rows.0'))->not->toHaveKey('commission');
 });
 
+it('lists the first-sale advance on the Dahab wallet apart from what Dahab earned', function () {
+    // Paid to Omar ahead on 10 August, recovered from the buyer's payment on 12 August; a second
+    // advance on 20 August is still out. Neither moves the commission + spread balance.
+    $equity = Account::internal(AccountKind::EXTERNAL_EQUITY);
+    Ledger::postAt('2026-08-10 12:00', LedgerEventKind::FIRST_SALE_PAYOUT, null, [[$equity, '-1000'], [Ledger::available($this->omar), '1000']], staffId: SystemActor::id());
+    Ledger::postAt('2026-08-12 12:00', LedgerEventKind::BALANCE_PAYMENT, $this->mona, [
+        [Ledger::available($this->mona), '-1200'], [$equity, '1000'], [Account::internal(AccountKind::DAHAB_COMMISSION), '200'],
+    ]);
+    Ledger::postAt('2026-08-20 12:00', LedgerEventKind::FIRST_SALE_PAYOUT, null, [[$equity, '-300'], [Ledger::available($this->mona), '300']], staffId: SystemActor::id());
+
+    $r = statement($this, $this->finance, ['view' => 'dahab'] + $this->august)->assertOk();
+    $s = $r->json('data.summary');
+    $rows = collect($r->json('data.rows'));
+
+    expect($s)->toMatchArray([
+        'in' => '1062.5000', 'out' => '0.0000', 'closing' => '1062.5000',   // 600 + 262.5 + 200, the advances apart
+        'advance_out' => '1300.0000', 'advance_back' => '1000.0000',
+    ])
+        // Rows follow the posting order; the earnings slices were posted first.
+        ->and($rows->pluck('kind')->all())->toBe(['commission', 'spread', 'first_sale_payout', 'balance_payment', 'first_sale_payout'])
+        ->and($rows[0]['advance'])->toBe('0.0000')
+        ->and($rows[2])->toMatchArray(['in' => '0.0000', 'out' => '0.0000', 'advance' => '-1000.0000', 'commission' => '0.0000'])
+        ->and($rows[2]['before'])->toBe($rows[2]['after'])
+        ->and($rows[3])->toMatchArray(['in' => '200.0000', 'advance' => '1000.0000', 'commission' => '200.0000'])
+        ->and($rows[4]['advance'])->toBe('-300.0000');
+
+    assertReconciles($s, $rows->all());
+
+    // The compensation and the earnings slices also touch external_equity: never counted as an advance.
+    expect($rows->pluck('kind'))->not->toContain('compensation');
+
+    $month = statement($this, $this->finance, ['view' => 'dahab', 'grain' => 'month'] + $this->august)->assertOk();
+    expect($month->json('data.rows.0'))->toMatchArray(['count' => 5, 'advance' => '-300.0000'])
+        ->and($month->json('data.summary'))->toMatchArray(['advance_out' => '1300.0000', 'advance_back' => '1000.0000']);
+
+    // The customer views are unchanged.
+    expect(statement($this, $this->finance, ['view' => 'customers'] + $this->august)->json('data.summary'))->not->toHaveKey('advance_out');
+});
+
 it('groups by Cairo day and by month, matching the rows they summarise', function () {
     $each = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id] + $this->august)->json('data.rows');
     $days = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id, 'grain' => 'day'] + $this->august)->assertOk();

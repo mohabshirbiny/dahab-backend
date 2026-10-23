@@ -84,9 +84,26 @@ it('exports the Dahab view with commission and spread apart', function () {
     $rows = statementCsv(exportStatement($this, $this->finance, ['view' => 'dahab', 'from' => '2026-08-01', 'to' => '2026-08-31'])->assertOk()->getContent());
 
     expect($rows[2])->toBe(['Commission in', '600.0000', 'Commission out', '0.0000', 'Spread in', '262.5000', 'Spread out', '0.0000'])
-        ->and(array_slice($rows[3], -2))->toBe(['Commission', 'Spread'])
-        ->and(array_slice($rows[4], -2))->toBe(['600.0000', '0.0000'])
-        ->and(array_slice($rows[5], -2))->toBe(['0.0000', '262.5000']);
+        ->and($rows[3])->toBe(['First-sale advance paid', '0.0000', 'First-sale advance back', '0.0000'])
+        ->and(array_slice($rows[4], -3))->toBe(['Commission', 'Spread', 'First-sale advance'])
+        ->and(array_slice($rows[5], -3))->toBe(['600.0000', '0.0000', '0.0000'])
+        ->and(array_slice($rows[6], -3))->toBe(['0.0000', '262.5000', '0.0000']);
+});
+
+it('exports the first-sale advance on the Dahab view apart from the earnings', function () {
+    // A first-sale advance paid on 10 August, recovered at the settlement on 12 August.
+    $omar = Customer::factory()->verified()->create();
+    $equity = Account::internal(AccountKind::EXTERNAL_EQUITY);
+    Ledger::postAt('2026-08-10 12:00', LedgerEventKind::FIRST_SALE_PAYOUT, null, [[$equity, '-400'], [Ledger::available($omar), '400']], staffId: $this->finance->staff_id);
+    Ledger::postAt('2026-08-12 12:00', LedgerEventKind::BALANCE_PAYMENT, $this->mona, [
+        [Ledger::available($this->mona), '-600'], [$equity, '400'], [Account::internal(AccountKind::DAHAB_COMMISSION), '200'],
+    ]);
+
+    $rows = statementCsv(exportStatement($this, $this->finance, ['view' => 'dahab', 'from' => '2026-08-01', 'to' => '2026-08-31'])->assertOk()->getContent());
+
+    expect($rows[3])->toBe(['First-sale advance paid', '400.0000', 'First-sale advance back', '400.0000'])
+        ->and(array_slice($rows[5], -3))->toBe(['0.0000', '0.0000', '-400.0000'])
+        ->and(array_slice($rows[6], -3))->toBe(['200.0000', '0.0000', '400.0000']);
 });
 
 it('audits every export, whatever the view', function () {
