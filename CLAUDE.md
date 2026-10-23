@@ -363,7 +363,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   status `superseded` (images kept; one open document per customer), staff verify / reject while waiting; `verification` on
   `GET /customer/me` (`document_status`, reasons, note, attempt, `can_submit`); `buy_request.accepted` and
   `buy_request.order_cancelled` inbox items link the order; reject from `changes_requested` (manual); the Dahab wallet
-  statement shows commission and spread apart (summary, rows, CSV).
+  statement shows commission and spread apart (summary, rows, CSV), and the VAT beside them (`vat_in|vat_out`, row `vat`;
+  never in the balance).
   Package B (`docs/features/wallet-statement-pdf.md`): `GET /customer/me/wallet/statement.pdf` — the caller's own bilingual
   statement (mPDF via `MpdfDocument`), default 90 days, at most 366, audited `wallet.statement.downloaded`, 10 a minute.
   Package C (`docs/features/vat-inclusive-commission.md`): **the commission rate includes VAT** — total = max(rate × base,

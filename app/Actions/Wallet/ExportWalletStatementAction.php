@@ -44,10 +44,10 @@ final class ExportWalletStatementAction
         // Testing fixes item 9: the Dahab view shows commission and spread apart.
         $dahab = $query->view === 'dahab';
         if ($dahab) {
-            $put(['Commission in', $s['commission_in'], 'Commission out', $s['commission_out'], 'Spread in', $s['spread_in'], 'Spread out', $s['spread_out']]);
+            $put(['Commission in', $s['commission_in'], 'Commission out', $s['commission_out'], 'Spread in', $s['spread_in'], 'Spread out', $s['spread_out'], 'VAT in', $s['vat_in'], 'VAT out', $s['vat_out']]);
         }
-        $split = fn (array $r) => $dahab ? [$r['commission'], $r['spread']] : [];
-        $splitHead = $dahab ? ['Commission', 'Spread'] : [];
+        $split = fn (array $r) => $dahab ? [$r['commission'], $r['spread'], $r['vat']] : [];
+        $splitHead = $dahab ? ['Commission', 'Spread', 'VAT'] : [];
 
         if ($query->grain === 'each') {
             $put(['When', 'What', 'Wallet', 'Reference', 'By', 'Entered by hand', 'Memo', 'Before', 'In', 'Out', 'After', ...$splitHead]);
