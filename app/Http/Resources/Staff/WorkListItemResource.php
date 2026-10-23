@@ -13,11 +13,13 @@ use OpenApi\Attributes as OA;
  * §3.4): only what receiving, inspecting and handing over need — the order
  * reference, the piece, the stated karat and weight. No price, no wallet, no
  * buyer or seller. Also the answer to a receive / result / handover for a
- * caller without `order.view`.
+ * caller without `order.view`. One exception: on a handover to a person the
+ * buyer named to collect, `proxy` gives that person's name and phone so the
+ * counter can check their ID (spec 014) — the ID photo stays behind its call.
  */
 #[OA\Schema(
     schema: 'WorkListItem',
-    description: 'A piece at the branch (spec 012). Never carries money or names.',
+    description: 'A piece at the branch (spec 012). Never carries money, nor any name but the proxy the buyer named on a handover (spec 014).',
     required: ['order_id', 'order_ref', 'state', 'task', 'piece_type', 'category', 'stated_karat', 'stated_weight_g', 'branch', 'since'],
     properties: [
         new OA\Property(property: 'order_id', type: 'string', format: 'uuid'),
@@ -31,6 +33,12 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'latest_inspection', ref: '#/components/schemas/InspectionResult', nullable: true),
         new OA\Property(property: 'branch', type: 'object', description: '{id, name_en, name_ar}'),
         new OA\Property(property: 'since', type: 'string', format: 'date-time', description: 'When the order reached its current state'),
+        new OA\Property(property: 'proxy', type: 'object', nullable: true, description: 'Spec 014: on the handover task only, the person the buyer named to collect; the ID photo through GET /dashboard/orders/{id}/proxy-id',
+            properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'phone', type: 'string'),
+                new OA\Property(property: 'has_id_photo', type: 'boolean'),
+            ]),
     ],
 )]
 class WorkListItemResource extends JsonResource
@@ -65,6 +73,11 @@ class WorkListItemResource extends JsonResource
             'latest_inspection' => $latest === null ? null : InspectionResultResource::shape($latest),
             'branch' => ['id' => $o->branch_id, 'name_en' => $o->branch?->name_en, 'name_ar' => $o->branch?->name_ar],
             'since' => ($o->stateChanges->last()?->changed_at ?? $o->accepted_at)->toIso8601String(),
+            'proxy' => $task === 'handover' && $o->collection->is_proxy ? [
+                'name' => $o->collection->proxy_name,
+                'phone' => $o->collection->proxy_phone,
+                'has_id_photo' => $o->collection->proxy_id_storage_ref !== null,
+            ] : null,
         ];
     }
 }
