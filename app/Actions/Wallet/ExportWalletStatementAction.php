@@ -44,12 +44,12 @@ final class ExportWalletStatementAction
         // Testing fixes item 9: the Dahab view shows commission and spread apart.
         $dahab = $query->view === 'dahab';
         if ($dahab) {
-            $put(['Commission in', $s['commission_in'], 'Commission out', $s['commission_out'], 'Spread in', $s['spread_in'], 'Spread out', $s['spread_out']]);
+            $put(['Commission in', $s['commission_in'], 'Commission out', $s['commission_out'], 'Spread in', $s['spread_in'], 'Spread out', $s['spread_out'], 'VAT in', $s['vat_in'], 'VAT out', $s['vat_out']]);
             // Spec 023 advances, apart from what Dahab earned.
             $put(['First-sale advance paid', $s['advance_out'], 'First-sale advance back', $s['advance_back']]);
         }
-        $split = fn (array $r) => $dahab ? [$r['commission'], $r['spread'], $r['advance']] : [];
-        $splitHead = $dahab ? ['Commission', 'Spread', 'First-sale advance'] : [];
+        $split = fn (array $r) => $dahab ? [$r['commission'], $r['spread'], $r['vat'], $r['advance']] : [];
+        $splitHead = $dahab ? ['Commission', 'Spread', 'VAT', 'First-sale advance'] : [];
 
         if ($query->grain === 'each') {
             $put(['When', 'What', 'Wallet', 'Reference', 'By', 'Entered by hand', 'Memo', 'Before', 'In', 'Out', 'After', ...$splitHead]);

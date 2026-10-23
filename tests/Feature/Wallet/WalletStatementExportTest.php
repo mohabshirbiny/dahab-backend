@@ -83,11 +83,11 @@ it('exports the Dahab view with commission and spread apart', function () {
 
     $rows = statementCsv(exportStatement($this, $this->finance, ['view' => 'dahab', 'from' => '2026-08-01', 'to' => '2026-08-31'])->assertOk()->getContent());
 
-    expect($rows[2])->toBe(['Commission in', '600.0000', 'Commission out', '0.0000', 'Spread in', '262.5000', 'Spread out', '0.0000'])
+    expect($rows[2])->toBe(['Commission in', '600.0000', 'Commission out', '0.0000', 'Spread in', '262.5000', 'Spread out', '0.0000', 'VAT in', '84.0000', 'VAT out', '0.0000'])
         ->and($rows[3])->toBe(['First-sale advance paid', '0.0000', 'First-sale advance back', '0.0000'])
-        ->and(array_slice($rows[4], -3))->toBe(['Commission', 'Spread', 'First-sale advance'])
-        ->and(array_slice($rows[5], -3))->toBe(['600.0000', '0.0000', '0.0000'])
-        ->and(array_slice($rows[6], -3))->toBe(['0.0000', '262.5000', '0.0000']);
+        ->and(array_slice($rows[4], -4))->toBe(['Commission', 'Spread', 'VAT', 'First-sale advance'])
+        ->and(array_slice($rows[5], -4))->toBe(['600.0000', '0.0000', '84.0000', '0.0000'])
+        ->and(array_slice($rows[6], -4))->toBe(['0.0000', '262.5000', '0.0000', '0.0000']);
 });
 
 it('exports the first-sale advance on the Dahab view apart from the earnings', function () {
@@ -102,8 +102,8 @@ it('exports the first-sale advance on the Dahab view apart from the earnings', f
     $rows = statementCsv(exportStatement($this, $this->finance, ['view' => 'dahab', 'from' => '2026-08-01', 'to' => '2026-08-31'])->assertOk()->getContent());
 
     expect($rows[3])->toBe(['First-sale advance paid', '400.0000', 'First-sale advance back', '400.0000'])
-        ->and(array_slice($rows[5], -3))->toBe(['0.0000', '0.0000', '-400.0000'])
-        ->and(array_slice($rows[6], -3))->toBe(['200.0000', '0.0000', '400.0000']);
+        ->and(array_slice($rows[5], -4))->toBe(['0.0000', '0.0000', '0.0000', '-400.0000'])
+        ->and(array_slice($rows[6], -4))->toBe(['200.0000', '0.0000', '0.0000', '400.0000']);
 });
 
 it('audits every export, whatever the view', function () {
