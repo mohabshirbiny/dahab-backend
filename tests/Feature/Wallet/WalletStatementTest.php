@@ -168,6 +168,23 @@ it('shows commission and spread apart on the Dahab wallet, adding up to the comb
         ->and($customers->json('data.rows.0'))->not->toHaveKey('commission');
 });
 
+it('shows the VAT of each Dahab wallet entry beside the commission, outside the balance', function () {
+    $r = statement($this, $this->finance, ['view' => 'dahab'] + $this->august)->assertOk();
+    $s = $r->json('data.summary');
+
+    expect($s)->toMatchArray(['vat_in' => '84.0000', 'vat_out' => '0.0000', 'in' => '862.5000'])
+        ->and(collect($r->json('data.rows'))->map(fn ($row) => [$row['kind'], $row['commission'], $row['vat']])->all())
+        ->toBe([['commission', '600.0000', '84.0000'], ['spread', '0.0000', '0.0000']]);
+
+    $month = statement($this, $this->finance, ['view' => 'dahab', 'grain' => 'month'] + $this->august)->assertOk();
+    expect($month->json('data.rows.0.vat'))->toBe('84.0000')
+        ->and($month->json('data.summary.vat_in'))->toBe('84.0000');
+
+    $customers = statement($this, $this->finance, ['view' => 'customers'] + $this->august)->assertOk();
+    expect($customers->json('data.summary'))->not->toHaveKey('vat_in')
+        ->and($customers->json('data.rows.0'))->not->toHaveKey('vat');
+});
+
 it('groups by Cairo day and by month, matching the rows they summarise', function () {
     $each = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id] + $this->august)->json('data.rows');
     $days = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id, 'grain' => 'day'] + $this->august)->assertOk();

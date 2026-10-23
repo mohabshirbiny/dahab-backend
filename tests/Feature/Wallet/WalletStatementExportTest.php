@@ -83,10 +83,10 @@ it('exports the Dahab view with commission and spread apart', function () {
 
     $rows = statementCsv(exportStatement($this, $this->finance, ['view' => 'dahab', 'from' => '2026-08-01', 'to' => '2026-08-31'])->assertOk()->getContent());
 
-    expect($rows[2])->toBe(['Commission in', '600.0000', 'Commission out', '0.0000', 'Spread in', '262.5000', 'Spread out', '0.0000'])
-        ->and(array_slice($rows[3], -2))->toBe(['Commission', 'Spread'])
-        ->and(array_slice($rows[4], -2))->toBe(['600.0000', '0.0000'])
-        ->and(array_slice($rows[5], -2))->toBe(['0.0000', '262.5000']);
+    expect($rows[2])->toBe(['Commission in', '600.0000', 'Commission out', '0.0000', 'Spread in', '262.5000', 'Spread out', '0.0000', 'VAT in', '84.0000', 'VAT out', '0.0000'])
+        ->and(array_slice($rows[3], -3))->toBe(['Commission', 'Spread', 'VAT'])
+        ->and(array_slice($rows[4], -3))->toBe(['600.0000', '0.0000', '84.0000'])
+        ->and(array_slice($rows[5], -3))->toBe(['0.0000', '262.5000', '0.0000']);
 });
 
 it('audits every export, whatever the view', function () {

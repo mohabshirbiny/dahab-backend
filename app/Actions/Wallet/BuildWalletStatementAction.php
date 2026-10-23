@@ -46,7 +46,9 @@ final class BuildWalletStatementAction
                    COALESCE(SUM(GREATEST(commission_delta, 0)), 0)::numeric(18,4)::text AS commission_in,
                    COALESCE(SUM(GREATEST(-commission_delta, 0)), 0)::numeric(18,4)::text AS commission_out,
                    COALESCE(SUM(GREATEST(spread_delta, 0)), 0)::numeric(18,4)::text AS spread_in,
-                   COALESCE(SUM(GREATEST(-spread_delta, 0)), 0)::numeric(18,4)::text AS spread_out
+                   COALESCE(SUM(GREATEST(-spread_delta, 0)), 0)::numeric(18,4)::text AS spread_out,
+                   COALESCE(SUM(GREATEST(vat_delta, 0)), 0)::numeric(18,4)::text AS vat_in,
+                   COALESCE(SUM(GREATEST(-vat_delta, 0)), 0)::numeric(18,4)::text AS vat_out
             FROM dated
         ", $bindings);
 
@@ -98,6 +100,14 @@ final class BuildWalletStatementAction
     {
         $p = $query->predicates();
         $tz = self::TZ;
+        // The Dahab view: the VAT the same entry put on vat_payable (owed, not
+        // earned — outside the running balance, shown beside the commission).
+        $vat = $query->view === 'dahab' ? "(
+                           SELECT COALESCE(SUM(vp.amount), 0)
+                           FROM ledger_posting vp
+                           JOIN account va ON va.account_id = vp.account_id
+                           WHERE vp.ledger_txn_id = pt.ledger_txn_id AND va.kind = 'vat_payable'
+                       )" : '0';
 
         $sql = "
             -- MATERIALIZED: start from the period's transactions (created_at index)
@@ -114,6 +124,7 @@ final class BuildWalletStatementAction
                        COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'cust_held'), 0) AS held_change,
                        COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_commission'), 0) AS commission_delta,
                        COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_spread'), 0) AS spread_delta,
+                       {$vat} AS vat_delta,
                        CASE WHEN COUNT(DISTINCT a.customer_id) = 1 THEN MIN(a.customer_id::text) END AS wallet_customer,
                        pt.created_at, pt.event_kind::text AS kind, pt.memo, pt.staff_id, pt.customer_id AS actor_customer_id
                 FROM period_txn pt
@@ -148,7 +159,9 @@ final class BuildWalletStatementAction
                        SUM(GREATEST(d.commission_delta, 0)) OVER () AS t_ci,
                        SUM(GREATEST(-d.commission_delta, 0)) OVER () AS t_co,
                        SUM(GREATEST(d.spread_delta, 0)) OVER () AS t_si,
-                       SUM(GREATEST(-d.spread_delta, 0)) OVER () AS t_so
+                       SUM(GREATEST(-d.spread_delta, 0)) OVER () AS t_so,
+                       SUM(GREATEST(d.vat_delta, 0)) OVER () AS t_vi,
+                       SUM(GREATEST(-d.vat_delta, 0)) OVER () AS t_vo
                 FROM dated d
                 WHERE d.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND d.created_at < (?::timestamp AT TIME ZONE '{$tz}')
                 WINDOW w AS (ORDER BY d.seq ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
@@ -169,6 +182,9 @@ final class BuildWalletStatementAction
                    pr.t_co::numeric(18,4)::text AS t_co,
                    pr.t_si::numeric(18,4)::text AS t_si,
                    pr.t_so::numeric(18,4)::text AS t_so,
+                   pr.vat_delta::numeric(18,4)::text AS vat,
+                   pr.t_vi::numeric(18,4)::text AS t_vi,
+                   pr.t_vo::numeric(18,4)::text AS t_vo,
                    s.staff_id, s.full_name AS staff_name, s.is_system,
                    ac.full_name AS actor_customer_name,
                    wc.display_ref AS wallet_ref,
@@ -227,7 +243,8 @@ final class BuildWalletStatementAction
                 'moved_to_held' => $r->held_change,
             ],
             // Testing fixes item 9: the two Dahab accounts apart; commission + spread = in − out.
-            default => $row + ['commission' => $r->commission, 'spread' => $r->spread],
+            // VAT is the entry's vat_payable change: beside them, never in the balance.
+            default => $row + ['commission' => $r->commission, 'spread' => $r->spread, 'vat' => $r->vat],
         };
     }
 
@@ -237,6 +254,7 @@ final class BuildWalletStatementAction
         return (object) [
             'money_in' => $r->t_in, 'money_out' => $r->t_out, 'held_change' => $r->t_held,
             'commission_in' => $r->t_ci, 'commission_out' => $r->t_co, 'spread_in' => $r->t_si, 'spread_out' => $r->t_so,
+            'vat_in' => $r->t_vi, 'vat_out' => $r->t_vo,
         ];
     }
 
@@ -260,20 +278,26 @@ final class BuildWalletStatementAction
                        SUM(d.held_change) AS held,
                        SUM(d.commission_delta) AS commission,
                        SUM(d.spread_delta) AS spread,
+                       SUM(d.vat_delta) AS vat,
                        SUM(GREATEST(d.commission_delta, 0)) AS ci, SUM(GREATEST(-d.commission_delta, 0)) AS co,
-                       SUM(GREATEST(d.spread_delta, 0)) AS si, SUM(GREATEST(-d.spread_delta, 0)) AS so
+                       SUM(GREATEST(d.spread_delta, 0)) AS si, SUM(GREATEST(-d.spread_delta, 0)) AS so,
+                       SUM(GREATEST(d.vat_delta, 0)) AS vi, SUM(GREATEST(-d.vat_delta, 0)) AS vo
                 FROM dated d
                 WHERE d.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND d.created_at < (?::timestamp AT TIME ZONE '{$tz}')
                 GROUP BY 1
             ), running AS (
                 SELECT g.*, ?::numeric + COALESCE(SUM(g.net) OVER (ORDER BY g.period ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS before,
                        SUM(g.money_in) OVER () AS t_in, SUM(g.money_out) OVER () AS t_out, SUM(g.held) OVER () AS t_held,
-                       SUM(g.ci) OVER () AS t_ci, SUM(g.co) OVER () AS t_co, SUM(g.si) OVER () AS t_si, SUM(g.so) OVER () AS t_so
+                       SUM(g.ci) OVER () AS t_ci, SUM(g.co) OVER () AS t_co, SUM(g.si) OVER () AS t_si, SUM(g.so) OVER () AS t_so,
+                       SUM(g.vi) OVER () AS t_vi, SUM(g.vo) OVER () AS t_vo
                 FROM grouped g
             )
             SELECT period, n,
                    commission::numeric(18,4)::text AS commission,
                    spread::numeric(18,4)::text AS spread,
+                   vat::numeric(18,4)::text AS vat,
+                   t_vi::numeric(18,4)::text AS t_vi,
+                   t_vo::numeric(18,4)::text AS t_vo,
                    t_ci::numeric(18,4)::text AS t_ci,
                    t_co::numeric(18,4)::text AS t_co,
                    t_si::numeric(18,4)::text AS t_si,
@@ -303,7 +327,7 @@ final class BuildWalletStatementAction
                 'in' => $r->money_in,
                 'out' => $r->money_out,
                 'after' => $r->after,
-            ] + ($query->view === 'dahab' ? ['commission' => $r->commission, 'spread' => $r->spread] : []), $rows),
+            ] + ($query->view === 'dahab' ? ['commission' => $r->commission, 'spread' => $r->spread, 'vat' => $r->vat] : []), $rows),
             'next_cursor' => $hasMore && $last !== null ? (new StatementCursor(period: $last->period))->encode() : null,
             'totals' => isset($rows[0]) ? $this->totalsOf($rows[0]) : null,
         ];
@@ -349,6 +373,9 @@ final class BuildWalletStatementAction
                 'commission_out' => $totals->commission_out,
                 'spread_in' => $totals->spread_in,
                 'spread_out' => $totals->spread_out,
+                // The period's VAT, owed on the commission (not in in/out or the balance).
+                'vat_in' => $totals->vat_in,
+                'vat_out' => $totals->vat_out,
             ];
         }
 

@@ -106,6 +106,10 @@ All additive (non-breaking) unless noted.
 - `GET /dashboard/wallet-statement` (view=dahab): summary adds `commission_in`, `commission_out`,
   `spread_in`, `spread_out`; rows add `commission`, `spread` (signed; their sum = `in − out`). The
   CSV export adds a "Commission in/out, Spread in/out" line and two columns.
+  Later (2026-10-23): the same view also adds the VAT — summary `vat_in`, `vat_out`, rows `vat`
+  (the entry's change to `vat_payable`, signed; a credit note gives it back). VAT is owed, not
+  earned: it stays out of `in`/`out` and the running balance. The CSV adds "VAT in/out" and a VAT
+  column; the Dashboard shows a VAT column and a VAT card. Non-breaking (optional fields).
 - Inbox (`GET /customer/me/notifications`): `buy_request.accepted` and `buy_request.order_cancelled`
   items now link `order` (link kinds already existed).
 
