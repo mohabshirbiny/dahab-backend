@@ -146,7 +146,7 @@ class InvoiceController extends Controller
         path: '/dashboard/invoices/{invoice}/credit-notes',
         operationId: 'dashboardIssueCreditNote',
         summary: 'Issue a credit note (correct a tax invoice)',
-        description: 'Spec 016 FR-018–FR-020; Part 1 §4.2 "Issue or correct a tax invoice". A seller invoice only, in part or in full, never above what is left. One balanced credit_note entry: dahab_commission −net, vat_payable −vat, the seller\'s available +gross (VAT = gross × rate / (100 + rate), half-up to 4 dp). Numbered CN-YYYY-NNNNNN. The invoice never changes. The seller is told by SMS + email; the PDF is made after commit. invoice.correct. Idempotent, audited (credit_note.issued, with the reason).',
+        description: 'Spec 016 FR-018–FR-020; Part 1 §4.2 "Issue or correct a tax invoice". A seller invoice only, in part or in full, never above what is left. One balanced credit_note entry: dahab_commission −net, vat_payable −vat, the seller\'s available +gross (the invoice\'s own VAT share: VAT = gross × invoice VAT / invoice gross, half-up to 4 dp; the note that clears the invoice takes the VAT not yet given back). Numbered CN-YYYY-NNNNNN. The invoice never changes. The seller is told by SMS + email; the PDF is made after commit. invoice.correct. Idempotent, audited (credit_note.issued, with the reason).',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/IssueCreditNoteRequest')),
         tags: ['Dashboard Invoices'],

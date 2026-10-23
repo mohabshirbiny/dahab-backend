@@ -42,9 +42,9 @@ it('reproduces Part 3 §3.3 (21K ring, 10 g, clean pass)', function () {
     expect($b->buyerTotal)->toBe('55631.2500')
         ->and($b->sellerGross)->toBe('55368.7500')
         ->and($b->spread)->toBe('262.5000')
-        // Package C: 20 % of the making charge is 600, VAT included: 526.3158 + 73.6842.
-        ->and($b->commission)->toBe('526.3158')
-        ->and($b->vat)->toBe('73.6842')
+        // Package C: 20 % of the making charge is 600, VAT included: 516 + 84 (VAT = 14 % of 600).
+        ->and($b->commission)->toBe('516.0000')
+        ->and($b->vat)->toBe('84.0000')
         ->and($b->commissionTotal())->toBe('600.0000')
         ->and($b->sellerProceeds)->toBe('54768.7500');
     expectInvariant($b);
@@ -56,8 +56,8 @@ it('reproduces Part 3 §3.4 (IGI weight 9.9 g)', function () {
     expect($b->buyerTotal)->toBe('55074.9375')
         ->and($b->sellerGross)->toBe('54815.0625')
         ->and($b->spread)->toBe('259.8750')
-        ->and($b->commission)->toBe('521.0526')
-        ->and($b->vat)->toBe('72.9474')
+        ->and($b->commission)->toBe('510.8400')
+        ->and($b->vat)->toBe('83.1600')
         ->and($b->commissionTotal())->toBe('594.0000')
         ->and($b->sellerProceeds)->toBe('54221.0625');
     expectInvariant($b);
@@ -99,7 +99,7 @@ it('keeps the whole market spread plus the adjustments on a real bid/ask gap', f
         ->and($b->sellerGross)->toBe('35439.7900') // 6937.9580 × 5 + 750
         ->and($b->spread)->toBe('351.4510')
         ->and($b->commissionTotal())->toBe('200.0000') // 20% × 750 = 150 → the minimum
-        ->and($b->vat)->toBe('24.5614');
+        ->and($b->vat)->toBe('28.0000');
     expectInvariant($b);
 });
 
@@ -110,7 +110,7 @@ it('prices a pure diamond with no spread and commission on the whole asking pric
         ->and($b->sellerGross)->toBe('120000.0000')
         ->and($b->spread)->toBe('0.0000')
         ->and($b->commissionTotal())->toBe('6000.0000')
-        ->and($b->vat)->toBe('736.8421')
+        ->and($b->vat)->toBe('840.0000')
         ->and($b->sellerProceeds)->toBe('114000.0000');
     expectInvariant($b);
 });
@@ -122,7 +122,7 @@ it('protects the gold inside gold-with-diamond at the unadjusted midpoint', func
     expect($b->protectedGoldValue)->toBe('27912.4124')
         ->and($b->spread)->toBe('0.0000')
         ->and($b->commissionTotal())->toBe('1604.3794') // 5% × (60000 − 27912.4124)
-        ->and($b->vat)->toBe('197.0290');
+        ->and($b->vat)->toBe('224.6131');
     expectInvariant($b);
 });
 

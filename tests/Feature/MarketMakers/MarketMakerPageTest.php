@@ -182,7 +182,7 @@ it('sums the stored figures of the month: commission and spread given up, and co
     // Staged below: a pre-spec sale is simulated by clearing the stored figures of one order.
     DB::statement('ALTER TABLE "order" DISABLE TRIGGER trg_order_cost_frozen');
     $sale = dealerSale($this);
-    expect($sale->commission_waiver_kind)->toBe('market_maker')->and($sale->commission_given_up)->toBe('526.3158') // net of the 600 VAT-inclusive (package C)
+    expect($sale->commission_waiver_kind)->toBe('market_maker')->and($sale->commission_given_up)->toBe('516.0000') // net of the 600 VAT-inclusive (package C)
         ->and($sale->spread_given_up)->toBe('262.5000');
 
     // A pre-spec market-maker sale: settled, no stored figures.
@@ -198,9 +198,9 @@ it('sums the stored figures of the month: commission and spread given up, and co
     $month = now('Africa/Cairo')->format('Y-m');
     $this->getJson("/api/v1/dashboard/market-maker/cost?month={$month}")->assertOk()
         ->assertJsonPath('data.pieces_bought', 2)
-        ->assertJsonPath('data.commission_given_up_egp', '526.3158')
+        ->assertJsonPath('data.commission_given_up_egp', '516.0000')
         ->assertJsonPath('data.spread_given_up_egp', '262.5000')
-        ->assertJsonPath('data.total_cost_egp', '788.8158')
+        ->assertJsonPath('data.total_cost_egp', '778.5000')
         ->assertJsonPath('data.not_recorded', 1);
 
     // Last month has nothing.

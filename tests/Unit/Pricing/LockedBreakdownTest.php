@@ -24,7 +24,7 @@ it('reproduces Part 3 §3.3 on 10.000 g', function () {
         ->and($b->sellerGross)->toBe('55368.7500')
         ->and($b->spread)->toBe('262.5000')
         ->and($b->commissionTotal())->toBe('600.0000')
-        ->and($b->vat)->toBe('73.6842')
+        ->and($b->vat)->toBe('84.0000')
         ->and($b->sellerProceeds)->toBe('54768.7500');
 });
 
@@ -37,7 +37,7 @@ it('reproduces Part 3 §3.4 on the IGI weight of 9.900 g', function () {
         ->and($b->sellerGross)->toBe('54815.0625')
         ->and($b->spread)->toBe('259.8750')
         ->and($b->commissionTotal())->toBe('594.0000')
-        ->and($b->vat)->toBe('72.9474')
+        ->and($b->vat)->toBe('83.1600')
         ->and($b->sellerProceeds)->toBe('54221.0625');
 });
 
@@ -60,7 +60,7 @@ it('prices a diamond on its asking price with stone commission and no spread', f
     expect($b->buyerTotal)->toBe('120000.0000')
         ->and($b->spread)->toBe('0.0000')
         ->and($b->commissionTotal())->toBe('6000.0000')
-        ->and($b->vat)->toBe('736.8421')
+        ->and($b->vat)->toBe('840.0000')
         ->and($b->sellerProceeds)->toBe('114000.0000');
 });
 

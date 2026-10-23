@@ -50,11 +50,11 @@ it('applies a new rate to the very next calculation', function () {
     $context = app(PricingContext::class);
     $piece = Piece::gold($context->pricing(21), '10.000', '300');
 
-    expect($context->breakdown($piece)->commission)->toBe('600.0000');
+    expect($context->breakdown($piece)->commission)->toBe('516.0000'); // 600 VAT included = 516 + 84
 
     changeSetting($this, $this->finance, 'commission.gold_pct', ['value' => '25', 'reason' => 'New rate'])->assertOk();
 
-    expect(app(PricingContext::class)->breakdown($piece)->commission)->toBe('750.0000');
+    expect(app(PricingContext::class)->breakdown($piece)->commission)->toBe('645.0000'); // 750 = 645 + 105
 });
 
 it('changes a flag', function () {

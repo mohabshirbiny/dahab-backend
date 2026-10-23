@@ -38,8 +38,8 @@ it('answers a percentage code with the commission before and after, and records 
         ->and($data['waiver'])->toMatchArray(['kind' => 'credit', 'source' => 'promo_code', 'credit_id' => null])
         ->and($data['commission'])->toBe([
             // Package C: net figures, and what the seller pays and saves VAT included.
-            'ordinary_egp' => '526.3158', 'charged_egp' => '263.1579', 'vat_egp' => '36.8421',
-            'saved_egp' => '263.1579', 'ordinary_total_egp' => '600.0000', 'charged_total_egp' => '300.0000',
+            'ordinary_egp' => '516.0000', 'charged_egp' => '258.0000', 'vat_egp' => '42.0000',
+            'saved_egp' => '258.0000', 'ordinary_total_egp' => '600.0000', 'charged_total_egp' => '300.0000',
             'saved_total_egp' => '300.0000', 'minimum_egp' => '200.0000', 'floor_applied' => false,
         ])
         ->and(bcsub($data['you_receive']['with_promo_egp'], $data['you_receive']['without_promo_egp'], 4))->toBe('300.0000') // package C: the seller saves exactly the 300 off, VAT included
@@ -56,7 +56,7 @@ it('says when the minimum limited the saving', function () {
     Promo::code(['code' => 'BIG', 'commission_percent' => '99']);
 
     $data = preview($this, ['code' => 'BIG'])->assertOk()->json('data.commission');
-    expect($data['charged_egp'])->toBe('175.4386')->and($data['saved_egp'])->toBe('350.8772')->and($data['saved_total_egp'])->toBe('400.0000')->and($data['floor_applied'])->toBeTrue();
+    expect($data['charged_egp'])->toBe('172.0000')->and($data['saved_egp'])->toBe('344.0000')->and($data['saved_total_egp'])->toBe('400.0000')->and($data['floor_applied'])->toBeTrue();
 });
 
 it('shows a waive code as nothing charged', function () {
@@ -73,7 +73,7 @@ it('shows a credit already in the pool without any code', function () {
     $data = preview($this)->assertOk()->json('data');
     expect($data['code'])->toBeNull()
         ->and($data['waiver']['kind'])->toBe('credit')->and($data['waiver']['source'])->toBe('referral')
-        ->and($data['commission']['charged_egp'])->toBe('350.8772');
+        ->and($data['commission']['charged_egp'])->toBe('344.0000');
 });
 
 it('never reveals a private code and refuses what cannot be used, with the reason', function () {
@@ -133,7 +133,7 @@ it('validates the piece figures', function () {
     Listings::as($this, $this->seller)->postJson(Promo::PREVIEW_URL, ['category' => 'diamond', 'karat' => 21, 'asking_price' => '1000'])
         ->assertStatus(422);
     Listings::as($this, $this->seller)->postJson(Promo::PREVIEW_URL, ['category' => 'diamond', 'asking_price' => '120000.00'])
-        ->assertOk()->assertJsonPath('data.commission.ordinary_egp', '5263.1579');
+        ->assertOk()->assertJsonPath('data.commission.ordinary_egp', '5160.0000');
 });
 
 it('is limited to ten checks a minute', function () {

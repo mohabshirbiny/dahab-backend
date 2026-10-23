@@ -32,8 +32,8 @@ it('settles Part 3 §3.3 to the piastre', function () {
 
     expect(BuyRequests::balances($buyer))->toBe(['available' => '4368.7500', 'held' => '0.0000'])
         ->and(bcsub(BuyRequests::balances($seller)['available'], $before['available'], 4))->toBe('54768.7500')
-        ->and(Orders::internal(AccountKind::DAHAB_COMMISSION))->toBe('526.3158')
-        ->and(Orders::internal(AccountKind::VAT_PAYABLE))->toBe('73.6842')
+        ->and(Orders::internal(AccountKind::DAHAB_COMMISSION))->toBe('516.0000')
+        ->and(Orders::internal(AccountKind::VAT_PAYABLE))->toBe('84.0000')
         ->and(Orders::internal(AccountKind::DAHAB_SPREAD))->toBe('262.5000')
         ->and(Orders::internal(AccountKind::ESCROW))->toBe('0.0000');
 
@@ -44,14 +44,14 @@ it('settles Part 3 §3.3 to the piastre', function () {
         ['escrow', '55631.2500'],
         ['escrow', '-55631.2500'],
         ['cust_available', '54768.7500'],
-        ['dahab_commission', '526.3158'],
-        ['vat_payable', '73.6842'],
+        ['dahab_commission', '516.0000'],
+        ['vat_payable', '84.0000'],
         ['dahab_spread', '262.5000'],
     ]);
 
     expect([(string) $order->final_buyer_total, (string) $order->final_seller_gross, (string) $order->commission_amount,
         (string) $order->vat_amount, (string) $order->spread_amount, (string) $order->seller_proceeds, (string) $order->balance_amount])
-        ->toBe(['55631.2500', '55368.7500', '526.3158', '73.6842', '262.5000', '54768.7500', '44505.0000'])
+        ->toBe(['55631.2500', '55368.7500', '516.0000', '84.0000', '262.5000', '54768.7500', '44505.0000'])
         ->and(DatabaseActor::elevate('maintenance', fn () => (string) DB::selectOne('SELECT must_be_zero FROM ledger_global_zero')->must_be_zero))
         ->toBe('0.0000');
 });
@@ -84,9 +84,9 @@ it('reads commission and VAT live at payment', function () {
 
     Orders::pay($this, Orders::buyer($order), $order)->assertOk();
 
-    // 10% of 3,000 = 300 incl. VAT: net 300 × 100 / 114 = 263.1579, VAT 36.8421;
+    // 10% of 3,000 = 300 incl. VAT: VAT 300 × 14% = 42, net 258;
     // proceeds 55,368.75 − 300.
-    expect((string) $order->refresh()->commission_amount)->toBe('263.1579')
-        ->and((string) $order->vat_amount)->toBe('36.8421')
+    expect((string) $order->refresh()->commission_amount)->toBe('258.0000')
+        ->and((string) $order->vat_amount)->toBe('42.0000')
         ->and((string) $order->seller_proceeds)->toBe('55068.7500');
 });
