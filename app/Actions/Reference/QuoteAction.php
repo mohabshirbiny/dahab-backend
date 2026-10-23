@@ -57,11 +57,7 @@ final class QuoteAction
             PieceCategory::DIAMOND => '0.0000',
         };
         $pct = $category === PieceCategory::GOLD ? $rates->goldPct : $rates->stonePct;
-        $base = match ($category) {
-            PieceCategory::GOLD => $making,
-            PieceCategory::GOLD_WITH_DIAMOND => Money::fixed4(Money::max(Money::sub((string) $askingPrice, $goldValue), '0')),
-            PieceCategory::DIAMOND => Money::fixed4((string) $askingPrice),
-        };
+        $base = $category === PieceCategory::GOLD ? $making : Money::fixed4((string) $askingPrice);
 
         return [
             'category' => $category->value,

@@ -112,6 +112,8 @@ For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed aski
 - **Diamond (pure):** `buyer_total = seller's asking_price`. The whole asking price is "value above gold" (there is no gold). Commission is `commission.stone_pct` of it. `seller_gross = asking_price`; commission is taken from it per §2.5; no spread.
 - **Gold-with-diamond:** `buyer_total = asking_price` (seller sets the whole-piece price). The **gold value** within it (`mid(k) × W`, the midpoint of the **unadjusted** market bid and ask — no adjustment, since there is no spread on these) is protected: commission applies only to the **value above the gold** (`asking_price − gold_value`, floored at 0), per §2.5. No spread.
 
+> **Changed by product-owner decision 2026-10-23.** Gold-with-diamond now pays commission like a pure diamond: `commission.stone_pct` of the **whole asking price** (minimum still applies). The gold value at `mid(k) × W` is still computed and shown, and still protected at the locked mid at settlement, but it no longer reduces the commission base.
+
 > Why no spread on stones: gold has a public price and a buyer at any hour; a diamond is worth what a specific buyer pays and may sit for months (blueprint §5). The spread mechanism assumes a liquid, market-driven value; stones do not have one. Dahab's earning on stones is commission on the value above gold, only.
 
 ### 2.5 Commission and VAT
@@ -123,7 +125,7 @@ For `category ∈ {diamond, gold_with_diamond}` the seller sets **one fixed aski
 > **Changed by the testing fixes, package C** (product-owner decision 2026-10-14) — see [`docs/features/vat-inclusive-commission.md`](../features/vat-inclusive-commission.md). **The commission rate includes VAT.** The seller is charged exactly `total = max(rate × commission base, minimum)`; the minimum (EGP 200) is VAT-inclusive too. VAT is carved out: `net = round_half_up_4dp(total × 100 / (100 + vat_pct))`, `vat = total − net` (the residue stays inside the total). `net` is posted to `dahab_commission`, `vat` to `vat_payable`, seller proceeds = seller gross − total. Waivers and credits compare the inclusive totals, then split; a waived sale stays 0 / 0. The seller invoice shows net, VAT and gross = total. It applies to every quote and settlement computed after the deploy (orders in flight included); nothing already posted changes. New figures for §3.3: commission **600.00 VAT included = 526.3158 + 73.6842 VAT**, seller receives **54,768.75** (buyer total 55,631.25 and spread 262.50 unchanged). §3.4 (9.900 g): **594.00 = 521.0526 + 72.9474**, seller receives **54,221.0625**. The §3 figures below are the original ones.
 
 - **Gold:** `commission = max(commission.gold_pct × (making_charge_per_g × W), commission.minimum_egp)`.
-- **Diamond / gold-with-diamond:** `commission = max(commission.stone_pct × value_above_gold, commission.minimum_egp)`, where `value_above_gold` is the whole asking price (pure diamond) or `asking_price − gold_value` (gold-with-diamond).
+- **Diamond / gold-with-diamond:** `commission = max(commission.stone_pct × value_above_gold, commission.minimum_egp)`, where `value_above_gold` is the whole asking price (pure diamond) or `asking_price − gold_value` (gold-with-diamond). *Since 2026-10-23 it is the whole asking price for gold-with-diamond too (§2.4 note).*
 - **Minimum commission** (`commission.minimum_egp`, 200) is never broken, "not even by a promo code" (blueprint §3) — except a market-maker code waives commission entirely by design (§8); the minimum floors a *charged* commission, it does not force a charge onto a waived one.
 - **VAT** = `vat.pct × commission`, applied **to commission only** (schema seed note; blueprint §3). VAT is included in the figure the customer sees and shown separately on the invoice. The spread is trading margin, **not** a service fee, and carries **no VAT**.
 
@@ -222,7 +224,7 @@ VAT of `594 × 0.14 = 83.16` is exact. Where a percentage yields >4 dp (e.g. a c
 Same escrow pass-through, but **no spread leg** and commission on stone value:
 
 - `buyer_total = asking_price` (no buy/sell split).
-- `commission = max(commission.stone_pct × value_above_gold, commission.minimum_egp)`.
+- `commission = max(commission.stone_pct × value_above_gold, commission.minimum_egp)` — the whole asking price for both categories since 2026-10-23 (§2.4 note).
 - `vat = vat.pct × commission`.
 - `seller_proceeds = asking_price − commission − vat`.
 - Ledger legs: `escrow` in/out, `seller cust_available +seller_proceeds`, `dahab_commission +commission`, `vat_payable +vat`. **No `dahab_spread` posting.**

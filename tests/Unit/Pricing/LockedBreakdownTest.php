@@ -65,13 +65,13 @@ it('prices a diamond on its asking price with stone commission and no spread', f
 });
 
 it('protects the gold value of a gold-with-diamond piece at the locked mid', function () {
-    // 5 g at a mid of 5,250 = 26,250 of gold; commission on 80,000 − 26,250.
+    // 5 g at a mid of 5,250 = 26,250 of gold; commission on the whole 80,000.
     $b = (new PriceCalculator)->lockedBreakdown(
         Piece::locked(PieceCategory::GOLD_WITH_DIAMOND, '5.000', null, '80000'), null, '5250.0000', lockedRates(),
     );
 
     expect($b->protectedGoldValue)->toBe('26250.0000')
-        ->and($b->commissionTotal())->toBe('2687.5000')
+        ->and($b->commissionTotal())->toBe('4000.0000')
         ->and($b->spread)->toBe('0.0000');
 });
 

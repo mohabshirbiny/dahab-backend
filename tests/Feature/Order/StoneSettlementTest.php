@@ -17,7 +17,7 @@ use Tests\Support\Orders;
 uses(RefreshDatabase::class);
 
 // Spec 012 research R6–R7; Part 3 §2.4, §3.6: stones settle on the asking
-// price with commission on the value above gold and no spread; a deposit
+// price with commission on the whole asking price and no spread; a deposit
 // larger than the total comes back in the same transaction.
 
 beforeEach(function () {
@@ -57,8 +57,8 @@ it('protects the gold of a gold-with-diamond piece at the locked mid on the meas
 
     Orders::pay($this, Orders::buyer($order), $order)->assertOk();
 
-    // mid(21K) = 5,250 at bid = ask = 5,994; gold 6.1 g = 32,025; 5% of 80,150 − 32,025 = 2,406.25.
-    expect((string) $order->refresh()->commission_amount)->toBe('2069.3750')
+    // 5% of the whole 80,150 = 4,007.50 incl. VAT; VAT 14% = 561.05; net 3,446.45.
+    expect((string) $order->refresh()->commission_amount)->toBe('3446.4500')
         ->and((string) $order->spread_amount)->toBe('0.0000');
 });
 
