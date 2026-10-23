@@ -6,6 +6,7 @@ use App\Actions\Reference\QuoteAction;
 use App\Actions\Reference\ShowGoldPricesAction;
 use App\Enums\LegalDocumentCode;
 use App\Enums\PieceCategory;
+use App\Enums\SettingKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reference\QuoteRequest;
 use App\Models\Branch;
@@ -14,6 +15,7 @@ use App\Models\LegalDocument;
 use App\Models\PieceType;
 use App\Support\Content\BundleBuilder;
 use App\Support\Controls\ControlsSnapshot;
+use App\Support\Pricing\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -278,6 +280,29 @@ class ReferenceController extends Controller
             'whatsapp' => (string) $c['whatsapp'],
             'email' => (string) $c['email'],
             'social' => array_map('strval', $c['social']),
+        ]]);
+    }
+
+    #[OA\Get(
+        path: '/reference/certificate-costs',
+        operationId: 'referenceCertificateCosts',
+        summary: 'What IGI\'s certificate costs the seller, by the certificate they bring',
+        description: 'Part 3 §5 / OI-3.2. From the settings certificate.igi_cost_egp, certificate.other_lab_cost_egp and certificate.none_cost_egp (the Dashboard\'s Rates page). For the sell form of a diamond or gold with diamond; not yet taken at settlement. Public.',
+        tags: ['Reference'],
+        responses: [new OA\Response(response: 200, description: 'Costs in EGP', content: new OA\JsonContent(properties: [
+            new OA\Property(property: 'data', properties: [
+                new OA\Property(property: 'igi', type: 'string', example: '0.0000'),
+                new OA\Property(property: 'other_lab', type: 'string', example: '1000.0000'),
+                new OA\Property(property: 'none', type: 'string', example: '2000.0000'),
+            ], type: 'object'),
+        ]))],
+    )]
+    public function certificateCosts(Settings $settings): JsonResponse
+    {
+        return response()->json(['data' => [
+            'igi' => $settings->numeric(SettingKey::CERTIFICATE_IGI_COST_EGP),
+            'other_lab' => $settings->numeric(SettingKey::CERTIFICATE_OTHER_LAB_COST_EGP),
+            'none' => $settings->numeric(SettingKey::CERTIFICATE_NONE_COST_EGP),
         ]]);
     }
 

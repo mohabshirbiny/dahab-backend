@@ -7367,6 +7367,46 @@
       "max_length": 40
     },
     {
+      "key": "selling.ct",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "ct",
+      "default_ar": "قيراط",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.egp",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "EGP",
+      "default_ar": "جنيه",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.igi_certificate_cost",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "IGI certificate cost",
+      "default_ar": "تكلفة شهادة IGI",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "selling.free",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Free",
+      "default_ar": "مجانًا",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "bank.a_person_checks_the_name_against",
       "kind": "app",
       "area": "Wallet",
