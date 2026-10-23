@@ -4892,7 +4892,7 @@
                                         "work-list"
                                     ]
                                 },
-                                "description": "Spec 012 FR-010. Pieces to receive, inspect, correct or hand over at your branch (every branch, optionally ?branch_id=, without one). No money, no names. Requires inspection.enter, order.receive or order.handover. Saves order_id (the first)."
+                                "description": "Spec 012 FR-010. Pieces to receive, inspect, correct or hand over at your branch (every branch, optionally ?branch_id=, without one). No money, no names — except, on a handover row, `proxy` {name, phone, has_id_photo}: the person the buyer named to collect (spec 014; ID photo via GET orders/{id}/proxy-id). Requires inspection.enter, order.receive or order.handover. Saves order_id (the first)."
                             },
                             "response": []
                         },

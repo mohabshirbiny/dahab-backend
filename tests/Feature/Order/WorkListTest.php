@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\Disputes;
 use Tests\Support\Orders;
 
 uses(RefreshDatabase::class);
@@ -74,4 +75,23 @@ it('never shows an inspector money or names, on any answer they can reach', func
         }
         expect($body)->not->toContain('55631')->not->toContain('11126');
     }
+});
+
+it('names the person the buyer sent on a handover, and nobody on other tasks', function () {
+    // Spec 014: the counter (order.handover, no order.view) must know who to check the ID against.
+    $ready = Disputes::readyToCollect($this);
+    Orders::staff($this, SeedRole::IGI_BRANCH, $ready->branch_id);
+
+    $row = fn () => collect($this->getJson(Orders::WORK_LIST_URL)->assertOk()->json('data'))->firstWhere('order_id', $ready->order_id);
+    expect($row()['task'])->toBe('handover')
+        ->and($row()['proxy'])->toBeNull();
+
+    Disputes::nameProxy($this, $ready)->assertOk();
+    Orders::staff($this, SeedRole::IGI_BRANCH, $ready->branch_id);
+
+    expect($row()['proxy'])->toBe(['name' => 'Ahmed Samir Hassan', 'phone' => '+201001234567', 'has_id_photo' => true])
+        ->and($this->getJson("/api/v1/dashboard/orders/{$ready->order_id}/proxy-id")->assertOk())->not->toBeNull();
+
+    $others = collect($this->getJson(Orders::WORK_LIST_URL)->assertOk()->json('data'))->where('order_id', '!=', $ready->order_id);
+    expect($others->pluck('proxy')->filter()->all())->toBe([]);
 });
