@@ -82,6 +82,8 @@ final class ListingPricer
                 goldValue: null,
                 makingTotal: null,
                 youWouldReceive: $breakdown?->sellerProceeds,
+                sellerGross: $breakdown?->sellerGross,
+                commissionVatIncluded: $breakdown?->commissionTotal(),
             );
         }
 
@@ -98,6 +100,8 @@ final class ListingPricer
             goldValue: Money::round4(Money::mul($rate, (string) $listing->stated_weight_g)),
             makingTotal: Money::round4(Money::mul((string) $listing->making_charge_per_g, (string) $listing->stated_weight_g)),
             youWouldReceive: $breakdown->sellerProceeds,
+            sellerGross: $breakdown->sellerGross,
+            commissionVatIncluded: $breakdown->commissionTotal(),
         );
     }
 

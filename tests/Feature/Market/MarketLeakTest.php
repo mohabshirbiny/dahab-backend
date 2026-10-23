@@ -23,7 +23,7 @@ uses(RefreshDatabase::class);
 
 const FORBIDDEN_KEYS = [
     'seller', 'seller_id', 'customer', 'customer_id', 'display_ref', 'full_name', 'name', 'phone', 'phone_masked', 'email',
-    'storage_ref', 'staff_message', 'you_would_receive', 'history', 'state', 'asking_price',
+    'storage_ref', 'staff_message', 'you_would_receive', 'seller_gross', 'commission_vat_included', 'history', 'state', 'asking_price',
 ];
 
 const MARKET_KEYS = [
