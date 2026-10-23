@@ -2093,6 +2093,54 @@
       "max_length": 40
     },
     {
+      "key": "account.commission.on_gold",
+      "kind": "app",
+      "area": "Account",
+      "where": "How prices work",
+      "default_en": "{commission_gold_pct}% of the making charge",
+      "default_ar": "{commission_gold_pct}٪ من المصنعية",
+      "placeholders": [
+        "commission_gold_pct"
+      ],
+      "max_length": 86
+    },
+    {
+      "key": "account.commission.on_stones",
+      "kind": "app",
+      "area": "Account",
+      "where": "How prices work",
+      "default_en": "{commission_stone_pct}% of the full price",
+      "default_ar": "{commission_stone_pct}٪ من السعر كله",
+      "placeholders": [
+        "commission_stone_pct"
+      ],
+      "max_length": 82
+    },
+    {
+      "key": "account.commission.minimum",
+      "kind": "app",
+      "area": "Account",
+      "where": "How prices work",
+      "default_en": "{commission_minimum_egp} EGP",
+      "default_ar": "{commission_minimum_egp} جنيه",
+      "placeholders": [
+        "commission_minimum_egp"
+      ],
+      "max_length": 56
+    },
+    {
+      "key": "account.commission.note",
+      "kind": "app",
+      "area": "Account",
+      "where": "How prices work",
+      "default_en": "On gold it comes from the making charge, never from the value of your gold. On a diamond piece, with gold or without, it is {commission_stone_pct}% of the full price.",
+      "default_ar": "على الذهب بتتاخد من المصنعية، ومش بتتاخد أبدا من قيمة ذهبك. على قطعة الألماس، فيها ذهب أو لأ، بتبقى {commission_stone_pct}٪ من السعر كله.",
+      "placeholders": [
+        "commission_stone_pct"
+      ],
+      "max_length": 332
+    },
+    {
       "key": "wallet.statement.period",
       "kind": "app",
       "area": "Wallet",
@@ -9147,36 +9195,6 @@
       "max_length": 60
     },
     {
-      "key": "account.200_egp",
-      "kind": "app",
-      "area": "Account",
-      "where": "Settings and legal screens",
-      "default_en": "200 EGP",
-      "default_ar": "200 جنيه",
-      "placeholders": [],
-      "max_length": 40
-    },
-    {
-      "key": "account.20_of_the_making_charge",
-      "kind": "app",
-      "area": "Account",
-      "where": "Settings and legal screens",
-      "default_en": "20% of the making charge",
-      "default_ar": "٢٠٪ من المصنعية",
-      "placeholders": [],
-      "max_length": 48
-    },
-    {
-      "key": "account.5_of_the_value_you_add",
-      "kind": "app",
-      "area": "Account",
-      "where": "Settings and legal screens",
-      "default_en": "5% of the value you add",
-      "default_ar": "٥٪ من القيمة اللي بتضيفها",
-      "placeholders": [],
-      "max_length": 46
-    },
-    {
       "key": "account.a_buyer_requests_my_piece",
       "kind": "app",
       "area": "Account",
@@ -10165,16 +10183,6 @@
       "default_ar": "لسه محتاج مساعدة",
       "placeholders": [],
       "max_length": 40
-    },
-    {
-      "key": "account.taken_from_the_making_charge_or",
-      "kind": "app",
-      "area": "Account",
-      "where": "Settings and legal screens",
-      "default_en": "Taken from the making charge or the value you add, never from the value of your gold.",
-      "default_ar": "بتتاخد من المصنعية أو من القيمة اللي بتضيفها، ومش بتتاخد أبدا من قيمة ذهبك.",
-      "placeholders": [],
-      "max_length": 170
     },
     {
       "key": "account.talk_to_us",
@@ -14152,16 +14160,16 @@
       "max_length": 62
     },
     {
-      "key": "pattern.count_of_the_value_you_add",
+      "key": "pattern.count_of_the_full_price",
       "kind": "app",
       "area": "Shared",
       "where": "A sentence with a number, a name or a date in it",
-      "default_en": "({count}% of the value you add)",
-      "default_ar": "({count}٪ من القيمة اللي بتضيفها)",
+      "default_en": "({count}% of the full price)",
+      "default_ar": "({count}٪ من السعر كله)",
       "placeholders": [
         "count"
       ],
-      "max_length": 62
+      "max_length": 56
     },
     {
       "key": "pattern.count",

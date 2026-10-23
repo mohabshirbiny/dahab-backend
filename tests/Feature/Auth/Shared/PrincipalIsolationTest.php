@@ -191,7 +191,9 @@ it('guards every customer and dashboard route with the right guard and ability, 
     // spec 022: the seller's price change (1).
     // spec 023: customer commission-preview, listing promo put/delete, referral show/shares, commission-credits (6);
     //            dashboard market-maker queue leave and queue media, first-sale enable/revoke/index (5).
-    expect($checked)->toBe(258);
+    // later:     customer wallet statement.pdf and order media (2); dashboard identity-documents reopen (1).
+    //            The public reference certificate-costs carries no guard.
+    expect($checked)->toBe(261);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

@@ -121,15 +121,15 @@ it('protects the gold inside gold-with-diamond at the unadjusted midpoint', func
     // mid(21K) = (6957.9580 + 6998.2482) / 2 = 6978.1031; gold = 27912.4124
     expect($b->protectedGoldValue)->toBe('27912.4124')
         ->and($b->spread)->toBe('0.0000')
-        ->and($b->commissionTotal())->toBe('1604.3794') // 5% × (60000 − 27912.4124)
-        ->and($b->vat)->toBe('224.6131');
+        ->and($b->commissionTotal())->toBe('3000.0000') // 5% × the whole 60000, as for a diamond
+        ->and($b->vat)->toBe('420.0000');
     expectInvariant($b);
 });
 
-it('floors the value above gold at zero, then applies the minimum', function () {
-    $b = (new PriceCalculator)->breakdown(new MarketPrice('7944', '7990'), Piece::goldWithDiamond(karat21(), '10.000', '50000'), schemaRates());
+it('applies the minimum to a small gold-with-diamond piece', function () {
+    $b = (new PriceCalculator)->breakdown(new MarketPrice('7944', '7990'), Piece::goldWithDiamond(karat21(), '10.000', '3000'), schemaRates());
 
-    expect($b->commissionTotal())->toBe('200.0000');
+    expect($b->commissionTotal())->toBe('200.0000'); // 5% × 3000 = 150 → the minimum
 });
 
 it('lets a waiver skip the minimum', function () {

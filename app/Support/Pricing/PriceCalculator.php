@@ -72,9 +72,8 @@ final class PriceCalculator
     private function lockedGoldWithDiamond(Piece $piece, string $mid, PricingRates $rates): PriceBreakdown
     {
         $goldValue = Money::round4(Money::mul($mid, $piece->weight));
-        $aboveGold = Money::max(Money::sub($piece->askingPrice, $goldValue), '0');
 
-        return $this->finish($piece->askingPrice, $piece->askingPrice, $aboveGold, $rates->stonePct, $piece, $rates, $goldValue);
+        return $this->finish($piece->askingPrice, $piece->askingPrice, $piece->askingPrice, $rates->stonePct, $piece, $rates, $goldValue);
     }
 
     private function gold(MarketPrice $market, Piece $piece, PricingRates $rates): PriceBreakdown
@@ -91,11 +90,11 @@ final class PriceCalculator
     private function goldWithDiamond(MarketPrice $market, Piece $piece, PricingRates $rates): PriceBreakdown
     {
         // No adjustment and no spread on stones: the gold is valued at the unadjusted midpoint.
+        // The commission is the stone rate on the whole asking price, as for a pure diamond (owner, 2026-10-23).
         $prices = $this->karatPrices($market, $piece->karat);
         $goldValue = Money::round4(Money::mul($prices->mid, $piece->weight));
-        $aboveGold = Money::max(Money::sub($piece->askingPrice, $goldValue), '0');
 
-        return $this->finish($piece->askingPrice, $piece->askingPrice, $aboveGold, $rates->stonePct, $piece, $rates, $goldValue, $prices);
+        return $this->finish($piece->askingPrice, $piece->askingPrice, $piece->askingPrice, $rates->stonePct, $piece, $rates, $goldValue, $prices);
     }
 
     private function finish(

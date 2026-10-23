@@ -90,8 +90,8 @@ class LocalFaqSeeder extends Seeder
             'what_does_it_cost' => [
                 'What does it cost me?',
                 'هتكلّفني كام؟',
-                'Listing is free and inspection is free. Dahab takes {commission_gold_pct}% of the making charge you recover on gold, {commission_stone_pct}% of the value you add on stones, and never less than {commission_minimum_egp} EGP.',
-                'العرض ببلاش والفحص ببلاش. دهب بتاخد {commission_gold_pct}% من المصنعية اللي بترجعلك على الدهب، و{commission_stone_pct}% من القيمة اللي بتضيفيها على الأحجار، ومش أقل من {commission_minimum_egp} جنيه.',
+                'Listing is free and inspection is free. Dahab takes {commission_gold_pct}% of the making charge you recover on gold, {commission_stone_pct}% of the full price on a diamond piece, with gold or without, and never less than {commission_minimum_egp} EGP.',
+                'العرض ببلاش والفحص ببلاش. دهب بتاخد {commission_gold_pct}% من المصنعية اللي بترجعلك على الدهب، و{commission_stone_pct}% من السعر كله على قطعة الألماظ، فيها دهب أو لأ، ومش أقل من {commission_minimum_egp} جنيه.',
             ],
             'change_my_mind' => [
                 'Can I change my mind after listing?',

@@ -317,6 +317,8 @@ const OPENAPI_REFERENCE_PATHS = [
     // spec 015: today's prices and the seller's quote.
     'get /reference/gold-prices',
     'get /reference/quote',
+    // the stone certificate costs shown on the sell form.
+    'get /reference/certificate-costs',
 ];
 
 // spec 015: finance operations.
