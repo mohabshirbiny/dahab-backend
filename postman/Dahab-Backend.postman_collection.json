@@ -3496,7 +3496,7 @@
                                         }
                                     ]
                                 },
-                                "description": "Dahab's earnings: commission + spread; vat_payable in the summary. Testing fixes: the two apart, summary commission_in/out and spread_in/out, each row commission and spread (signed, their sum = in − out). Not audited."
+                                "description": "Dahab's earnings: commission + spread; vat_payable in the summary. Testing fixes: the two apart, summary commission_in/out and spread_in/out, each row commission and spread (signed, their sum = in − out). The first-sale advance (spec 023) apart: summary advance_out / advance_back, each row advance (− paid to a seller, + recovered at the settlement; never in in/out). Not audited."
                             },
                             "response": []
                         },

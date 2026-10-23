@@ -11,7 +11,11 @@ use InvalidArgumentException;
  * |-----------|-------------------------------------|-----------------------------|
  * | customer  | the customer's available or held    | available (holds are "out") |
  * | customers | any customer account                | available + held (owed)     |
- * | dahab     | commission or spread                | commission + spread         |
+ * | dahab     | commission or spread, or an advance | commission + spread         |
+ *
+ * The Dahab view also lists the first-sale advance (spec 023) leaving `external_equity`
+ * (`first_sale_payout`) and coming back at the settlement (`balance_payment`), in its own
+ * figure: Dahab's money fronted to a seller, never part of what Dahab earned.
  *
  * `from` / `to` are Cairo calendar days, inclusive.
  */
@@ -39,10 +43,12 @@ final readonly class StatementQuery
 
     /**
      * SQL predicates over `a` (account) for the lines that make a row appear,
-     * and for the lines that move the running balance. Built from constants
+     * and for the lines that move the running balance. `advance` is over `a`
+     * and `pt` (the period's transaction): the first-sale advance lines, which
+     * also make a row appear but never move the balance. Built from constants
      * only; the customer id is a bound parameter.
      *
-     * @return array{touch: string, run: string, bindings: list<string>}
+     * @return array{touch: string, run: string, advance: string, bindings: list<string>}
      */
     public function predicates(): array
     {
@@ -50,16 +56,19 @@ final readonly class StatementQuery
             'customer' => [
                 'touch' => 'a.customer_id = ?',
                 'run' => "a.customer_id = ? AND a.kind = 'cust_available'",
+                'advance' => 'FALSE',
                 'bindings' => [$this->customerId],
             ],
             'customers' => [
                 'touch' => "a.kind IN ('cust_available','cust_held')",
                 'run' => "a.kind IN ('cust_available','cust_held')",
+                'advance' => 'FALSE',
                 'bindings' => [],
             ],
             'dahab' => [
                 'touch' => "a.kind IN ('dahab_commission','dahab_spread')",
                 'run' => "a.kind IN ('dahab_commission','dahab_spread')",
+                'advance' => "a.kind = 'external_equity' AND pt.event_kind::text IN ('first_sale_payout','balance_payment')",
                 'bindings' => [],
             ],
         };
