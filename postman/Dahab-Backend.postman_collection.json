@@ -14863,6 +14863,36 @@
                             "response": []
                         },
                         {
+                            "name": "Certificate costs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/certificate-costs",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "certificate-costs"
+                                    ]
+                                },
+                                "description": "What IGI's certificate costs the seller, by the certificate they bring (igi, other_lab, none; EGP). From the certificate.* settings. Public.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Karats",
                             "request": {
                                 "method": "GET",

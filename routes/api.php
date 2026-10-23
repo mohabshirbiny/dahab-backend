@@ -99,6 +99,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             // Spec 017: the list the app shows, and how to reach Dahab.
             Route::get('/legal-documents', [ReferenceController::class, 'legalDocuments'])->name('legal-documents.index');
             Route::get('/support-contacts', [ReferenceController::class, 'supportContacts'])->name('support-contacts');
+            // What IGI's certificate costs the seller, by the certificate they bring (settings).
+            Route::get('/certificate-costs', [ReferenceController::class, 'certificateCosts'])->name('certificate-costs');
             // Spec 019: the texts staff published for the app; an ETag that also moves with the setting values.
             Route::get('/app-texts', [ReferenceController::class, 'appTexts'])->name('app-texts');
             // Spec 019 US7: what is stopped or paused, and what customers can see.

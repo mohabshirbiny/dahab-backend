@@ -66,6 +66,11 @@ enum SettingKey: string
     case MARKETMAKER_MAKING_CHARGE_WARN_PCT = 'marketmaker.making_charge_warn_pct';
     case LISTING_VIEW_RETENTION_DAYS = 'listing.view_retention_days';
 
+    /** What the seller pays for IGI's certificate, by the certificate they bring (OI-3.2); shown on the sell form. */
+    case CERTIFICATE_IGI_COST_EGP = 'certificate.igi_cost_egp';
+    case CERTIFICATE_OTHER_LAB_COST_EGP = 'certificate.other_lab_cost_egp';
+    case CERTIFICATE_NONE_COST_EGP = 'certificate.none_cost_egp';
+
     /** Money and price rules (Finance + CEO) or operations (founders) — research R1. */
     public function group(): SettingGroup
     {
@@ -80,7 +85,9 @@ enum SettingKey: string
             self::REFERRAL_ENABLED, self::REFERRAL_FRIEND_PERCENT_OFF, self::REFERRAL_INVITER_REWARD_EGP,
             self::REFERRAL_FRIEND_SALES_COVERED, self::REFERRAL_CREDIT_EXPIRY_DAYS, self::REFERRAL_MAX_USES_PER_CODE,
             self::REFERRAL_MAX_INVITATIONS_PER_ACCOUNT, self::REFERRAL_MAX_PER_DEVICE,
-            self::REFERRAL_MIN_FRIEND_SALE_EGP => SettingGroup::RATES,
+            self::REFERRAL_MIN_FRIEND_SALE_EGP,
+            self::CERTIFICATE_IGI_COST_EGP, self::CERTIFICATE_OTHER_LAB_COST_EGP,
+            self::CERTIFICATE_NONE_COST_EGP => SettingGroup::RATES,
             self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
             self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING => SettingGroup::VISIBILITY,
             default => SettingGroup::OPERATIONS,
