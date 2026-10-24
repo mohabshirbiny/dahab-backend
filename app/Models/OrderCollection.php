@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\IdentityDocumentKind;
 use App\Models\Concerns\BelongsToOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
@@ -23,7 +24,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property bool $is_proxy
  * @property string|null $proxy_name
  * @property string|null $proxy_phone
- * @property string|null $proxy_id_storage_ref
+ * @property string|null $proxy_id_storage_ref the front of the proxy's ID, or the passport photo page
+ * @property IdentityDocumentKind|null $proxy_id_kind null when named before the kind was asked (2026-10-24)
+ * @property string|null $proxy_id_back_storage_ref
  * @property string|null $proxy_acceptance_id
  * @property CarbonImmutable|null $proxy_named_at
  * @property bool $collected_by_proxy
@@ -38,7 +41,7 @@ class OrderCollection extends Model
     protected $primaryKey = 'collection_id';
 
     /** @var list<string> */
-    protected $hidden = ['code_hash', 'code_encrypted', 'proxy_id_storage_ref'];
+    protected $hidden = ['code_hash', 'code_encrypted', 'proxy_id_storage_ref', 'proxy_id_back_storage_ref'];
 
     protected function casts(): array
     {
@@ -49,9 +52,16 @@ class OrderCollection extends Model
             'collected_at' => 'immutable_datetime',
             'free_relist_until' => 'immutable_datetime',
             'is_proxy' => 'boolean',
+            'proxy_id_kind' => IdentityDocumentKind::class,
             'proxy_named_at' => 'immutable_datetime',
             'collected_by_proxy' => 'boolean',
         ];
+    }
+
+    /** The storage ref of one side of the proxy's ID, if uploaded. */
+    public function proxyIdRef(string $side): ?string
+    {
+        return $side === 'back' ? $this->proxy_id_back_storage_ref : $this->proxy_id_storage_ref;
     }
 
     /** Spec 014: a proxy is named now and the piece is not yet collected. */

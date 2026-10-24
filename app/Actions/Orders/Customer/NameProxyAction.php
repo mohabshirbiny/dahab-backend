@@ -6,6 +6,7 @@ use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Actions\Orders\Concerns\MovesOrder;
 use App\Actions\Orders\Concerns\TellsOrderParties;
 use App\Enums\AuditEvent;
+use App\Enums\IdentityDocumentKind;
 use App\Enums\OrderEvent;
 use App\Enums\OrderState;
 use App\Enums\UploadPurpose;
@@ -27,8 +28,9 @@ use Illuminate\Support\Facades\Notification;
 /**
  * The buyer names someone else to collect a paid piece (spec 014 US3, FR-018,
  * FR-021, research R14; Part 2 §7). On a ready-to-collect order not yet
- * collected and not frozen: the proxy's name, phone and ID photo (purpose
- * `proxy_id`) go on the collection with the buyer's acceptance of the current
+ * collected and not frozen: the proxy's name, phone and ID — its kind, the
+ * front and (an Egyptian ID) the back, uploads of purpose `proxy_id` — go on
+ * the collection with the buyer's acceptance of the current
  * `collection_proxy_authorisation` (context `collection_proxy`). Naming again
  * replaces the proxy with a new acceptance. After commit the proxy gets one SMS
  * without the code; the buyer is told. Audited `order` scope, trade gate.
@@ -42,8 +44,8 @@ final class NameProxyAction
         private readonly RecordAuditLogAction $audit,
     ) {}
 
-    public function handle(Customer $buyer, string $orderId, string $name, string $phone, string $idUploadToken,
-        int $authorisationId, ?RequestContext $ctx = null): Order
+    public function handle(Customer $buyer, string $orderId, string $name, string $phone, IdentityDocumentKind $idKind,
+        string $idUploadToken, ?string $idBackUploadToken, int $authorisationId, ?RequestContext $ctx = null): Order
     {
         $order = Order::query()->findOrFail($orderId);
         if ($order->buyer_id !== $buyer->customer_id) {
@@ -59,8 +61,13 @@ final class NameProxyAction
         if ($idRef === null) {
             throw DomainApiException::uploadTokenInvalid();
         }
+        $backRef = $idBackUploadToken === null ? null
+            : $this->uploads->resolve($idBackUploadToken, $buyer->customer_id, UploadPurpose::PROXY_ID);
+        if (($idBackUploadToken !== null && $backRef === null) || ($idKind === IdentityDocumentKind::EGYPTIAN_ID && $backRef === null)) {
+            throw DomainApiException::uploadTokenInvalid();
+        }
 
-        $order = DatabaseActor::order(fn () => DB::transaction(function () use ($buyer, $order, $name, $phone, $idRef, $document, $ctx) {
+        $order = DatabaseActor::order(fn () => DB::transaction(function () use ($buyer, $order, $name, $phone, $idRef, $backRef, $idKind, $document, $ctx) {
             $order = $this->lockOrder($order->order_id);
             $this->assertNotFrozen($order);
             $collection = OrderCollection::query()->where('order_id', $order->order_id)->lockForUpdate()->first();
@@ -82,6 +89,8 @@ final class NameProxyAction
                 'proxy_name' => $name,
                 'proxy_phone' => $phone,
                 'proxy_id_storage_ref' => $idRef,
+                'proxy_id_kind' => $idKind,
+                'proxy_id_back_storage_ref' => $backRef,
                 'proxy_acceptance_id' => $acceptance->acceptance_id,
                 'proxy_named_at' => CarbonImmutable::now(),
             ])->save();
@@ -114,6 +123,9 @@ final class NameProxyAction
         }));
 
         $this->uploads->forget($idUploadToken);
+        if ($idBackUploadToken !== null) {
+            $this->uploads->forget($idBackUploadToken);
+        }
 
         return $order;
     }

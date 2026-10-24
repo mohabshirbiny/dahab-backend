@@ -400,7 +400,7 @@ class OrderController extends Controller
         path: '/customer/me/orders/{order}/proxy',
         operationId: 'customerNameProxy',
         summary: 'Name someone else to collect (buyer)',
-        description: 'Spec 014 FR-018. On a ready-to-collect order not yet collected: their full name as on their ID, their phone, a photo of the front of their ID (upload purpose proxy_id), and your acceptance of the current collection_proxy_authorisation. Dahab does not verify the relationship. They get one SMS telling them where to go and to bring their ID — never the code: share your collection code with them yourself. Naming again replaces them. Audited (order.proxy_named). Trade gate. Idempotent.',
+        description: 'Spec 014 FR-018. On a ready-to-collect order not yet collected: their full name as on their ID, their phone, their ID like the sign-up one — id_kind egyptian_id (front + back) or passport (photo page, another page optional), each an upload of purpose proxy_id, and your acceptance of the current collection_proxy_authorisation. Dahab does not verify the relationship. They get one SMS telling them where to go and to bring their ID — never the code: share your collection code with them yourself. Naming again replaces them. Audited (order.proxy_named). Trade gate. Idempotent.',
         security: [['customerBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/NameProxyRequest')),
         tags: ['Customer Orders'],
@@ -421,7 +421,8 @@ class OrderController extends Controller
     public function nameProxy(NameProxyRequest $request, string $order, NameProxyAction $name, ListOwnOrdersAction $list): JsonResponse
     {
         $name->handle($this->customer($request), $order, (string) $request->validated('name'), (string) $request->validated('phone'),
-            (string) $request->validated('id_upload_token'), (int) $request->validated('authorisation_id'), $request->attributes->get('context'));
+            $request->idKind(), (string) $request->validated('id_upload_token'), $request->validated('id_back_upload_token'),
+            (int) $request->validated('authorisation_id'), $request->attributes->get('context'));
 
         return $this->respond($request, $order, $list);
     }

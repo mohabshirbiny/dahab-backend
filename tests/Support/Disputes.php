@@ -126,7 +126,9 @@ final class Disputes
         $body += [
             'name' => 'Ahmed Samir Hassan',
             'phone' => '+201001234567',
+            'id_kind' => 'egyptian_id',
             'id_upload_token' => array_key_exists('id_upload_token', $body) ? $body['id_upload_token'] : Listings::uploadToken($test, $buyer, 'proxy_id', Listings::png()),
+            'id_back_upload_token' => array_key_exists('id_back_upload_token', $body) ? $body['id_back_upload_token'] : Listings::uploadToken($test, $buyer, 'proxy_id', Listings::png()),
             'authorisation_id' => self::proxyAuthorisationId(),
             'authorisation_accepted' => true,
         ];

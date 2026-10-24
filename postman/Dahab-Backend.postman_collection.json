@@ -284,6 +284,11 @@
             "type": "string"
         },
         {
+            "key": "proxy_id_back_token",
+            "value": "",
+            "type": "string"
+        },
+        {
             "key": "proxy_legal_doc_id",
             "value": "",
             "type": "string"
@@ -5323,7 +5328,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/proxy-id",
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/proxy-id?side=front",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -5334,9 +5339,57 @@
                                         "orders",
                                         "{{order_id}}",
                                         "proxy-id"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "side",
+                                            "value": "front",
+                                            "description": "front (default; the passport photo page) or back"
+                                        }
                                     ]
                                 },
-                                "description": "Spec 014 FR-020. The decrypted front of the proxy's ID (no-store); audited (order.proxy_id_viewed). order.handover or order.view. 404 when none is named."
+                                "description": "Spec 014 FR-020. One side of the proxy's ID, decrypted (no-store); audited (order.proxy_id_viewed). order.handover or order.view. 404 when none is named or that side was not uploaded."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Open Buyer ID",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/buyer-id?side=front",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "buyer-id"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "side",
+                                            "value": "front",
+                                            "description": "front (default) or back"
+                                        }
+                                    ]
+                                },
+                                "description": "Handover ID check. One side of the buyer's latest verified identity document while the order waits for collection, decrypted (no-store); document view log + audited (identity.document.viewed, order.buyer_id_viewed). order.handover or order.view. 404 otherwise."
                             },
                             "response": []
                         },
@@ -13141,7 +13194,7 @@
                                         "uploads"
                                     ]
                                 },
-                                "description": "Spec 014. purpose proxy_id: the front of the person's ID; trade gate. Saves proxy_id_token (single use).",
+                                "description": "Spec 014. purpose proxy_id: the front of the person's ID, or the passport photo page; trade gate. Saves proxy_id_token (single use).",
                                 "body": {
                                     "mode": "formdata",
                                     "formdata": [
@@ -13167,6 +13220,67 @@
                                         "exec": [
                                             "if (pm.response.code === 201) {",
                                             "    pm.collectionVariables.set('proxy_id_token', pm.response.json().data.upload_token);",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Upload Proxy ID Back",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/uploads",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "uploads"
+                                    ]
+                                },
+                                "description": "Handover ID check. purpose proxy_id: the back of the person's Egyptian ID (optional for a passport); trade gate. Saves proxy_id_back_token (single use).",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "purpose",
+                                            "value": "proxy_id",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "file",
+                                            "type": "file",
+                                            "src": []
+                                        }
+                                    ]
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    pm.collectionVariables.set('proxy_id_back_token', pm.response.json().data.upload_token);",
                                             "}"
                                         ]
                                     }
@@ -13218,7 +13332,7 @@
                                 "description": "Spec 014 FR-018. The buyer, ready to collect, not collected: name as on their ID, phone, their ID photo, and the current collection_proxy_authorisation (Market › Reference › Collection Proxy Authorisation saves its id). They get one SMS without the code. Trade gate. 422 declaration_required.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"name\": \"Ahmed Samir Hassan\",\n  \"phone\": \"+201001234567\",\n  \"id_upload_token\": \"{{proxy_id_token}}\",\n  \"authorisation_id\": {{proxy_legal_doc_id}},\n  \"authorisation_accepted\": true\n}",
+                                    "raw": "{\n  \"name\": \"Ahmed Samir Hassan\",\n  \"phone\": \"+201001234567\",\n  \"id_kind\": \"egyptian_id\",\n  \"id_upload_token\": \"{{proxy_id_token}}\",\n  \"id_back_upload_token\": \"{{proxy_id_back_token}}\",\n  \"authorisation_id\": {{proxy_legal_doc_id}},\n  \"authorisation_accepted\": true\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"

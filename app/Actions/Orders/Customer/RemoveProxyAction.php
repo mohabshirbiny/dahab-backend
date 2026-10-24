@@ -49,6 +49,8 @@ final class RemoveProxyAction
                 'proxy_name' => null,
                 'proxy_phone' => null,
                 'proxy_id_storage_ref' => null,
+                'proxy_id_kind' => null,
+                'proxy_id_back_storage_ref' => null,
                 'proxy_acceptance_id' => null,
                 'proxy_named_at' => null,
             ])->save();

@@ -193,7 +193,8 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            dashboard market-maker queue leave and queue media, first-sale enable/revoke/index (5).
     // later:     customer wallet statement.pdf and order media (2); dashboard identity-documents reopen (1).
     //            The public reference certificate-costs carries no guard.
-    expect($checked)->toBe(261);
+    //            Dashboard make a customer a market maker (1); the buyer's ID at the handover (1).
+    expect($checked)->toBe(263);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

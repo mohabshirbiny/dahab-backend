@@ -14,6 +14,7 @@ use App\Actions\Orders\Staff\ListOrdersAction;
 use App\Actions\Orders\Staff\ProposePriceAction;
 use App\Actions\Orders\Staff\ReceivePieceAction;
 use App\Actions\Orders\Staff\ShowOrderAction;
+use App\Actions\Orders\Staff\ViewBuyerIdAction;
 use App\Actions\Orders\Staff\ViewProxyIdAction;
 use App\Enums\StaffPermission;
 use App\Http\Controllers\Controller;
@@ -385,23 +386,63 @@ class OrderController extends Controller
         path: '/dashboard/orders/{order}/proxy-id',
         operationId: 'dashboardOrderProxyId',
         summary: 'Open the ID photo of the person named to collect',
-        description: 'Spec 014 FR-020. The decrypted front of the proxy\'s ID, never cached, to check at the counter; each view is audited (order.proxy_id_viewed). 404 when no proxy is named. Requires order.handover or order.view.',
+        description: 'Spec 014 FR-020. One side of the proxy\'s ID (?side=front, the default — the passport photo page for a passport —, or back), decrypted, never cached, to check at the counter; each view is audited (order.proxy_id_viewed). 404 when no proxy is named or that side was not uploaded. Requires order.handover or order.view.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Orders'],
-        parameters: [new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'side', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['front', 'back'], default: 'front')),
+        ],
         responses: [
             new OA\Response(response: 200, description: 'The image', content: new OA\MediaType(mediaType: 'image/*')),
             new OA\Response(response: 403, description: 'permission_denied (audited)', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 404, description: 'not_found (no proxy)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found (no proxy, or no such side)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed (side)', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]
     public function proxyId(Request $request, string $order, ViewProxyIdAction $view): Response
     {
-        $image = $view->handle($request->user('staff'), $order, $request->attributes->get('context'));
+        $side = $this->side($request);
 
+        return $this->image($view->handle($request->user('staff'), $order, $request->attributes->get('context'), $side), 'proxy-id-'.$side);
+    }
+
+    #[OA\Get(
+        path: '/dashboard/orders/{order}/buyer-id',
+        operationId: 'dashboardOrderBuyerId',
+        summary: 'Open the buyer\'s own ID at the handover',
+        description: 'docs/features/handover-id-check.md. One side (?side=front|back) of the buyer\'s latest verified identity document, to check the person collecting, only while the order waits for collection. Decrypted, never cached; each view goes in the document view log and is audited (identity.document.viewed and order.buyer_id_viewed). 404 when the order is not waiting for collection or there is no verified document with that side. Requires order.handover or order.view.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'side', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['front', 'back'], default: 'front')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The image', content: new OA\MediaType(mediaType: 'image/*')),
+            new OA\Response(response: 403, description: 'permission_denied (audited)', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed (side)', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function buyerId(Request $request, string $order, ViewBuyerIdAction $view): Response
+    {
+        $side = $this->side($request);
+
+        return $this->image($view->handle($request->user('staff'), $order, $side, $request->attributes->get('context')), 'buyer-id-'.$side);
+    }
+
+    private function side(Request $request): string
+    {
+        return (string) ($request->validate(['side' => ['sometimes', 'string', 'in:front,back']])['side'] ?? 'front');
+    }
+
+    /** @param array{bytes: string, mime: string} $image */
+    private function image(array $image, string $filename): Response
+    {
         return response($image['bytes'], 200, [
             'Content-Type' => $image['mime'],
-            'Content-Disposition' => 'inline; filename="proxy-id"',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
             'Cache-Control' => 'no-store, private',
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'; sandbox",

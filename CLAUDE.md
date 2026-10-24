@@ -388,6 +388,11 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   says to contact customer service.
   Balance due first (`docs/features/balance-due-before-new-request.md`): a buyer with an order in `awaiting_balance` or
   `weight_adjust_pending` cannot send a new buy request (`409 balance_due_first`, details `order_id|order_ref|order_state`).
+  Handover ID check (`docs/features/handover-id-check.md`): the counter opens the buyer's own latest verified ID while the
+  order waits for collection (`GET /dashboard/orders/{id}/buyer-id?side=front|back`, `order.handover|order.view`, document
+  view log + `order.buyer_id_viewed`); the proxy's ID is taken like sign-up (`id_kind` + `id_upload_token` +
+  `id_back_upload_token`, required for `egyptian_id`; `collection.proxy_id_kind|proxy_id_back_storage_ref`), `proxy-id?side=`;
+  the work-list handover row carries `proxy` {name, phone, id_kind, has_back} and `buyer_id` {doc_kind, has_back}.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -421,6 +426,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Package C: the order settlement reads "Commission before VAT" / "VAT in the commission"; the invoice detail shows the
   VAT-inclusive commission rows and the buyer's price-difference "Commission" line.
   Rejected identity (branch): *Move back to waiting* with a reason on the rejected customer's review panel.
+  Handover ID check: the handover window (Inspections and the order detail) shows the buyer's ID when the buyer collects
+  and the named person's when they do, front and back (`HandoverIdPhotos`).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -454,6 +461,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   upload form (screen, sell gate, inbox, National ID row); texts `account.identity.rejected_*|contact_support` (AR-DRAFT).
   Balance due first: a refused buy request opens "Finish your open order first" with *Open the order*; texts
   `buy_request.balance_due.*` (AR-DRAFT).
+  Handover ID check: *Someone else will collect it* asks for their ID like sign-up — Egyptian ID (front + back) or passport
+  (photo page, another page optional) — with a preview of each photo; texts `orders.back_of_their_id|the_page_with_their_photo|
+  another_page_optional` (AR-DRAFT).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 
