@@ -73,12 +73,12 @@ class WalletController extends Controller
     #[OA\Get(
         path: '/dashboard/wallet-statement',
         operationId: 'dashboardWalletStatement',
-        summary: 'A Wallet statement: one customer, all customers, or the Dahab wallet',
-        description: 'Spec 008 FR-016. Opening, in, out and closing for a Cairo-day period, and every movement (grain=each) or one line per Cairo day/month with the balance before and after, oldest first, keyset-paginated. view=customer runs on available (a hold is an out, with held_after beside it); view=customers runs on available + held (a hold moves nothing, see moved_to_held); view=dahab runs on commission + spread (vat_payable in the summary) and also lists the first-sale advance (spec 023) paid to a seller (first_sale_payout) and recovered at the settlement (balance_payment) in its own signed advance figure, never in in/out. opening + in − out = closing; before + in − out = after on every row. by_hand marks entries a staff member (not the system) recorded. The first page of a view=customer statement is audited (ledger.statement.viewed). Requires wallet.view.',
+        summary: 'A Wallet statement: one customer, all customers, the Dahab wallet, or the equity view (Dahab own money)',
+        description: 'Spec 008 FR-016. Opening, in, out and closing for a Cairo-day period, and every movement (grain=each) or one line per Cairo day/month with the balance before and after, oldest first, keyset-paginated. view=customer runs on available (a hold is an out, with held_after beside it); view=customers runs on available + held (a hold moves nothing, see moved_to_held); view=dahab runs on commission + spread (vat_payable in the summary) and also lists the first-sale advance (spec 023) paid to a seller (first_sale_payout) and recovered at the settlement (balance_payment) in its own signed advance figure, never in in/out. view=equity runs on external_equity, the money Dahab owns (capital in and supplier refunds in; first-sale advances, compensation, wallet adjustments, expenses, bank charges and profit taken out; advances recovered back in): rows add group (advance_paid, advance_back, compensation, wallet_adjustment or the bank movement kind), reference = the order number, and wallet{customer_id,display_ref,full_name} for the one customer paid or charged; the summary adds groups[{key,label,in,out}], earned and own_money_total (external_equity + commission + spread at the end of the period), and, as of today, advances_outstanding, advances_outstanding_count, advances_written_off, advances_shortfall. opening + in − out = closing; before + in − out = after on every row. by_hand marks entries a staff member (not the system) recorded. The first page of a view=customer statement is audited (ledger.statement.viewed). Requires wallet.view.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Wallets'],
         parameters: [
-            new OA\Parameter(name: 'view', in: 'query', required: true, schema: new OA\Schema(type: 'string', enum: ['customer', 'customers', 'dahab'])),
+            new OA\Parameter(name: 'view', in: 'query', required: true, schema: new OA\Schema(type: 'string', enum: ['customer', 'customers', 'dahab', 'equity'])),
             new OA\Parameter(name: 'customer_id', in: 'query', required: false, description: 'Required for view=customer, not allowed otherwise', schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\Parameter(name: 'from', in: 'query', required: true, description: 'Cairo date, inclusive', schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter(name: 'to', in: 'query', required: true, description: 'Cairo date, inclusive; at most 366 days after from', schema: new OA\Schema(type: 'string', format: 'date')),
@@ -140,7 +140,7 @@ class WalletController extends Controller
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Wallets'],
         parameters: [
-            new OA\Parameter(name: 'view', in: 'query', required: true, schema: new OA\Schema(type: 'string', enum: ['customer', 'customers', 'dahab'])),
+            new OA\Parameter(name: 'view', in: 'query', required: true, schema: new OA\Schema(type: 'string', enum: ['customer', 'customers', 'dahab', 'equity'])),
             new OA\Parameter(name: 'customer_id', in: 'query', required: false, schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\Parameter(name: 'from', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter(name: 'to', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'date')),

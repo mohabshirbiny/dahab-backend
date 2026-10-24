@@ -12,16 +12,22 @@ use InvalidArgumentException;
  * | customer  | the customer's available or held    | available (holds are "out") |
  * | customers | any customer account                | available + held (owed)     |
  * | dahab     | commission or spread, or an advance | commission + spread         |
+ * | equity    | external_equity (Dahab's own money) | external_equity             |
  *
  * The Dahab view also lists the first-sale advance (spec 023) leaving `external_equity`
  * (`first_sale_payout`) and coming back at the settlement (`balance_payment`), in its own
  * figure: Dahab's money fronted to a seller, never part of what Dahab earned.
  *
+ * The equity view is Dahab's own money: capital paid in and supplier refunds in; advances,
+ * compensation, wallet adjustments, expenses, bank charges and profit taken out; advances
+ * recovered back in. Its balance is SUM(external_equity) — positive while the owners have put
+ * in more than was spent from it.
+ *
  * `from` / `to` are Cairo calendar days, inclusive.
  */
 final readonly class StatementQuery
 {
-    public const VIEWS = ['customer', 'customers', 'dahab'];
+    public const VIEWS = ['customer', 'customers', 'dahab', 'equity'];
 
     public const GRAINS = ['each', 'day', 'month'];
 
@@ -69,6 +75,12 @@ final readonly class StatementQuery
                 'touch' => "a.kind IN ('dahab_commission','dahab_spread')",
                 'run' => "a.kind IN ('dahab_commission','dahab_spread')",
                 'advance' => "a.kind = 'external_equity' AND pt.event_kind::text IN ('first_sale_payout','balance_payment')",
+                'bindings' => [],
+            ],
+            'equity' => [
+                'touch' => "a.kind = 'external_equity'",
+                'run' => "a.kind = 'external_equity'",
+                'advance' => 'FALSE',
                 'bindings' => [],
             ],
         };

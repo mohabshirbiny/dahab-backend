@@ -2,6 +2,7 @@
 
 namespace App\Actions\Wallet;
 
+use App\Enums\BankMovementKind;
 use App\Enums\LedgerEventKind;
 use App\Support\Ledger\StatementCursor;
 use App\Support\Ledger\StatementQuery;
@@ -56,8 +57,13 @@ final class BuildWalletStatementAction
 
         $closing = bcsub(bcadd($opening->balance, $totals->money_in, 4), $totals->money_out, 4);
 
+        $summary = $this->summary($query, $opening->balance, $totals, $closing, bcadd($opening->held, $totals->held_change, 4), $end);
+        if ($query->view === 'equity') {
+            $summary += $this->equityFigures($entriesSql, $bindings, $closing, $end);
+        }
+
         return [
-            'summary' => $this->summary($query, $opening->balance, $totals, $closing, bcadd($opening->held, $totals->held_change, 4), $end),
+            'summary' => $summary,
             'rows' => $page['rows'],
             'next_cursor' => $page['next_cursor'],
         ];
@@ -110,13 +116,21 @@ final class BuildWalletStatementAction
                            JOIN account va ON va.account_id = vp.account_id
                            WHERE vp.ledger_txn_id = pt.ledger_txn_id AND va.kind = 'vat_payable'
                        )" : '0';
+        // The equity view touches no customer line itself: name the one customer the same entry
+        // paid or charged (an advance, compensation, an adjustment), when there is exactly one.
+        $wallet = $query->view === 'equity' ? '(
+                           SELECT CASE WHEN COUNT(DISTINCT ca.customer_id) = 1 THEN MIN(ca.customer_id::text) END
+                           FROM ledger_posting cp
+                           JOIN account ca ON ca.account_id = cp.account_id
+                           WHERE cp.ledger_txn_id = pt.ledger_txn_id AND ca.customer_id IS NOT NULL
+                       )' : 'CASE WHEN COUNT(DISTINCT a.customer_id) = 1 THEN MIN(a.customer_id::text) END';
 
         $sql = "
             -- MATERIALIZED: start from the period's transactions (created_at index)
             -- and reach their lines through idx_posting_txn, whatever the planner
             -- guesses about the RLS filters (SC-004).
             period_txn AS MATERIALIZED (
-                SELECT t.ledger_txn_id, t.created_at, t.event_kind, t.memo, t.staff_id, t.customer_id
+                SELECT t.ledger_txn_id, t.created_at, t.event_kind, t.memo, t.staff_id, t.customer_id, t.order_id
                 FROM ledger_transaction t
                 WHERE t.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND t.created_at < (?::timestamp AT TIME ZONE '{$tz}')
             ), dated AS (
@@ -128,13 +142,13 @@ final class BuildWalletStatementAction
                        COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_spread'), 0) AS spread_delta,
                        COALESCE(SUM(p.amount) FILTER (WHERE {$p['advance']}), 0) AS advance_delta,
                        {$vat} AS vat_delta,
-                       CASE WHEN COUNT(DISTINCT a.customer_id) = 1 THEN MIN(a.customer_id::text) END AS wallet_customer,
-                       pt.created_at, pt.event_kind::text AS kind, pt.memo, pt.staff_id, pt.customer_id AS actor_customer_id
+                       {$wallet} AS wallet_customer,
+                       pt.created_at, pt.event_kind::text AS kind, pt.memo, pt.staff_id, pt.customer_id AS actor_customer_id, pt.order_id
                 FROM period_txn pt
                 JOIN ledger_posting p ON p.ledger_txn_id = pt.ledger_txn_id
                 JOIN account a ON a.account_id = p.account_id
                 WHERE ({$p['touch']}) OR ({$p['advance']})
-                GROUP BY pt.ledger_txn_id, pt.created_at, pt.event_kind, pt.memo, pt.staff_id, pt.customer_id
+                GROUP BY pt.ledger_txn_id, pt.created_at, pt.event_kind, pt.memo, pt.staff_id, pt.customer_id, pt.order_id
             )
         ";
 
@@ -195,13 +209,16 @@ final class BuildWalletStatementAction
                    pr.t_vo::numeric(18,4)::text AS t_vo,
                    s.staff_id, s.full_name AS staff_name, s.is_system,
                    ac.full_name AS actor_customer_name,
-                   wc.display_ref AS wallet_ref,
-                   'TOP-' || tu.topup_no AS topup_ref
+                   wc.display_ref AS wallet_ref, wc.full_name AS wallet_name,
+                   'TOP-' || tu.topup_no AS topup_ref,
+                   o.order_ref, bm.kind AS bank_kind
             FROM period pr
             LEFT JOIN staff s ON s.staff_id = pr.staff_id
             LEFT JOIN customer ac ON ac.customer_id = pr.actor_customer_id
             LEFT JOIN customer wc ON wc.customer_id = pr.wallet_customer::uuid
             LEFT JOIN topup tu ON tu.ledger_txn_id = pr.ledger_txn_id
+            LEFT JOIN \"order\" o ON o.order_id = pr.order_id
+            LEFT JOIN bank_movement bm ON bm.ledger_txn_id = pr.ledger_txn_id
             WHERE (?::bigint IS NULL OR pr.seq > ?::bigint)
             ORDER BY pr.seq
             LIMIT {$limit}
@@ -250,11 +267,101 @@ final class BuildWalletStatementAction
                 'wallet' => $r->wallet_customer === null ? null : ['customer_id' => $r->wallet_customer, 'display_ref' => $r->wallet_ref],
                 'moved_to_held' => $r->held_change,
             ],
+            // Dahab's own money: what the movement was, the order it belongs to, and the customer paid or charged.
+            'equity' => array_replace($row, [
+                'label' => self::equityLabel($group = self::equityGroup($kind->value, $r->bank_kind)),
+                'reference' => $r->order_ref ?? $r->topup_ref,
+            ]) + [
+                'group' => $group,
+                'wallet' => $r->wallet_customer === null ? null : ['customer_id' => $r->wallet_customer, 'display_ref' => $r->wallet_ref, 'full_name' => $r->wallet_name],
+            ],
             // Testing fixes item 9: the two Dahab accounts apart; commission + spread = in − out.
             // VAT is the entry's vat_payable change: beside them, never in the balance.
             // `advance`: the first-sale advance, signed (− paid to a seller, + back at the settlement), outside in/out.
             default => $row + ['commission' => $r->commission, 'spread' => $r->spread, 'vat' => $r->vat, 'advance' => $r->advance],
         };
+    }
+
+    /**
+     * What an equity movement was: the advance paid or back, compensation, a wallet adjustment,
+     * or the bank movement's own kind (capital in, an expense, profit taken out …).
+     */
+    private static function equityGroup(string $eventKind, ?string $bankKind): string
+    {
+        return match ($eventKind) {
+            LedgerEventKind::FIRST_SALE_PAYOUT->value => 'advance_paid',
+            LedgerEventKind::BALANCE_PAYMENT->value => 'advance_back',
+            LedgerEventKind::REVERSAL->value => 'wallet_adjustment',
+            LedgerEventKind::EXTERNAL_BANK_MOVEMENT->value => $bankKind ?? BankMovementKind::OTHER->value,
+            default => $eventKind,
+        };
+    }
+
+    private static function equityLabel(string $group): string
+    {
+        return match ($group) {
+            'advance_paid' => 'First-sale advance paid to the seller',
+            'advance_back' => 'First-sale advance back from the buyer\'s payment',
+            'wallet_adjustment' => 'Wallet adjustment by hand',
+            'compensation' => 'Compensation to a customer',
+            default => BankMovementKind::tryFrom($group)?->label() ?? LedgerEventKind::from($group)->staffLabel(),
+        };
+    }
+
+    /**
+     * The equity view's period, by what moved it (one line per group, in and out),
+     * plus the first-sale advances still out and those Dahab absorbed.
+     *
+     * @param  list<string>  $bindings
+     * @return array<string, mixed>
+     */
+    private function equityFigures(string $entriesSql, array $bindings, string $closing, string $end): array
+    {
+        $groups = DB::select("
+            WITH {$entriesSql}
+            SELECT d.kind, bm.kind AS bank_kind,
+                   SUM(GREATEST(d.delta, 0))::numeric(18,4)::text AS money_in,
+                   SUM(GREATEST(-d.delta, 0))::numeric(18,4)::text AS money_out
+            FROM dated d
+            LEFT JOIN bank_movement bm ON bm.ledger_txn_id = d.ledger_txn_id
+            GROUP BY d.kind, bm.kind
+        ", $bindings);
+
+        $byGroup = [];
+        foreach ($groups as $g) {
+            $key = self::equityGroup($g->kind, $g->bank_kind);
+            $byGroup[$key] ??= ['key' => $key, 'label' => self::equityLabel($key), 'in' => '0.0000', 'out' => '0.0000'];
+            $byGroup[$key]['in'] = bcadd($byGroup[$key]['in'], $g->money_in, 4);
+            $byGroup[$key]['out'] = bcadd($byGroup[$key]['out'], $g->money_out, 4);
+        }
+        ksort($byGroup);
+
+        $earned = DB::selectOne("
+            SELECT COALESCE(SUM(p.amount), 0)::numeric(18,4)::text AS earned
+            FROM ledger_posting p
+            JOIN account a ON a.account_id = p.account_id
+            JOIN ledger_transaction t ON t.ledger_txn_id = p.ledger_txn_id
+            WHERE a.kind IN ('dahab_commission','dahab_spread') AND t.created_at < (?::timestamp AT TIME ZONE '".self::TZ."')
+        ", [$end])->earned;
+
+        $advances = DB::table('first_sale_advance')->selectRaw("
+            COALESCE(SUM(amount_egp) FILTER (WHERE status = 'outstanding'), 0)::numeric(18,4)::text AS outstanding,
+            COUNT(*) FILTER (WHERE status = 'outstanding') AS outstanding_count,
+            COALESCE(SUM(written_off_amount_egp) FILTER (WHERE status = 'written_off'), 0)::numeric(18,4)::text AS written_off,
+            COALESCE(SUM(shortfall_absorbed_egp) FILTER (WHERE status = 'recovered'), 0)::numeric(18,4)::text AS shortfall
+        ")->first();
+
+        return [
+            'groups' => array_values($byGroup),
+            // Dahab's own money and what it earned together, at the end of the period.
+            'earned' => $earned,
+            'own_money_total' => bcadd($closing, $earned, 4),
+            // Today, whatever the period: advances not yet back, and the parts that never come back.
+            'advances_outstanding' => $advances->outstanding,
+            'advances_outstanding_count' => (int) $advances->outstanding_count,
+            'advances_written_off' => $advances->written_off,
+            'advances_shortfall' => $advances->shortfall,
+        ];
     }
 
     /** The period totals carried on every row of the page (window aggregates). */
