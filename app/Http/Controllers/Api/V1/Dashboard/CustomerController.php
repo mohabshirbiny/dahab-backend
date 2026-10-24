@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 use App\Actions\Customers\ListCustomerActivityAction;
 use App\Actions\Customers\ListCustomerSessionsAction;
 use App\Actions\Customers\ReinstateCustomerAction;
+use App\Actions\Customers\SetCustomerTypeAction;
 use App\Actions\Customers\SuspendCustomerAction;
 use App\Actions\Dashboard\ListCustomersForVerificationAction;
 use App\Actions\Dashboard\ShowCustomerVerificationDetailsAction;
@@ -12,6 +13,7 @@ use App\Actions\Notifications\InboxAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Customers\CustomerActivityRequest;
 use App\Http\Requests\Dashboard\Customers\ReinstateCustomerRequest;
+use App\Http\Requests\Dashboard\Customers\SetCustomerTypeRequest;
 use App\Http\Requests\Dashboard\Customers\SuspendCustomerRequest;
 use App\Http\Requests\Dashboard\ListCustomersRequest;
 use App\Http\Resources\Customer\InboxItemResource;
@@ -38,6 +40,7 @@ class CustomerController extends Controller
         private readonly ShowCustomerVerificationDetailsAction $show,
         private readonly SuspendCustomerAction $suspend,
         private readonly ReinstateCustomerAction $reinstate,
+        private readonly SetCustomerTypeAction $setType,
     ) {}
 
     #[OA\Get(
@@ -160,6 +163,40 @@ class CustomerController extends Controller
 
         return CustomerFileResource::make(
             $this->reinstate->handle($request->user('staff'), $customer, $request->note(), $ctx)
+        );
+    }
+
+    #[OA\Post(
+        path: '/dashboard/customers/{customer}/type',
+        operationId: 'dashboardSetCustomerType',
+        summary: 'Make a customer a market maker, or an ordinary customer again (audited, idempotent)',
+        description: 'The type is what lets a dealer code be tied to the account. Requires promo.manage and an Idempotency-Key. Writes one customer.type_changed audit entry (reason = the note). 409 customer_type_unchanged when the customer already has that type; 409 customer_has_active_dealer_code when removing market_maker while a dealer code tied to the account is still active.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Customers'],
+        parameters: [
+            new OA\Parameter(name: 'customer', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, description: 'A client-generated UUID', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DashboardSetCustomerType')),
+        responses: [
+            new OA\Response(response: 200, description: 'The customer file after the change', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', ref: '#/components/schemas/StaffCustomerFile'),
+            ])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'customer_type_unchanged · customer_has_active_dealer_code · idempotency_in_progress', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed · idempotency_key_mismatch', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function setType(SetCustomerTypeRequest $request, string $customer): CustomerFileResource
+    {
+        /** @var RequestContext $ctx */
+        $ctx = $request->attributes->get('context');
+
+        return CustomerFileResource::make(
+            $this->setType->handle($request->user('staff'), $customer, $request->type(), $request->note(), $ctx)
         );
     }
 
