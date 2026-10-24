@@ -38,8 +38,18 @@ final class ExportWalletStatementAction
             'customer' => 'Wallet '.$s['customer']['display_ref'].' · '.$s['customer']['full_name'],
             'customers' => 'All customer wallets',
             'dahab' => 'The Dahab wallet',
+            'equity' => "Dahab's own money (external equity)",
         }, $query->from.' to '.$query->to]);
         $put(['Opening', $s['opening'], 'In', $s['in'], 'Out', $s['out'], 'Closing', $s['closing']]);
+
+        // Dahab's own money: what moved it, by kind, then the advances and the total with earnings.
+        if ($query->view === 'equity') {
+            foreach ($s['groups'] as $g) {
+                $put([$g['label'], 'In', $g['in'], 'Out', $g['out']]);
+            }
+            $put(['First-sale advances still out (today)', $s['advances_outstanding'], 'Written off', $s['advances_written_off'], 'Shortfall absorbed', $s['advances_shortfall']]);
+            $put(['Earned (commission + spread)', $s['earned'], 'Own money + earned', $s['own_money_total']]);
+        }
 
         // Testing fixes item 9: the Dahab view shows commission and spread apart.
         $dahab = $query->view === 'dahab';

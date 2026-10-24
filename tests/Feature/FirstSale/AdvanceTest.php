@@ -103,6 +103,26 @@ it('pays the first gold sale ahead with one balanced entry, once the piece passe
     expect((bool) DB::selectOne('SELECT listing_price_locked(?) AS l', [$order->listing_id])->l)->toBeTrue();
 });
 
+it('shows the advance on Dahab\'s own money: paid out of external_equity and still out', function () {
+    Promo::open(firstSale: true);
+    $order = inspectIt($this, advanceOrder($this));
+    $staff = Orders::staff($this, SeedRole::FINANCE);
+    $today = now('Africa/Cairo')->toDateString();
+
+    app('auth')->forgetGuards();
+    $r = $this->withToken(staffAccessToken($staff))
+        ->getJson('/api/v1/dashboard/wallet-statement?'.http_build_query(['view' => 'equity', 'from' => $today, 'to' => $today]))
+        ->assertOk();
+    $row = collect($r->json('data.rows'))->firstWhere('group', 'advance_paid');
+
+    expect($r->json('data.summary'))->toMatchArray([
+        'out' => '54768.7500', 'closing' => '-54768.7500',
+        'advances_outstanding' => '54768.7500', 'advances_outstanding_count' => 1,
+    ])
+        ->and($row)->toMatchArray(['out' => '54768.7500', 'reference' => $order->order_ref])
+        ->and($row['wallet']['customer_id'])->toBe($order->seller_id);
+});
+
 it('pays the first sale ahead automatically, with no code and no enablement', function () {
     Promo::open(firstSale: true);
     $order = inspectIt($this, Orders::accepted($this));

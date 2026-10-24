@@ -9,15 +9,17 @@ use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Staff;
 use App\Models\TopUp;
+use App\Support\DatabaseActor;
 use App\Support\SystemActor;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Support\Ledger;
 
 uses(RefreshDatabase::class);
 
-// Spec 008 FR-016 / FR-019 / SC-006: the Wallet statement in three views.
+// Spec 008 FR-016 / FR-019 / SC-006: the Wallet statement in its views (equity: Dahab's own money).
 
 function statement($test, Staff $staff, array $query)
 {
@@ -166,6 +168,60 @@ it('shows commission and spread apart on the Dahab wallet, adding up to the comb
     $customers = statement($this, $this->finance, ['view' => 'customers'] + $this->august)->assertOk();
     expect($customers->json('data.summary'))->not->toHaveKey('commission_in')
         ->and($customers->json('data.rows.0'))->not->toHaveKey('commission');
+});
+
+it('runs Dahab\'s own money on external_equity, every movement named and grouped', function () {
+    $equity = Account::internal(AccountKind::EXTERNAL_EQUITY);
+    $capital = Ledger::postAt('2026-08-01 09:00', LedgerEventKind::EXTERNAL_BANK_MOVEMENT, null, [
+        [Account::internal(AccountKind::BANK), '-50000'], [$equity, '50000'],
+    ], staffId: $this->finance->staff_id, memo: 'Owners put capital in');
+    DatabaseActor::elevate('maintenance', fn () => DB::table('bank_movement')->insert([
+        'kind' => 'capital_in', 'amount' => '50000', 'occurred_on' => '2026-08-01', 'reason' => 'Owners put capital in',
+        'recorded_by' => $this->finance->staff_id, 'ledger_txn_id' => $capital->ledger_txn_id,
+    ]));
+    Ledger::postAt('2026-08-10 12:00', LedgerEventKind::FIRST_SALE_PAYOUT, null, [[$equity, '-1000'], [Ledger::available($this->omar), '1000']], staffId: SystemActor::id());
+    Ledger::postAt('2026-08-12 12:00', LedgerEventKind::BALANCE_PAYMENT, $this->mona, [
+        [Ledger::available($this->mona), '-1200'], [$equity, '1000'], [Account::internal(AccountKind::DAHAB_COMMISSION), '200'],
+    ]);
+    Ledger::postAt('2026-08-14 12:00', LedgerEventKind::REVERSAL, null, [[$equity, '-300'], [Ledger::available($this->mona), '300']], staffId: $this->finance->staff_id, memo: 'Correcting a double charge');
+
+    $r = statement($this, $this->finance, ['view' => 'equity'] + $this->august)->assertOk();
+    $s = $r->json('data.summary');
+    $rows = collect($r->json('data.rows'));
+
+    // In: 50,000 capital + 1,000 advance back. Out: 800 compensation + 684 + 262.5 (the earnings
+    // slices of the fixture) + 1,000 advance + 300 adjustment.
+    expect($s)->toMatchArray([
+        'view' => 'equity', 'opening' => '0.0000', 'in' => '51000.0000', 'out' => '3046.5000', 'closing' => '47953.5000',
+        'earned' => '1062.5000', 'own_money_total' => '49016.0000',
+        'advances_outstanding' => '0.0000', 'advances_outstanding_count' => 0, 'advances_written_off' => '0.0000',
+    ])
+        ->and($s)->not->toHaveKey('commission_in')
+        ->and(collect($s['groups'])->mapWithKeys(fn ($g) => [$g['key'] => [$g['in'], $g['out']]])->all())->toBe([
+            'advance_back' => ['1000.0000', '0.0000'],
+            'advance_paid' => ['0.0000', '1000.0000'],
+            'capital_in' => ['50000.0000', '0.0000'],
+            'commission' => ['0.0000', '684.0000'],
+            'compensation' => ['0.0000', '800.0000'],
+            'spread' => ['0.0000', '262.5000'],
+            'wallet_adjustment' => ['0.0000', '300.0000'],
+        ]);
+
+    $compensation = $rows->firstWhere('group', 'compensation');
+    expect($compensation)->toMatchArray(['label' => 'Compensation to a customer', 'out' => '800.0000', 'memo' => 'Wasted trip to IGI'])
+        ->and($compensation['wallet'])->toMatchArray(['customer_id' => $this->mona->customer_id, 'full_name' => 'Mona Hassan Ibrahim'])
+        ->and($rows->firstWhere('group', 'capital_in'))->toMatchArray(['label' => 'Capital paid in', 'in' => '50000.0000', 'wallet' => null])
+        ->and($rows->firstWhere('group', 'advance_paid')['wallet']['customer_id'])->toBe($this->omar->customer_id)
+        ->and($rows->firstWhere('group', 'wallet_adjustment'))->toMatchArray(['label' => 'Wallet adjustment by hand', 'by_hand' => true]);
+
+    assertReconciles($s, $rows->all());
+
+    // Top-ups, holds and withdrawals never touch Dahab's own money.
+    expect($rows->pluck('kind'))->not->toContain('topup')->not->toContain('deposit_hold');
+
+    $month = statement($this, $this->finance, ['view' => 'equity', 'grain' => 'month'] + $this->august)->assertOk();
+    expect($month->json('data.rows.0'))->toMatchArray(['count' => 7, 'in' => '51000.0000', 'out' => '3046.5000'])
+        ->and($month->json('data.summary.groups'))->toHaveCount(7);
 });
 
 it('lists the first-sale advance on the Dahab wallet apart from what Dahab earned', function () {

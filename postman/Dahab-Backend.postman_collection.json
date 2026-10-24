@@ -3501,6 +3501,52 @@
                             "response": []
                         },
                         {
+                            "name": "Wallet Statement — Dahab's own money (equity)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/wallet-statement?view=equity&from=2026-10-01&to=2026-10-31",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "wallet-statement"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "view",
+                                            "value": "equity"
+                                        },
+                                        {
+                                            "key": "from",
+                                            "value": "2026-10-01"
+                                        },
+                                        {
+                                            "key": "to",
+                                            "value": "2026-10-31"
+                                        }
+                                    ]
+                                },
+                                "description": "Dahab's own money: the running balance on external_equity. In: capital paid in, supplier refunds, first-sale advances back. Out: first-sale advances paid, compensation, wallet adjustments by hand, operating expenses, bank charges, profit taken out. Each row adds group, reference (the order number) and wallet {customer_id, display_ref, full_name} for the one customer paid or charged; the summary adds groups [{key, label, in, out}], earned and own_money_total (equity + commission + spread at the end of the period), and, as of today, advances_outstanding / advances_outstanding_count / advances_written_off / advances_shortfall. Requires wallet.view. Not audited."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Export Wallet Statement",
                             "request": {
                                 "method": "GET",
