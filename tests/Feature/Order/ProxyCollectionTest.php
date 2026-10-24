@@ -104,7 +104,7 @@ it('refuses before payment, after collection, for the seller and for a suspended
     Disputes::nameProxy($this, $other)->assertStatus(409)->assertJsonPath('code', 'illegal_order_transition');
 
     Listings::as($this, Orders::seller($this->order))->postJson(Orders::CUSTOMER_URL."/{$this->order->order_id}/proxy",
-        ['name' => 'X Y', 'phone' => '+201001234567', 'id_upload_token' => 'x', 'authorisation_id' => Disputes::proxyAuthorisationId(), 'authorisation_accepted' => true],
+        ['name' => 'X Y', 'phone' => '+201001234567', 'id_kind' => 'passport', 'id_upload_token' => 'x', 'authorisation_id' => Disputes::proxyAuthorisationId(), 'authorisation_accepted' => true],
         Listings::key())->assertNotFound();
 
     $buyer = Orders::buyer($this->order);
@@ -114,7 +114,7 @@ it('refuses before payment, after collection, for the seller and for a suspended
         $buyer->save();
     });
     expect($buyer->refresh()->status)->toBe(CustomerStatus::SUSPENDED);
-    Disputes::nameProxy($this, $this->order, ['id_upload_token' => $token])->assertForbidden()->assertJsonPath('code', 'account_suspended');
+    Disputes::nameProxy($this, $this->order, ['id_kind' => 'passport', 'id_upload_token' => $token, 'id_back_upload_token' => null])->assertForbidden()->assertJsonPath('code', 'account_suspended');
 });
 
 it('hands over to the proxy only with the code and the ID check, without counting a missing check', function () {

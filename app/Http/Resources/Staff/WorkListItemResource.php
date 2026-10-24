@@ -4,6 +4,7 @@ namespace App\Http\Resources\Staff;
 
 use App\Enums\OrderState;
 use App\Models\Order;
+use App\Support\Orders\HandoverIds;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use OpenApi\Attributes as OA;
@@ -15,7 +16,8 @@ use OpenApi\Attributes as OA;
  * buyer or seller. Also the answer to a receive / result / handover for a
  * caller without `order.view`. One exception: on a handover to a person the
  * buyer named to collect, `proxy` gives that person's name and phone so the
- * counter can check their ID (spec 014) — the ID photo stays behind its call.
+ * counter can check their ID (spec 014) — the ID photo stays behind its call;
+ * `buyer_id` says which of the buyer's own ID images the counter may open.
  */
 #[OA\Schema(
     schema: 'WorkListItem',
@@ -38,6 +40,13 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'name', type: 'string'),
                 new OA\Property(property: 'phone', type: 'string'),
                 new OA\Property(property: 'has_id_photo', type: 'boolean'),
+                new OA\Property(property: 'id_kind', type: 'string', enum: ['egyptian_id', 'passport'], nullable: true, description: 'null when named before the kind was asked'),
+                new OA\Property(property: 'has_back', type: 'boolean', description: 'The back of their ID was uploaded (…/proxy-id?side=back)'),
+            ]),
+        new OA\Property(property: 'buyer_id', type: 'object', nullable: true, description: 'docs/features/handover-id-check.md: on the handover task, the buyer\'s own verified ID to check when they collect in person; the images through GET /dashboard/orders/{id}/buyer-id?side=front|back',
+            properties: [
+                new OA\Property(property: 'doc_kind', type: 'string', enum: ['egyptian_id', 'passport']),
+                new OA\Property(property: 'has_back', type: 'boolean'),
             ]),
     ],
 )]
@@ -77,7 +86,8 @@ class WorkListItemResource extends JsonResource
                 'name' => $o->collection->proxy_name,
                 'phone' => $o->collection->proxy_phone,
                 'has_id_photo' => $o->collection->proxy_id_storage_ref !== null,
-            ] : null,
+            ] + HandoverIds::proxy($o->collection) : null,
+            'buyer_id' => $task === 'handover' ? HandoverIds::buyer($o, $o->collection) : null,
         ];
     }
 }

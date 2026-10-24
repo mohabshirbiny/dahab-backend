@@ -730,6 +730,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 // Spec 014: the ID photo of the person named to collect.
                 Route::get('/{order}/proxy-id', [DashboardOrderController::class, 'proxyId'])
                     ->whereUuid('order')->middleware('staff.permission:order.handover|order.view')->name('proxy-id');
+                // The buyer's own ID at the handover (docs/features/handover-id-check.md).
+                Route::get('/{order}/buyer-id', [DashboardOrderController::class, 'buyerId'])
+                    ->whereUuid('order')->middleware('staff.permission:order.handover|order.view')->name('buyer-id');
                 Route::post('/{order}/seller-return/handover', [DashboardOrderController::class, 'sellerReturnHandover'])
                     ->whereUuid('order')->middleware(['staff.permission:order.handover', 'idempotent'])->name('seller-return.handover');
             });

@@ -130,6 +130,7 @@ enum AuditEvent: string
     case ORDER_PROXY_NAMED = 'order.proxy_named';
     case ORDER_PROXY_REMOVED = 'order.proxy_removed';
     case ORDER_PROXY_ID_VIEWED = 'order.proxy_id_viewed';
+    case ORDER_BUYER_ID_VIEWED = 'order.buyer_id_viewed';
     case ORDER_EXTENSION_REQUESTED = 'order.extension_requested';
     case ORDER_EXTENSION_REQUEST_ACCEPTED = 'order.extension_request_accepted';
     case ORDER_EXTENSION_REQUEST_REFUSED = 'order.extension_request_refused';
@@ -326,6 +327,7 @@ enum AuditEvent: string
             self::ORDER_PROXY_NAMED => 'Someone else named to collect',
             self::ORDER_PROXY_REMOVED => 'Person named to collect removed',
             self::ORDER_PROXY_ID_VIEWED => "Collector's ID opened",
+            self::ORDER_BUYER_ID_VIEWED => "Buyer's ID opened at the handover",
             self::ORDER_EXTENSION_REQUESTED => 'Seller asked for more time',
             self::ORDER_EXTENSION_REQUEST_ACCEPTED => 'Request for more time accepted',
             self::ORDER_EXTENSION_REQUEST_REFUSED => 'Request for more time refused',
@@ -426,7 +428,7 @@ enum AuditEvent: string
             self::ORDER_RELISTED, self::ORDER_FORFEITED, self::ORDER_WINDOW_PASSED,
             self::ORDER_FREE_RELISTED, self::ORDER_RATED,
             self::DISPUTE_OPENED, self::DISPUTE_PASSED_ON, self::DISPUTE_RESOLVED, self::DISPUTE_PHOTO_VIEWED,
-            self::ORDER_PROXY_NAMED, self::ORDER_PROXY_REMOVED, self::ORDER_PROXY_ID_VIEWED,
+            self::ORDER_PROXY_NAMED, self::ORDER_PROXY_REMOVED, self::ORDER_PROXY_ID_VIEWED, self::ORDER_BUYER_ID_VIEWED,
             self::ORDER_EXTENSION_REQUESTED, self::ORDER_EXTENSION_REQUEST_ACCEPTED, self::ORDER_EXTENSION_REQUEST_REFUSED => AuditCategory::ORDERS,
             self::PAYOUT_ACCOUNT_ADDED, self::PAYOUT_ACCOUNT_VERIFIED, self::PAYOUT_ACCOUNT_REFUSED, self::PAYOUT_ACCOUNT_IN_USE_CHANGED, self::PAYOUT_ACCOUNT_REMOVAL_SCHEDULED, self::PAYOUT_ACCOUNT_KEPT, self::PAYOUT_ACCOUNT_REMOVED => AuditCategory::ACCOUNTS,
             self::WITHDRAWAL_EMAIL_CONFIRMED, self::WITHDRAWAL_REQUESTED, self::WITHDRAWAL_CANCELLED, self::WITHDRAWAL_TAKEN_FOR_REVIEW, self::WITHDRAWAL_HELD, self::WITHDRAWAL_UNHELD, self::WITHDRAWAL_RELEASED, self::WITHDRAWAL_REJECTED, self::WITHDRAWAL_LIST_EXPORTED, self::WITHDRAWAL_PAUSE_ENDED,

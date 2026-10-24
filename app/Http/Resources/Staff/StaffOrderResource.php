@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Staff;
 use App\Support\Orders\DeadlinePolicy;
 use App\Support\Orders\FreeRelistOffer;
+use App\Support\Orders\HandoverIds;
 use App\Support\Orders\OrderTimeline;
 use App\Support\Orders\StaffBranchScope;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Schema(
     schema: 'StaffOrder',
-    description: 'An order for staff (spec 012). Money as 4-dp strings. The detail adds settlement, inspections, decision, collection, seller_return, branch_changes, extensions, ledger, timeline and can. Spec 014: frozen and has_waiting_extension on every row; the detail adds disputes, extension_request, collection.proxy and can.handle_dispute | answer_extension | view_proxy_id.',
+    description: 'An order for staff (spec 012). Money as 4-dp strings. The detail adds settlement, inspections, decision, collection, seller_return, branch_changes, extensions, ledger, timeline and can. Spec 014: frozen and has_waiting_extension on every row; the detail adds disputes, extension_request, collection.proxy and can.handle_dispute | answer_extension | view_proxy_id. Handover ID check: collection.proxy adds id_kind (egyptian_id|passport|null) and has_back; collection.buyer_id {doc_kind, has_back} | null while waiting for collection; can.view_buyer_id.',
     required: ['id', 'order_ref', 'state', 'group', 'listing_state', 'piece', 'seller', 'buyer', 'branch', 'value', 'held', 'paid', 'deadline', 'accepted_at'],
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
@@ -172,7 +173,9 @@ class StaffOrderResource extends JsonResource
                     'named_at' => $o->collection->proxy_named_at?->toIso8601String(),
                     'has_id_photo' => $o->collection->is_proxy,
                     'collected_by_proxy' => $o->collection->collected_by_proxy,
-                ],
+                ] + HandoverIds::proxy($o->collection),
+                // The buyer's own verified ID while waiting for collection; the images through GET …/buyer-id.
+                'buyer_id' => HandoverIds::buyer($o, $o->collection),
             ],
             'seller_return' => $o->sellerReturn === null ? null : [
                 'return_deadline' => $o->sellerReturn->return_deadline->toIso8601String(),
@@ -256,6 +259,8 @@ class StaffOrderResource extends JsonResource
                     ->contains(fn ($r) => $r->state === ExtensionRequestState::WAITING),
             'view_proxy_id' => $o->collection !== null && $o->collection->is_proxy
                 && ($has(StaffPermission::ORDER_HANDOVER) || $has(StaffPermission::ORDER_VIEW)),
+            'view_buyer_id' => ($has(StaffPermission::ORDER_HANDOVER) || $has(StaffPermission::ORDER_VIEW))
+                && HandoverIds::buyer($o, $o->collection) !== null,
         ];
     }
 }

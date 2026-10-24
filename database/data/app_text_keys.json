@@ -4315,6 +4315,16 @@
       "max_length": 40
     },
     {
+      "key": "orders.another_page_optional",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order help screens",
+      "default_en": "Another page (optional)",
+      "default_ar": "صفحة تانية (اختياري)",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
       "key": "orders.answered",
       "kind": "app",
       "area": "Orders",
@@ -4343,6 +4353,16 @@
       "default_ar": "المتاح في محفظتك",
       "placeholders": [],
       "max_length": 48
+    },
+    {
+      "key": "orders.back_of_their_id",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order help screens",
+      "default_en": "Back of their ID",
+      "default_ar": "ضهر البطاقة",
+      "placeholders": [],
+      "max_length": 40
     },
     {
       "key": "orders.back_on_the_market",
@@ -4719,10 +4739,10 @@
       "kind": "app",
       "area": "Orders",
       "where": "Order help screens",
-      "default_en": "Fill in their name, a valid phone and their ID photo, and tick the box.",
-      "default_ar": "اكتب اسمه ورقم موبايل صحيح وضيف صورة بطاقته، وعلّم على المربع.",
+      "default_en": "Fill in their name, a valid phone and their ID photos, and tick the box.",
+      "default_ar": "اكتب اسمه ورقم تليفون صحيح وضيف صور بطاقته، وعلّم على الموافقة.",
       "placeholders": [],
-      "max_length": 142
+      "max_length": 144
     },
     {
       "key": "orders.finish_and_send",
@@ -5443,6 +5463,16 @@
       "default_ar": "الطلب متجمد وإحنا بنراجع. مفيش فلوس بتتحرك ولا موعد بيجري عليك.",
       "placeholders": [],
       "max_length": 178
+    },
+    {
+      "key": "orders.the_page_with_their_photo",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order help screens",
+      "default_en": "The page with their photo",
+      "default_ar": "صفحة الباسبور اللي فيها صورته",
+      "placeholders": [],
+      "max_length": 50
     },
     {
       "key": "orders.the_person_you_named_can_no",

@@ -13,6 +13,7 @@ use App\Actions\Orders\Customer\RemoveProxyAction;
 use App\Actions\Orders\Customer\RequestMoreTimeAction;
 use App\Enums\DisputeReason;
 use App\Enums\ExtensionRequestReason;
+use App\Enums\IdentityDocumentKind;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Support\DatabaseActor;
@@ -63,7 +64,7 @@ it('refuses a stranger every order action and leaves the order as it was', funct
     'free relist' => [fn (Customer $c, string $id) => app(FreeRelistAction::class)->handle($c, $id, [])],
     'rate' => [fn (Customer $c, string $id) => app(RateOrderAction::class)->handle($c, $id, 5, null)],
     'ask for more time' => [fn (Customer $c, string $id) => app(RequestMoreTimeAction::class)->handle($c, $id, ExtensionRequestReason::TRAVELLING, 'away')],
-    'name a collector' => [fn (Customer $c, string $id) => app(NameProxyAction::class)->handle($c, $id, 'Someone', '+201000000000', 'token', 1)],
+    'name a collector' => [fn (Customer $c, string $id) => app(NameProxyAction::class)->handle($c, $id, 'Someone', '+201000000000', IdentityDocumentKind::PASSPORT, 'token', null, 1)],
     'remove the collector' => [fn (Customer $c, string $id) => app(RemoveProxyAction::class)->handle($c, $id)],
     'report a problem' => [fn (Customer $c, string $id) => app(OpenDisputeAction::class)->handle($c, $id, DisputeReason::OTHER, 'detail', [])],
 ]);

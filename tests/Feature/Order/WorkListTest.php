@@ -89,7 +89,7 @@ it('names the person the buyer sent on a handover, and nobody on other tasks', f
     Disputes::nameProxy($this, $ready)->assertOk();
     Orders::staff($this, SeedRole::IGI_BRANCH, $ready->branch_id);
 
-    expect($row()['proxy'])->toBe(['name' => 'Ahmed Samir Hassan', 'phone' => '+201001234567', 'has_id_photo' => true])
+    expect($row()['proxy'])->toBe(['name' => 'Ahmed Samir Hassan', 'phone' => '+201001234567', 'has_id_photo' => true, 'id_kind' => 'egyptian_id', 'has_back' => true])
         ->and($this->getJson("/api/v1/dashboard/orders/{$ready->order_id}/proxy-id")->assertOk())->not->toBeNull();
 
     $others = collect($this->getJson(Orders::WORK_LIST_URL)->assertOk()->json('data'))->where('order_id', '!=', $ready->order_id);

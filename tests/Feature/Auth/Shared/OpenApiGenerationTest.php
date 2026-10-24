@@ -229,6 +229,7 @@ const OPENAPI_DASHBOARD_ORDER_PATHS = [
     'get /dashboard/extension-requests',
     'post /dashboard/extension-requests/{extensionRequest}/accept',
     'post /dashboard/extension-requests/{extensionRequest}/refuse',
+    'get /dashboard/orders/{order}/buyer-id',
     'get /dashboard/orders/{order}/proxy-id',
 ];
 
