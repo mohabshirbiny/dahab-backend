@@ -524,6 +524,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->whereUuid('customer')
                     ->middleware(['staff.permission:customer.suspend', 'idempotent'])->name('reinstate');
 
+                // Customer file: make a market maker, or an ordinary customer again (promo.manage).
+                Route::post('/{customer}/type', [DashboardCustomerController::class, 'setType'])
+                    ->whereUuid('customer')
+                    ->middleware(['staff.permission:promo.manage', 'idempotent'])->name('type');
+
                 // Customer file: History (also needs an audit permission, checked in the Action) and sessions.
                 Route::get('/{customer}/activity', [DashboardCustomerController::class, 'activity'])
                     ->whereUuid('customer')

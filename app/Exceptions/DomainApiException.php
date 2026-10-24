@@ -914,6 +914,16 @@ class DomainApiException extends RuntimeException
         return new self('promo_customer_not_market_maker', 422, 'The account a code is tied to must be a market maker.');
     }
 
+    public static function customerTypeUnchanged(): self
+    {
+        return new self('customer_type_unchanged', 409, 'This customer already has that type.');
+    }
+
+    public static function customerHasActiveDealerCode(): self
+    {
+        return new self('customer_has_active_dealer_code', 409, 'Turn off this customer\'s dealer code before removing them as a market maker.');
+    }
+
     public static function promoCodeExists(): self
     {
         return new self('promo_code_exists', 409, 'There is already a code with this name, or this account already has one.');

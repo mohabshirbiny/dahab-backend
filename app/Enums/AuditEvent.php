@@ -185,6 +185,7 @@ enum AuditEvent: string
     case REFERRAL_VOID = 'referral.void';
     case MARKET_MAKER_LEFT = 'market_maker.left';
     case MARKET_MAKER_MEDIA_VIEWED = 'market_maker.media_viewed';
+    case CUSTOMER_TYPE_CHANGED = 'customer.type_changed';
     case FIRST_SALE_ENABLED = 'first_sale.enabled';
     case FIRST_SALE_REVOKED = 'first_sale.revoked';
     case FIRST_SALE_ADVANCED = 'first_sale.advanced';
@@ -375,6 +376,7 @@ enum AuditEvent: string
             self::REFERRAL_VOID => 'Invitation lapsed',
             self::MARKET_MAKER_LEFT => 'Piece left as it is',
             self::MARKET_MAKER_MEDIA_VIEWED => 'Piece file opened from the market-maker queue',
+            self::CUSTOMER_TYPE_CHANGED => 'Customer made or removed as a market maker',
             self::FIRST_SALE_ENABLED => 'First-sale advance enabled for a seller',
             self::FIRST_SALE_REVOKED => 'First-sale advance enablement revoked',
             self::FIRST_SALE_ADVANCED => 'First-sale advance paid',
@@ -409,7 +411,7 @@ enum AuditEvent: string
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
             self::CONTROL_SET, self::CONTROL_CLEARED, self::VISIBILITY_CHANGED, self::PEOPLE_TO_WATCH_VIEWED => AuditCategory::SYSTEM,
             self::PROMO_CREATED, self::PROMO_UPDATED, self::MARKET_MAKER_APPROVED,
-            self::PROMO_APPLIED, self::PROMO_REMOVED, self::COMMISSION_CREDIT_GRANTED, self::COMMISSION_CREDIT_SPENT, self::COMMISSION_CREDIT_EXPIRED, self::COMMISSION_CREDIT_VOIDED, self::REFERRAL_JOINED, self::REFERRAL_REWARDED, self::REFERRAL_VOID, self::MARKET_MAKER_LEFT, self::MARKET_MAKER_MEDIA_VIEWED => AuditCategory::PROMO,
+            self::PROMO_APPLIED, self::PROMO_REMOVED, self::COMMISSION_CREDIT_GRANTED, self::COMMISSION_CREDIT_SPENT, self::COMMISSION_CREDIT_EXPIRED, self::COMMISSION_CREDIT_VOIDED, self::REFERRAL_JOINED, self::REFERRAL_REWARDED, self::REFERRAL_VOID, self::MARKET_MAKER_LEFT, self::MARKET_MAKER_MEDIA_VIEWED, self::CUSTOMER_TYPE_CHANGED => AuditCategory::PROMO,
             self::FIRST_SALE_ENABLED, self::FIRST_SALE_REVOKED, self::FIRST_SALE_ADVANCED, self::FIRST_SALE_SKIPPED, self::FIRST_SALE_RECOVERED, self::FIRST_SALE_WRITTEN_OFF => AuditCategory::MONEY,
             self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
             self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,

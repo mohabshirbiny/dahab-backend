@@ -82,6 +82,7 @@ const OPENAPI_DASHBOARD_CUSTOMER_PATHS = [
     // Spec 007: the Customer file.
     'post /dashboard/customers/{customer}/suspend',
     'post /dashboard/customers/{customer}/reinstate',
+    'post /dashboard/customers/{customer}/type',
     'get /dashboard/customers/{customer}/activity',
     'get /dashboard/customers/{customer}/sessions',
 ];
@@ -575,6 +576,7 @@ it('secures every operation with its own surface scheme and never the generic sa
         'get /dashboard/customers/{customer}' => 'dashboardBearer',
         'post /dashboard/customers/{customer}/suspend' => 'dashboardBearer',
         'post /dashboard/customers/{customer}/reinstate' => 'dashboardBearer',
+        'post /dashboard/customers/{customer}/type' => 'dashboardBearer',
         'get /dashboard/customers/{customer}/activity' => 'dashboardBearer',
         'get /dashboard/customers/{customer}/sessions' => 'dashboardBearer',
         ...array_fill_keys(OPENAPI_DASHBOARD_ACCESS_PATHS, 'dashboardBearer'),
@@ -725,7 +727,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffInvoice', 'StaffCreditNote', 'InvoiceFigures', 'IssueCreditNoteRequest', 'CustomerInvoice', 'CustomerCreditNote',
         'CustomerSession', 'CustomerVerificationState', 'RequestPhoneChangeRequest', 'ConfirmPhoneChangeRequest', 'RequestEmailChangeRequest', 'ChangePasswordRequest',
         'InboxItem', 'SavedPiece', 'CloseBlocker', 'StaffListingReport',
-        'StaffLegalDocument', 'StaffLegalVersion', 'AcceptLegalVersionRequest', 'LegalAcceptanceRequired', 'DashboardCreateFaqEntry', 'DashboardMoveFaqEntry', 'DashboardPublishLegalVersion', 'DashboardClearCategoryControl', 'DashboardSetCategoryControl', 'DashboardSetVisibility',
+        'StaffLegalDocument', 'StaffLegalVersion', 'AcceptLegalVersionRequest', 'LegalAcceptanceRequired', 'DashboardCreateFaqEntry', 'DashboardMoveFaqEntry', 'DashboardPublishLegalVersion', 'DashboardClearCategoryControl', 'DashboardSetCategoryControl', 'DashboardSetVisibility', 'DashboardSetCustomerType',
         'StaffAppText', 'StaffAppTextVersion', 'StaffAppTextDraft', 'DashboardSaveAppTextDraft', 'DashboardRevertAppText',
         // Spec 021: founder-account security and the notices.
         'StaffDeviceApprovalPending', 'StaffDeviceApprovalStatusRequest', 'StaffFrozenConfirmUnfreezeRequest',
