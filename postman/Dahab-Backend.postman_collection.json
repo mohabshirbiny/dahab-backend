@@ -1428,6 +1428,60 @@
                             "response": []
                         },
                         {
+                            "name": "Set Customer Type (Market Maker)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"type\": \"market_maker\",\n    \"note\": \"Known dealer.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/customers/{{customer_id}}/type",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "customers",
+                                        "{{customer_id}}",
+                                        "type"
+                                    ]
+                                },
+                                "description": "Makes the customer a market maker (type: market_maker) or an ordinary customer again (type: ordinary); this is what lets a dealer code be tied to the account. note: required, 1-1000 characters. 200 = the customer file. 409 customer_type_unchanged; 409 customer_has_active_dealer_code (turn the dealer code off before removing the type). Requires promo.manage and an Idempotency-Key. Audited (customer.type_changed)."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Customer Activity (History)",
                             "request": {
                                 "method": "GET",
