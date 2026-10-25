@@ -2,10 +2,12 @@
 
 namespace App\Support\Invoices;
 
+use App\Enums\ListingMediaKind;
 use App\Enums\PartyRole;
 use App\Enums\PieceCategory;
 use App\Models\BuyRequest;
 use App\Models\Listing;
+use App\Models\ListingMedia;
 use App\Models\Order;
 use App\Support\Orders\SettlementFigures;
 use App\Support\Pricing\Money;
@@ -40,6 +42,10 @@ final class InvoiceLines
             'making_total' => null,
             'asking_price' => null,
             'subtotal' => $subtotal,
+            // The piece's first public photo, printed on both invoices; the id only, never the stored object's name.
+            'photo_media_id' => ListingMedia::query()->where('listing_id', $listing->listing_id)
+                ->where('kind', ListingMediaKind::PHOTO)->where('is_private', false)
+                ->orderBy('position')->orderBy('created_at')->value('media_id'),
         ];
 
         if ($listing->category === PieceCategory::GOLD && $weight !== null) {

@@ -156,6 +156,21 @@ it('refuses a missing price for the category, a stale declaration, and when no b
     expect(Listing::query()->whereNotNull('relisted_from_order_id')->count())->toBe(0);
 });
 
+it('refuses a making charge above the previous one, accepts an equal one, and shows the previous one', function () {
+    $origin = Listing::factory()->withPhotos(1)->withInvoice()->live()->create(['karat_code' => 21, 'stated_weight_g' => '10.000', 'making_charge_per_g' => '300.00']);
+    $order = FreeRelists::ac018CollectedOrder($this, $origin);
+    $buyer = Orders::buyer($order);
+
+    FreeRelists::ac018Relist($this, $buyer, $order, FreeRelists::ac018RelistPayload($order, ['making_charge_per_g' => '300.01']))
+        ->assertStatus(422)->assertJsonValidationErrors(['making_charge_per_g']);
+    expect(Listing::query()->whereNotNull('relisted_from_order_id')->count())->toBe(0);
+
+    Listings::as($this, $buyer)->getJson(Orders::CUSTOMER_URL."/{$order->order_id}")
+        ->assertJsonPath('data.free_relist.previous_making_charge_per_g', '300.0000');
+
+    FreeRelists::ac018Relist($this, $buyer, $order, FreeRelists::ac018RelistPayload($order, ['making_charge_per_g' => '300.00']))->assertCreated();
+});
+
 it('leaves the origin listing, order and history exactly as they were', function () {
     $order = FreeRelists::ac018CollectedOrder($this);
     $buyer = Orders::buyer($order);

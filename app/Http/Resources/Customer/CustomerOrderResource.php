@@ -64,7 +64,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'dispute_outcome', type: 'string', enum: ['resumed', 'cancelled'], nullable: true, description: 'Spec 014: from the order history, once a dispute on it was resolved (either party)'),
         new OA\Property(property: 'extension_request', type: 'object', nullable: true, description: 'Spec 014, the seller only: {state: waiting|accepted|refused|lapsed, reason, detail, hours_granted, answer_note, requested_at, answered_at}'),
         new OA\Property(property: 'proxy', type: 'object', nullable: true, description: 'Spec 014, the buyer only: {name, phone_masked, named_at}'),
-        new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, always present. The buyer\'s offer to relist the collected piece at 0% commission: {status: none|open|used|expired, ends_at (the server\'s window end, working hours from the handover) | null, listing_id | null}. Always none for the seller.'),
+        new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, always present. The buyer\'s offer to relist the collected piece at 0% commission: {status: none|open|used|expired, ends_at (the server\'s window end, working hours from the handover) | null, listing_id | null, previous_making_charge_per_g (gold, open offer: the fee on the sold piece; the new fee may not exceed it) | null}. Always none for the seller.'),
         new OA\Property(property: 'rating', type: 'object', description: 'Spec 018, your own party only: {can_rate, opens_at, closes_at, given: {stars, note, created_at} | null}'),
         new OA\Property(property: 'no_fee', type: 'boolean', description: 'Spec 018: true on the seller\'s order when the sale was a free relist — Dahab charged no commission and there is no seller invoice'),
         new OA\Property(property: 'timeline', type: 'array', items: new OA\Items(type: 'object')),
@@ -187,7 +187,9 @@ class CustomerOrderResource extends JsonResource
                 'named_at' => $collection->proxy_named_at?->toIso8601String(),
             ] : null,
             // Spec 018. The offer belongs to the buyer; the seller of the sale has none.
-            'free_relist' => ($seller ? FreeRelistOffer::none() : FreeRelistOffer::for($o, $collection, $o->freeRelistListing))->toArray(),
+            // `previous_making_charge_per_g`: the fee on the sold piece — the ceiling for the new fee (gold, open offer).
+            'free_relist' => ($offer = $seller ? FreeRelistOffer::none() : FreeRelistOffer::for($o, $collection, $o->freeRelistListing))->toArray()
+                + ['previous_making_charge_per_g' => $offer->isOpen() && $listing->making_charge_per_g !== null ? (string) $listing->making_charge_per_g : null],
             'rating' => self::rating($o, $seller, $me),
             'no_fee' => $seller && $listing->isFreeRelist(),
             // Spec 023: the seller's advance and what the commission cost them (null for the buyer).

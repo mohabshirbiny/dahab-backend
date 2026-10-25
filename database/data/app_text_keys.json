@@ -269,6 +269,30 @@
       "max_length": 68
     },
     {
+      "key": "order.free_relist.form.previous_fee",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "Your making charge on this sale was {fee} EGP per gram. The new one can be the same or lower, not higher.",
+      "default_ar": "المصنعية في البيعة دي كانت {fee} جنيه للجرام. المصنعية الجديدة لازم تبقى زيها أو أقل، مش أكتر.",
+      "placeholders": [
+        "fee"
+      ],
+      "max_length": 210
+    },
+    {
+      "key": "order.free_relist.form.error_price_above_previous",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission screen",
+      "default_en": "The making charge can not be more than the previous one ({fee} EGP per gram).",
+      "default_ar": "المصنعية مينفعش تبقى أكتر من اللي قبلها ({fee} جنيه للجرام).",
+      "placeholders": [
+        "fee"
+      ],
+      "max_length": 154
+    },
+    {
       "key": "order.free_relist.form.error_price_other",
       "kind": "app",
       "area": "Orders",
@@ -2263,6 +2287,16 @@
       "default_ar": "العمولة",
       "placeholders": [],
       "max_length": 40
+    },
+    {
+      "key": "invoice.vat.price_difference",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice screen",
+      "default_en": "Price difference (spread)",
+      "default_ar": "فرق السعر",
+      "placeholders": [],
+      "max_length": 50
     },
     {
       "key": "auth.continue",

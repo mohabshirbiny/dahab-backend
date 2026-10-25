@@ -27,12 +27,16 @@
     <tr><td class="c1">{{ $seller ? 'You sold' : 'You bought' }}</td><td class="num c2">{{ $piece }}<br><span lang="ar">{{ $pieceAr }}</span></td><td class="ar c3" lang="ar">{{ $seller ? 'بعت' : 'اشتريت' }}</td></tr>
 </table>
 
+@if(! empty($photo))
+<p style="margin-top:5mm;text-align:center"><img src="{{ $photo }}" style="max-width:70mm;max-height:70mm"></p>
+@endif
+
 <table class="lines" style="margin-top:5mm">
     <tr class="section"><td class="c1">{{ $seller ? 'Settlement' : 'Price' }}</td><td class="num c2">EGP</td><td class="ar c3" lang="ar">{{ $seller ? 'التسوية' : 'السعر' }}</td></tr>
     @if(! $seller && ($l['price_difference'] ?? null) !== null)
-        {{-- Package C item 13: the price difference is shown as Dahab's commission (VAT 0); the total is unchanged. --}}
+        {{-- The price difference (spread) is Dahab's gap between the rates, VAT 0; the total is unchanged. --}}
         <tr><td class="c1">Gold value at {{ $m($l['seller_unit_rate']) }} per gram</td><td class="num c2">{{ $m($l['gold_value_at_seller_rate']) }}</td><td class="ar c3" lang="ar">قيمة الدهب بسعر {{ $m($l['seller_unit_rate']) }} للجرام</td></tr>
-        <tr><td class="c1">Commission</td><td class="num c2">{{ $m($l['price_difference']) }}</td><td class="ar c3" lang="ar">العمولة</td></tr>
+        <tr><td class="c1">Price difference (spread)</td><td class="num c2">{{ $m($l['price_difference']) }}</td><td class="ar c3" lang="ar">فرق السعر</td></tr>
         <tr><td class="c1">Making charge</td><td class="num c2">{{ $m($l['making_total']) }}</td><td class="ar c3" lang="ar">المصنعية</td></tr>
     @elseif(($l['gold_value'] ?? null) !== null)
         <tr><td class="c1">Gold value at {{ $m($l['unit_rate']) }} per gram</td><td class="num c2">{{ $m($l['gold_value']) }}</td><td class="ar c3" lang="ar">قيمة الدهب بسعر {{ $m($l['unit_rate']) }} للجرام</td></tr>
