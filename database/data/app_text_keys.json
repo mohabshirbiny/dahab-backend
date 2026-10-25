@@ -2299,6 +2299,96 @@
       "max_length": 50
     },
     {
+      "key": "buy.code.title",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "Have a promo code?",
+      "default_ar": "معاك كود خصم؟",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "buy.code.apply",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "Apply",
+      "default_ar": "طبّق",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "buy.code.remove",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "Remove",
+      "default_ar": "شيل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "buy.code.hint",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "Enter it here and see what it takes off before you send the request.",
+      "default_ar": "اكتبه هنا وشوف هيخصم كام قبل ما تبعت الطلب.",
+      "placeholders": [],
+      "max_length": 136
+    },
+    {
+      "key": "buy.code.applied",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "Applied. It goes with your buy request.",
+      "default_ar": "اتطبق، وهيتبعت مع طلب الشراء.",
+      "placeholders": [],
+      "max_length": 78
+    },
+    {
+      "key": "buy.code.you_pay",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "You pay",
+      "default_ar": "هتدفع",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "buy.code.seller_price",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "You pay the price the seller gets.",
+      "default_ar": "هتدفع نفس السعر اللي البايع بياخده.",
+      "placeholders": [],
+      "max_length": 68
+    },
+    {
+      "key": "buy.code.deposit",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "Deposit to send the request",
+      "default_ar": "العربون عشان تبعت الطلب",
+      "placeholders": [],
+      "max_length": 54
+    },
+    {
+      "key": "buy.code.no_discount",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page",
+      "default_en": "The code is valid, but it takes nothing off this piece right now.",
+      "default_ar": "الكود صالح، بس مش هيخصم حاجة من القطعة دي دلوقتي.",
+      "placeholders": [],
+      "max_length": 130
+    },
+    {
       "key": "branch.details",
       "kind": "app",
       "area": "Shared",

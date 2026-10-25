@@ -346,6 +346,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::middleware('customer.gate:trade')->group(function () {
                     Route::post('/', [CustomerBuyRequestController::class, 'store'])
                         ->middleware(['throttle:customer.buy_requests', 'idempotent'])->name('store');
+                    // 2026-10-26: what a buyer code would do on a piece; records nothing.
+                    Route::post('/promo-preview', [CustomerBuyRequestController::class, 'promoPreview'])
+                        ->middleware('throttle:customer.promo')->name('promo-preview');
                 });
             });
 

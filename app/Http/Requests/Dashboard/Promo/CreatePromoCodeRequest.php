@@ -27,6 +27,10 @@ class CreatePromoCodeRequest extends FormRequest
             'commission_amount_egp' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:999999999', 'decimal:0,2'],
             'deposit_percent' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'lt:100', 'decimal:0,4'],
             'deposit_amount_egp' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:999999999', 'decimal:0,2'],
+            // 2026-10-26: a buyer code's discount off the price, and what pays for it.
+            'price_percent' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'lt:100', 'decimal:0,4'],
+            'price_amount_egp' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:999999999', 'decimal:0,2'],
+            'discount_funded_by' => ['sometimes', 'nullable', Rule::in(['commission', 'spread'])],
             'audience' => ['sometimes', Rule::in(['account', 'anyone'])],
             'tied_to' => ['sometimes', 'nullable', 'string', 'max:64'],
             'tied_customer_id' => ['sometimes', 'nullable', 'uuid'],

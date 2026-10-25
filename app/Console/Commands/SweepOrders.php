@@ -58,7 +58,7 @@ class SweepOrders extends Command
 
             $this->each('balance_reminder', $sweep->balanceReminderDue(), function ($id) use ($sweep, $settlement) {
                 $order = Order::query()->with(['listing', 'buyRequest', 'inspections'])->findOrFail($id);
-                $due = $settlement->compute($order, $order->listing, $order->buyRequest, $order->latestInspection(), waivers: false)->balance;
+                $due = $settlement->compute($order, $order->listing, $order->buyRequest, $order->latestInspection(), waivers: false)->cashDue();
 
                 return $sweep->remindBalance($id, $due);
             });

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Actions\BuyRequests\LeaveQueueAction;
 use App\Actions\BuyRequests\ListOwnBuyRequestsAction;
+use App\Actions\BuyRequests\PreviewBuyerCodeAction;
 use App\Actions\BuyRequests\SendBuyRequestAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\BuyRequest\LeaveQueueRequest;
@@ -47,6 +48,47 @@ class BuyRequestController extends Controller
             new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]
+    #[OA\Post(
+        path: '/customer/me/buy-requests/promo-preview',
+        operationId: 'customerBuyerCodePreview',
+        summary: 'What a buyer code would do on one piece',
+        description: 'Owner request 2026-10-26: the piece page shows the code before the request is sent. The same checks as sending the request (promo_code_invalid with details.reason: inactive | not_your_code | wrong_product | not_started | ended | already_used | not_approved | too_new | cap_reached), but nothing is recorded: asking never uses the code. `effect`: spread (gold: the seller\'s price), price (a percentage or an amount off the price), deposit (stones: a lower deposit). Figures are indicative (the settlement uses IGI\'s weight and the rates locked at the request). Trade gate; 10 a minute.',
+        security: [['customerBearer' => []]],
+        tags: ['Customer Buy Requests'],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ['listing_id', 'promo_code'], properties: [
+            new OA\Property(property: 'listing_id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'promo_code', type: 'string', example: 'GOLD10'),
+        ])),
+        responses: [
+            new OA\Response(response: 200, description: 'The figures', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'code', type: 'string'),
+                    new OA\Property(property: 'effect', type: 'string', enum: ['spread', 'price', 'deposit', 'none']),
+                    new OA\Property(property: 'price_discount', type: 'object', nullable: true, description: '{percent, amount_egp} for effect price'),
+                    new OA\Property(property: 'price_before_egp', type: 'string'),
+                    new OA\Property(property: 'discount_egp', type: 'string'),
+                    new OA\Property(property: 'total_egp', type: 'string'),
+                    new OA\Property(property: 'deposit_full_egp', type: 'string'),
+                    new OA\Property(property: 'deposit_egp', type: 'string'),
+                    new OA\Property(property: 'indicative', type: 'boolean'),
+                ], type: 'object'),
+            ])),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'listing_not_purchasable | cannot_buy_own_listing', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'promo_code_invalid | validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 503, description: 'price_unavailable', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function promoPreview(Request $request, PreviewBuyerCodeAction $preview): JsonResponse
+    {
+        $v = $request->validate([
+            'listing_id' => ['required', 'uuid'],
+            'promo_code' => ['required', 'string', 'regex:/^[A-Za-z0-9-]{3,32}$/'],
+        ]);
+
+        return response()->json(['data' => $preview->handle($this->customer($request), $v['listing_id'], $v['promo_code'])]);
+    }
+
     public function store(SendBuyRequestRequest $request, SendBuyRequestAction $send, ListOwnBuyRequestsAction $list): JsonResponse
     {
         $buyRequest = $send->handle(

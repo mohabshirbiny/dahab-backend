@@ -117,8 +117,11 @@ it('keeps a code written the spec 019 way as a waiving dealer code', function ()
         ->and($row->min_listed_days)->toBeNull()->and($row->pays_advance)->toBeFalse();
 });
 
-it('freezes every term of a code with DH020 but lets the cap and the switch move', function () {
+it('freezes every term of a used code with DH020 but lets the cap and the switch move', function () {
     Promo::code(['code' => 'FREEZE-ME']);
+    // Since 2026-10-26 an unused code may still be edited or deleted; once used, its terms are frozen.
+    DB::table('promo_code_use')->insert(['code' => 'FREEZE-ME', 'customer_id' => Customer::factory()->verified()->create()->customer_id,
+        'allowed' => false, 'block_reason' => 'inactive', 'id_key' => 'account:f']);
     $update = fn (array $set) => fn () => DB::table('promo_code')->where('code', 'FREEZE-ME')->update($set);
 
     expect(s23State($update(['commission_percent' => '60'])))->toBe('DH020')

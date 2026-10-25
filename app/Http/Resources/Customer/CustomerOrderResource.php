@@ -73,7 +73,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'rating', type: 'object', description: 'Spec 018, your own party only: {can_rate, opens_at, closes_at, given: {stars, note, created_at} | null}'),
         new OA\Property(property: 'no_fee', type: 'boolean', description: 'Spec 018: true on the seller\'s order when the sale was a free relist — Dahab charged no commission (the seller invoice is of 0 since 2026-10-25)'),
         new OA\Property(property: 'commission', type: 'object', nullable: true, description: 'Seller only (spec 023): {recorded, ordinary_egp, charged_egp, saved_egp (net of VAT), ordinary_total_egp, charged_total_egp, saved_total_egp (VAT included; null for orders settled before 2026-10-25), waiver, code}'),
-        new OA\Property(property: 'promo', type: 'object', nullable: true, description: 'Buyer only, null without a code: {code, gives_spread, price_before_egp, discount_egp (the spread handed back), total_egp = price_before − discount, indicative (true until the balance is due), deposit_full_egp, deposit_discount_egp}; the figures are null when the code does not touch the price'),
+        new OA\Property(property: 'promo', type: 'object', nullable: true, description: 'Buyer only, null without a code: {code, gives_spread, price_discount {percent, amount_egp} | null, price_before_egp, discount_egp (the spread handed back and/or the price discount), total_egp = price_before − discount, indicative (true until the balance is due), deposit_full_egp, deposit_discount_egp}; the figures are null when the code does not touch the price'),
         new OA\Property(property: 'timeline', type: 'array', items: new OA\Items(type: 'object')),
         new OA\Property(property: 'collection_code', type: 'string', nullable: true, description: 'Detail only, the buyer, while ready to collect'),
         new OA\Property(property: 'return_code', type: 'string', nullable: true, description: 'Detail only, the seller, while the return is open'),
@@ -294,14 +294,14 @@ class CustomerOrderResource extends JsonResource
 
         $before = $discount = null;
         $indicative = false;
-        if ($r->promo_gives_spread) {
+        if ($r->promo_gives_spread || $r->price_discount_funded_by !== null) {
             if ($o->settlement_txn_id !== null && $o->final_buyer_total !== null) {
                 $before = bcadd((string) $o->final_buyer_total, '0', 4);
-                $discount = bcadd((string) ($o->spread_given_up ?? '0'), '0', 4);
+                $discount = bcadd(bcadd((string) ($o->spread_given_up ?? '0'), (string) ($o->price_discount_egp ?? '0'), 4), '0', 4);
             } else {
                 try {
                     $f ??= app(OrderSettlement::class)->compute($o, $listing, $r, $result, $rates, waivers: false);
-                    [$before, $discount, $indicative] = [$f->buyerTotal, $f->spreadGivenUp, $o->state !== OrderState::AWAITING_BALANCE];
+                    [$before, $discount, $indicative] = [$f->buyerTotal, $f->buyerDiscount(), $o->state !== OrderState::AWAITING_BALANCE];
                 } catch (DomainApiException) {
                     // No price can be worked out now (no locked seller rate): the code is named without figures.
                 }
@@ -313,6 +313,11 @@ class CustomerOrderResource extends JsonResource
         return [
             'code' => $r->promo_code,
             'gives_spread' => (bool) $r->promo_gives_spread,
+            // 2026-10-26: a percentage or an amount off the price ({percent|amount_egp}); null otherwise.
+            'price_discount' => $r->price_discount_funded_by === null ? null : [
+                'percent' => $r->price_discount_percent === null ? null : bcadd((string) $r->price_discount_percent, '0', 4),
+                'amount_egp' => $r->price_discount_amount_egp === null ? null : bcadd((string) $r->price_discount_amount_egp, '0', 4),
+            ],
             'price_before_egp' => $before,
             'discount_egp' => $discount,
             'total_egp' => $before === null ? null : bcsub($before, (string) $discount, 4),

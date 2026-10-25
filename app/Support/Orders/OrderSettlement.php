@@ -25,6 +25,7 @@ use App\Support\Pricing\Piece;
 use App\Support\Pricing\PriceCalculator;
 use App\Support\Pricing\PricingContext;
 use App\Support\Pricing\PricingRates;
+use App\Support\Promo\BuyerPriceDiscount;
 use App\Support\Promo\CommissionCredits;
 
 /**
@@ -99,6 +100,11 @@ final class OrderSettlement
         $certificateFee = Money::fixed4($order->certificate_cost === null ? '0' : (string) $order->certificate_cost);
         $proceeds = Money::fixed4(Money::sub($breakdown->sellerProceeds, $certificateFee));
 
+        // 2026-10-26: a buyer code's discount off the price, paid by Dahab's commission or the spread and
+        // capped by it; read on the buyer's side (the ordinary commission), so no seller waiver changes it.
+        $priceDiscount = BuyerPriceDiscount::ofRequest($request);
+        $discount = $priceDiscount->on($breakdown->buyerTotal, $breakdown->spread, $resolution->ordinary);
+
         $deposit = Money::fixed4((string) $request->deposit_amount);
         $balance = Money::cmp($breakdown->buyerTotal, $deposit) > 0 ? Money::fixed4(Money::sub($breakdown->buyerTotal, $deposit)) : '0.0000';
         $excess = Money::cmp($deposit, $breakdown->buyerTotal) > 0 ? Money::fixed4(Money::sub($deposit, $breakdown->buyerTotal)) : '0.0000';
@@ -125,6 +131,8 @@ final class OrderSettlement
             spreadGivenUp: $request->promo_gives_spread && Money::cmp($breakdown->spread, '0') > 0 ? Money::fixed4($breakdown->spread) : '0.0000',
             certificateFee: $certificateFee,
             ordinaryCommissionTotal: $resolution->ordinaryTotal,
+            priceDiscount: $discount,
+            priceDiscountFundedBy: $priceDiscount->fundedBy,
         );
     }
 
@@ -153,8 +161,9 @@ final class OrderSettlement
             $buyerAvailable = Account::forCustomerKind($order->buyer_id, AccountKind::CUST_AVAILABLE);
             $escrow = Account::internal(AccountKind::ESCROW);
 
-            // The buyer's available money: the balance leaves it, an excess deposit and the dealer's spread return.
-            $availableNet = Money::sub(Money::add($f->excess, $toDealer ? $f->spread : '0'), $f->balance);
+            // The buyer's available money: the balance leaves it, an excess deposit, the dealer's spread and a
+            // code's price discount return.
+            $availableNet = Money::sub(Money::add(Money::add($f->excess, $toDealer ? $f->spread : '0'), $f->priceDiscount), $f->balance);
 
             $lines = [];
             if (Money::cmp($availableNet, '0') !== 0) {
@@ -179,6 +188,12 @@ final class OrderSettlement
                 if (Money::cmp($amount, '0') !== 0) {
                     $lines[] = new LedgerLine(Account::internal($kind), $amount);
                 }
+            }
+            // A buyer code's price discount, paid by the commission or the spread: a line of its own, so the
+            // commission line still equals the seller's invoice (DH012).
+            if (Money::cmp($f->priceDiscount, '0') > 0) {
+                $from = $f->priceDiscountFundedBy === 'spread' ? AccountKind::DAHAB_SPREAD : AccountKind::DAHAB_COMMISSION;
+                $lines[] = new LedgerLine(Account::internal($from), '-'.$f->priceDiscount);
             }
 
             return $lines;

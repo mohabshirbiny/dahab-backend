@@ -36,7 +36,8 @@ final class CreatePromoCodeAction
         // The spec 019 body (code, tied_customer_id, monthly_cap_egp) is a dealer code, as it always was.
         $newTerms = ['kind', 'audience', 'tied_to', 'use_limit', 'commission_mode', 'commission_percent', 'gives_spread',
             'min_listed_days', 'requires_approval', 'starts_on', 'ends_on', 'first_sale_only', 'pays_advance',
-            'side', 'product_type', 'commission_amount_egp', 'deposit_percent', 'deposit_amount_egp'];
+            'side', 'product_type', 'commission_amount_egp', 'deposit_percent', 'deposit_amount_egp',
+            'price_percent', 'price_amount_egp', 'discount_funded_by'];
         if (! empty($in['tied_customer_id']) && array_intersect($newTerms, array_keys($in)) === []) {
             $in['kind'] = 'market_maker';
         }
@@ -174,19 +175,41 @@ final class CreatePromoCodeAction
             throw $this->invalid('commission_amount_egp', 'An amount only goes with "Reduce by an amount".');
         }
 
+        // 2026-10-26: a buyer code may instead take a percentage or an amount off the price, paid by Dahab's
+        // commission or, on gold, by the spread. A buyer code does one thing.
+        $pricePercent = $in['price_percent'] ?? null;
+        $priceAmount = $in['price_amount_egp'] ?? null;
+        $priceMode = $pricePercent !== null ? 'percent' : ($priceAmount !== null ? 'amount' : 'none');
+        $fundedBy = $in['discount_funded_by'] ?? null;
+        if ($pricePercent !== null && $priceAmount !== null) {
+            throw $this->invalid('price_percent', 'Take the price down by a percentage or by an amount, not both.');
+        }
+        if ($priceMode !== 'none' && $kind !== 'buyer') {
+            throw $this->invalid('price_percent', 'Only a buyer code takes something off the price.');
+        }
+        if ($priceMode !== 'none' && $fundedBy === null) {
+            throw $this->invalid('discount_funded_by', 'Say what pays for the discount: Dahab\'s commission or the spread.');
+        }
+        if ($priceMode === 'none' && $fundedBy !== null) {
+            throw $this->invalid('discount_funded_by', 'Only a discount off the price is paid for by the commission or the spread.');
+        }
+        if ($fundedBy === 'spread' && $product !== 'gold') {
+            throw $this->invalid('discount_funded_by', 'Only gold has a spread to pay for a discount.');
+        }
+
         // Gold: the buyer pays the seller's price (the positive spread is handed back). Stones have no
         // spread; there a buyer code lowers the deposit by a percentage or an amount instead.
-        $givesSpread = (bool) ($in['gives_spread'] ?? ($kind === 'market_maker' || ($kind === 'buyer' && $product === 'gold')));
+        $givesSpread = (bool) ($in['gives_spread'] ?? ($kind === 'market_maker' || ($kind === 'buyer' && $product === 'gold' && $priceMode === 'none')));
         if ($givesSpread && ! in_array($kind, ['market_maker', 'buyer'], true)) {
             throw $this->invalid('gives_spread', 'The buy and sell difference can only go to a buyer.');
         }
         if ($kind === 'market_maker' && ! $givesSpread) {
             throw $this->invalid('gives_spread', 'A dealer code gives the buy and sell difference to the dealer.');
         }
-        if ($kind === 'buyer' && $givesSpread !== ($product === 'gold')) {
-            throw $this->invalid('gives_spread', $product === 'gold'
-                ? 'A gold buyer code gives the buyer the seller\'s price.'
-                : 'Only gold has a buy and sell difference to give back.');
+        if ($kind === 'buyer' && $givesSpread !== ($product === 'gold' && $priceMode === 'none')) {
+            throw $this->invalid('gives_spread', $product !== 'gold'
+                ? 'Only gold has a buy and sell difference to give back.'
+                : ($priceMode === 'none' ? 'A gold buyer code gives the buyer the seller\'s price.' : 'A code with a discount off the price does not also give the seller\'s price.'));
         }
 
         $depositPercent = $in['deposit_percent'] ?? null;
@@ -198,8 +221,11 @@ final class CreatePromoCodeAction
         if ($kind === 'buyer' && $product === 'gold' && $depositMode !== 'none') {
             throw $this->invalid('deposit_percent', 'A gold buyer code does not change the deposit.');
         }
-        if ($kind === 'buyer' && $product !== 'gold' && $depositMode === 'none') {
-            throw $this->invalid('deposit_percent', 'Say how much to take off the deposit: a percentage or an amount.');
+        if ($kind === 'buyer' && $product !== 'gold' && $depositMode === 'none' && $priceMode === 'none') {
+            throw $this->invalid('deposit_percent', 'Say how much to take off the deposit or the price: a percentage or an amount.');
+        }
+        if ($depositMode !== 'none' && $priceMode !== 'none') {
+            throw $this->invalid('price_percent', 'A buyer code lowers the deposit or the price, not both.');
         }
         if ($kind !== 'buyer' && $depositMode !== 'none') {
             throw $this->invalid('deposit_percent', 'Only a buyer code changes the deposit.');
@@ -218,6 +244,10 @@ final class CreatePromoCodeAction
             'deposit_mode' => $depositMode,
             'deposit_percent' => $depositPercent === null ? null : (string) $depositPercent,
             'deposit_amount_egp' => $depositAmount === null ? null : (string) $depositAmount,
+            'price_mode' => $priceMode,
+            'price_percent' => $pricePercent === null ? null : (string) $pricePercent,
+            'price_amount_egp' => $priceAmount === null ? null : (string) $priceAmount,
+            'discount_funded_by' => $priceMode === 'none' ? null : $fundedBy,
             'gives_spread' => $givesSpread,
             'use_limit' => $in['use_limit'] ?? 'unlimited',
             'first_sale_only' => $firstSaleOnly,
@@ -236,6 +266,8 @@ final class CreatePromoCodeAction
             'commission_amount_egp' => $columns['commission_amount_egp'],
             'side' => $side, 'product_type' => $product,
             'deposit_mode' => $depositMode, 'deposit_percent' => $depositPercent, 'deposit_amount_egp' => $depositAmount,
+            'price_mode' => $priceMode, 'price_percent' => $pricePercent, 'price_amount_egp' => $priceAmount,
+            'discount_funded_by' => $priceMode === 'none' ? null : $fundedBy,
             'gives_spread' => $givesSpread, 'use_limit' => $columns['use_limit'],
             'first_sale_only' => $firstSaleOnly, 'pays_advance' => $paysAdvance,
             'min_listed_days' => $columns['min_listed_days'], 'requires_approval' => $columns['requires_approval'],

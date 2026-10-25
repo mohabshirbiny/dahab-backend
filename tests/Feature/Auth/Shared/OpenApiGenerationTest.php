@@ -204,6 +204,7 @@ const OPENAPI_CUSTOMER_BUY_REQUEST_PATHS = [
     'post /customer/me/listings/{listing}/decline',
     'get /customer/me/buy-requests',
     'post /customer/me/buy-requests',
+    'post /customer/me/buy-requests/promo-preview',
     'get /customer/me/buy-requests/{buyRequest}',
     'post /customer/me/buy-requests/{buyRequest}/withdraw',
 ];

@@ -65,6 +65,13 @@ final class PromoCodePresenter
                     'percent' => $c->deposit_percent === null ? null : number_format((float) $c->deposit_percent, 4, '.', ''),
                     'amount_egp' => $c->deposit_amount_egp === null ? null : number_format((float) $c->deposit_amount_egp, 4, '.', ''),
                 ],
+                // 2026-10-26: a buyer code's discount off the price and what pays for it (commission | spread).
+                'price' => [
+                    'mode' => $c->price_mode ?? 'none',
+                    'percent' => $c->price_percent === null ? null : number_format((float) $c->price_percent, 4, '.', ''),
+                    'amount_egp' => $c->price_amount_egp === null ? null : number_format((float) $c->price_amount_egp, 4, '.', ''),
+                    'funded_by' => $c->discount_funded_by,
+                ],
                 'gives_spread' => $c->gives_spread,
                 'pays_advance' => $c->pays_advance,
             ],
