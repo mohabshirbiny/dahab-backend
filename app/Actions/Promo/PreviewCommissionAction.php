@@ -2,6 +2,7 @@
 
 namespace App\Actions\Promo;
 
+use App\Enums\CertificateKind;
 use App\Enums\CreditKind;
 use App\Enums\CreditSource;
 use App\Enums\SettingKey;
@@ -11,6 +12,7 @@ use App\Models\Customer;
 use App\Models\Listing;
 use App\Support\DatabaseActor;
 use App\Support\FirstSale\FirstSaleEligibility;
+use App\Support\Listings\CertificateFee;
 use App\Support\Listings\ListingPricer;
 use App\Support\Pricing\CommissionResolution;
 use App\Support\Pricing\CommissionWaivers;
@@ -63,7 +65,9 @@ final class PreviewCommissionAction
         }
         $rates = $pricer->rates();
 
-        return DatabaseActor::promo(function () use ($seller, $v, $ctx, $ordinary, $rates, $listing) {
+        $fee = app(CertificateFee::class)->forKind(CertificateKind::tryFrom((string) ($v['certificate'] ?? '')));
+
+        return DatabaseActor::promo(function () use ($seller, $v, $ctx, $ordinary, $rates, $listing, $fee) {
             $pool = $this->credits->candidates($this->credits->usable($seller->customer_id, null));
             $without = $this->waivers->resolve($ordinary->commissionTotal(), $rates, false, false, $pool);
 
@@ -101,9 +105,11 @@ final class PreviewCommissionAction
                     'minimum_egp' => Money::fixed4($rates->minimumEgp),
                     'floor_applied' => $limited,
                 ],
+                // Package D: the certificate cost the seller named is out of both figures.
+                'certificate_fee_egp' => $fee,
                 'you_receive' => [
-                    'without_promo_egp' => $without->applyTo($ordinary)->sellerProceeds,
-                    'with_promo_egp' => $with->applyTo($ordinary)->sellerProceeds,
+                    'without_promo_egp' => CertificateFee::net($without->applyTo($ordinary)->sellerProceeds, $fee),
+                    'with_promo_egp' => CertificateFee::net($with->applyTo($ordinary)->sellerProceeds, $fee),
                 ],
                 'pays_advance' => $this->advance->preview($seller, $listing, $found?->promo, $ordinary, $with),
                 'indicative' => true,

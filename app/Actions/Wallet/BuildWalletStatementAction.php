@@ -50,6 +50,8 @@ final class BuildWalletStatementAction
                    COALESCE(SUM(GREATEST(-spread_delta, 0)), 0)::numeric(18,4)::text AS spread_out,
                    COALESCE(SUM(GREATEST(vat_delta, 0)), 0)::numeric(18,4)::text AS vat_in,
                    COALESCE(SUM(GREATEST(-vat_delta, 0)), 0)::numeric(18,4)::text AS vat_out,
+                   COALESCE(SUM(GREATEST(certificate_delta, 0)), 0)::numeric(18,4)::text AS certificate_in,
+                   COALESCE(SUM(GREATEST(-certificate_delta, 0)), 0)::numeric(18,4)::text AS certificate_out,
                    COALESCE(SUM(GREATEST(-advance_delta, 0)), 0)::numeric(18,4)::text AS advance_out,
                    COALESCE(SUM(GREATEST(advance_delta, 0)), 0)::numeric(18,4)::text AS advance_back
             FROM dated
@@ -116,6 +118,14 @@ final class BuildWalletStatementAction
                            JOIN account va ON va.account_id = vp.account_id
                            WHERE vp.ledger_txn_id = pt.ledger_txn_id AND va.kind = 'vat_payable'
                        )" : '0';
+        // Package D: the certificate fee the same entry put on igi_certificates (owed to IGI, not
+        // earned — outside the running balance, shown beside the commission like the VAT).
+        $certificate = $query->view === 'dahab' ? "(
+                           SELECT COALESCE(SUM(gp.amount), 0)
+                           FROM ledger_posting gp
+                           JOIN account ga ON ga.account_id = gp.account_id
+                           WHERE gp.ledger_txn_id = pt.ledger_txn_id AND ga.kind = 'igi_certificates'
+                       )" : '0';
         // The equity view touches no customer line itself: name the one customer the same entry
         // paid or charged (an advance, compensation, an adjustment), when there is exactly one.
         $wallet = $query->view === 'equity' ? '(
@@ -142,6 +152,7 @@ final class BuildWalletStatementAction
                        COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_spread'), 0) AS spread_delta,
                        COALESCE(SUM(p.amount) FILTER (WHERE {$p['advance']}), 0) AS advance_delta,
                        {$vat} AS vat_delta,
+                       {$certificate} AS certificate_delta,
                        {$wallet} AS wallet_customer,
                        pt.created_at, pt.event_kind::text AS kind, pt.memo, pt.staff_id, pt.customer_id AS actor_customer_id, pt.order_id
                 FROM period_txn pt
@@ -180,7 +191,9 @@ final class BuildWalletStatementAction
                        SUM(GREATEST(-d.advance_delta, 0)) OVER () AS t_ao,
                        SUM(GREATEST(d.advance_delta, 0)) OVER () AS t_ab,
                        SUM(GREATEST(d.vat_delta, 0)) OVER () AS t_vi,
-                       SUM(GREATEST(-d.vat_delta, 0)) OVER () AS t_vo
+                       SUM(GREATEST(-d.vat_delta, 0)) OVER () AS t_vo,
+                       SUM(GREATEST(d.certificate_delta, 0)) OVER () AS t_gi,
+                       SUM(GREATEST(-d.certificate_delta, 0)) OVER () AS t_go
                 FROM dated d
                 WHERE d.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND d.created_at < (?::timestamp AT TIME ZONE '{$tz}')
                 WINDOW w AS (ORDER BY d.seq ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
@@ -207,6 +220,9 @@ final class BuildWalletStatementAction
                    pr.vat_delta::numeric(18,4)::text AS vat,
                    pr.t_vi::numeric(18,4)::text AS t_vi,
                    pr.t_vo::numeric(18,4)::text AS t_vo,
+                   pr.certificate_delta::numeric(18,4)::text AS certificate,
+                   pr.t_gi::numeric(18,4)::text AS t_gi,
+                   pr.t_go::numeric(18,4)::text AS t_go,
                    s.staff_id, s.full_name AS staff_name, s.is_system,
                    ac.full_name AS actor_customer_name,
                    wc.display_ref AS wallet_ref, wc.full_name AS wallet_name,
@@ -278,7 +294,7 @@ final class BuildWalletStatementAction
             // Testing fixes item 9: the two Dahab accounts apart; commission + spread = in − out.
             // VAT is the entry's vat_payable change: beside them, never in the balance.
             // `advance`: the first-sale advance, signed (− paid to a seller, + back at the settlement), outside in/out.
-            default => $row + ['commission' => $r->commission, 'spread' => $r->spread, 'vat' => $r->vat, 'advance' => $r->advance],
+            default => $row + ['commission' => $r->commission, 'spread' => $r->spread, 'vat' => $r->vat, 'advance' => $r->advance, 'certificate' => $r->certificate],
         };
     }
 
@@ -371,6 +387,7 @@ final class BuildWalletStatementAction
             'money_in' => $r->t_in, 'money_out' => $r->t_out, 'held_change' => $r->t_held,
             'commission_in' => $r->t_ci, 'commission_out' => $r->t_co, 'spread_in' => $r->t_si, 'spread_out' => $r->t_so,
             'vat_in' => $r->t_vi, 'vat_out' => $r->t_vo,
+            'certificate_in' => $r->t_gi, 'certificate_out' => $r->t_go,
             'advance_out' => $r->t_ao, 'advance_back' => $r->t_ab,
         ];
     }
@@ -397,9 +414,11 @@ final class BuildWalletStatementAction
                        SUM(d.spread_delta) AS spread,
                        SUM(d.advance_delta) AS advance,
                        SUM(d.vat_delta) AS vat,
+                       SUM(d.certificate_delta) AS certificate,
                        SUM(GREATEST(d.commission_delta, 0)) AS ci, SUM(GREATEST(-d.commission_delta, 0)) AS co,
                        SUM(GREATEST(d.spread_delta, 0)) AS si, SUM(GREATEST(-d.spread_delta, 0)) AS so,
                        SUM(GREATEST(d.vat_delta, 0)) AS vi, SUM(GREATEST(-d.vat_delta, 0)) AS vo,
+                       SUM(GREATEST(d.certificate_delta, 0)) AS gi, SUM(GREATEST(-d.certificate_delta, 0)) AS go,
                        SUM(GREATEST(-d.advance_delta, 0)) AS ao, SUM(GREATEST(d.advance_delta, 0)) AS ab
                 FROM dated d
                 WHERE d.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND d.created_at < (?::timestamp AT TIME ZONE '{$tz}')
@@ -409,7 +428,8 @@ final class BuildWalletStatementAction
                        SUM(g.money_in) OVER () AS t_in, SUM(g.money_out) OVER () AS t_out, SUM(g.held) OVER () AS t_held,
                        SUM(g.ci) OVER () AS t_ci, SUM(g.co) OVER () AS t_co, SUM(g.si) OVER () AS t_si, SUM(g.so) OVER () AS t_so,
                        SUM(g.ao) OVER () AS t_ao, SUM(g.ab) OVER () AS t_ab,
-                       SUM(g.vi) OVER () AS t_vi, SUM(g.vo) OVER () AS t_vo
+                       SUM(g.vi) OVER () AS t_vi, SUM(g.vo) OVER () AS t_vo,
+                       SUM(g.gi) OVER () AS t_gi, SUM(g.go) OVER () AS t_go
                 FROM grouped g
             )
             SELECT period, n,
@@ -421,6 +441,9 @@ final class BuildWalletStatementAction
                    vat::numeric(18,4)::text AS vat,
                    t_vi::numeric(18,4)::text AS t_vi,
                    t_vo::numeric(18,4)::text AS t_vo,
+                   certificate::numeric(18,4)::text AS certificate,
+                   t_gi::numeric(18,4)::text AS t_gi,
+                   t_go::numeric(18,4)::text AS t_go,
                    t_ci::numeric(18,4)::text AS t_ci,
                    t_co::numeric(18,4)::text AS t_co,
                    t_si::numeric(18,4)::text AS t_si,
@@ -450,7 +473,7 @@ final class BuildWalletStatementAction
                 'in' => $r->money_in,
                 'out' => $r->money_out,
                 'after' => $r->after,
-            ] + ($query->view === 'dahab' ? ['commission' => $r->commission, 'spread' => $r->spread, 'vat' => $r->vat, 'advance' => $r->advance] : []), $rows),
+            ] + ($query->view === 'dahab' ? ['commission' => $r->commission, 'spread' => $r->spread, 'vat' => $r->vat, 'advance' => $r->advance, 'certificate' => $r->certificate] : []), $rows),
             'next_cursor' => $hasMore && $last !== null ? (new StatementCursor(period: $last->period))->encode() : null,
             'totals' => isset($rows[0]) ? $this->totalsOf($rows[0]) : null,
         ];
@@ -489,9 +512,21 @@ final class BuildWalletStatementAction
                 WHERE a.kind = 'vat_payable' AND t.created_at < (?::timestamp AT TIME ZONE '".self::TZ."')
             ", [$end])->vat;
 
+            // Package D: what sellers have paid for IGI's certificates and Dahab has not yet paid on (all time).
+            $certificatesHeld = DB::selectOne("
+                SELECT COALESCE(SUM(p.amount), 0)::numeric(18,4)::text AS held
+                FROM ledger_posting p
+                JOIN account a ON a.account_id = p.account_id
+                JOIN ledger_transaction t ON t.ledger_txn_id = p.ledger_txn_id
+                WHERE a.kind = 'igi_certificates' AND t.created_at < (?::timestamp AT TIME ZONE '".self::TZ."')
+            ", [$end])->held;
+
             // Testing fixes item 9: commission and spread apart (display only; in = both ins, out = both outs).
             return $summary + [
                 'vat_payable' => $vat,
+                'certificates_payable' => $certificatesHeld,
+                'certificate_in' => $totals->certificate_in,
+                'certificate_out' => $totals->certificate_out,
                 'commission_in' => $totals->commission_in,
                 'commission_out' => $totals->commission_out,
                 'spread_in' => $totals->spread_in,

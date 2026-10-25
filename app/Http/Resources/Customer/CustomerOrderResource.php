@@ -53,7 +53,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'deadline', type: 'object', nullable: true, description: '{kind: reach_branch|decision|balance|collect|return, at, overdue}'),
         new OA\Property(property: 'amount_due', type: 'string', nullable: true, description: 'Buyer, awaiting balance'),
         new OA\Property(property: 'final_total', type: 'string', nullable: true, description: 'Buyer: the total on the measured weight'),
-        new OA\Property(property: 'seller_proceeds', type: 'string', nullable: true, description: 'Seller, once paid'),
+        new OA\Property(property: 'seller_proceeds', type: 'string', nullable: true, description: 'Seller, once paid; after commission, VAT and the certificate fee'),
+        new OA\Property(property: 'certificate_fee', type: 'string', nullable: true, description: 'Seller only: what the stone certificate cost, locked at acceptance and taken from the proceeds at payment. Null for the buyer and when nothing is charged.'),
         new OA\Property(property: 'inspection', type: 'object', nullable: true),
         new OA\Property(property: 'collection', type: 'object', nullable: true),
         new OA\Property(property: 'seller_return', type: 'object', nullable: true),
@@ -139,6 +140,8 @@ class CustomerOrderResource extends JsonResource
             'amount_due' => $amountDue,
             'final_total' => $seller ? null : $finalTotal,
             'seller_proceeds' => $seller && $o->seller_proceeds !== null ? bcadd((string) $o->seller_proceeds, '0', 4) : null,
+            // Package D: the certificate cost taken from the seller's proceeds (already out of seller_proceeds); null for the buyer and when none.
+            'certificate_fee' => $seller && $o->certificate_cost !== null && bccomp((string) $o->certificate_cost, '0', 4) > 0 ? bcadd((string) $o->certificate_cost, '0', 4) : null,
             'inspection' => $result === null ? null : [
                 'inspection_id' => $result->inspection_id,
                 'outcome' => $result->outcome->value,

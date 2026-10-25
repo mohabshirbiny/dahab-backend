@@ -17,6 +17,8 @@ enum AccountKind: string
     case VAT_PAYABLE = 'vat_payable';
     case BANK = 'bank';
     case EXTERNAL_EQUITY = 'external_equity';
+    /** What sellers pay for IGI's certificates, held until Dahab pays IGI. */
+    case IGI_CERTIFICATES = 'igi_certificates';
 
     public function isCustomer(): bool
     {

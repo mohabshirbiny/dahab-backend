@@ -94,6 +94,11 @@ final class OrderSettlement
         );
         $breakdown = $resolution->applyTo($ordinary);
 
+        // Package D: the certificate cost locked at acceptance comes out of the seller's proceeds only;
+        // the buyer's total, the commission and the VAT are unchanged. Orders accepted before it pay none.
+        $certificateFee = Money::fixed4($order->certificate_cost === null ? '0' : (string) $order->certificate_cost);
+        $proceeds = Money::fixed4(Money::sub($breakdown->sellerProceeds, $certificateFee));
+
         $deposit = Money::fixed4((string) $request->deposit_amount);
         $balance = Money::cmp($breakdown->buyerTotal, $deposit) > 0 ? Money::fixed4(Money::sub($breakdown->buyerTotal, $deposit)) : '0.0000';
         $excess = Money::cmp($deposit, $breakdown->buyerTotal) > 0 ? Money::fixed4(Money::sub($deposit, $breakdown->buyerTotal)) : '0.0000';
@@ -105,7 +110,7 @@ final class OrderSettlement
             commission: $breakdown->commission,
             vat: $breakdown->vat,
             spread: $breakdown->spread,
-            proceeds: $breakdown->sellerProceeds,
+            proceeds: $proceeds,
             deposit: $deposit,
             balance: $balance,
             excess: $excess,
@@ -118,6 +123,7 @@ final class OrderSettlement
             floorApplied: $resolution->floorApplied,
             // The positive spread a dealer's purchase hands to the dealer instead of Dahab (spec 019 6B).
             spreadGivenUp: $request->promo_gives_spread && Money::cmp($breakdown->spread, '0') > 0 ? Money::fixed4($breakdown->spread) : '0.0000',
+            certificateFee: $certificateFee,
         );
     }
 
@@ -164,6 +170,7 @@ final class OrderSettlement
                 $lines[] = new LedgerLine(Account::internal(AccountKind::EXTERNAL_EQUITY), $recovered);
             }
             foreach ([
+                [AccountKind::IGI_CERTIFICATES, $f->certificateFee],
                 [AccountKind::DAHAB_COMMISSION, $f->commission],
                 [AccountKind::VAT_PAYABLE, $f->vat],
                 [AccountKind::DAHAB_SPREAD, $toDealer ? '0' : $f->spread],

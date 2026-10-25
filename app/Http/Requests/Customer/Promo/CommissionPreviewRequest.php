@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Customer\Promo;
 
+use App\Enums\CertificateKind;
 use App\Enums\PieceCategory;
 use App\Http\Requests\Customer\Listing\ListingRules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -31,6 +32,7 @@ class CommissionPreviewRequest extends FormRequest
             'weight_g' => $diamond ? ['prohibited'] : ['required', ...ListingRules::WEIGHT],
             'making_charge_per_g' => $gold ? ['required', ...ListingRules::MONEY, 'gte:0'] : ['prohibited'],
             'asking_price' => $gold ? ['prohibited'] : ['required', ...ListingRules::MONEY, 'gt:0'],
+            'certificate' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::enum(CertificateKind::class)],
             'code' => ['sometimes', 'nullable', 'string', 'max:64'],
         ];
     }

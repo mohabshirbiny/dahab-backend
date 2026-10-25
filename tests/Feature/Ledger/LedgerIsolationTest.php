@@ -72,7 +72,7 @@ it('gives the ledger scope the ledger and nothing else', function () {
     IdentityDocument::factory()->create(['customer_id' => $this->a->customer_id]);
 
     expect(countIn('ledger', null, 'SELECT count(*) AS n FROM ledger_posting'))->toBe(6)
-        ->and(countIn('ledger', null, 'SELECT count(*) AS n FROM account'))->toBe(10)
+        ->and(countIn('ledger', null, 'SELECT count(*) AS n FROM account'))->toBe(11)
         ->and(countIn('ledger', null, 'SELECT count(*) AS n FROM customer'))->toBe(0)
         ->and(countIn('ledger', null, 'SELECT count(*) AS n FROM identity_document'))->toBe(0)
         ->and(countIn('ledger', null, 'SELECT count(*) AS n FROM audit_log'))->toBe(0);

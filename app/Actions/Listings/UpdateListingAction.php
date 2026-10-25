@@ -22,7 +22,7 @@ final class UpdateListingAction
 {
     use AttachesListingMedia, MovesListing;
 
-    private const FIELDS = ['piece_type_id', 'karat_code', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description'];
+    private const FIELDS = ['piece_type_id', 'karat_code', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'certificate_kind', 'description'];
 
     private const SINGLES = [
         'video_token' => ListingMediaKind::VIDEO,

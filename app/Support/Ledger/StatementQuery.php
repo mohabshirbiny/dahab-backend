@@ -72,7 +72,8 @@ final readonly class StatementQuery
                 'bindings' => [],
             ],
             'dahab' => [
-                'touch' => "a.kind IN ('dahab_commission','dahab_spread')",
+                // igi_certificates makes a row appear (the seller's certificate fee) but never moves the balance.
+                'touch' => "a.kind IN ('dahab_commission','dahab_spread','igi_certificates')",
                 'run' => "a.kind IN ('dahab_commission','dahab_spread')",
                 'advance' => "a.kind = 'external_equity' AND pt.event_kind::text IN ('first_sale_payout','balance_payment')",
                 'bindings' => [],

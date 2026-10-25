@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Reference;
 
+use App\Enums\CertificateKind;
 use App\Enums\PieceCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,7 +26,13 @@ class QuoteRequest extends FormRequest
                 fn ($attr, $value, $fail) => bccomp((string) $value, '10000', 3) > 0 ? $fail('The weight can be at most 10,000 g.') : null],
             'making_per_g' => ['exclude_unless:category,gold', 'sometimes', 'string', 'regex:/^\d{1,9}(\.\d{1,4})?$/'],
             'asking_price' => ['exclude_if:category,gold', 'required', ...$money],
+            'certificate' => ['exclude_if:category,gold', 'sometimes', 'nullable', 'string', Rule::enum(CertificateKind::class)],
         ];
+    }
+
+    public function certificate(): ?CertificateKind
+    {
+        return CertificateKind::tryFrom((string) $this->validated('certificate'));
     }
 
     public function category(): PieceCategory

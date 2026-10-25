@@ -71,6 +71,11 @@ final class InvoiceLines
             // Package C: the rate and the minimum include VAT; older invoices (VAT on top) lack the key.
             $lines['commission_vat_inclusive'] = true;
             $lines['paid_to_wallet'] = $f->proceeds;
+            // Package D: the stone certificate cost taken from the proceeds (not a Dahab charge, no VAT); absent when none.
+            if (Money::cmp($f->certificateFee, '0') > 0) {
+                $lines['certificate_fee'] = $f->certificateFee;
+                $lines['certificate_kind'] = $listing->certificate_kind?->value;
+            }
         }
 
         return $lines;

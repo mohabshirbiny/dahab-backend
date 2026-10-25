@@ -115,6 +115,9 @@ class StaffOrderResource extends JsonResource
             'locked_total_price' => bcadd((string) $o->locked_total_price, '0', 4),
             'deposit_amount' => $deposit,
             'locked_seller_unit_rate' => $o->locked_seller_unit_rate === null ? null : bcadd((string) $o->locked_seller_unit_rate, '0', 4),
+            // Package D: the IGI certificate cost locked at acceptance and the kind the seller named (null: none).
+            'certificate_cost' => $o->certificate_cost === null ? null : bcadd((string) $o->certificate_cost, '0', 4),
+            'certificate_kind' => $o->listing?->certificate_kind?->value,
             'locked_buyer_unit_rate' => $o->buyRequest->locked_unit_rate === null ? null : bcadd((string) $o->buyRequest->locked_unit_rate, '0', 4),
             'settlement' => $o->final_buyer_total === null ? null : [
                 'final_weight_g' => $o->final_weight_g === null ? null : (string) $o->final_weight_g,
@@ -123,6 +126,7 @@ class StaffOrderResource extends JsonResource
                 'commission_amount' => (string) $o->commission_amount,
                 'vat_amount' => (string) $o->vat_amount,
                 'spread_amount' => (string) $o->spread_amount,
+                'certificate_fee' => bcadd((string) ($o->certificate_cost ?? '0'), '0', 4),
                 'seller_proceeds' => (string) $o->seller_proceeds,
                 'balance_amount' => (string) $o->balance_amount,
             ],

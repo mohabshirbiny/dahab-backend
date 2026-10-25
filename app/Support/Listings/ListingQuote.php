@@ -20,6 +20,8 @@ final readonly class ListingQuote
         public ?string $youWouldReceive,
         public ?string $sellerGross = null,
         public ?string $commissionVatIncluded = null,
+        // Package D: what IGI's certificate costs the seller, already out of `youWouldReceive` (null: none).
+        public ?string $certificateFee = null,
     ) {}
 
     public function priceAvailable(): bool
