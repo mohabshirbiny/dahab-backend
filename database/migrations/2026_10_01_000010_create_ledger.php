@@ -250,9 +250,16 @@ return new class extends Migration
 
     private function insertAccounts(): void
     {
+        // `igi_certificates` was added to the enum later (2026_10_25_000020); it is provisioned here
+        // too once the value exists, so a provision() after the migrations creates every internal account.
+        $kinds = self::INTERNAL_KINDS;
+        if (DB::selectOne("SELECT 1 AS present FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'account_kind' AND e.enumlabel = 'igi_certificates'")) {
+            $kinds[] = 'igi_certificates';
+        }
+
         DB::insert(
             'INSERT INTO account (kind) SELECT k::account_kind FROM unnest(?::text[]) AS k ON CONFLICT DO NOTHING',
-            ['{'.implode(',', self::INTERNAL_KINDS).'}'],
+            ['{'.implode(',', $kinds).'}'],
         );
 
         DB::statement("

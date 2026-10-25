@@ -378,6 +378,7 @@ class ReferenceController extends Controller
             new OA\Parameter(name: 'weight_g', in: 'query', required: false, schema: new OA\Schema(type: 'string', example: '10.000')),
             new OA\Parameter(name: 'making_per_g', in: 'query', required: false, schema: new OA\Schema(type: 'string', example: '300')),
             new OA\Parameter(name: 'asking_price', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'certificate', in: 'query', required: false, description: 'Stone pieces only: the certificate the seller brings; its cost (GET /reference/certificate-costs) is taken out of the payout.', schema: new OA\Schema(type: 'string', enum: ['igi', 'other_lab', 'none'])),
         ],
         responses: [
             new OA\Response(response: 200, description: 'The estimate', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
@@ -388,7 +389,8 @@ class ReferenceController extends Controller
                 new OA\Property(property: 'asking_price', type: 'string', nullable: true),
                 new OA\Property(property: 'commission', type: 'string'),
                 new OA\Property(property: 'vat', type: 'string'),
-                new OA\Property(property: 'payout', type: 'string'),
+                new OA\Property(property: 'certificate_fee', type: 'string', description: 'The certificate cost taken out of the payout (0 when no certificate is named)'),
+                new OA\Property(property: 'payout', type: 'string', description: 'After commission, VAT and the certificate fee'),
                 new OA\Property(property: 'commission_rate', type: 'string', description: 'Percent'),
                 new OA\Property(property: 'minimum_applied', type: 'boolean'),
                 new OA\Property(property: 'indicative', type: 'boolean'),
@@ -401,7 +403,7 @@ class ReferenceController extends Controller
     public function quote(QuoteRequest $request, QuoteAction $quote): JsonResponse
     {
         return response()->json(['data' => $quote->handle($request->category(), $request->validated('karat') === null ? null : (int) $request->validated('karat'),
-            $request->validated('weight_g'), $request->validated('making_per_g'), $request->validated('asking_price'))])
+            $request->validated('weight_g'), $request->validated('making_per_g'), $request->validated('asking_price'), $request->certificate())])
             ->header('Cache-Control', 'public, max-age=30');
     }
 }

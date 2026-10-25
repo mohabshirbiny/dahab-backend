@@ -64,7 +64,7 @@ it('defines exactly the documented account and event kinds', function () {
     $values = fn (string $type) => collect(DB::select("SELECT unnest(enum_range(NULL::{$type}))::text AS v"))->pluck('v')->all();
 
     expect($values('account_kind'))->toBe([
-        'cust_available', 'cust_held', 'escrow', 'dahab_commission', 'dahab_spread', 'vat_payable', 'bank', 'external_equity',
+        'cust_available', 'cust_held', 'escrow', 'dahab_commission', 'dahab_spread', 'vat_payable', 'bank', 'external_equity', 'igi_certificates',
     ])->and($values('ledger_event_kind'))->toBe([
         'topup', 'deposit_hold', 'deposit_release', 'deposit_forfeit', 'settlement_seller', 'first_sale_payout',
         'commission', 'spread', 'vat', 'balance_payment', 'withdrawal', 'compensation', 'external_bank_movement',

@@ -73,6 +73,7 @@ final class CreateListingAction
                 'stated_weight_g' => $data['stated_weight_g'] ?? null,
                 'making_charge_per_g' => $data['making_charge_per_g'] ?? null,
                 'asking_price' => $data['asking_price'] ?? null,
+                'certificate_kind' => $data['certificate_kind'] ?? null,
                 'description' => $data['description'] ?? null,
                 'state' => ListingState::DRAFT,
             ]);

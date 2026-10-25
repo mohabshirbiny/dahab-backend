@@ -75,5 +75,5 @@ it('provisions under forced RLS even with no scope bound', function () {
         DatabaseActor::pop();
     }
 
-    expect(DB::table('account')->whereNull('customer_id')->count())->toBe(6);
+    expect(DB::table('account')->whereNull('customer_id')->count())->toBe(count(AccountKind::internal()));
 });

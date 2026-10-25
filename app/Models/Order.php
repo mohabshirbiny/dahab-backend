@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $cancelled_at
  * @property string|null $cancel_reason
  * @property string|null $locked_seller_unit_rate
+ * @property string|null $certificate_cost package D: the IGI certificate cost locked at acceptance, taken from the seller's proceeds at settlement (null: none)
  * @property CarbonImmutable|null $decision_due_deadline
  * @property string|null $proposed_price
  * @property string|null $proposed_by

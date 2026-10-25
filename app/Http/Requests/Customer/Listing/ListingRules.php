@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Customer\Listing;
 
+use App\Enums\CertificateKind;
 use App\Enums\PieceCategory;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +40,8 @@ final class ListingRules
             'stated_weight_g' => $diamond ? ['prohibited'] : [$need, ...self::WEIGHT],
             'making_charge_per_g' => $gold ? [$need, ...self::MONEY, 'gte:0'] : ['prohibited'],
             'asking_price' => $gold ? ['prohibited'] : [$need, ...self::MONEY, 'gt:0'],
+            // A stone piece names the certificate it comes with; its cost is taken from the seller at settlement.
+            'certificate_kind' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::enum(CertificateKind::class)],
             'description' => ['sometimes', 'nullable', 'string', 'max:'.config('dahab-listings.description_max')],
         ];
     }

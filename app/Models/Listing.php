@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\BuyRequestState;
+use App\Enums\CertificateKind;
 use App\Enums\ListingMediaKind;
 use App\Enums\ListingPriceField;
 use App\Enums\ListingState;
@@ -32,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $stated_weight_g
  * @property string|null $making_charge_per_g
  * @property string|null $asking_price
+ * @property CertificateKind|null $certificate_kind the certificate a stone piece comes with (its cost is taken at settlement); null before this existed
  * @property string|null $description
  * @property string|null $relisted_from_order_id spec 018: set when this listing is a free relist (the 0% commission waiver)
  * @property ListingState $state
@@ -61,6 +63,7 @@ class Listing extends Model
     {
         return [
             'category' => PieceCategory::class,
+            'certificate_kind' => CertificateKind::class,
             'state' => ListingState::class,
             'piece_type_id' => 'integer',
             'karat_code' => 'integer',

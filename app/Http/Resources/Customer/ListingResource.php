@@ -44,6 +44,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'price_available', type: 'boolean'),
         new OA\Property(property: 'price_is_indicative', type: 'boolean'),
         new OA\Property(property: 'you_would_receive', type: 'string', nullable: true, example: '57744.0000'),
+        new OA\Property(property: 'certificate_kind', type: 'string', enum: ['igi', 'other_lab', 'none'], nullable: true, description: 'Stone pieces only: the certificate the seller brings. Null for gold and for listings made before it existed.'),
+        new OA\Property(property: 'certificate_fee', type: 'string', nullable: true, description: 'EGP the certificate costs the seller, taken from the proceeds at settlement and already out of you_would_receive. Null when the piece names no certificate. Indicative until a buy request is accepted, which locks it.', example: '1000.0000'),
         new OA\Property(property: 'seller_gross', type: 'string', nullable: true, description: 'The piece at the seller rate (gold) or the asking price (stones): you_would_receive + commission_vat_included. Indicative, null when no price can be quoted.', example: '38500.0000'),
         new OA\Property(property: 'commission_vat_included', type: 'string', nullable: true, description: 'Dahab commission on this sale, VAT included (0 when waived). Indicative, null when no price can be quoted.', example: '1925.0000'),
         new OA\Property(property: 'relisted_from_order', type: 'object', nullable: true, description: 'Spec 018: {id, order_ref} when this is a free relist (no commission) of a collected order'),
@@ -115,6 +117,9 @@ class ListingResource extends JsonResource
             'making_charge_per_g' => $l->making_charge_per_g === null ? null : bcadd((string) $l->making_charge_per_g, '0', 4),
             'asking_price' => $l->asking_price === null ? null : bcadd((string) $l->asking_price, '0', 4),
             'description' => $l->description,
+            // Package D: the certificate a stone piece comes with and what it costs the seller (already out of you_would_receive).
+            'certificate_kind' => $l->certificate_kind?->value,
+            'certificate_fee' => $quote->certificateFee,
             'media' => ListingMediaResource::many($l->media, $mediaRoute),
             'branch_options' => $l->branches->map(fn (Branch $b) => [
                 'id' => $b->branch_id,

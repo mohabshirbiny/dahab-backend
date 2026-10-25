@@ -2,9 +2,11 @@
 
 namespace App\Actions\Reference;
 
+use App\Enums\CertificateKind;
 use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
 use App\Models\Karat;
+use App\Support\Listings\CertificateFee;
 use App\Support\Pricing\Money;
 use App\Support\Pricing\Piece;
 use App\Support\Pricing\PricingContext;
@@ -18,10 +20,10 @@ use Illuminate\Validation\ValidationException;
  */
 final class QuoteAction
 {
-    public function __construct(private readonly PricingContext $pricing) {}
+    public function __construct(private readonly PricingContext $pricing, private readonly CertificateFee $certificateFee) {}
 
     /** @return array<string, mixed> */
-    public function handle(PieceCategory $category, ?int $karatCode, ?string $weight, ?string $makingPerGram, ?string $askingPrice): array
+    public function handle(PieceCategory $category, ?int $karatCode, ?string $weight, ?string $makingPerGram, ?string $askingPrice, ?CertificateKind $certificate = null): array
     {
         $price = $this->pricing->currentPrice();
         if ($category !== PieceCategory::DIAMOND && $price === null) {
@@ -59,6 +61,9 @@ final class QuoteAction
         $pct = $category === PieceCategory::GOLD ? $rates->goldPct : $rates->stonePct;
         $base = $category === PieceCategory::GOLD ? $making : Money::fixed4((string) $askingPrice);
 
+        // Package D: a stone piece's certificate cost comes out of the payout; gold has none.
+        $fee = $category === PieceCategory::GOLD ? '0.0000' : $this->certificateFee->forKind($certificate);
+
         return [
             'category' => $category->value,
             'rate_per_gram' => $b->karatPrices?->sellersGet,
@@ -67,7 +72,8 @@ final class QuoteAction
             'asking_price' => $askingPrice === null ? null : Money::fixed4($askingPrice),
             'commission' => $b->commission,
             'vat' => $b->vat,
-            'payout' => $b->sellerProceeds,
+            'certificate_fee' => $fee,
+            'payout' => CertificateFee::net($b->sellerProceeds, $fee),
             'commission_rate' => Money::fixed4($pct),
             // Package C: the minimum is VAT-inclusive, like the rate.
             'minimum_applied' => bccomp($b->commissionTotal(), Money::round4(Money::percent($base, $pct)), 4) > 0,

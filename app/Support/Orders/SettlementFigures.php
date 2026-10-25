@@ -33,6 +33,8 @@ final readonly class SettlementFigures
         public string $spreadGivenUp = '0.0000',
         // Package C: the saving VAT included (what an amount credit is spent by); not stored on the order.
         public string $commissionGivenUpTotal = '0.0000',
+        // Package D: the IGI certificate cost taken from the seller's proceeds (already out of `proceeds`); locked on the order at acceptance.
+        public string $certificateFee = '0.0000',
     ) {}
 
     /** @return array<string, mixed> the "order" columns */

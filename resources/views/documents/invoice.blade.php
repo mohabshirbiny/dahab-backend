@@ -59,6 +59,9 @@
     <tr class="total"><td class="c1">{{ ($l['commission_vat_inclusive'] ?? false) ? 'Commission, VAT included' : 'Total charges' }}</td><td class="num c2">{{ $m($invoice->gross_amount) }}</td><td class="ar c3" lang="ar">إجمالي الرسوم</td></tr>
 </table>
 <table class="lines" style="margin-top:5mm">
+    @if(isset($l['certificate_fee']))
+    <tr><td class="c1">Stone certificate fee (taken from the proceeds)</td><td class="num c2">{{ $m($l['certificate_fee']) }}</td><td class="ar c3" lang="ar">رسوم شهادة الأحجار (تُخصم من المبلغ)</td></tr>
+    @endif
     <tr class="total"><td class="c1">Paid to your wallet</td><td class="num c2">{{ $m($l['paid_to_wallet'] ?? null) }}</td><td class="ar c3" lang="ar">اتحول لمحفظتك</td></tr>
 </table>
 @else

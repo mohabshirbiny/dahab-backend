@@ -20,6 +20,7 @@ use App\Models\Listing;
 use App\Models\ListingStateChange;
 use App\Models\Order;
 use App\Support\BuyRequests\OrderReference;
+use App\Support\Listings\CertificateFee;
 use App\Support\Listings\ListingPricer;
 use App\Support\Notices\WorkNotices;
 use App\Support\Pricing\Settings;
@@ -104,6 +105,8 @@ final class AcceptBuyRequestAction
                 'reach_branch_deadline' => $deadline,
                 'locked_total_price' => $head->locked_total_price,
                 'locked_seller_unit_rate' => $sellerRate,
+                // Package D: the certificate cost the seller was shown, fixed now; taken from their proceeds at settlement.
+                'certificate_cost' => app(CertificateFee::class)->forListing($listing),
             ]);
             $this->recordOrderCreated($order, $seller);
 
