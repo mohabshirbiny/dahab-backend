@@ -53,13 +53,13 @@ it('files the founder security events under Accounts and lists the founder alert
     }
 
     expect(array_map(fn (AuditEvent $e) => $e->value, AuditEvent::founderSensitive()))->toBe([
-        'wallet.adjusted', 'pricing.setting.changed', 'pricing.adjustment.changed', 'promo.created', 'promo.updated',
+        'wallet.adjusted', 'pricing.setting.changed', 'pricing.adjustment.changed', 'promo.created', 'promo.updated', 'promo.deleted',
         'pricing.manual_price.entered', 'pricing.manual_price.confirmed', 'authz.staff.created', 'authz.staff.disabled',
     ])
         ->and(array_map(fn (AuditEvent $e) => $e->value, AuditEvent::founderSecurity()))->toBe([
             'founder.device_approval_requested', 'founder.device_approved', 'founder.device_refused',
             'founder.device_trusted_by_console', 'founder.frozen', 'founder.unfreeze_confirmed', 'founder.unfrozen',
         ])
-        ->and(AuditEvent::founderAlert())->toHaveCount(16)
+        ->and(AuditEvent::founderAlert())->toHaveCount(17)
         ->and(in_array(AuditEvent::STAFF_ENABLED, AuditEvent::founderAlert(), true))->toBeFalse();
 });

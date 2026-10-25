@@ -403,6 +403,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `commission.saved_total_egp` (VAT included); the buyer's order `promo` {code, gives_spread, price_before_egp, discount_egp,
   total_egp, indicative, deposit_full_egp, deposit_discount_egp} and `amount_due` = the balance less that discount (also in
   `insufficient_funds`).
+  Promo codes edit/delete (2026-10-26): `PUT|DELETE /dashboard/promo-codes/{code}` for a code nothing points at yet
+  (`promo_code_unused()`, `in_use` on the list, else `409 promo_code_in_use`; audit `promo.deleted`, founder alert); `PATCH` also
+  takes `ends_on` on any code; guard DH020 now freezes the terms of a used code only.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -440,6 +443,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   and the named person's when they do, front and back (`HandoverIdPhotos`).
   Offer details: Promo codes has *View* (every term in words, with an example); Branches takes a phone and a map link;
   the listing review shows the stone as stated; the invoice detail shows the waived commission and the buyer's discount.
+  Promo codes has Edit (the New-code form filled in; a used code only its cap and end date) and Delete (unused codes only).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page

@@ -173,6 +173,8 @@ enum AuditEvent: string
     case VISIBILITY_CHANGED = 'visibility.changed';
     case PROMO_CREATED = 'promo.created';
     case PROMO_UPDATED = 'promo.updated';
+
+    case PROMO_DELETED = 'promo.deleted';
     case MARKET_MAKER_APPROVED = 'market_maker.approved';
     // Spec 023: seller-side codes, commission credits, referral, the first-sale advance.
     case PROMO_APPLIED = 'promo.applied';
@@ -366,6 +368,7 @@ enum AuditEvent: string
             self::VISIBILITY_CHANGED => 'What customers can see changed',
             self::PROMO_CREATED => 'Promo code created',
             self::PROMO_UPDATED => 'Promo code changed',
+            self::PROMO_DELETED => 'Promo code deleted',
             self::MARKET_MAKER_APPROVED => 'Piece approved for market makers',
             self::PROMO_APPLIED => 'Code applied to a piece',
             self::PROMO_REMOVED => 'Code removed from a piece',
@@ -412,7 +415,7 @@ enum AuditEvent: string
             self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::IDENTITY_DOCUMENT_REOPENED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
             self::CONTROL_SET, self::CONTROL_CLEARED, self::VISIBILITY_CHANGED, self::PEOPLE_TO_WATCH_VIEWED => AuditCategory::SYSTEM,
-            self::PROMO_CREATED, self::PROMO_UPDATED, self::MARKET_MAKER_APPROVED,
+            self::PROMO_CREATED, self::PROMO_UPDATED, self::PROMO_DELETED, self::MARKET_MAKER_APPROVED,
             self::PROMO_APPLIED, self::PROMO_REMOVED, self::COMMISSION_CREDIT_GRANTED, self::COMMISSION_CREDIT_SPENT, self::COMMISSION_CREDIT_EXPIRED, self::COMMISSION_CREDIT_VOIDED, self::REFERRAL_JOINED, self::REFERRAL_REWARDED, self::REFERRAL_VOID, self::MARKET_MAKER_LEFT, self::MARKET_MAKER_MEDIA_VIEWED, self::CUSTOMER_TYPE_CHANGED => AuditCategory::PROMO,
             self::FIRST_SALE_ENABLED, self::FIRST_SALE_REVOKED, self::FIRST_SALE_ADVANCED, self::FIRST_SALE_SKIPPED, self::FIRST_SALE_RECOVERED, self::FIRST_SALE_WRITTEN_OFF => AuditCategory::MONEY,
             self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
@@ -466,6 +469,7 @@ enum AuditEvent: string
             self::ADJUSTMENT_CHANGED,
             self::PROMO_CREATED,
             self::PROMO_UPDATED,
+            self::PROMO_DELETED,
             self::MANUAL_PRICE_ENTERED,
             self::MANUAL_PRICE_CONFIRMED,
             self::STAFF_CREATED,

@@ -94,6 +94,9 @@ describe('creating the codes', function () {
 
     it('keeps the terms immutable in the database', function () {
         productCode(['code' => 'LOCKED', 'side' => 'buyer', 'product_type' => 'diamond', 'deposit_percent' => 20])->assertCreated();
+        // Once used (here a blocked attempt), the terms stay (an unused code may still be edited, 2026-10-26).
+        DB::table('promo_code_use')->insert(['code' => 'LOCKED', 'customer_id' => Customer::factory()->verified()->create()->customer_id,
+            'allowed' => false, 'block_reason' => 'wrong_product', 'id_key' => 'account:z']);
 
         expect(fn () => DatabaseActor::elevate('maintenance', fn () => DB::table('promo_code')->where('code', 'LOCKED')->update(['deposit_percent' => 90])))
             ->toThrow(QueryException::class);

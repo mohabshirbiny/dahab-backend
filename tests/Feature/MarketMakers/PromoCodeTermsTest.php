@@ -130,11 +130,17 @@ it('answers the account errors with their own codes', function () {
         ->assertStatus(409)->assertJsonPath('code', 'promo_code_exists');
 });
 
-it('changes only the cap and the switch, and freezes the terms with DH020', function () {
+it('changes the cap and the switch, and freezes the terms of a used code with DH020', function () {
     newCode(['code' => 'WELCOME', 'audience' => 'anyone', 'commission_mode' => 'percent', 'commission_percent' => 50])->assertCreated();
 
     $this->patchJson(CODES.'/WELCOME', ['monthly_cap_egp' => 250000, 'active' => false], Promo::key())
         ->assertOk()->assertJsonPath('data.is_active', false)->assertJsonPath('data.monthly_cap_egp', '250000.0000');
+
+    // Once anything points at the code (here a blocked attempt), its terms stay.
+    DB::table('promo_code_use')->insert([
+        'code' => 'WELCOME', 'customer_id' => Customer::factory()->verified()->create()->customer_id,
+        'allowed' => false, 'block_reason' => 'inactive', 'id_key' => 'account:x',
+    ]);
 
     expect(fn () => DB::table('promo_code')->where('code', 'WELCOME')->update(['commission_percent' => 60]))
         ->toThrow(QueryException::class);

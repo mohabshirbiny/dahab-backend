@@ -462,6 +462,8 @@ const OPENAPI_SPEC019_LATER_PATHS = [
     'get /dashboard/promo-codes',
     'post /dashboard/promo-codes',
     'patch /dashboard/promo-codes/{code}',
+    'put /dashboard/promo-codes/{code}',
+    'delete /dashboard/promo-codes/{code}',
     'get /dashboard/promo-codes/{code}/uses',
     'get /dashboard/market-maker/queue',
     'post /dashboard/market-maker/queue/{listing}/leave', // spec 023

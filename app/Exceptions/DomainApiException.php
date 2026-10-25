@@ -929,6 +929,12 @@ class DomainApiException extends RuntimeException
         return new self('promo_code_exists', 409, 'There is already a code with this name, or this account already has one.');
     }
 
+    /** A code someone has used keeps its terms and is never deleted: turn it off, or make a new code. */
+    public static function promoCodeInUse(): self
+    {
+        return new self('promo_code_in_use', 409, 'This code has been used, so its terms stay as they were. Turn it off or make a new code.');
+    }
+
     public static function alreadyApproved(): self
     {
         return new self('already_approved', 409, 'This piece is already approved for market makers.');
