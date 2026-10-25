@@ -134,3 +134,19 @@ it('hides branches from staff without reference.view', function () {
 
     $this->bearer($verifier)->getJson('/api/v1/dashboard/branches')->assertForbidden();
 });
+
+it('keeps a contact phone and a map link, shows them to customers, and clears them with null', function () {
+    $id = $this->bearer($this->token)->postJson('/api/v1/dashboard/branches', branchBody([
+        'contact_phone' => '+20 2 2401 0000', 'map_url' => 'https://maps.google.com/?q=IGI+Heliopolis',
+    ]))->assertCreated()->assertJsonPath('data.contact_phone', '+20 2 2401 0000')->json('data.id');
+
+    $public = $this->getJson('/api/v1/reference/branches')->assertOk()->json('data.0');
+    expect($public['contact_phone'])->toBe('+20 2 2401 0000')
+        ->and($public['map_url'])->toBe('https://maps.google.com/?q=IGI+Heliopolis')
+        ->and($public['hours'])->toHaveCount(3);
+
+    $this->bearer($this->token)->patchJson("/api/v1/dashboard/branches/{$id}", ['map_url' => 'not a link'])
+        ->assertStatus(422)->assertJsonValidationErrors('map_url');
+    $this->bearer($this->token)->patchJson("/api/v1/dashboard/branches/{$id}", ['contact_phone' => null, 'map_url' => null])
+        ->assertOk()->assertJsonPath('data.contact_phone', null)->assertJsonPath('data.map_url', null);
+});

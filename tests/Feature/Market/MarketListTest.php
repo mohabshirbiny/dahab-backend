@@ -60,7 +60,7 @@ it('returns exactly the market fields', function () {
     $item = market($this)->assertOk()->json('data.0');
 
     expect(array_keys($item))->toBe([
-        'id', 'category', 'piece_type', 'karat', 'weight_g', 'making_charge_per_g', 'current_price', 'price_available',
+        'id', 'category', 'piece_type', 'karat', 'weight_g', 'making_charge_per_g', 'stone', 'current_price', 'price_available',
         'price_is_indicative', 'photos', 'branch_options', 'queue_count', 'listed_at', 'is_mine',
     ])
         ->and($item['id'])->toBe($listing->listing_id)

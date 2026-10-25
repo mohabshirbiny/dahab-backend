@@ -36,14 +36,14 @@ it('lists the enabled piece types, optionally of one category', function () {
     $this->getJson('/api/v1/reference/piece-types?category=silver')->assertStatus(422)->assertJsonPath('code', 'validation_failed');
 });
 
-it('lists the enabled branches with their names and addresses only', function () {
+it('lists the enabled branches with their names, addresses, contact details and hours', function () {
     $open = Branch::factory()->create(['name_en' => 'IGI Nasr City']);
     Branch::factory()->disabled()->create(['name_en' => 'IGI Closed']);
 
     $data = $this->getJson('/api/v1/reference/branches')->assertOk()->json('data');
 
     expect(array_column($data, 'name_en'))->toBe(['IGI Nasr City'])
-        ->and(array_keys($data[0]))->toBe(['id', 'name_en', 'name_ar', 'address_en', 'address_ar'])
+        ->and(array_keys($data[0]))->toBe(['id', 'name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'hours'])
         ->and($data[0]['id'])->toBe($open->branch_id);
 });
 

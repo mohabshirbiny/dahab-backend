@@ -5,7 +5,9 @@ namespace App\Support\Invoices;
 use App\Enums\ListingMediaKind;
 use App\Enums\PartyRole;
 use App\Enums\PieceCategory;
+use App\Enums\WaiverKind;
 use App\Models\BuyRequest;
+use App\Models\CommissionCredit;
 use App\Models\Listing;
 use App\Models\ListingMedia;
 use App\Models\Order;
@@ -65,12 +67,31 @@ final class InvoiceLines
             $lines['asking_price'] = $subtotal;
         }
 
+        // A code that handed the spread back to the buyer: the price, the discount and what was paid.
+        if ($party === PartyRole::BUYER && Money::cmp($f->spreadGivenUp, '0') > 0) {
+            $lines['price_before_discount'] = $f->buyerTotal;
+            $lines['promo_discount'] = $f->spreadGivenUp;
+            $lines['promo_code'] = $request->promo_code;
+            $lines['total_paid'] = $f->buyerPays();
+        }
+
         if ($party === PartyRole::SELLER) {
             $lines['commission_pct'] = $listing->category === PieceCategory::GOLD ? $rates->goldPct : $rates->stonePct;
             $lines['commission_minimum'] = $rates->minimumEgp;
             // Package C: the rate and the minimum include VAT; older invoices (VAT on top) lack the key.
             $lines['commission_vat_inclusive'] = true;
             $lines['paid_to_wallet'] = $f->proceeds;
+            // What an ordinary sale would have charged (VAT included) and why less was charged: a free relist,
+            // a market maker's purchase or a seller code. A sale of no commission still has its invoice, of 0.
+            $lines['commission_ordinary_total'] = $f->ordinaryCommissionTotal;
+            $waived = Money::fixed4(Money::sub($f->ordinaryCommissionTotal, Money::add($f->commission, $f->vat)));
+            if (Money::cmp($waived, '0') > 0) {
+                $lines['commission_waived'] = [
+                    'kind' => $f->waiverKind->value,
+                    'code' => $this->waiverCode($f, $request),
+                    'amount' => $waived,
+                ];
+            }
             // Package D: the stone certificate cost taken from the proceeds (not a Dahab charge, no VAT); absent when none.
             if (Money::cmp($f->certificateFee, '0') > 0) {
                 $lines['certificate_fee'] = $f->certificateFee;
@@ -113,5 +134,16 @@ final class InvoiceLines
             'gold_value_at_seller_rate' => $atSellerRate,
             'price_difference' => $difference,
         ];
+    }
+
+    /** The code behind a waiver: the seller's own (a credit) or the market maker's (the request). */
+    private function waiverCode(SettlementFigures $f, BuyRequest $request): ?string
+    {
+        return match ($f->waiverKind) {
+            WaiverKind::CREDIT => $f->waiverCreditId === null ? null
+                : CommissionCredit::query()->whereKey($f->waiverCreditId)->value('promo_code'),
+            WaiverKind::MARKET_MAKER => $request->promo_code,
+            default => null,
+        };
     }
 }

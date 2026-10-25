@@ -18,6 +18,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'name_ar', type: 'string'),
         new OA\Property(property: 'address_en', type: 'string'),
         new OA\Property(property: 'address_ar', type: 'string'),
+        new OA\Property(property: 'contact_phone', type: 'string', nullable: true),
+        new OA\Property(property: 'map_url', type: 'string', nullable: true),
         new OA\Property(property: 'timezone', type: 'string', example: 'Africa/Cairo'),
         new OA\Property(property: 'is_enabled', type: 'boolean'),
         new OA\Property(property: 'hours', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardBranchHour'), description: 'Sorted by dow, then opens_at'),
@@ -36,6 +38,8 @@ class BranchResource extends JsonResource
             'name_ar' => $b->name_ar,
             'address_en' => $b->address_en,
             'address_ar' => $b->address_ar,
+            'contact_phone' => $b->contact_phone,
+            'map_url' => $b->map_url,
             'timezone' => $b->timezone,
             'is_enabled' => (bool) $b->is_enabled,
             'hours' => $b->hours->map(fn (BranchHour $h) => [

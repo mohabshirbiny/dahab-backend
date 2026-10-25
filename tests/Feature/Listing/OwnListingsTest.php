@@ -65,7 +65,7 @@ it('shows one listing with everything the seller attached', function () {
     $data = Listings::as($this, $this->seller)->getJson(Listings::SELLER_URL."/{$listing->listing_id}")->assertOk()->json('data');
 
     expect(array_keys($data))->toBe([
-        'id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'certificate_kind', 'certificate_fee',
+        'id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'certificate_kind', 'certificate_fee', 'stone',
         'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive',
         'seller_gross', 'commission_vat_included', // what you_would_receive comes from
         'relisted_from_order', // spec 018

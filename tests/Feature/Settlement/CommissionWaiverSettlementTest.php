@@ -120,7 +120,7 @@ it('waives the whole commission with a waive credit, without forcing the minimum
 
     expect($paid->commission_amount)->toBe('0.0000')->and($paid->vat_amount)->toBe('0.0000')
         ->and($paid->commission_given_up)->toBe('516.0000')->and($paid->commission_floor_applied)->toBeFalse()
-        ->and(sellerInvoice($paid))->toBeNull()
+        ->and((string) sellerInvoice($paid)->gross_amount)->toBe('0.0000')
         ->and(entrySum($paid))->toBe('0.0000');
 });
 

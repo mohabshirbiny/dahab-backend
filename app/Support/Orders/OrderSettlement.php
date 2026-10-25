@@ -124,6 +124,7 @@ final class OrderSettlement
             // The positive spread a dealer's purchase hands to the dealer instead of Dahab (spec 019 6B).
             spreadGivenUp: $request->promo_gives_spread && Money::cmp($breakdown->spread, '0') > 0 ? Money::fixed4($breakdown->spread) : '0.0000',
             certificateFee: $certificateFee,
+            ordinaryCommissionTotal: $resolution->ordinaryTotal,
         );
     }
 

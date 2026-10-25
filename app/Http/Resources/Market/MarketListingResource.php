@@ -35,6 +35,7 @@ use OpenApi\Attributes as OA;
         ], type: 'object'),
         new OA\Property(property: 'karat', type: 'integer', nullable: true, example: 21, description: 'Null for a pure diamond'),
         new OA\Property(property: 'weight_g', type: 'string', nullable: true, example: '8.000', description: 'Stated by the seller, 3 decimals; null for a pure diamond'),
+        new OA\Property(property: 'stone', type: 'object', nullable: true, description: 'Stone pieces only (null for gold): {certificate_kind: igi|other_lab|none|null, carat (2 dp) | null, clarity: vvs|vs|si|i|null, cut: excellent|very_good|good|null}, as the seller states them; IGI checks them at handover'),
         new OA\Property(property: 'making_charge_per_g', type: 'string', nullable: true, example: '250.0000', description: 'Gold only'),
         new OA\Property(property: 'current_price', type: 'string', nullable: true, example: '58200.0000', description: 'Null when no price can be quoted right now (see price_available)'),
         new OA\Property(property: 'price_available', type: 'boolean'),
@@ -72,6 +73,8 @@ class MarketListingResource extends JsonResource
             'karat' => $l->karat_code,
             'weight_g' => $l->stated_weight_g === null ? null : bcadd((string) $l->stated_weight_g, '0', 3),
             'making_charge_per_g' => $l->making_charge_per_g === null ? null : bcadd((string) $l->making_charge_per_g, '0', 4),
+            // The stone and its certificate as the seller states them, so a buyer sees a piece that comes without one.
+            'stone' => $l->stoneDetails(),
             'current_price' => $quote->currentPrice,
             'price_available' => $quote->priceAvailable(),
             'price_is_indicative' => $quote->priceIsIndicative,

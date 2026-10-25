@@ -2299,6 +2299,447 @@
       "max_length": 50
     },
     {
+      "key": "branch.details",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Hours and address",
+      "default_ar": "المواعيد والعنوان",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.address",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Address",
+      "default_ar": "العنوان",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.hours",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Opening hours",
+      "default_ar": "مواعيد العمل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.closed",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Closed",
+      "default_ar": "مقفول",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.phone",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Phone",
+      "default_ar": "التليفون",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.call",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Call",
+      "default_ar": "اتصل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.map",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Open the map",
+      "default_ar": "افتح الخريطة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.no_hours",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Hours not set yet.",
+      "default_ar": "المواعيد لسه متحددتش.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.day_0",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Sunday",
+      "default_ar": "الأحد",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.day_1",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Monday",
+      "default_ar": "الاتنين",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.day_2",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Tuesday",
+      "default_ar": "التلات",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.day_3",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Wednesday",
+      "default_ar": "الأربع",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.day_4",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Thursday",
+      "default_ar": "الخميس",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.day_5",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Friday",
+      "default_ar": "الجمعة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "branch.day_6",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Branch details",
+      "default_en": "Saturday",
+      "default_ar": "السبت",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.certificate",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Certificate",
+      "default_ar": "الشهادة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.cert_igi",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "IGI certificate",
+      "default_ar": "شهادة IGI",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.cert_other",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Another lab's certificate",
+      "default_ar": "شهادة من معمل تاني",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "stone.cert_none",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "No certificate",
+      "default_ar": "من غير شهادة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.cert_none_note",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "This piece comes without a certificate. IGI examines the stone at handover and issues one.",
+      "default_ar": "القطعة دي من غير شهادة. IGI بيفحص الحجر عند التسليم ويطلع له شهادة.",
+      "placeholders": [],
+      "max_length": 180
+    },
+    {
+      "key": "stone.weight",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Stone weight",
+      "default_ar": "وزن الحجر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.clarity",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Clarity",
+      "default_ar": "النقاء",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.cut",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Cut",
+      "default_ar": "القطع",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.cut_excellent",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Excellent",
+      "default_ar": "ممتاز",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.cut_very_good",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Very good",
+      "default_ar": "جيد جدًا",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.cut_good",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "Good",
+      "default_ar": "جيد",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "stone.stated",
+      "kind": "app",
+      "area": "Home",
+      "where": "Piece page and order",
+      "default_en": "As the seller states it. IGI checks it at handover.",
+      "default_ar": "زي ما البايع كاتب. IGI بيتأكد منه عند التسليم.",
+      "placeholders": [],
+      "max_length": 102
+    },
+    {
+      "key": "stone.fee_none",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Your listing",
+      "default_en": "IGI certificate (you have none)",
+      "default_ar": "شهادة IGI (معندكش شهادة)",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "stone.fee_other",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Your listing",
+      "default_en": "IGI certificate (you have another lab's)",
+      "default_ar": "شهادة IGI (عندك شهادة معمل تاني)",
+      "placeholders": [],
+      "max_length": 80
+    },
+    {
+      "key": "stone.fee_igi",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Your listing",
+      "default_en": "IGI certificate",
+      "default_ar": "شهادة IGI",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "sell.gold_value_at",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1",
+      "default_en": "Gold value at {rate} per gram",
+      "default_ar": "قيمة الدهب بسعر {rate} للجرام",
+      "placeholders": [
+        "rate"
+      ],
+      "max_length": 58
+    },
+    {
+      "key": "order.promo.price",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "Price",
+      "default_ar": "السعر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.promo.discount",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "Discount, code {code}",
+      "default_ar": "خصم الكود {code}",
+      "placeholders": [
+        "code"
+      ],
+      "max_length": 42
+    },
+    {
+      "key": "order.promo.total",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "Total after discount",
+      "default_ar": "الإجمالي بعد الخصم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.promo.spread_note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "Your code {code} gives you the price the seller gets: {amount} off.",
+      "default_ar": "الكود {code} بيديك سعر البايع: خصم {amount}.",
+      "placeholders": [
+        "code",
+        "amount"
+      ],
+      "max_length": 134
+    },
+    {
+      "key": "order.promo.indicative",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "The final figures follow the weight IGI measures.",
+      "default_ar": "الأرقام النهائية حسب الوزن اللي IGI يقيسه.",
+      "placeholders": [],
+      "max_length": 98
+    },
+    {
+      "key": "order.promo.deposit_full",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "Deposit before the code",
+      "default_ar": "العربون قبل الكود",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "order.promo.deposit_discount",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "Deposit discount, code {code}",
+      "default_ar": "خصم العربون بالكود {code}",
+      "placeholders": [
+        "code"
+      ],
+      "max_length": 58
+    },
+    {
+      "key": "invoice.waived.ordinary",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice",
+      "default_en": "Commission on an ordinary sale, VAT included",
+      "default_ar": "العمولة في البيع العادي شاملة الضريبة",
+      "placeholders": [],
+      "max_length": 88
+    },
+    {
+      "key": "invoice.waived.free_relist",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice",
+      "default_en": "Free relist",
+      "default_ar": "إعادة عرض مجانية",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "invoice.waived.market_maker",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice",
+      "default_en": "Dealer purchase",
+      "default_ar": "شراء تاجر",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "invoice.waived.code",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice",
+      "default_en": "Promo code {code}",
+      "default_ar": "كود الخصم {code}",
+      "placeholders": [
+        "code"
+      ],
+      "max_length": 40
+    },
+    {
+      "key": "invoice.waived.credit",
+      "kind": "app",
+      "area": "Wallet",
+      "where": "Invoice",
+      "default_en": "Your commission credit",
+      "default_ar": "رصيد العمولة بتاعك",
+      "placeholders": [],
+      "max_length": 44
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",
