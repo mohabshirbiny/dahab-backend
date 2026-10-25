@@ -24,6 +24,7 @@ use App\Models\Order;
 use App\Models\OrderCollection;
 use App\Support\DatabaseActor;
 use App\Support\Orders\FreeRelistOffer;
+use App\Support\Pricing\Money;
 use App\Support\RequestContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +83,7 @@ final class FreeRelistAction
             }
 
             $this->assertPrice($origin->category, $data);
+            $this->assertFeeNotAbovePrevious($origin, $data);
 
             $branchIds = $this->enabledBranchIdsOf($origin);
             $result = $order->latestInspection();
@@ -164,6 +166,26 @@ final class FreeRelistAction
         }
         if (filled($data[$other] ?? null)) {
             throw ValidationException::withMessages([$other => ["The {$other} field does not apply to this piece."]]);
+        }
+    }
+
+    /**
+     * A free relist may not ask more making charge than the sale it came from.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function assertFeeNotAbovePrevious(Listing $origin, array $data): void
+    {
+        $previous = $origin->making_charge_per_g;
+
+        if ($origin->category !== PieceCategory::GOLD || $previous === null) {
+            return;
+        }
+
+        if (Money::cmp((string) $data['making_charge_per_g'], (string) $previous) > 0) {
+            throw ValidationException::withMessages([
+                'making_charge_per_g' => ["The making charge may not be more than the previous one ({$previous} EGP per gram)."],
+            ]);
         }
     }
 

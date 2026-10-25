@@ -82,6 +82,19 @@ it('leaves the line out for a market-maker purchase and when the rates crossed',
         ->and($lines->build(PartyRole::BUYER, $order, $listing, $plain, $figures('55631.2500'), $rates)['price_difference'])->toBe('262.5000');
 });
 
+it('prints the price difference under its own name and the piece photo on the invoice', function () {
+    $order = Invoices::paid($this);
+    $buyer = Invoices::of($order, 'buyer');
+    $photo = 'data:image/png;base64,iVBORw0KGgo=';
+
+    $html = view('documents.invoice', ['invoice' => $buyer, 'photo' => $photo])->render();
+    expect($html)->toContain('Price difference (spread)')->toContain('فرق السعر')->not->toContain('>Commission<')
+        ->toContain('<img src="'.$photo.'"')
+        ->and(view('documents.invoice', ['invoice' => $buyer])->render())->not->toContain('<img');
+    expect(array_key_exists('photo_media_id', $buyer->lines))->toBeTrue()
+        ->and(array_key_exists('photo_media_id', Invoices::of($order, 'seller')->lines))->toBeTrue();
+});
+
 it('still renders invoices issued before the change', function () {
     $old = new TaxInvoice([
         'invoice_no' => 'DH-2026-000001-B', 'party_role' => 'buyer', 'net_amount' => '55631.2500', 'vat_amount' => '0', 'gross_amount' => '55631.2500',
