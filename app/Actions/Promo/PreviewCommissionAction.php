@@ -71,7 +71,7 @@ final class PreviewCommissionAction
             $candidate = null;
             $found = null;
             if (filled($v['code'] ?? null)) {
-                $found = $this->gate->check($seller, (string) $v['code'], $ordinary->buyerTotal, lock: false, ctx: $ctx);
+                $found = $this->gate->check($seller, (string) $v['code'], $ordinary->buyerTotal, lock: false, ctx: $ctx, category: $listing->category->value);
                 [$code, $candidate] = $this->describe($found);
             }
 
@@ -130,6 +130,7 @@ final class PreviewCommissionAction
         $candidate = match ($p->commission_mode) {
             'waive' => new CreditCandidate('candidate', CreditKind::WAIVE, CreditSource::PROMO_CODE, null, null, null, '9999'),
             'percent' => new CreditCandidate('candidate', CreditKind::PERCENT, CreditSource::PROMO_CODE, (string) $p->commission_percent, null, null, '9999'),
+            'amount' => new CreditCandidate('candidate', CreditKind::AMOUNT, CreditSource::PROMO_CODE, null, (string) $p->commission_amount_egp, null, '9999'),
             default => null,
         };
 
@@ -138,7 +139,7 @@ final class PreviewCommissionAction
             'commission' => [
                 'mode' => $p->commission_mode,
                 'percent' => $p->commission_percent === null ? null : number_format((float) $p->commission_percent, 4, '.', ''),
-            ],
+            ] + ($p->commission_mode === 'amount' ? ['amount_egp' => number_format((float) $p->commission_amount_egp, 4, '.', '')] : []),
             'first_sale_only' => $p->first_sale_only, 'pays_advance' => $p->pays_advance,
         ], $candidate];
     }

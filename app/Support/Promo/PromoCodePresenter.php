@@ -48,11 +48,19 @@ final class PromoCodePresenter
         return [
             'code' => $c->code,
             'kind' => $c->kind,
+            'side' => $c->side,
+            'product_type' => $c->product_type,
             'customer' => $c->customer === null ? null : ['id' => $c->customer->customer_id, 'display_ref' => $c->customer->display_ref, 'full_name' => $c->customer->full_name],
             'what_it_does' => [
                 'commission' => [
                     'mode' => $c->commission_mode,
                     'percent' => $c->commission_percent === null ? null : number_format((float) $c->commission_percent, 4, '.', ''),
+                    'amount_egp' => $c->commission_amount_egp === null ? null : number_format((float) $c->commission_amount_egp, 4, '.', ''),
+                ],
+                'deposit' => [
+                    'mode' => $c->deposit_mode,
+                    'percent' => $c->deposit_percent === null ? null : number_format((float) $c->deposit_percent, 4, '.', ''),
+                    'amount_egp' => $c->deposit_amount_egp === null ? null : number_format((float) $c->deposit_amount_egp, 4, '.', ''),
                 ],
                 'gives_spread' => $c->gives_spread,
                 'pays_advance' => $c->pays_advance,

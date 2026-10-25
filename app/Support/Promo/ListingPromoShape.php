@@ -54,7 +54,7 @@ final class ListingPromoShape
             'commission' => [
                 'mode' => $code->commission_mode,
                 'percent' => $code->commission_percent === null ? null : number_format((float) $code->commission_percent, 4, '.', ''),
-            ],
+            ] + ($code->commission_mode === 'amount' ? ['amount_egp' => number_format((float) $code->commission_amount_egp, 4, '.', '')] : []),
             'pays_advance' => (bool) $code->pays_advance, 'status' => $status, 'can_change' => ! $inLine,
         ];
     }

@@ -74,7 +74,7 @@ final class ApplyListingPromoAction
         }
 
         $price = $this->price($listing);
-        $found = $this->gate->check($seller, $code, $price, lock: true, ctx: $ctx);
+        $found = $this->gate->check($seller, $code, $price, lock: true, ctx: $ctx, category: $listing->category->value);
 
         $credit = $found->isReferral()
             ? $this->join($seller, $listing, $found, $ctx)
@@ -112,6 +112,7 @@ final class ApplyListingPromoAction
         $credit = match ($promo->commission_mode) {
             'waive' => ['kind' => 'waive', 'uses_total' => 1, 'uses_left' => 1],
             'percent' => ['kind' => 'percent', 'percent_off' => $promo->commission_percent, 'uses_total' => 1, 'uses_left' => 1],
+            'amount' => ['kind' => 'amount', 'amount_egp' => $promo->commission_amount_egp, 'amount_left_egp' => $promo->commission_amount_egp],
             default => null,
         };
 

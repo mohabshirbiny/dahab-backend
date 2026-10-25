@@ -121,7 +121,9 @@ final class SendBuyRequestAction
             // Spec 019 6B: a market-maker code is checked under the code's row lock, with the listing locked.
             $promo = $promoCode === null ? null : $this->promos->validate($buyer, $listing, $price, $promoCode);
 
-            $deposit = $this->rule->deposit($price);
+            // The deposit as the settings set it, then lowered by a buyer code on stones (never below the minimum).
+            $fullDeposit = $this->rule->deposit($price);
+            $deposit = $this->rule->discounted($fullDeposit, $promo);
             if (! $this->rule->withinTolerance($confirmedPrice, $price)) {
                 throw DomainApiException::priceMoved($price, $deposit);
             }
@@ -170,6 +172,10 @@ final class SendBuyRequestAction
                 'requested_at' => $now,
                 'seller_reply_deadline' => $now->addHours($this->settings->integer(SettingKey::DEADLINE_SELLER_REPLY_HOURS)),
                 'promo_code' => $promo?->code,
+                // What the code does is kept on the request: the settlement runs where promo_code is unreadable.
+                'promo_waives_commission' => $promo?->kind === 'market_maker',
+                'promo_gives_spread' => (bool) $promo?->gives_spread,
+                'deposit_discount_egp' => bcsub($fullDeposit, $deposit, 4),
             ]);
 
             if ($promo !== null) {

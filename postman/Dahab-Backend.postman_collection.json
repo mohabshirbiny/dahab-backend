@@ -8882,10 +8882,10 @@
                                         "promo-codes"
                                     ]
                                 },
-                                "description": "Spec 019 FR-060, spec 023 Story 5. The three kinds from one body (the New-code form): dealer, first-sale (pays_advance) and seller-side discount; for one account (tied_to = account number or phone, or tied_customer_id) or anyone. kind is inferred. Terms are immutable afterwards. 409 promo_code_exists; 422 promo_account_not_found | promo_customer_not_market_maker | validation_failed. Audited promo.created.",
+                                "description": "Spec 019 FR-060, spec 023 Story 5. The three kinds from one body (the New-code form): dealer, first-sale (pays_advance) and seller-side discount; for one account (tied_to = account number or phone, or tied_customer_id) or anyone. kind is inferred. By product and side: side (seller|buyer) + product_type (gold|diamond|gold_with_diamond). Seller: commission_mode waive|percent|amount (commission_amount_egp). Buyer (kind buyer): gold gives the seller's price; diamond / gold_with_diamond take deposit_percent or deposit_amount_egp off the deposit. Terms are immutable afterwards. 409 promo_code_exists; 422 promo_account_not_found | promo_customer_not_market_maker | validation_failed. Audited promo.created.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"code\": \"WELCOME\",\n    \"audience\": \"anyone\",\n    \"use_limit\": \"once\",\n    \"commission_mode\": \"percent\",\n    \"commission_percent\": 50,\n    \"first_sale_only\": true,\n    \"monthly_cap_egp\": 500000,\n    \"starts_on\": \"2026-10-20\",\n    \"ends_on\": \"2026-12-31\"\n}",
+                                    "raw": "{\n    \"code\": \"WELCOME\",\n    \"side\": \"seller\",\n    \"product_type\": \"gold\",\n    \"audience\": \"anyone\",\n    \"use_limit\": \"once\",\n    \"commission_mode\": \"percent\",\n    \"commission_percent\": 50,\n    \"first_sale_only\": true,\n    \"monthly_cap_egp\": 500000,\n    \"starts_on\": \"2026-10-20\",\n    \"ends_on\": \"2026-12-31\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
