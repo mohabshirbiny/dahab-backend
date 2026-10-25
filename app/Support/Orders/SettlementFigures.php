@@ -38,18 +38,27 @@ final readonly class SettlementFigures
         public string $certificateFee = '0.0000',
         // The ordinary commission VAT included, stored so the seller's saving can be shown whole.
         public string $ordinaryCommissionTotal = '0.0000',
+        // A buyer code's discount off the price (2026-10-26), and what pays for it: commission | spread.
+        public string $priceDiscount = '0.0000',
+        public ?string $priceDiscountFundedBy = null,
     ) {}
 
-    /** What the buyer pays for the piece: the total less the spread a code handed back to them. */
-    public function buyerPays(): string
+    /** Everything a buyer's code takes off the total: the spread handed back and a price discount. */
+    public function buyerDiscount(): string
     {
-        return Money::fixed4(Money::sub($this->buyerTotal, $this->spreadGivenUp));
+        return Money::fixed4(Money::add($this->spreadGivenUp, $this->priceDiscount));
     }
 
-    /** What leaves the buyer's wallet at payment: the balance less the spread handed back, never below 0. */
+    /** What the buyer pays for the piece: the total less what their code took off. */
+    public function buyerPays(): string
+    {
+        return Money::fixed4(Money::sub($this->buyerTotal, $this->buyerDiscount()));
+    }
+
+    /** What leaves the buyer's wallet at payment: the balance less what the code took off, never below 0. */
     public function cashDue(): string
     {
-        $due = Money::sub($this->balance, $this->spreadGivenUp);
+        $due = Money::sub($this->balance, $this->buyerDiscount());
 
         return Money::cmp($due, '0') > 0 ? Money::fixed4($due) : '0.0000';
     }
@@ -75,6 +84,8 @@ final readonly class SettlementFigures
             'commission_floor_applied' => $this->floorApplied,
             'spread_given_up' => $this->spreadGivenUp,
             'commission_ordinary_total' => $this->ordinaryCommissionTotal,
+            'price_discount_egp' => $this->priceDiscount,
+            'price_discount_funded_by' => Money::cmp($this->priceDiscount, '0') > 0 ? $this->priceDiscountFundedBy : null,
             'settled_at' => now(),
         ];
     }

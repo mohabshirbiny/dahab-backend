@@ -176,6 +176,10 @@ final class SendBuyRequestAction
                 'promo_waives_commission' => $promo?->kind === 'market_maker',
                 'promo_gives_spread' => (bool) $promo?->gives_spread,
                 'deposit_discount_egp' => bcsub($fullDeposit, $deposit, 4),
+                // 2026-10-26: a percentage or an amount off the price, and what pays for it.
+                'price_discount_percent' => $promo?->price_mode === 'percent' ? $promo->price_percent : null,
+                'price_discount_amount_egp' => $promo?->price_mode === 'amount' ? $promo->price_amount_egp : null,
+                'price_discount_funded_by' => $promo !== null && $promo->price_mode !== 'none' ? $promo->discount_funded_by : null,
             ]);
 
             if ($promo !== null) {

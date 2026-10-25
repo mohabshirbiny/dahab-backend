@@ -204,7 +204,8 @@ final class RecordInspectionResultAction
             }
 
             $f = $this->settlement->compute($order, $listing, $request, $result, waivers: false);
-            $this->tellOrder($order->buyer_id, OrderEvent::RESULT_PASSED, $order, $listing, amount: $f->buyerTotal);
+            // The buyer is told what they pay, after their code's discount; the seller the price of the sale.
+            $this->tellOrder($order->buyer_id, OrderEvent::RESULT_PASSED, $order, $listing, amount: $f->buyerPays());
             $this->tellOrder($order->seller_id, OrderEvent::RESULT_PASSED, $order, $listing, amount: $f->buyerTotal);
 
             return;

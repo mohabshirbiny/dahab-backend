@@ -8882,7 +8882,7 @@
                                         "promo-codes"
                                     ]
                                 },
-                                "description": "Spec 019 FR-060, spec 023 Story 5. The three kinds from one body (the New-code form): dealer, first-sale (pays_advance) and seller-side discount; for one account (tied_to = account number or phone, or tied_customer_id) or anyone. kind is inferred. By product and side: side (seller|buyer) + product_type (gold|diamond|gold_with_diamond). Seller: commission_mode waive|percent|amount (commission_amount_egp). Buyer (kind buyer): gold gives the seller's price; diamond / gold_with_diamond take deposit_percent or deposit_amount_egp off the deposit. Terms are immutable afterwards. 409 promo_code_exists; 422 promo_account_not_found | promo_customer_not_market_maker | validation_failed. Audited promo.created.",
+                                "description": "Spec 019 FR-060, spec 023 Story 5. The three kinds from one body (the New-code form): dealer, first-sale (pays_advance) and seller-side discount; for one account (tied_to = account number or phone, or tied_customer_id) or anyone. kind is inferred. By product and side: side (seller|buyer) + product_type (gold|diamond|gold_with_diamond). Seller: commission_mode waive|percent|amount (commission_amount_egp). Buyer (kind buyer): gold gives the seller's price; diamond / gold_with_diamond take deposit_percent or deposit_amount_egp off the deposit. Terms are immutable afterwards. 409 promo_code_exists; 422 promo_account_not_found | promo_customer_not_market_maker | validation_failed. Audited promo.created.\n\nBuyer price discount (2026-10-26): side buyer + price_percent or price_amount_egp + discount_funded_by commission | spread (spread on gold only). Example: {\"code\": \"GOLD10\", \"side\": \"buyer\", \"product_type\": \"gold\", \"price_percent\": 10, \"discount_funded_by\": \"commission\"}.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"code\": \"WELCOME\",\n    \"side\": \"seller\",\n    \"product_type\": \"gold\",\n    \"audience\": \"anyone\",\n    \"use_limit\": \"once\",\n    \"commission_mode\": \"percent\",\n    \"commission_percent\": 50,\n    \"first_sale_only\": true,\n    \"monthly_cap_egp\": 500000,\n    \"starts_on\": \"2026-10-20\",\n    \"ends_on\": \"2026-12-31\"\n}",
@@ -12516,6 +12516,48 @@
                                     }
                                 }
                             ]
+                        },
+                        {
+                            "name": "Preview a Buyer Code",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/buy-requests/promo-preview",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "buy-requests",
+                                        "promo-preview"
+                                    ]
+                                },
+                                "description": "What a buyer code would do on this piece (2026-10-26): effect spread | price | deposit, price_before_egp, discount_egp, total_egp, deposit_full_egp, deposit_egp. Same checks as sending the request (promo_code_invalid + details.reason); records nothing. Trade gate.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"listing_id\": \"{{listing_id}}\",\n    \"promo_code\": \"GOLD10\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            }
                         },
                         {
                             "name": "List My Buy Requests",

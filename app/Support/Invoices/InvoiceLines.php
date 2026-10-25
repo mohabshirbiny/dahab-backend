@@ -67,10 +67,11 @@ final class InvoiceLines
             $lines['asking_price'] = $subtotal;
         }
 
-        // A code that handed the spread back to the buyer: the price, the discount and what was paid.
-        if ($party === PartyRole::BUYER && Money::cmp($f->spreadGivenUp, '0') > 0) {
+        // A buyer code that took something off the price (the spread handed back, a price discount): the
+        // price, the discount and what was paid.
+        if ($party === PartyRole::BUYER && Money::cmp($f->buyerDiscount(), '0') > 0) {
             $lines['price_before_discount'] = $f->buyerTotal;
-            $lines['promo_discount'] = $f->spreadGivenUp;
+            $lines['promo_discount'] = $f->buyerDiscount();
             $lines['promo_code'] = $request->promo_code;
             $lines['total_paid'] = $f->buyerPays();
         }
