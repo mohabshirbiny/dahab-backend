@@ -9,6 +9,7 @@ use App\Enums\PieceCategory;
 use App\Enums\SettingKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reference\QuoteRequest;
+use App\Http\Resources\Customer\CustomerOrderResource;
 use App\Models\Branch;
 use App\Models\Karat;
 use App\Models\LegalDocument;
@@ -97,7 +98,7 @@ class ReferenceController extends Controller
         path: '/reference/branches',
         operationId: 'referenceBranches',
         summary: 'The inspection branches a seller can name',
-        description: 'Spec 010 FR-038. Enabled branches with their English and Arabic name and address. Public.',
+        description: 'Spec 010 FR-038. Enabled branches with their English and Arabic name and address, phone, map link and weekly hours (dow 0 = Sunday). Public.',
         tags: ['Reference'],
         responses: [
             new OA\Response(response: 200, description: 'Branches', content: new OA\JsonContent(properties: [
@@ -107,6 +108,9 @@ class ReferenceController extends Controller
                     new OA\Property(property: 'name_ar', type: 'string'),
                     new OA\Property(property: 'address_en', type: 'string'),
                     new OA\Property(property: 'address_ar', type: 'string'),
+                    new OA\Property(property: 'contact_phone', type: 'string', nullable: true),
+                    new OA\Property(property: 'map_url', type: 'string', nullable: true),
+                    new OA\Property(property: 'hours', type: 'array', items: new OA\Items(ref: '#/components/schemas/DashboardBranchHour')),
                 ], type: 'object')),
             ])),
             new OA\Response(response: 429, description: 'too_many_requests', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
@@ -114,14 +118,8 @@ class ReferenceController extends Controller
     )]
     public function branches(): JsonResponse
     {
-        return response()->json(['data' => Branch::query()->where('is_enabled', true)->orderBy('branch_id')->get()
-            ->map(fn (Branch $b) => [
-                'id' => $b->branch_id,
-                'name_en' => $b->name_en,
-                'name_ar' => $b->name_ar,
-                'address_en' => $b->address_en,
-                'address_ar' => $b->address_ar,
-            ])->all()]);
+        return response()->json(['data' => Branch::query()->with('hours')->where('is_enabled', true)->orderBy('branch_id')->get()
+            ->map(fn (Branch $b) => CustomerOrderResource::branch($b))->all()]);
     }
 
     #[OA\Get(

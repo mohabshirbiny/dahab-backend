@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Tests\Support\BuyRequests;
 use Tests\Support\FreeRelists;
 use Tests\Support\Listings;
 use Tests\Support\Orders;
@@ -17,8 +16,8 @@ use Tests\Support\Orders;
 uses(RefreshDatabase::class);
 
 // Spec 018 US3, FR-010–FR-021, research R8–R9: the link on the listing is the
-// waiver — no commission, no VAT, no minimum — while the spread stays; only
-// the buyer's invoice is issued.
+// waiver — no commission, no VAT, no minimum — while the spread stays; the
+// seller's invoice is of 0 and names the waiver (2026-10-25).
 
 beforeEach(function () {
     Storage::fake('identity_private');
@@ -106,35 +105,40 @@ it('does not carry the waiver to an ordinary listing of the same customer', func
     expect((string) $order->commission_amount)->not->toBe('0.0000');
 });
 
-it('issues only the buyer invoice, no seller invoice and no credit note', function () {
+it('issues both invoices: the seller\'s of 0 naming the free relist, and no credit note', function () {
     [, $relisted] = ac018Relisted($this);
     $order = FreeRelists::ac018SettleRelisted($this, $relisted);
 
-    $roles = TaxInvoice::query()->where('order_id', $order->order_id)->pluck('party_role')->map(fn ($r) => $r instanceof BackedEnum ? $r->value : $r)->all();
-    expect($roles)->toBe(['buyer']);
+    $invoices = TaxInvoice::query()->where('order_id', $order->order_id)->get()->keyBy(fn ($i) => $i->party_role instanceof BackedEnum ? $i->party_role->value : $i->party_role);
+    expect($invoices->keys()->sort()->values()->all())->toBe(['buyer', 'seller']);
+
+    $seller = $invoices['seller'];
+    expect((string) $seller->net_amount)->toBe('0.0000')
+        ->and((string) $seller->vat_amount)->toBe('0.0000')
+        ->and((string) $seller->gross_amount)->toBe('0.0000')
+        ->and($seller->lines['commission_waived']['kind'])->toBe('free_relist')
+        ->and(bccomp($seller->lines['commission_waived']['amount'], '0', 4))->toBe(1)
+        ->and($seller->lines['commission_waived']['amount'])->toBe($seller->lines['commission_ordinary_total']);
+    expect(DB::table('credit_note')->count())->toBe(0);
 
     $view = Orders::show($this, Orders::seller($order), $order)->assertOk();
-    expect($view->json('data.invoice'))->toBeNull()->and($view->json('data.no_fee'))->toBeTrue();
+    expect($view->json('data.invoice.number'))->toBe($order->order_ref.'-S')->and($view->json('data.no_fee'))->toBeTrue();
     expect(Orders::show($this, Orders::buyer($order), $order)->json('data.invoice.number'))->toBe($order->order_ref.'-B');
 });
 
-it('refuses, at the database, a seller invoice on a sale of no commission', function () {
-    [, $relisted] = ac018Relisted($this);
-    $order = FreeRelists::ac018SettleRelisted($this, $relisted);
-
+it('refuses, at the database, a buyer invoice of 0', function () {
     $state = null;
     try {
-        DB::transaction(function () use ($order) {
+        DB::transaction(function () {
             DB::table('tax_invoice')->insert([
-                'invoice_id' => (string) Str::uuid(), 'invoice_no' => $order->order_ref.'-S', 'order_id' => $order->order_id,
-                'party_role' => 'seller', 'customer_id' => $order->seller_id, 'net_amount' => '1.0000', 'vat_amount' => '0.1400',
-                'gross_amount' => '1.1400', 'vat_rate' => '14', 'lines' => '[]',
+                'invoice_id' => (string) Str::uuid(), 'invoice_no' => 'DH-2026-999999-B', 'order_id' => (string) Str::uuid(),
+                'party_role' => 'buyer', 'customer_id' => (string) Str::uuid(), 'net_amount' => '0.0000', 'vat_amount' => '0.0000',
+                'gross_amount' => '0.0000', 'vat_rate' => '0', 'lines' => '[]',
             ]);
-            BuyRequests::checkNow();
         });
     } catch (QueryException $e) {
         $state = $e->errorInfo[0] ?? null;
     }
 
-    expect($state)->toBe('DH012');
+    expect($state)->toBe('23514');
 });

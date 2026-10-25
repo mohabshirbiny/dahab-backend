@@ -24,7 +24,9 @@ use Illuminate\Support\Str;
  * (row-level security applies the read policy to `INSERT … RETURNING`), so
  * ids are made here and the rows are written with a plain insert — never
  * returned or reloaded (analysis U1). Documents are generated after commit.
- * Spec 018: when the commission is zero (a free relist) only the buyer's invoice is issued.
+ * Every sale issues both: a sale of no commission (free relist, a seller code, a market maker)
+ * gives the seller an invoice of 0 that says what was waived. The buyer's is the total paid,
+ * after any spread a code handed back (docs/features/offer-details-and-invoices.md).
  * Not final: a test replaces it to prove a failed issue rolls the payment back.
  */
 class IssueTaxInvoices
@@ -42,13 +44,7 @@ class IssueTaxInvoices
 
         foreach (PartyRole::cases() as $party) {
             $seller = $party === PartyRole::SELLER;
-            // Spec 018 FR-021: a sale of no commission (a free relist) has no seller invoice —
-            // nothing is charged to the seller, and the table refuses a zero net.
-            if ($seller && Money::cmp($f->commission, '0') <= 0) {
-                continue;
-            }
-
-            $net = $seller ? $f->commission : $f->buyerTotal;
+            $net = $seller ? $f->commission : $f->buyerPays();
             $vat = $seller ? $f->vat : '0.0000';
             $row = [
                 'invoice_id' => (string) Str::uuid(),

@@ -23,6 +23,11 @@ final class ListingRules
     /** EGP a person types: at most 2 decimals. */
     public const MONEY = ['numeric', 'decimal:0,2', 'max:99999999.99'];
 
+    /** A stone's clarity and cut as the sell form offers them (schema CHECKs on listing). */
+    public const CLARITIES = ['vvs', 'vs', 'si', 'i'];
+
+    public const CUTS = ['excellent', 'very_good', 'good'];
+
     /**
      * @param  bool  $partial  true for an edit: a field is only checked when it is sent
      * @return array<string, list<mixed>>
@@ -42,6 +47,10 @@ final class ListingRules
             'asking_price' => $gold ? ['prohibited'] : [$need, ...self::MONEY, 'gt:0'],
             // A stone piece names the certificate it comes with; its cost is taken from the seller at settlement.
             'certificate_kind' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::enum(CertificateKind::class)],
+            // What the stone is, as the seller states it (IGI checks it); shown to the buyer, above all without a certificate.
+            'stone_carat' => $gold ? ['prohibited'] : ['sometimes', 'nullable', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999.99'],
+            'stone_clarity' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::in(self::CLARITIES)],
+            'stone_cut' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::in(self::CUTS)],
             'description' => ['sometimes', 'nullable', 'string', 'max:'.config('dahab-listings.description_max')],
         ];
     }

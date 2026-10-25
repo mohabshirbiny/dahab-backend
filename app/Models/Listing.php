@@ -34,6 +34,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $making_charge_per_g
  * @property string|null $asking_price
  * @property CertificateKind|null $certificate_kind the certificate a stone piece comes with (its cost is taken at settlement); null before this existed
+ * @property string|null $stone_carat stones only: the stone weight in carats, as the seller states it
+ * @property string|null $stone_clarity stones only: vvs | vs | si | i
+ * @property string|null $stone_cut stones only: excellent | very_good | good
  * @property string|null $description
  * @property string|null $relisted_from_order_id spec 018: set when this listing is a free relist (the 0% commission waiver)
  * @property ListingState $state
@@ -77,6 +80,26 @@ class Listing extends Model
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'seller_id', 'customer_id');
+    }
+
+    /**
+     * The stone as the seller describes it, for every reader of the piece (seller, buyer, staff):
+     * the certificate it comes with and its carat, clarity and cut. Null for gold.
+     *
+     * @return array{certificate_kind: string|null, carat: string|null, clarity: string|null, cut: string|null}|null
+     */
+    public function stoneDetails(): ?array
+    {
+        if ($this->category === PieceCategory::GOLD) {
+            return null;
+        }
+
+        return [
+            'certificate_kind' => $this->certificate_kind?->value,
+            'carat' => $this->stone_carat === null ? null : bcadd((string) $this->stone_carat, '0', 2),
+            'clarity' => $this->stone_clarity,
+            'cut' => $this->stone_cut,
+        ];
     }
 
     /** Spec 018: a free relist is linked to the order it was relisted from; the link is the waiver. */

@@ -9,9 +9,11 @@ use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
 use App\Enums\OrderState;
 use App\Enums\PartyRole;
+use App\Exceptions\DomainApiException;
 use App\Http\Resources\ListingMediaResource;
 use App\Models\Branch;
 use App\Models\Dispute;
+use App\Models\InspectionResult;
 use App\Models\Listing;
 use App\Models\Order;
 use App\Support\Orders\DeadlinePolicy;
@@ -19,7 +21,9 @@ use App\Support\Orders\FreeRelistOffer;
 use App\Support\Orders\OrderSettlement;
 use App\Support\Orders\OrderTimeline;
 use App\Support\Orders\RatingWindow;
+use App\Support\Orders\SettlementFigures;
 use App\Support\Pricing\PricingContext;
+use App\Support\Pricing\PricingRates;
 use App\Support\Wallet\HeldByRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -43,15 +47,15 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'role', type: 'string', enum: ['buyer', 'seller']),
         new OA\Property(property: 'state', type: 'string', description: 'An order_state value'),
         new OA\Property(property: 'stage', type: 'string', enum: ['bring_piece', 'at_igi', 'decide', 'pay', 'collect', 'done', 'cancelled']),
-        new OA\Property(property: 'piece', type: 'object', description: 'listing_id, category, piece_type {id, name_en, name_ar}, karat, weight_g (stated), description, listing_state, photo (ListingMedia or null; its url is GET /customer/me/orders/{order}/media/{media})'),
-        new OA\Property(property: 'branch', type: 'object', description: 'id, name_en, name_ar, address_en, address_ar, hours[{dow, opens_at, closes_at}]'),
+        new OA\Property(property: 'piece', type: 'object', description: 'listing_id, category, piece_type {id, name_en, name_ar}, karat, weight_g (stated), description, stone {certificate_kind, carat, clarity, cut} (null for gold), listing_state, photo (ListingMedia or null; its url is GET /customer/me/orders/{order}/media/{media})'),
+        new OA\Property(property: 'branch', type: 'object', description: 'id, name_en, name_ar, address_en, address_ar, contact_phone, map_url, hours[{dow, opens_at, closes_at}]'),
         new OA\Property(property: 'counterparty_ref', type: 'string', description: 'The other party\'s display reference'),
         new OA\Property(property: 'locked_total_price', type: 'string'),
         new OA\Property(property: 'deposit_amount', type: 'string'),
         new OA\Property(property: 'deposit_held', type: 'string', nullable: true, description: 'Spec 015: what this order holds in the buyer\'s wallet now, from the ledger; null for the seller'),
         new OA\Property(property: 'invoice', type: 'object', nullable: true, description: 'Spec 016: {id, number} of your own tax invoice for this order once the balance is paid; null before (and for orders paid before spec 016)'),
         new OA\Property(property: 'deadline', type: 'object', nullable: true, description: '{kind: reach_branch|decision|balance|collect|return, at, overdue}'),
-        new OA\Property(property: 'amount_due', type: 'string', nullable: true, description: 'Buyer, awaiting balance'),
+        new OA\Property(property: 'amount_due', type: 'string', nullable: true, description: 'Buyer, awaiting balance: what leaves the wallet at payment — the balance less any spread a code hands back (promo.discount_egp)'),
         new OA\Property(property: 'final_total', type: 'string', nullable: true, description: 'Buyer: the total on the measured weight'),
         new OA\Property(property: 'seller_proceeds', type: 'string', nullable: true, description: 'Seller, once paid; after commission, VAT and the certificate fee'),
         new OA\Property(property: 'certificate_fee', type: 'string', nullable: true, description: 'Seller only: what the stone certificate cost, locked at acceptance and taken from the proceeds at payment. Null for the buyer and when nothing is charged.'),
@@ -67,7 +71,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'proxy', type: 'object', nullable: true, description: 'Spec 014, the buyer only: {name, phone_masked, named_at}'),
         new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, always present. The buyer\'s offer to relist the collected piece at 0% commission: {status: none|open|used|expired, ends_at (the server\'s window end, working hours from the handover) | null, listing_id | null, previous_making_charge_per_g (gold, open offer: the fee on the sold piece; the new fee may not exceed it) | null}. Always none for the seller.'),
         new OA\Property(property: 'rating', type: 'object', description: 'Spec 018, your own party only: {can_rate, opens_at, closes_at, given: {stars, note, created_at} | null}'),
-        new OA\Property(property: 'no_fee', type: 'boolean', description: 'Spec 018: true on the seller\'s order when the sale was a free relist — Dahab charged no commission and there is no seller invoice'),
+        new OA\Property(property: 'no_fee', type: 'boolean', description: 'Spec 018: true on the seller\'s order when the sale was a free relist — Dahab charged no commission (the seller invoice is of 0 since 2026-10-25)'),
+        new OA\Property(property: 'commission', type: 'object', nullable: true, description: 'Seller only (spec 023): {recorded, ordinary_egp, charged_egp, saved_egp (net of VAT), ordinary_total_egp, charged_total_egp, saved_total_egp (VAT included; null for orders settled before 2026-10-25), waiver, code}'),
+        new OA\Property(property: 'promo', type: 'object', nullable: true, description: 'Buyer only, null without a code: {code, gives_spread, price_before_egp, discount_egp (the spread handed back), total_egp = price_before − discount, indicative (true until the balance is due), deposit_full_egp, deposit_discount_egp}; the figures are null when the code does not touch the price'),
         new OA\Property(property: 'timeline', type: 'array', items: new OA\Items(type: 'object')),
         new OA\Property(property: 'collection_code', type: 'string', nullable: true, description: 'Detail only, the buyer, while ready to collect'),
         new OA\Property(property: 'return_code', type: 'string', nullable: true, description: 'Detail only, the seller, while the return is open'),
@@ -107,10 +113,12 @@ class CustomerOrderResource extends JsonResource
         }
 
         $amountDue = null;
+        $f = null;
         $finalTotal = $o->final_buyer_total === null ? null : bcadd((string) $o->final_buyer_total, '0', 4);
         if (! $seller && $o->state === OrderState::AWAITING_BALANCE) {
             $f = $settlement->compute($o, $listing, $o->buyRequest, $result, $rates, waivers: false);
-            $amountDue = $f->balance;
+            // What leaves the wallet: a code that hands the spread back takes it off in the same payment.
+            $amountDue = $f->cashDue();
             $finalTotal = $f->buyerTotal;
         }
 
@@ -198,6 +206,8 @@ class CustomerOrderResource extends JsonResource
             // Spec 023: the seller's advance and what the commission cost them (null for the buyer).
             'advance' => $seller ? self::advance($o) : null,
             'commission' => $seller ? self::commission($o) : null,
+            // The buyer's code written out: the price, the discount and the total, and what it did to the deposit.
+            'promo' => $seller ? null : self::buyerPromo($o, $listing, $result, $rates, $f),
         ];
 
         if ($this->withCode) {
@@ -240,7 +250,8 @@ class CustomerOrderResource extends JsonResource
     private static function commission(Order $o): array
     {
         if ($o->commission_ordinary_amount === null) {
-            return ['recorded' => false, 'ordinary_egp' => null, 'charged_egp' => null, 'saved_egp' => null, 'waiver' => null, 'code' => null];
+            return ['recorded' => false, 'ordinary_egp' => null, 'charged_egp' => null, 'saved_egp' => null,
+                'ordinary_total_egp' => null, 'charged_total_egp' => null, 'saved_total_egp' => null, 'waiver' => null, 'code' => null];
         }
 
         $code = null;
@@ -248,13 +259,66 @@ class CustomerOrderResource extends JsonResource
             $code = DB::table('commission_credit')->where('credit_id', $o->commission_waiver_credit_id)->value('promo_code');
         }
 
+        // VAT included, as the seller pays it: what an ordinary sale charges, what this one charged and the
+        // difference. Orders settled before the ordinary total was stored have none (the app shows the net).
+        $chargedTotal = bcadd((string) $o->commission_amount, (string) ($o->vat_amount ?? '0'), 4);
+        $ordinaryTotal = $o->commission_ordinary_total === null ? null : bcadd((string) $o->commission_ordinary_total, '0', 4);
+
         return [
             'recorded' => true,
             'ordinary_egp' => bcadd((string) $o->commission_ordinary_amount, '0', 4),
             'charged_egp' => bcadd((string) $o->commission_amount, '0', 4),
             'saved_egp' => bcadd((string) $o->commission_given_up, '0', 4),
+            'ordinary_total_egp' => $ordinaryTotal,
+            'charged_total_egp' => $chargedTotal,
+            'saved_total_egp' => $ordinaryTotal === null ? null : bcsub($ordinaryTotal, $chargedTotal, 4),
             'waiver' => $o->commission_waiver_kind,
             'code' => $code,
+        ];
+    }
+
+    /**
+     * The buyer's promo code on this order (docs/features/offer-details-and-invoices.md): for a code that
+     * hands the spread back (a gold buyer code, a market maker) the price before it, the discount and the
+     * total; for a code on stones what it took off the deposit. Settled orders read the stored figures;
+     * open ones are worked out on the locked rates and the latest weight (`indicative`). Null without a code.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function buyerPromo(Order $o, Listing $listing, ?InspectionResult $result, PricingRates $rates, ?SettlementFigures $f): ?array
+    {
+        $r = $o->buyRequest;
+        if ($r === null || $r->promo_code === null) {
+            return null;
+        }
+
+        $before = $discount = null;
+        $indicative = false;
+        if ($r->promo_gives_spread) {
+            if ($o->settlement_txn_id !== null && $o->final_buyer_total !== null) {
+                $before = bcadd((string) $o->final_buyer_total, '0', 4);
+                $discount = bcadd((string) ($o->spread_given_up ?? '0'), '0', 4);
+            } else {
+                try {
+                    $f ??= app(OrderSettlement::class)->compute($o, $listing, $r, $result, $rates, waivers: false);
+                    [$before, $discount, $indicative] = [$f->buyerTotal, $f->spreadGivenUp, $o->state !== OrderState::AWAITING_BALANCE];
+                } catch (DomainApiException) {
+                    // No price can be worked out now (no locked seller rate): the code is named without figures.
+                }
+            }
+        }
+
+        $depositDiscount = bcadd((string) ($r->deposit_discount_egp ?? '0'), '0', 4);
+
+        return [
+            'code' => $r->promo_code,
+            'gives_spread' => (bool) $r->promo_gives_spread,
+            'price_before_egp' => $before,
+            'discount_egp' => $discount,
+            'total_egp' => $before === null ? null : bcsub($before, (string) $discount, 4),
+            'indicative' => $indicative,
+            'deposit_full_egp' => bcadd((string) $r->deposit_amount, $depositDiscount, 4),
+            'deposit_discount_egp' => $depositDiscount,
         ];
     }
 
@@ -366,6 +430,7 @@ class CustomerOrderResource extends JsonResource
             'karat' => $l->karat_code,
             'weight_g' => $l->stated_weight_g === null ? null : bcadd((string) $l->stated_weight_g, '0', 3),
             'description' => $l->description,
+            'stone' => $l->stoneDetails(),
             'listing_state' => $l->state->value,
             'photo' => $photo,
         ];
@@ -380,6 +445,8 @@ class CustomerOrderResource extends JsonResource
             'name_ar' => $b->name_ar,
             'address_en' => $b->address_en,
             'address_ar' => $b->address_ar,
+            'contact_phone' => $b->contact_phone,
+            'map_url' => $b->map_url,
             'hours' => $b->relationLoaded('hours') ? $b->hours->map(fn ($h) => [
                 'dow' => $h->dow, 'opens_at' => substr((string) $h->opens_at, 0, 5), 'closes_at' => substr((string) $h->closes_at, 0, 5),
             ])->values()->all() : [],

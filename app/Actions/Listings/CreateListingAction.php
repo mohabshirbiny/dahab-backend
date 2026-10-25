@@ -74,6 +74,9 @@ final class CreateListingAction
                 'making_charge_per_g' => $data['making_charge_per_g'] ?? null,
                 'asking_price' => $data['asking_price'] ?? null,
                 'certificate_kind' => $data['certificate_kind'] ?? null,
+                'stone_carat' => $data['stone_carat'] ?? null,
+                'stone_clarity' => $data['stone_clarity'] ?? null,
+                'stone_cut' => $data['stone_cut'] ?? null,
                 'description' => $data['description'] ?? null,
                 'state' => ListingState::DRAFT,
             ]);

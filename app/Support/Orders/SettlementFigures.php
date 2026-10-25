@@ -3,6 +3,7 @@
 namespace App\Support\Orders;
 
 use App\Enums\WaiverKind;
+use App\Support\Pricing\Money;
 
 /**
  * One order's settlement (spec 012 research R6–R7; Part 3 §3): what the
@@ -35,7 +36,23 @@ final readonly class SettlementFigures
         public string $commissionGivenUpTotal = '0.0000',
         // Package D: the IGI certificate cost taken from the seller's proceeds (already out of `proceeds`); locked on the order at acceptance.
         public string $certificateFee = '0.0000',
+        // The ordinary commission VAT included, stored so the seller's saving can be shown whole.
+        public string $ordinaryCommissionTotal = '0.0000',
     ) {}
+
+    /** What the buyer pays for the piece: the total less the spread a code handed back to them. */
+    public function buyerPays(): string
+    {
+        return Money::fixed4(Money::sub($this->buyerTotal, $this->spreadGivenUp));
+    }
+
+    /** What leaves the buyer's wallet at payment: the balance less the spread handed back, never below 0. */
+    public function cashDue(): string
+    {
+        $due = Money::sub($this->balance, $this->spreadGivenUp);
+
+        return Money::cmp($due, '0') > 0 ? Money::fixed4($due) : '0.0000';
+    }
 
     /** @return array<string, mixed> the "order" columns */
     public function columns(): array
@@ -57,6 +74,7 @@ final readonly class SettlementFigures
             'commission_floor_egp' => $this->floor,
             'commission_floor_applied' => $this->floorApplied,
             'spread_given_up' => $this->spreadGivenUp,
+            'commission_ordinary_total' => $this->ordinaryCommissionTotal,
             'settled_at' => now(),
         ];
     }

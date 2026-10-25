@@ -25,6 +25,8 @@ final class CreateBranchAction
                 'name_ar' => $data['name_ar'],
                 'address_en' => $data['address_en'],
                 'address_ar' => $data['address_ar'],
+                'contact_phone' => $data['contact_phone'] ?? null,
+                'map_url' => $data['map_url'] ?? null,
                 'timezone' => $data['timezone'] ?? PlatformCalendar::TIMEZONE,
                 'is_enabled' => $data['is_enabled'] ?? true,
             ]);

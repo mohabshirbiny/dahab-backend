@@ -28,7 +28,7 @@ class Branch extends Model
     public $timestamps = false;
 
     /** The fields the Dashboard edits (the week is replaced separately). */
-    public const EDITABLE = ['name_en', 'name_ar', 'address_en', 'address_ar', 'timezone', 'is_enabled'];
+    public const EDITABLE = ['name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'timezone', 'is_enabled'];
 
     protected $fillable = self::EDITABLE;
 

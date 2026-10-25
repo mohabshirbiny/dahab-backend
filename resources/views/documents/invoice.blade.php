@@ -44,12 +44,25 @@
     @else
         <tr><td class="c1">Price of the piece</td><td class="num c2">{{ $m($l['asking_price']) }}</td><td class="ar c3" lang="ar">سعر القطعة</td></tr>
     @endif
+    @if(! $seller && ($l['promo_discount'] ?? null) !== null)
+        {{-- A buyer code handed the spread back: the price, the discount, then what was paid. --}}
+        <tr class="total"><td class="c1">Price</td><td class="num c2">{{ $m($l['price_before_discount']) }}</td><td class="ar c3" lang="ar">السعر</td></tr>
+        <tr><td class="c1">Discount, code {{ $l['promo_code'] ?? '' }}</td><td class="num c2">− {{ $m($l['promo_discount']) }}</td><td class="ar c3" lang="ar">خصم الكود {{ $l['promo_code'] ?? '' }}</td></tr>
+        <tr class="total"><td class="c1">Total paid</td><td class="num c2">{{ $m($l['total_paid']) }}</td><td class="ar c3" lang="ar">إجمالي المدفوع</td></tr>
+    @else
     <tr class="total"><td class="c1">{{ $seller ? 'Gross' : 'Total paid' }}</td><td class="num c2">{{ $m($l['subtotal']) }}</td><td class="ar c3" lang="ar">{{ $seller ? 'الإجمالي' : 'إجمالي المدفوع' }}</td></tr>
+    @endif
 </table>
 
 @if($seller)
 <table class="lines" style="margin-top:5mm">
     <tr class="section"><td class="c1">Dahab charges</td><td class="num c2">EGP</td><td class="ar c3" lang="ar">رسوم دهب</td></tr>
+    @if(isset($l['commission_waived']))
+        @php($w = $l['commission_waived'])
+        @php($why = match ($w['kind'] ?? null) { 'free_relist' => ['Free relist', 'إعادة عرض مجانية'], 'market_maker' => ['Dealer purchase', 'شراء تاجر'], default => ['Promo code', 'كود خصم'] })
+        <tr><td class="c1">Commission on an ordinary sale, VAT included</td><td class="num c2">{{ $m($l['commission_ordinary_total'] ?? null) }}</td><td class="ar c3" lang="ar">العمولة في البيع العادي شاملة الضريبة</td></tr>
+        <tr><td class="c1">{{ $why[0] }}{{ ! empty($w['code']) ? (($w['kind'] ?? null) === 'credit' ? ' ' : ', code ').$w['code'] : '' }}</td><td class="num c2">− {{ $m($w['amount'] ?? null) }}</td><td class="ar c3" lang="ar">{{ $why[1] }}{{ ! empty($w['code']) ? ' '.$w['code'] : '' }}</td></tr>
+    @endif
     @if($l['commission_vat_inclusive'] ?? false)
     <tr><td class="c1">Commission before VAT ({{ $pct($l['commission_pct'] ?? '') }}%, minimum {{ $m($l['commission_minimum'] ?? null) }}, VAT included)</td><td class="num c2">{{ $m($invoice->net_amount) }}</td><td class="ar c3" lang="ar">العمولة قبل الضريبة ({{ $pct($l['commission_pct'] ?? '') }}٪ شاملة الضريبة)</td></tr>
     @else

@@ -2414,10 +2414,10 @@
                                         "branches"
                                     ]
                                 },
-                                "description": "Adds a branch with its whole week. Several intervals per day are allowed (split day); they must not overlap (422 hours.N). timezone is an IANA name, default Africa/Cairo. Requires branches.manage.",
+                                "description": "Adds a branch with its whole week. Several intervals per day are allowed (split day); they must not overlap (422 hours.N). timezone is an IANA name, default Africa/Cairo. Requires branches.manage.\n\ncontact_phone (≤ 30) and map_url (http/https link, ≤ 500) are optional; customers see them with the hours on GET /reference/branches and on their orders. null clears them.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"name_ar\": \"فرع مصر الجديدة\",\n    \"address_en\": \"12 Baghdad St, Heliopolis\",\n    \"address_ar\": \"12 شارع بغداد، مصر الجديدة\",\n    \"timezone\": \"Africa/Cairo\",\n    \"hours\": [\n        {\n            \"dow\": 0,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"18:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"14:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"16:00\",\n            \"closes_at\": \"20:00\"\n        }\n    ]\n}",
+                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"name_ar\": \"فرع مصر الجديدة\",\n    \"address_en\": \"12 Baghdad St, Heliopolis\",\n    \"address_ar\": \"12 شارع بغداد، مصر الجديدة\",\n    \"contact_phone\": \"+20 2 2401 0000\",\n    \"map_url\": \"https://maps.google.com/?q=IGI+Heliopolis\",\n    \"timezone\": \"Africa/Cairo\",\n    \"hours\": [\n        {\n            \"dow\": 0,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"18:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"14:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"16:00\",\n            \"closes_at\": \"20:00\"\n        }\n    ]\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -2461,10 +2461,10 @@
                                         "{{branch_id}}"
                                     ]
                                 },
-                                "description": "Edits any field. hours, when sent, replaces the whole week. Disable with is_enabled false; branches are never deleted. Requires branches.manage.",
+                                "description": "Edits any field. hours, when sent, replaces the whole week. Disable with is_enabled false; branches are never deleted. Requires branches.manage.\n\ncontact_phone (≤ 30) and map_url (http/https link, ≤ 500) are optional; customers see them with the hours on GET /reference/branches and on their orders. null clears them.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"hours\": [\n        {\n            \"dow\": 6,\n            \"opens_at\": \"11:00\",\n            \"closes_at\": \"19:00\"\n        }\n    ]\n}",
+                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"contact_phone\": \"+20 2 2401 0000\",\n    \"map_url\": null,\n    \"hours\": [\n        {\n            \"dow\": 6,\n            \"opens_at\": \"11:00\",\n            \"closes_at\": \"19:00\"\n        }\n    ]\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -11736,7 +11736,7 @@
                                         "listings"
                                     ]
                                 },
-                                "description": "Spec 010, Part 2 §3. Creates a draft with its media, branch options, the accepted ownership declaration and its queue counter. Fields by category: gold — karat_code, stated_weight_g, making_charge_per_g; gold_with_diamond — karat_code, stated_weight_g, asking_price; diamond — asking_price only. 422 gold_needs_karat_weight | branch_options_required | ownership_declaration_required | upload_token_invalid | validation_failed. Trade gate; Idempotency-Key. Saves listing_id. Stone pieces may send certificate_kind (igi | other_lab | none): its cost (GET /reference/certificate-costs) is locked on the order at acceptance and taken from the seller proceeds at payment. Run Reference → Piece Types, Branches and Ownership Declaration first.",
+                                "description": "Spec 010, Part 2 §3. Creates a draft with its media, branch options, the accepted ownership declaration and its queue counter. Fields by category: gold — karat_code, stated_weight_g, making_charge_per_g; gold_with_diamond — karat_code, stated_weight_g, asking_price; diamond — asking_price only. 422 gold_needs_karat_weight | branch_options_required | ownership_declaration_required | upload_token_invalid | validation_failed. Trade gate; Idempotency-Key. Saves listing_id. Stone pieces may send certificate_kind (igi | other_lab | none): its cost (GET /reference/certificate-costs) is locked on the order at acceptance and taken from the seller proceeds at payment. Run Reference → Piece Types, Branches and Ownership Declaration first.\n\nStones only (diamond, gold_with_diamond; refused on gold): certificate_kind (igi|other_lab|none), stone_carat (\"0.70\", > 0, 2 dp), stone_clarity (vvs|vs|si|i), stone_cut (excellent|very_good|good). Returned as `stone` on the listing, the market piece and the order.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"category\": \"gold\",\n    \"piece_type_id\": {{piece_type_id}},\n    \"karat_code\": 21,\n    \"stated_weight_g\": \"8.000\",\n    \"making_charge_per_g\": \"250.00\",\n    \"asking_price\": null,\n    \"description\": \"Worn a few times and kept in its box. Small scratch on the inner band.\",\n    \"branch_option_ids\": [{{branch_id}}],\n    \"photo_tokens\": [\"{{listing_photo_token}}\", \"{{listing_photo_token_2}}\"],\n    \"video_token\": null,\n    \"invoice_token\": null,\n    \"stone_certificate_token\": null,\n    \"ownership_declaration_accepted\": true,\n    \"ownership_legal_doc_id\": {{ownership_legal_doc_id}}\n}",

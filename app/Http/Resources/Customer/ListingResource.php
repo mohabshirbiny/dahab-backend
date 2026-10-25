@@ -33,6 +33,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'making_charge_per_g', type: 'string', nullable: true, example: '250.0000'),
         new OA\Property(property: 'asking_price', type: 'string', nullable: true, example: '120000.0000'),
         new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'stone', type: 'object', nullable: true, description: 'Stone pieces only (null for gold): {certificate_kind: igi|other_lab|none|null, carat (2 dp) | null, clarity: vvs|vs|si|i|null, cut: excellent|very_good|good|null}, as the seller states them; IGI checks them at handover'),
         new OA\Property(property: 'media', type: 'array', items: new OA\Items(ref: '#/components/schemas/ListingMedia'), description: 'Everything attached, the private invoice included'),
         new OA\Property(property: 'branch_options', type: 'array', items: new OA\Items(properties: [
             new OA\Property(property: 'id', type: 'integer'),
@@ -120,6 +121,7 @@ class ListingResource extends JsonResource
             // Package D: the certificate a stone piece comes with and what it costs the seller (already out of you_would_receive).
             'certificate_kind' => $l->certificate_kind?->value,
             'certificate_fee' => $quote->certificateFee,
+            'stone' => $l->stoneDetails(),
             'media' => ListingMediaResource::many($l->media, $mediaRoute),
             'branch_options' => $l->branches->map(fn (Branch $b) => [
                 'id' => $b->branch_id,

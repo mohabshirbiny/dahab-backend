@@ -98,10 +98,11 @@ final class PayBalanceAction
                     throw $e;
                 }
                 $available = $this->deposits->available($buyer->customer_id);
+                // What leaves the wallet: the balance less any spread a code hands back in the same entry.
                 throw DomainApiException::insufficientFunds([
-                    'amount_due' => $figures->balance,
+                    'amount_due' => $figures->cashDue(),
                     'available' => Money::fixed4($available),
-                    'shortfall' => Money::fixed4(Money::sub($figures->balance, $available)),
+                    'shortfall' => Money::fixed4(Money::sub($figures->cashDue(), $available)),
                 ]);
             }
 

@@ -393,6 +393,16 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   view log + `order.buyer_id_viewed`); the proxy's ID is taken like sign-up (`id_kind` + `id_upload_token` +
   `id_back_upload_token`, required for `egyptian_id`; `collection.proxy_id_kind|proxy_id_back_storage_ref`), `proxy-id?side=`;
   the work-list handover row carries `proxy` {name, phone, id_kind, has_back} and `buyer_id` {doc_kind, has_back}.
+  Offer details and invoices (`docs/features/offer-details-and-invoices.md`): a branch's `contact_phone` and `map_url`
+  (public `GET /reference/branches` now with `hours`; the order's `branch` too); a stone piece's `stone_carat`,
+  `stone_clarity`, `stone_cut` and a `stone` block {certificate_kind, carat, clarity, cut} on the listing, the market piece and
+  the order; **every settled sale issues both invoices** — a sale of no commission (free relist, seller code, dealer) gives the
+  seller `-S` of 0 with `lines.commission_waived` {kind, code, amount} and `commission_ordinary_total` (DH012 rewritten,
+  `tax_invoice_net_positive`); the buyer's invoice is the total paid, net of a spread a code handed back (`price_before_discount`,
+  `promo_discount`, `promo_code`, `total_paid`); `"order".commission_ordinary_total` stored at settlement, the seller's order
+  `commission.saved_total_egp` (VAT included); the buyer's order `promo` {code, gives_spread, price_before_egp, discount_egp,
+  total_egp, indicative, deposit_full_egp, deposit_discount_egp} and `amount_due` = the balance less that discount (also in
+  `insufficient_funds`).
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -428,6 +438,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Rejected identity (branch): *Move back to waiting* with a reason on the rejected customer's review panel.
   Handover ID check: the handover window (Inspections and the order detail) shows the buyer's ID when the buyer collects
   and the named person's when they do, front and back (`HandoverIdPhotos`).
+  Offer details: Promo codes has *View* (every term in words, with an example); Branches takes a phone and a map link;
+  the listing review shows the stone as stated; the invoice detail shows the waived commission and the buyer's discount.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -464,6 +476,12 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Handover ID check: *Someone else will collect it* asks for their ID like sign-up — Egyptian ID (front + back) or passport
   (photo page, another page optional) — with a preview of each photo; texts `orders.back_of_their_id|the_page_with_their_photo|
   another_page_optional` (AR-DRAFT).
+  Offer details: *Hours and address* on each branch of Sell step 3 and on the order opens the branch (hours by day, phone with
+  Call, map); the sell form sends the stone's carat, clarity and cut (asked for gold with diamond too) and shows the gold rate per
+  gram; the seller's piece shows the IGI certificate cost; the piece page and the order show the certificate (or "No
+  certificate") and the stone; the buyer's order shows the price, the code's discount and the total; the code saving is VAT
+  included; the invoice shows the discount or the waived commission; texts `branch.*|stone.*|order.promo.*|invoice.waived.*`
+  (AR-DRAFT).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 
