@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A promo code (schema §15, spec 019 FR-060, spec 023 data-model 1.1): a dealer code tied to one
@@ -79,5 +80,26 @@ class PromoCode extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'created_by', 'staff_id');
+    }
+
+    /** Nothing points at the code yet: no use (allowed or blocked), credit, buy request, listing or advance. */
+    public static function unused(string $code): bool
+    {
+        return (bool) DB::selectOne('SELECT promo_code_unused(?) AS unused', [$code])->unused;
+    }
+
+    /**
+     * The codes of `$codes` that something points at, in one query.
+     *
+     * @param  list<string>  $codes
+     * @return list<string>
+     */
+    public static function usedOf(array $codes): array
+    {
+        if ($codes === []) {
+            return [];
+        }
+
+        return array_column(DB::select('SELECT c AS code FROM unnest(?::text[]) AS c WHERE NOT promo_code_unused(c)', ['{'.implode(',', $codes).'}']), 'code');
     }
 }

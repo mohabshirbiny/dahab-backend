@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\MarketMakers\ApproveForMarketMakersAction;
 use App\Actions\MarketMakers\CreatePromoCodeAction;
+use App\Actions\MarketMakers\DeletePromoCodeAction;
 use App\Actions\MarketMakers\LeaveMarketMakerQueueAction;
 use App\Actions\MarketMakers\ListMarketMakerQueueAction;
 use App\Actions\MarketMakers\MarketMakerCostAction;
@@ -11,12 +12,14 @@ use App\Actions\MarketMakers\ReadQueueMediaAction;
 use App\Actions\MarketMakers\UpdatePromoCodeAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Promo\CreatePromoCodeRequest;
+use App\Http\Requests\Dashboard\Promo\ReplacePromoCodeRequest;
 use App\Models\MarketMakerApproval;
 use App\Models\PromoCode;
 use App\Models\PromoCodeUse;
 use App\Support\Promo\PromoCodePresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -48,7 +51,7 @@ class MarketMakerController extends Controller
         path: '/dashboard/promo-codes',
         operationId: 'dashboardCreatePromoCode',
         summary: 'Create a promo code',
-        description: 'Spec 019 FR-060, spec 023 Story 5. The three kinds from one body: a dealer code (tied to a market maker, waives the commission, gives the spread), a first-sale code (pays the first gold sale in advance) and a seller-side discount (waive or reduce the commission by a percentage), for one account (`tied_to` an account number or phone, or `tied_customer_id`) or anyone. `kind` is inferred when absent; a contradiction is validation_failed. The old body {code, tied_customer_id, monthly_cap_egp} still creates a dealer code. By product and side (docs/features/promo-code-product-side.md): `side` (seller|buyer) and `product_type` (gold|diamond|gold_with_diamond). A seller code reduces the commission by `commission_mode` waive | percent | amount (`commission_amount_egp`); `side` sent makes `product_type` required, and the older body without it covers every product. A buyer code (`kind` buyer; for anyone, or one account) on gold gives the buyer the price the seller gets (the positive spread is handed back; no deposit fields); on diamond and gold_with_diamond it lowers the deposit by `deposit_percent` or `deposit_amount_egp` (one of the two; never below 1 EGP). Terms are immutable afterwards. Audited (promo.created). Requires promo.manage and an Idempotency-Key.',
+        description: 'Spec 019 FR-060, spec 023 Story 5. The three kinds from one body: a dealer code (tied to a market maker, waives the commission, gives the spread), a first-sale code (pays the first gold sale in advance) and a seller-side discount (waive or reduce the commission by a percentage), for one account (`tied_to` an account number or phone, or `tied_customer_id`) or anyone. `kind` is inferred when absent; a contradiction is validation_failed. The old body {code, tied_customer_id, monthly_cap_egp} still creates a dealer code. By product and side (docs/features/promo-code-product-side.md): `side` (seller|buyer) and `product_type` (gold|diamond|gold_with_diamond). A seller code reduces the commission by `commission_mode` waive | percent | amount (`commission_amount_egp`); `side` sent makes `product_type` required, and the older body without it covers every product. A buyer code (`kind` buyer; for anyone, or one account) on gold gives the buyer the price the seller gets (the positive spread is handed back; no deposit fields); on diamond and gold_with_diamond it lowers the deposit by `deposit_percent` or `deposit_amount_egp` (one of the two; never below 1 EGP). The terms change only while nobody has used the code (PUT); a used code keeps them. Audited (promo.created). Requires promo.manage and an Idempotency-Key.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Market makers'],
         responses: [new OA\Response(response: 201, description: 'Created (the list item)'), new OA\Response(response: 409, description: 'promo_code_exists', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')), new OA\Response(response: 422, description: 'promo_account_not_found | promo_customer_not_market_maker | validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError'))],
@@ -63,8 +66,8 @@ class MarketMakerController extends Controller
     #[OA\Patch(
         path: '/dashboard/promo-codes/{code}',
         operationId: 'dashboardUpdatePromoCode',
-        summary: 'Change a code\'s cap or turn it on or off',
-        description: 'Spec 019 FR-060. Only `monthly_cap_egp` and `active` change. Audited (promo.updated). Requires promo.manage and an Idempotency-Key.',
+        summary: 'Change a code\'s cap or end date, or turn it on or off',
+        description: 'Spec 019 FR-060. `monthly_cap_egp`, `ends_on` (Y-m-d or null; not before starts_on; since 2026-10-26) and `active`, on any code, used or not. Audited (promo.updated). Requires promo.manage and an Idempotency-Key.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Market makers'],
         parameters: [new OA\Parameter(name: 'code', in: 'path', required: true, schema: new OA\Schema(type: 'string'))],
@@ -74,9 +77,13 @@ class MarketMakerController extends Controller
     {
         $v = $request->validate([
             'monthly_cap_egp' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:999999999'],
+            'ends_on' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'active' => ['sometimes', 'boolean'],
         ]);
         $changes = [];
+        if (array_key_exists('ends_on', $v)) {
+            $changes['ends_on'] = $v['ends_on'];
+        }
         if (array_key_exists('monthly_cap_egp', $v)) {
             $changes['monthly_cap_egp'] = $v['monthly_cap_egp'] === null ? null : (string) $v['monthly_cap_egp'];
         }
@@ -86,7 +93,51 @@ class MarketMakerController extends Controller
 
         $promo = $update->handle($request->user('staff'), strtoupper($code), $changes, $request->attributes->get('context'));
 
-        return response()->json(['data' => ['code' => $promo->code, 'is_active' => $promo->is_active, 'monthly_cap_egp' => $promo->monthly_cap_egp]]);
+        return response()->json(['data' => ['code' => $promo->code, 'is_active' => $promo->is_active, 'monthly_cap_egp' => $promo->monthly_cap_egp,
+            'ends_on' => $promo->ends_on?->toDateString()]]);
+    }
+
+    #[OA\Put(
+        path: '/dashboard/promo-codes/{code}',
+        operationId: 'dashboardReplacePromoCode',
+        summary: 'Edit every term of a code nobody has used yet',
+        description: 'Owner request 2026-10-26. The New-code body without `code` (the name, the maker and the on/off stay); the same rules as creating. A code anything points at (a use, allowed or blocked; a credit; a buy request; a listing; an advance) keeps its terms: 409 promo_code_in_use (`in_use` on the list says so). Audited (promo.updated, terms_replaced, with the terms before). Requires promo.manage and an Idempotency-Key.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Market makers'],
+        parameters: [new OA\Parameter(name: 'code', in: 'path', required: true, schema: new OA\Schema(type: 'string'))],
+        responses: [
+            new OA\Response(response: 200, description: 'Saved (the list item)'),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'promo_code_in_use | promo_code_exists', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'promo_account_not_found | promo_customer_not_market_maker | validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function replace(ReplacePromoCodeRequest $request, string $code, CreatePromoCodeAction $create, PromoCodePresenter $presenter): JsonResponse
+    {
+        $promo = $create->replace($request->user('staff'), $code, $request->terms(), $request->attributes->get('context'));
+
+        return response()->json(['data' => $presenter->one($promo)]);
+    }
+
+    #[OA\Delete(
+        path: '/dashboard/promo-codes/{code}',
+        operationId: 'dashboardDeletePromoCode',
+        summary: 'Delete a code nobody has used yet',
+        description: 'Owner request 2026-10-26. Only while nothing points at the code (`in_use` false); a used code stays for its history: 409 promo_code_in_use — turn it off instead. Audited (promo.deleted, with every term before). Requires promo.manage and an Idempotency-Key.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Market makers'],
+        parameters: [new OA\Parameter(name: 'code', in: 'path', required: true, schema: new OA\Schema(type: 'string'))],
+        responses: [
+            new OA\Response(response: 204, description: 'Deleted'),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'promo_code_in_use', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function destroy(Request $request, string $code, DeletePromoCodeAction $delete): Response
+    {
+        $delete->handle($request->user('staff'), $code, $request->attributes->get('context'));
+
+        return response()->noContent();
     }
 
     #[OA\Get(

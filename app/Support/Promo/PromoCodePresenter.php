@@ -26,10 +26,13 @@ final class PromoCodePresenter
     {
         $codes = collect($codes)->values();
         $stats = $this->monthStats($codes->pluck('code')->all());
+        $used = array_flip(PromoCode::usedOf($codes->pluck('code')->all()));
         $minAge = $this->settings->integer(SettingKey::MARKETMAKER_MIN_LIST_AGE_DAYS);
         $needsApproval = $this->settings->bool(SettingKey::MARKETMAKER_REQUIRE_APPROVAL);
 
-        return $codes->map(fn (PromoCode $c) => $this->row($c, $stats[$c->code] ?? ['uses' => 0, 'value' => '0.0000'], $minAge, $needsApproval))->all();
+        return $codes->map(fn (PromoCode $c) => $this->row($c, $stats[$c->code] ?? ['uses' => 0, 'value' => '0.0000'], $minAge, $needsApproval)
+            // Something points at the code: its terms stay and it cannot be deleted (only cap, end date, on/off change).
+            + ['in_use' => isset($used[$c->code])])->all();
     }
 
     public function one(PromoCode $code): array

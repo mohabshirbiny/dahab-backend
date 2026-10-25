@@ -8935,10 +8935,10 @@
                                         "AHMED-GOLD"
                                     ]
                                 },
-                                "description": "Spec 019 FR-060. Only the cap and the on/off change. Audited promo.updated.",
+                                "description": "Spec 019 FR-060. Only the cap and the on/off change. Audited promo.updated.\n\nSince 2026-10-26 `ends_on` (Y-m-d or null) can change too, on any code.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"active\": false,\n    \"monthly_cap_egp\": 250000\n}",
+                                    "raw": "{\n    \"active\": false,\n    \"monthly_cap_egp\": 250000,\n    \"ends_on\": \"2026-12-31\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -8947,6 +8947,101 @@
                                 }
                             },
                             "response": []
+                        },
+                        {
+                            "name": "Edit Promo Code (unused only)",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes/AHMED-GOLD",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes",
+                                        "AHMED-GOLD"
+                                    ]
+                                },
+                                "description": "Every term of a code nobody has used yet: the New-code body without `code`. A used code answers 409 promo_code_in_use (the list shows `in_use`). Requires promo.manage and an Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"side\": \"seller\",\n    \"product_type\": \"gold\",\n    \"commission_mode\": \"percent\",\n    \"commission_percent\": 30,\n    \"audience\": \"anyone\",\n    \"use_limit\": \"once\",\n    \"ends_on\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Delete Promo Code (unused only)",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/promo-codes/AHMED-GOLD",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "promo-codes",
+                                        "AHMED-GOLD"
+                                    ]
+                                },
+                                "description": "Deletes a code nobody has used yet (204). A used code answers 409 promo_code_in_use: turn it off instead. Requires promo.manage and an Idempotency-Key."
+                            }
                         },
                         {
                             "name": "Promo Code Uses",

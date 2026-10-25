@@ -953,6 +953,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/promo-codes', [$c, 'create'])->middleware('idempotent')->name('promo-codes.create');
                 Route::patch('/promo-codes/{code}', [$c, 'update'])->where('code', '[A-Za-z0-9-]{3,32}')
                     ->middleware('idempotent')->name('promo-codes.update');
+                // A code nobody has used yet: edit every term, or delete it (2026-10-26).
+                Route::put('/promo-codes/{code}', [$c, 'replace'])->where('code', '[A-Za-z0-9-]{3,32}')
+                    ->middleware('idempotent')->name('promo-codes.replace');
+                Route::delete('/promo-codes/{code}', [$c, 'destroy'])->where('code', '[A-Za-z0-9-]{3,32}')
+                    ->middleware('idempotent')->name('promo-codes.destroy');
                 Route::get('/promo-codes/{code}/uses', [$c, 'uses'])->where('code', '[A-Za-z0-9-]{3,32}')->name('promo-codes.uses');
             });
             Route::middleware('staff.permission:market_maker.approve')->prefix('market-maker')->name('market-maker.')->group(function () use ($c) {
