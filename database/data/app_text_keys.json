@@ -3545,6 +3545,56 @@
       "max_length": 48
     },
     {
+      "key": "piece.have_a_promo_code",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Have a promo code?",
+      "default_ar": "عندك كود خصم؟",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "piece.this_code_is_for_a_different_kind",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece cards and listing details",
+      "default_en": "This code is for a different kind of piece.",
+      "default_ar": "الكود ده لنوع قطعة تاني.",
+      "placeholders": [],
+      "max_length": 86
+    },
+    {
+      "key": "piece.you_have_already_used_this_code",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece cards and listing details",
+      "default_en": "You have already used this code.",
+      "default_ar": "انت استخدمت الكود ده قبل كده.",
+      "placeholders": [],
+      "max_length": 64
+    },
+    {
+      "key": "piece.this_code_is_not_open_yet",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece cards and listing details",
+      "default_en": "This code is not open yet.",
+      "default_ar": "الكود ده لسه ما بدأش.",
+      "placeholders": [],
+      "max_length": 52
+    },
+    {
+      "key": "piece.this_code_has_ended",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece cards and listing details",
+      "default_en": "This code has ended.",
+      "default_ar": "الكود ده خلص.",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "piece.this_is_your_listing",
       "kind": "app",
       "area": "Browse",

@@ -30,6 +30,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable $requested_at
  * @property CarbonImmutable $seller_reply_deadline
  * @property CarbonImmutable|null $resolved_at
+ * @property string|null $promo_code
+ * @property bool $promo_waives_commission the code lowers the seller's commission to nothing (market maker)
+ * @property bool $promo_gives_spread the code hands the positive spread back to the buyer
+ * @property string $deposit_discount_egp what a buyer code took off the deposit
  * @property bool $notify_when_free
  * @property CarbonImmutable|null $free_notified_at
  */
@@ -58,6 +62,8 @@ class BuyRequest extends Model
             'state' => BuyRequestState::class,
             'queue_position' => 'integer',
             'notify_when_free' => 'boolean',
+            'promo_waives_commission' => 'boolean',
+            'promo_gives_spread' => 'boolean',
             'requested_at' => 'immutable_datetime',
             'seller_reply_deadline' => 'immutable_datetime',
             'resolved_at' => 'immutable_datetime',

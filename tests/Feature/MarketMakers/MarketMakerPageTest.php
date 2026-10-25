@@ -171,7 +171,7 @@ function dealerSale($t): Order
     $order = Orders::accepted($t);
     $buyer = Orders::buyer($order);
     $code = Promo::dealerCode($buyer);
-    DatabaseActor::elevate('maintenance', fn () => DB::table('buy_request')->where('buy_request_id', $order->buy_request_id)->update(['promo_code' => $code->code]));
+    DatabaseActor::elevate('maintenance', fn () => DB::table('buy_request')->where('buy_request_id', $order->buy_request_id)->update(['promo_code' => $code->code, 'promo_waives_commission' => true, 'promo_gives_spread' => true]));
     Orders::inspected($t, $order);
     Orders::pay($t, $buyer, $order)->assertOk();
 

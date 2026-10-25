@@ -42,11 +42,16 @@ final class PromoCodeGate
     public function validate(Customer $buyer, Listing $listing, string $price, string $code): PromoCode
     {
         $promo = PromoCode::query()->whereKey($code)->lockForUpdate()->first();
-        if ($promo === null || ! $promo->is_active || $promo->kind !== 'market_maker') {
+        if ($promo === null || ! $promo->is_active || ! in_array($promo->kind, ['market_maker', 'buyer'], true)) {
             throw DomainApiException::promoCodeInvalid('inactive');
         }
-        if ($promo->tied_customer_id !== $buyer->customer_id) {
+        // A dealer code is always one account's; a buyer code is for anyone unless it names an account.
+        if ($promo->audience === 'account' && $promo->tied_customer_id !== $buyer->customer_id) {
             throw DomainApiException::promoCodeInvalid('not_your_code');
+        }
+        // A buyer code is for one product: gold, diamond or gold with diamond.
+        if ($promo->kind === 'buyer' && $promo->product_type !== $listing->category->value) {
+            throw DomainApiException::promoCodeInvalid('wrong_product');
         }
 
         $today = CarbonImmutable::now('Africa/Cairo')->startOfDay();
@@ -64,14 +69,17 @@ final class PromoCodeGate
             }
         }
 
-        if ($promo->requires_approval && $this->settings->bool(SettingKey::MARKETMAKER_REQUIRE_APPROVAL)
-            && ! MarketMakerApproval::query()->where('listing_id', $listing->listing_id)->exists()) {
-            throw DomainApiException::promoCodeInvalid('not_approved');
-        }
+        // The piece's approval and waiting age are a dealer's terms; a buyer code works on any live piece.
+        if ($promo->kind === 'market_maker') {
+            if ($promo->requires_approval && $this->settings->bool(SettingKey::MARKETMAKER_REQUIRE_APPROVAL)
+                && ! MarketMakerApproval::query()->where('listing_id', $listing->listing_id)->exists()) {
+                throw DomainApiException::promoCodeInvalid('not_approved');
+            }
 
-        $days = $promo->min_listed_days ?? $this->settings->integer(SettingKey::MARKETMAKER_MIN_LIST_AGE_DAYS);
-        if ($listing->listed_at === null || $listing->listed_at->gt(now()->subDays($days))) {
-            throw DomainApiException::promoCodeInvalid('too_new');
+            $days = $promo->min_listed_days ?? $this->settings->integer(SettingKey::MARKETMAKER_MIN_LIST_AGE_DAYS);
+            if ($listing->listed_at === null || $listing->listed_at->gt(now()->subDays($days))) {
+                throw DomainApiException::promoCodeInvalid('too_new');
+            }
         }
 
         if ($promo->monthly_cap_egp !== null) {

@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  * The checks run in this order and the first failure wins; the reason travels in
  * `promo_code_invalid.details.reason`:
  *
- *   not_open · unknown · not_started · ended · first_sale_only · already_used · cap_reached
+ *   not_open · unknown · wrong_product · not_started · ended · first_sale_only · already_used · cap_reached
  *   own_referral · referral_joined · referral_full · device_limit
  *
  * An account-tied code of someone else, an inactive code and a missing code are all `unknown`, so
@@ -36,7 +36,7 @@ final class SellerCodeGate
     /**
      * @throws DomainApiException promo_code_invalid
      */
-    public function check(Customer $seller, string $input, string $price, bool $lock = false, ?RequestContext $ctx = null): SellerCode
+    public function check(Customer $seller, string $input, string $price, bool $lock = false, ?RequestContext $ctx = null, ?string $category = null): SellerCode
     {
         $code = strtoupper(trim($input));
         $promoEnabled = $this->settings->bool(SettingKey::PROMO_SELLER_CODES_ENABLED);
@@ -45,12 +45,13 @@ final class SellerCodeGate
         $query = PromoCode::query()->whereKey($code);
         $promo = ($lock ? $query->lockForUpdate() : $query)->first();
 
-        if ($promo !== null && $promo->kind !== 'market_maker') {
+        // Dealer and buyer codes are not seller codes: to a seller they do not exist.
+        if ($promo !== null && in_array($promo->kind, ['discount', 'first_sale'], true)) {
             if (! $promoEnabled) {
                 throw DomainApiException::promoCodeInvalid('not_open');
             }
 
-            return $this->checkPromo($seller, $promo, $price);
+            return $this->checkPromo($seller, $promo, $price, $category);
         }
 
         $inviterId = $promo === null ? $this->inviterOf($code) : null;
@@ -85,13 +86,17 @@ final class SellerCodeGate
         ]);
     }
 
-    private function checkPromo(Customer $seller, PromoCode $promo, string $price): SellerCode
+    private function checkPromo(Customer $seller, PromoCode $promo, string $price, ?string $category): SellerCode
     {
         if (! $promo->is_active) {
             throw DomainApiException::promoCodeInvalid('unknown');
         }
         if ($promo->audience === 'account' && $promo->tied_customer_id !== $seller->customer_id) {
             throw DomainApiException::promoCodeInvalid('unknown');
+        }
+        // A code is for one product: gold, diamond or gold with diamond.
+        if ($promo->product_type !== null && $category !== null && $promo->product_type !== $category) {
+            throw DomainApiException::promoCodeInvalid('wrong_product');
         }
 
         $today = CarbonImmutable::now('Africa/Cairo')->startOfDay();

@@ -87,7 +87,7 @@ final class OrderSettlement
             $ordinary->commissionTotal(), // package C: options compared VAT-inclusive
             $rates,
             $listing->isFreeRelist(),
-            $request->promo_code !== null,
+            $request->promo_waives_commission,
             // A caller that only needs the buyer's side (the totals, the balance) passes `$waivers: false`:
             // no waiver changes what the buyer pays, and a list must not read credits per order.
             $waivers ? $this->credits->candidates($this->credits->usable($order->seller_id, $listing->listing_id)) : [],
@@ -117,7 +117,7 @@ final class OrderSettlement
             floor: $resolution->floor,
             floorApplied: $resolution->floorApplied,
             // The positive spread a dealer's purchase hands to the dealer instead of Dahab (spec 019 6B).
-            spreadGivenUp: $request->promo_code !== null && Money::cmp($breakdown->spread, '0') > 0 ? Money::fixed4($breakdown->spread) : '0.0000',
+            spreadGivenUp: $request->promo_gives_spread && Money::cmp($breakdown->spread, '0') > 0 ? Money::fixed4($breakdown->spread) : '0.0000',
         );
     }
 
@@ -129,7 +129,8 @@ final class OrderSettlement
     public function post(Order $order, SettlementFigures $f, ?FirstSaleAdvance $advance = null): LedgerTransaction
     {
         // Spec 019 6B: a market-maker purchase gives a positive spread to the dealer (the buyer) instead of Dahab.
-        $toDealer = BuyRequest::query()->whereKey($order->buy_request_id)->whereNotNull('promo_code')->exists()
+        // Spec 023+: a gold buyer code hands it back the same way (the buyer pays the seller's price).
+        $toDealer = BuyRequest::query()->whereKey($order->buy_request_id)->where('promo_gives_spread', true)->exists()
             && Money::cmp($f->spread, '0') > 0;
 
         if (Money::cmp($f->proceeds, '0') <= 0) {

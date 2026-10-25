@@ -35,7 +35,8 @@ final class CreatePromoCodeAction
     {
         // The spec 019 body (code, tied_customer_id, monthly_cap_egp) is a dealer code, as it always was.
         $newTerms = ['kind', 'audience', 'tied_to', 'use_limit', 'commission_mode', 'commission_percent', 'gives_spread',
-            'min_listed_days', 'requires_approval', 'starts_on', 'ends_on', 'first_sale_only', 'pays_advance'];
+            'min_listed_days', 'requires_approval', 'starts_on', 'ends_on', 'first_sale_only', 'pays_advance',
+            'side', 'product_type', 'commission_amount_egp', 'deposit_percent', 'deposit_amount_egp'];
         if (! empty($in['tied_customer_id']) && array_intersect($newTerms, array_keys($in)) === []) {
             $in['kind'] = 'market_maker';
         }
@@ -51,8 +52,24 @@ final class CreatePromoCodeAction
                 throw $this->invalid('tied_to', 'A code for anyone is not tied to an account.');
             }
 
-            $isDealer = $tied !== null && $tied->customer_type === CustomerType::MARKET_MAKER;
+            // A side picked on the form decides the kind; a dealer code is only inferred when no side was sent.
+            $side = $in['side'] ?? null;
+            $isDealer = $side === null && $tied !== null && $tied->customer_type === CustomerType::MARKET_MAKER;
             $kind = $this->kind($in, $tied, $isDealer);
+            $side = in_array($kind, ['market_maker', 'buyer'], true) ? 'buyer' : 'seller';
+            if (($in['side'] ?? $side) !== $side) {
+                throw $this->invalid('side', 'The side does not match the kind of the code.');
+            }
+
+            $product = $in['product_type'] ?? null;
+            // A buyer code is always for one product. A seller code is too when the form sends a side; the
+            // older body (no side) keeps working and then covers every product.
+            if (($kind === 'buyer' || ($kind === 'discount' && array_key_exists('side', $in))) && $product === null) {
+                throw $this->invalid('product_type', 'Say which product this code is for: gold, diamond or gold with diamond.');
+            }
+            if (! in_array($kind, ['discount', 'buyer'], true) && $product !== null) {  // dealer and first-sale codes
+                throw $this->invalid('product_type', 'This kind of code is not tied to a product.');
+            }
 
             $paysAdvance = (bool) ($in['pays_advance'] ?? ($kind === 'first_sale'));
             $firstSaleOnly = $kind === 'first_sale' ? true : (bool) ($in['first_sale_only'] ?? false);
@@ -70,6 +87,9 @@ final class CreatePromoCodeAction
             if ($kind === 'discount' && $mode === 'none') {
                 throw $this->invalid('commission_mode', 'A discount code must waive or reduce the commission.');
             }
+            if ($kind === 'buyer' && $mode !== 'none') {
+                throw $this->invalid('commission_mode', 'A buyer code does not change the commission.');
+            }
             $percent = $mode === 'percent' ? ($in['commission_percent'] ?? null) : null;
             if ($mode === 'percent' && $percent === null) {
                 throw $this->invalid('commission_percent', 'Say how many percent to reduce it by.');
@@ -77,13 +97,43 @@ final class CreatePromoCodeAction
             if ($mode !== 'percent' && ($in['commission_percent'] ?? null) !== null) {
                 throw $this->invalid('commission_percent', 'A percentage only goes with "Reduce by a percentage".');
             }
+            $amount = $mode === 'amount' ? ($in['commission_amount_egp'] ?? null) : null;
+            if ($mode === 'amount' && $amount === null) {
+                throw $this->invalid('commission_amount_egp', 'Say how many pounds to take off the commission.');
+            }
+            if ($mode !== 'amount' && ($in['commission_amount_egp'] ?? null) !== null) {
+                throw $this->invalid('commission_amount_egp', 'An amount only goes with "Reduce by an amount".');
+            }
 
-            $givesSpread = (bool) ($in['gives_spread'] ?? ($kind === 'market_maker'));
-            if ($givesSpread && $kind !== 'market_maker') {
-                throw $this->invalid('gives_spread', 'The buy and sell difference can only go to a market maker.');
+            // Gold: the buyer pays the seller's price (the positive spread is handed back). Stones have no
+            // spread; there a buyer code lowers the deposit by a percentage or an amount instead.
+            $givesSpread = (bool) ($in['gives_spread'] ?? ($kind === 'market_maker' || ($kind === 'buyer' && $product === 'gold')));
+            if ($givesSpread && ! in_array($kind, ['market_maker', 'buyer'], true)) {
+                throw $this->invalid('gives_spread', 'The buy and sell difference can only go to a buyer.');
             }
             if ($kind === 'market_maker' && ! $givesSpread) {
                 throw $this->invalid('gives_spread', 'A dealer code gives the buy and sell difference to the dealer.');
+            }
+            if ($kind === 'buyer' && $givesSpread !== ($product === 'gold')) {
+                throw $this->invalid('gives_spread', $product === 'gold'
+                    ? 'A gold buyer code gives the buyer the seller\'s price.'
+                    : 'Only gold has a buy and sell difference to give back.');
+            }
+
+            $depositPercent = $in['deposit_percent'] ?? null;
+            $depositAmount = $in['deposit_amount_egp'] ?? null;
+            $depositMode = $depositPercent !== null ? 'percent' : ($depositAmount !== null ? 'amount' : 'none');
+            if ($depositPercent !== null && $depositAmount !== null) {
+                throw $this->invalid('deposit_percent', 'Take the deposit down by a percentage or by an amount, not both.');
+            }
+            if ($kind === 'buyer' && $product === 'gold' && $depositMode !== 'none') {
+                throw $this->invalid('deposit_percent', 'A gold buyer code does not change the deposit.');
+            }
+            if ($kind === 'buyer' && $product !== 'gold' && $depositMode === 'none') {
+                throw $this->invalid('deposit_percent', 'Say how much to take off the deposit: a percentage or an amount.');
+            }
+            if ($kind !== 'buyer' && $depositMode !== 'none') {
+                throw $this->invalid('deposit_percent', 'Only a buyer code changes the deposit.');
             }
 
             $code = strtoupper(trim((string) $in['code']));
@@ -99,13 +149,19 @@ final class CreatePromoCodeAction
                     'tied_customer_id' => $tied?->customer_id,
                     'commission_mode' => $mode,
                     'commission_percent' => $percent === null ? null : (string) $percent,
+                    'commission_amount_egp' => $amount === null ? null : (string) $amount,
                     'commission_waived' => $mode === 'waive',
+                    'side' => $side,
+                    'product_type' => $product,
+                    'deposit_mode' => $depositMode,
+                    'deposit_percent' => $depositPercent === null ? null : (string) $depositPercent,
+                    'deposit_amount_egp' => $depositAmount === null ? null : (string) $depositAmount,
                     'gives_spread' => $givesSpread,
                     'use_limit' => $in['use_limit'] ?? 'unlimited',
                     'first_sale_only' => $firstSaleOnly,
                     'pays_advance' => $paysAdvance,
                     'min_listed_days' => $in['min_listed_days'] ?? null,
-                    'requires_approval' => (bool) ($in['requires_approval'] ?? true),
+                    'requires_approval' => $kind === 'market_maker' ? (bool) ($in['requires_approval'] ?? true) : false,
                     'monthly_cap_egp' => isset($in['monthly_cap_egp']) ? (string) $in['monthly_cap_egp'] : null,
                     'starts_on' => $in['starts_on'] ?? null,
                     'ends_on' => $in['ends_on'] ?? null,
@@ -126,6 +182,9 @@ final class CreatePromoCodeAction
                     'code' => $promo->code, 'kind' => $kind, 'audience' => $audience,
                     'customer_ref' => $tied?->display_ref,
                     'commission_mode' => $mode, 'commission_percent' => $percent === null ? null : (string) $percent,
+                    'commission_amount_egp' => $amount === null ? null : (string) $amount,
+                    'side' => $side, 'product_type' => $product,
+                    'deposit_mode' => $depositMode, 'deposit_percent' => $depositPercent, 'deposit_amount_egp' => $depositAmount,
                     'gives_spread' => $givesSpread, 'use_limit' => $promo->use_limit,
                     'first_sale_only' => $firstSaleOnly, 'pays_advance' => $paysAdvance,
                     'min_listed_days' => $promo->min_listed_days, 'requires_approval' => $promo->requires_approval,
@@ -166,6 +225,11 @@ final class CreatePromoCodeAction
     private function kind(array $in, ?Customer $tied, bool $isDealer): string
     {
         $sent = $in['kind'] ?? null;
+
+        // A buyer code by product: any account (or one named), no dealer needed.
+        if ($sent === 'buyer' || ($sent === null && ($in['side'] ?? null) === 'buyer')) {
+            return 'buyer';
+        }
 
         if ($sent === 'market_maker') {
             if ($tied === null) {

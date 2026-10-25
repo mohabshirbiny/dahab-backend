@@ -32,7 +32,10 @@ function paidOrder($test, bool $withCode): Order
                 'code' => 'DEALER-'.strtoupper(substr($order->order_id, 0, 6)), 'kind' => 'market_maker', 'tied_customer_id' => $buyer->customer_id,
                 'commission_waived' => true, 'gives_spread' => true, 'created_by' => $staff->staff_id,
             ]);
-            DB::table('buy_request')->where('buy_request_id', $order->buy_request_id)->update(['promo_code' => 'DEALER-'.strtoupper(substr($order->order_id, 0, 6))]);
+            DB::table('buy_request')->where('buy_request_id', $order->buy_request_id)->update([
+                'promo_code' => 'DEALER-'.strtoupper(substr($order->order_id, 0, 6)),
+                'promo_waives_commission' => true, 'promo_gives_spread' => true,
+            ]);
         });
     }
 

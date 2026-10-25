@@ -85,7 +85,7 @@ final class InvoiceLines
      */
     private function priceDifference(Order $order, BuyRequest $request, SettlementFigures $f, string $making): array
     {
-        if ($order->locked_seller_unit_rate === null || $request->promo_code !== null || Money::cmp($f->spread, '0') <= 0) {
+        if ($order->locked_seller_unit_rate === null || $request->promo_gives_spread || Money::cmp($f->spread, '0') <= 0) {
             return [];
         }
 

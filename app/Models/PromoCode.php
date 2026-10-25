@@ -33,6 +33,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $requires_approval
  * @property CarbonImmutable|null $starts_on
  * @property CarbonImmutable|null $ends_on
+ * @property string $side seller | buyer
+ * @property string|null $product_type gold | diamond | gold_with_diamond (null: any, market-maker and first-sale codes)
+ * @property string|null $commission_amount_egp
+ * @property string $deposit_mode none | percent | amount (buyer codes on stones)
+ * @property string|null $deposit_percent
+ * @property string|null $deposit_amount_egp
  */
 class PromoCode extends Model
 {

@@ -73,7 +73,7 @@ it('leaves the line out for a market-maker purchase and when the rates crossed',
     );
     $lines = app(InvoiceLines::class);
 
-    $dealer = new BuyRequest(['promo_code' => 'DEALER-1', 'locked_unit_rate' => '5263.1250']);
+    $dealer = new BuyRequest(['promo_code' => 'DEALER-1', 'promo_gives_spread' => true, 'locked_unit_rate' => '5263.1250']);
     $crossed = new BuyRequest(['promo_code' => null, 'locked_unit_rate' => '5200.0000']);
     $plain = new BuyRequest(['promo_code' => null, 'locked_unit_rate' => '5263.1250']);
 
