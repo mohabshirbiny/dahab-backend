@@ -51,6 +51,26 @@ it('shows a piece that left the market without price or photos, and removes it',
     Account::as($this, $this->token)->getJson(Account::ME.'/saved-pieces')->assertJsonCount(0, 'data');
 });
 
+it('points a sold piece at the caller\'s own order, and nobody else at it', function () {
+    $order = Orders::accepted($this, $this->piece);
+    $buyer = Orders::buyer($order);
+    $buyerToken = Listings::token($buyer);
+    DatabaseActor::elevate('system', fn () => SavedListing::query()->forceCreate([
+        'customer_id' => $buyer->customer_id, 'listing_id' => $this->piece->listing_id, 'summary' => ['karat' => 21], 'saved_at' => now(),
+    ]));
+    Account::post($this, $this->token, '/saved-pieces', ['listing_id' => $this->piece->listing_id]);
+
+    $res = Account::as($this, $buyerToken)->getJson(Account::ME.'/saved-pieces')->assertOk()
+        ->assertJsonPath('data.0.available', false)->assertJsonPath('data.0.order.order_id', $order->order_id);
+    expect($res->json('data.0.order'))->toHaveKey('photo');
+
+    $other = Customer::factory()->create();
+    DatabaseActor::elevate('system', fn () => SavedListing::query()->forceCreate([
+        'customer_id' => $other->customer_id, 'listing_id' => $this->piece->listing_id, 'summary' => ['karat' => 21], 'saved_at' => now(),
+    ]));
+    Account::as($this, Listings::token($other))->getJson(Account::ME.'/saved-pieces')->assertOk()->assertJsonPath('data.0.order', null);
+});
+
 it('refuses a piece that is not on the market', function () {
     $draft = Listing::factory()->create(['seller_id' => Customer::factory()->verified()->create()->customer_id]);
 

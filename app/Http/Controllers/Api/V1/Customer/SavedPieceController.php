@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1\Customer;
 use App\Actions\Saved\SavedPiecesAction;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\UseMarketScope;
+use App\Http\Resources\Customer\CustomerOrderResource;
 use App\Http\Resources\Market\MarketListingResource;
 use App\Models\Customer;
 use App\Models\Listing;
+use App\Models\Order;
 use App\Models\SavedListing;
 use App\Support\ApiResponse;
 use App\Support\DatabaseActor;
@@ -23,7 +25,7 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Schema(
     schema: 'SavedPiece',
-    required: ['listing_id', 'saved_at', 'available', 'listing', 'summary'],
+    required: ['listing_id', 'saved_at', 'available', 'listing', 'summary', 'order'],
     properties: [
         new OA\Property(property: 'listing_id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'saved_at', type: 'string', format: 'date-time'),
@@ -35,6 +37,10 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'karat', type: 'integer', nullable: true),
             new OA\Property(property: 'weight_g', type: 'string', nullable: true),
         ], type: 'object', description: 'Taken when saved; no photos or price'),
+        new OA\Property(property: 'order', properties: [
+            new OA\Property(property: 'order_id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'photo', ref: '#/components/schemas/ListingMedia', nullable: true, description: 'Its url is GET /customer/me/orders/{order}/media/{media}'),
+        ], type: 'object', nullable: true, description: 'Only for a piece that left the market: the caller\'s own latest order on it (as buyer or seller), so the app can open it'),
     ],
 )]
 class SavedPieceController extends Controller
@@ -110,9 +116,12 @@ class SavedPieceController extends Controller
      */
     private function render(Request $request, array $rows, array $listings): array
     {
-        $request->attributes->set(UseMarketScope::VIEWER, $this->customer($request)->customer_id);
+        $me = $this->customer($request)->customer_id;
+        $request->attributes->set(UseMarketScope::VIEWER, $me);
+        $gone = array_values(array_filter(array_map(fn (SavedListing $r) => isset($listings[$r->listing_id]) ? null : $r->listing_id, $rows)));
+        $orders = $gone === [] ? [] : $this->ordersOn($me, $gone);
 
-        return DatabaseActor::market(fn () => array_map(function (SavedListing $row) use ($request, $listings) {
+        return DatabaseActor::market(fn () => array_map(function (SavedListing $row) use ($request, $listings, $orders) {
             $listing = $listings[$row->listing_id] ?? null;
 
             return [
@@ -121,8 +130,35 @@ class SavedPieceController extends Controller
                 'available' => $listing !== null,
                 'listing' => $listing === null ? null : (new MarketListingResource($listing))->resolve($request),
                 'summary' => $row->summary,
+                'order' => $orders[$row->listing_id] ?? null,
             ];
         }, $rows));
+    }
+
+    /**
+     * The customer's own latest order on each piece that left the market (it is sold once the
+     * seller accepts): the order to open and the piece's public photo, served by the order's media route.
+     *
+     * @param  list<string>  $listingIds
+     * @return array<string, array{order_id: string, photo: array<string, mixed>|null}>
+     */
+    private function ordersOn(string $me, array $listingIds): array
+    {
+        return DatabaseActor::order(function () use ($me, $listingIds) {
+            $orders = Order::query()
+                ->where(fn ($q) => $q->where('buyer_id', $me)->orWhere('seller_id', $me))
+                ->whereIn('listing_id', $listingIds)
+                ->orderByDesc('created_at')->get()->unique('listing_id');
+            $listings = Listing::query()->with(['pieceType', 'photos'])->whereIn('listing_id', $orders->pluck('listing_id')->all())->get()->keyBy('listing_id');
+
+            $out = [];
+            foreach ($orders as $order) {
+                $piece = CustomerOrderResource::piece($listings[$order->listing_id], $order->order_id);
+                $out[$order->listing_id] = ['order_id' => $order->order_id, 'photo' => $piece['photo']];
+            }
+
+            return $out;
+        });
     }
 
     private function customer(Request $request): Customer
