@@ -410,6 +410,11 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   off the price, `discount_funded_by` commission | spread (gold), capped at the ordinary net commission or the spread; returned
   to the buyer and taken from `dahab_commission|dahab_spread` in the settlement; `order.price_discount_egp`; the public-to-buyers
   `POST /customer/me/buy-requests/promo-preview` (records nothing).
+  App notes on sales (`docs/features/app-notes-sales.md`, 2026-10-26): `seller_estimate` on the seller's order detail until paid;
+  wallet lines carry the order number as `reference` (app, PDF, staff statement) and staff rows a `bank {direction, name}`;
+  `POST /dashboard/compensation` requires `order_id` (`GET /dashboard/compensation/orders`); `stone` + `certificates` on the
+  work list and order detail, `GET /dashboard/orders/{order}/certificates/{media}` (`inspection.enter|order.view`); a stone free
+  relist is capped at what the buyer paid (`free_relist.previous_price`).
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -449,6 +454,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   the listing review shows the stone as stated; the invoice detail shows the waived commission and the buyer's discount.
   Promo codes has Edit (the New-code form filled in; a used code only its cap and end date) and Delete (unused codes only).
   The code form's buyer part: What the buyer gets (seller's price / lower deposit / % or amount off the price) and Paid for by.
+  App notes on sales: Pay compensation picks the order; the statement shows *Received in / Paid to* the bank; the inspection
+  dialog shows the stone as stated with *Open the certificate* (no certificate number); Orders has *All, closed too*.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -493,6 +500,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   (AR-DRAFT).
   Buyer code card: *Have a promo code?* on the piece page above *Send buy request* (Apply shows price, discount, you pay,
   deposit; the code goes with the request; the old pop-up is gone); texts `buy.code.*` (AR-DRAFT).
+  App notes on sales: the seller's line hides the buyer; *What you will receive* on the seller's order; *Waiting for Dahab to
+  confirm* top-ups on the pay screen; the sell estimate says VAT included; the stone relist is capped; texts `order.estimate.*`,
+  `order.pay.pending_topups.*` (AR-DRAFT).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

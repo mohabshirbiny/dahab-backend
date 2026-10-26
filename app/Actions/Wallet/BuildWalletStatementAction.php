@@ -140,7 +140,7 @@ final class BuildWalletStatementAction
             -- and reach their lines through idx_posting_txn, whatever the planner
             -- guesses about the RLS filters (SC-004).
             period_txn AS MATERIALIZED (
-                SELECT t.ledger_txn_id, t.created_at, t.event_kind, t.memo, t.staff_id, t.customer_id, t.order_id
+                SELECT t.ledger_txn_id, t.created_at, t.event_kind, t.memo, t.staff_id, t.customer_id, t.order_id, t.withdrawal_id
                 FROM ledger_transaction t
                 WHERE t.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND t.created_at < (?::timestamp AT TIME ZONE '{$tz}')
             ), dated AS (
@@ -154,12 +154,12 @@ final class BuildWalletStatementAction
                        {$vat} AS vat_delta,
                        {$certificate} AS certificate_delta,
                        {$wallet} AS wallet_customer,
-                       pt.created_at, pt.event_kind::text AS kind, pt.memo, pt.staff_id, pt.customer_id AS actor_customer_id, pt.order_id
+                       pt.created_at, pt.event_kind::text AS kind, pt.memo, pt.staff_id, pt.customer_id AS actor_customer_id, pt.order_id, pt.withdrawal_id
                 FROM period_txn pt
                 JOIN ledger_posting p ON p.ledger_txn_id = pt.ledger_txn_id
                 JOIN account a ON a.account_id = p.account_id
                 WHERE ({$p['touch']}) OR ({$p['advance']})
-                GROUP BY pt.ledger_txn_id, pt.created_at, pt.event_kind, pt.memo, pt.staff_id, pt.customer_id, pt.order_id
+                GROUP BY pt.ledger_txn_id, pt.created_at, pt.event_kind, pt.memo, pt.staff_id, pt.customer_id, pt.order_id, pt.withdrawal_id
             )
         ";
 
@@ -227,12 +227,18 @@ final class BuildWalletStatementAction
                    ac.full_name AS actor_customer_name,
                    wc.display_ref AS wallet_ref, wc.full_name AS wallet_name,
                    'TOP-' || tu.topup_no AS topup_ref,
-                   o.order_ref, bm.kind AS bank_kind
+                   'WD-' || w.withdrawal_no AS withdrawal_ref,
+                   o.order_ref, bm.kind AS bank_kind,
+                   -- App notes 2026-10-26: the bank the money came into (Dahab's receiving account) or went to (the customer's payout account).
+                   COALESCE(ra.bank_name, ra.label) AS bank_in, pa.bank_name AS bank_out
             FROM period pr
             LEFT JOIN staff s ON s.staff_id = pr.staff_id
             LEFT JOIN customer ac ON ac.customer_id = pr.actor_customer_id
             LEFT JOIN customer wc ON wc.customer_id = pr.wallet_customer::uuid
             LEFT JOIN topup tu ON tu.ledger_txn_id = pr.ledger_txn_id
+            LEFT JOIN receiving_account ra ON ra.receiving_account_id = tu.receiving_account_id
+            LEFT JOIN withdrawal w ON w.withdrawal_id = pr.withdrawal_id
+            LEFT JOIN payout_account pa ON pa.payout_account_id = w.payout_account_id
             LEFT JOIN \"order\" o ON o.order_id = pr.order_id
             LEFT JOIN bank_movement bm ON bm.ledger_txn_id = pr.ledger_txn_id
             WHERE (?::bigint IS NULL OR pr.seq > ?::bigint)
@@ -266,8 +272,11 @@ final class BuildWalletStatementAction
             'created_at' => Carbon::parse($r->created_at)->setTimezone(self::TZ)->toIso8601String(),
             'kind' => $kind->value,
             'label' => $kind->staffLabel(),
-            // A top-up's number (spec 009 R12); orders and listings fill theirs when they exist.
-            'reference' => $r->topup_ref,
+            // The order the movement belongs to (app notes 2026-10-26), else the top-up's or the withdrawal's number.
+            'reference' => $r->order_ref ?? $r->topup_ref ?? $r->withdrawal_ref,
+            // The bank the money came into or went out to; null for a movement that touched no bank.
+            'bank' => $r->bank_in !== null ? ['direction' => 'in', 'name' => $r->bank_in]
+                : ($r->bank_out !== null ? ['direction' => 'out', 'name' => $r->bank_out] : null),
             'memo' => $r->memo,
             'by_hand' => $actor['type'] === 'staff',
             'actor' => $actor,
@@ -286,7 +295,6 @@ final class BuildWalletStatementAction
             // Dahab's own money: what the movement was, the order it belongs to, and the customer paid or charged.
             'equity' => array_replace($row, [
                 'label' => self::equityLabel($group = self::equityGroup($kind->value, $r->bank_kind)),
-                'reference' => $r->order_ref ?? $r->topup_ref,
             ]) + [
                 'group' => $group,
                 'wallet' => $r->wallet_customer === null ? null : ['customer_id' => $r->wallet_customer, 'display_ref' => $r->wallet_ref, 'full_name' => $r->wallet_name],

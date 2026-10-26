@@ -49,6 +49,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'free_relist_status', type: 'string', enum: ['none', 'open', 'used', 'expired'], description: 'Spec 018: the buyer\'s free-relist offer of the collected piece, on every row'),
         new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, detail: {status, ends_at | null, listing: {id, title} | null}'),
         new OA\Property(property: 'relisted_from_order', type: 'object', nullable: true, description: 'Spec 018, detail: {id, order_ref} when the sold piece was itself a free relist'),
+        new OA\Property(property: 'certificates', type: 'array', items: new OA\Items(type: 'object'), description: 'App notes 2026-10-26, detail: the stone certificate files the seller uploaded, [{id, mime}], each through GET /dashboard/orders/{id}/certificates/{media}'),
         new OA\Property(property: 'ratings', type: 'array', items: new OA\Items(type: 'object'), description: 'Spec 018, detail, only with rating.view (the key is absent otherwise): [{party_role, stars, note, created_at}]'),
     ],
 )]
@@ -118,6 +119,8 @@ class StaffOrderResource extends JsonResource
             // Package D: the IGI certificate cost locked at acceptance and the kind the seller named (null: none).
             'certificate_cost' => $o->certificate_cost === null ? null : bcadd((string) $o->certificate_cost, '0', 4),
             'certificate_kind' => $o->listing?->certificate_kind?->value,
+            // App notes 2026-10-26: the certificate files the seller uploaded, through GET …/certificates/{media}.
+            'certificates' => WorkListItemResource::certificates($o),
             'locked_buyer_unit_rate' => $o->buyRequest->locked_unit_rate === null ? null : bcadd((string) $o->buyRequest->locked_unit_rate, '0', 4),
             'settlement' => $o->final_buyer_total === null ? null : [
                 'final_weight_g' => $o->final_weight_g === null ? null : (string) $o->final_weight_g,

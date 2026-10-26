@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Finance\ExportCompensationAction;
 use App\Actions\Finance\ListCompensationAction;
+use App\Actions\Finance\ListCompensationOrdersAction;
 use App\Actions\Finance\PayDirectCompensationAction;
 use App\Enums\CompensationReason;
 use App\Http\Controllers\Controller;
@@ -96,7 +97,7 @@ class CompensationController extends Controller
         path: '/dashboard/compensation',
         operationId: 'dashboardCompensationPay',
         summary: 'Pay compensation outside a dispute',
-        description: 'Spec 015 FR-004. One balanced compensation entry (external_equity → the customer\'s available), its row with no dispute, optionally naming one of the customer\'s orders. Caps per payment and per Cairo day per payer, shared with dispute payments, unless compensation.uncapped. Only a verified customer (suspended or not). The customer is told by SMS + email. compensation.pay. Idempotent, audited (compensation.paid).',
+        description: 'Spec 015 FR-004. One balanced compensation entry (external_equity → the customer\'s available), its row with no dispute, naming one of the orders of the customer (order_id, required since 2026-10-26; the party follows, 422 when the order is not theirs). Caps per payment and per Cairo day per payer, shared with dispute payments, unless compensation.uncapped. Only a verified customer (suspended or not). The customer is told by SMS + email. compensation.pay. Idempotent, audited (compensation.paid).',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/PayCompensationRequest')),
         tags: ['Dashboard Finance'],
@@ -114,6 +115,47 @@ class CompensationController extends Controller
             $request->validated('order_id'), $request->attributes->get('context'));
 
         return response()->json(['data' => (new CompensationResource($paid->load(ListCompensationAction::RELATIONS)))->resolve($request)], 201);
+    }
+
+    #[OA\Get(
+        path: '/dashboard/compensation/orders',
+        operationId: 'dashboardCompensationOrders',
+        summary: 'The orders of a customer that a compensation can name',
+        description: 'App notes 2026-10-26: every compensation names its order. The orders of the customer as buyer or seller, open and closed, newest first, at most 100. compensation.pay.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Finance'],
+        parameters: [new OA\Parameter(name: 'customer_id', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        responses: [
+            new OA\Response(response: 200, description: 'The orders', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', type: 'array', items: new OA\Items(properties: [
+                    new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+                    new OA\Property(property: 'order_ref', type: 'string', example: 'DH-2026-000042'),
+                    new OA\Property(property: 'party', type: 'string', enum: ['buyer', 'seller']),
+                    new OA\Property(property: 'state', type: 'string'),
+                    new OA\Property(property: 'category', type: 'string'),
+                    new OA\Property(property: 'piece_type', type: 'object', description: '{id, name_en, name_ar}'),
+                    new OA\Property(property: 'karat', type: 'integer', nullable: true),
+                    new OA\Property(property: 'accepted_at', type: 'string', format: 'date-time'),
+                ], type: 'object')),
+            ])),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function orders(Request $request, ListCompensationOrdersAction $list): JsonResponse
+    {
+        $customerId = (string) $request->validate(['customer_id' => ['required', 'uuid']])['customer_id'];
+
+        return response()->json(['data' => $list->handle($customerId)->map(fn ($o) => [
+            'id' => $o->order_id,
+            'order_ref' => $o->order_ref,
+            'party' => $o->buyer_id === $customerId ? 'buyer' : 'seller',
+            'state' => $o->state->value,
+            'category' => $o->listing->category->value,
+            'piece_type' => ['id' => $o->listing->piece_type_id, 'name_en' => $o->listing->pieceType?->name_en, 'name_ar' => $o->listing->pieceType?->name_ar],
+            'karat' => $o->listing->karat_code,
+            'accepted_at' => $o->accepted_at->toIso8601String(),
+        ])->values()]);
     }
 
     /** @param  array{csv: string, truncated: bool}  $result */

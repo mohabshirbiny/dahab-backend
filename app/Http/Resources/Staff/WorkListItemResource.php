@@ -32,6 +32,11 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'category', type: 'string'),
         new OA\Property(property: 'stated_karat', type: 'integer', nullable: true),
         new OA\Property(property: 'stated_weight_g', type: 'string', nullable: true),
+        new OA\Property(property: 'stone', type: 'object', nullable: true, description: 'App notes 2026-10-26: the stone as the seller stated it, for the inspector: {certificate_kind, carat, clarity, cut}; null for gold'),
+        new OA\Property(property: 'certificates', type: 'array', description: 'The stone certificate files the seller uploaded: [{id, mime}], each through GET /dashboard/orders/{id}/certificates/{media}', items: new OA\Items(properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'mime', type: 'string'),
+        ], type: 'object')),
         new OA\Property(property: 'latest_inspection', ref: '#/components/schemas/InspectionResult', nullable: true),
         new OA\Property(property: 'branch', type: 'object', description: '{id, name_en, name_ar}'),
         new OA\Property(property: 'since', type: 'string', format: 'date-time', description: 'When the order reached its current state'),
@@ -52,6 +57,18 @@ use OpenApi\Attributes as OA;
 )]
 class WorkListItemResource extends JsonResource
 {
+    /**
+     * The order's stone certificate files: [{id, mime}], opened through the order (never a listing permission).
+     *
+     * @return list<array{id: string, mime: string}>
+     */
+    public static function certificates(Order $o): array
+    {
+        $files = $o->listing->relationLoaded('certificates') ? $o->listing->certificates : $o->listing->certificates()->get();
+
+        return $files->map(fn ($m) => ['id' => $m->media_id, 'mime' => $m->mime])->values()->all();
+    }
+
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
@@ -79,6 +96,9 @@ class WorkListItemResource extends JsonResource
             'category' => $l->category->value,
             'stated_karat' => $l->karat_code,
             'stated_weight_g' => $l->stated_weight_g === null ? null : bcadd((string) $l->stated_weight_g, '0', 3),
+            // App notes 2026-10-26: the stone and its certificate as the seller stated them, for the inspector.
+            'stone' => $l->stoneDetails(),
+            'certificates' => self::certificates($o),
             'latest_inspection' => $latest === null ? null : InspectionResultResource::shape($latest),
             'branch' => ['id' => $o->branch_id, 'name_en' => $o->branch?->name_en, 'name_ar' => $o->branch?->name_ar],
             'since' => ($o->stateChanges->last()?->changed_at ?? $o->accepted_at)->toIso8601String(),

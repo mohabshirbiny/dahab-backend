@@ -50,12 +50,13 @@ final class ListCustomerWalletHistoryAction
                    pg.held_change::numeric(18,4)::text      AS held_change,
                    pg.available_after::numeric(18,4)::text  AS available_after,
                    pg.held_after::numeric(18,4)::text       AS held_after,
-                   COALESCE('TOP-' || tu.topup_no, 'WD-' || w.withdrawal_no) AS topup_ref,
+                   COALESCE(o.order_ref, 'TOP-' || tu.topup_no, 'WD-' || w.withdrawal_no) AS topup_ref,
                    COALESCE(cn.invoice_id, ti.invoice_id)::text AS invoice_id
             FROM page pg
             JOIN ledger_transaction t ON t.ledger_txn_id = pg.ledger_txn_id
             LEFT JOIN topup tu ON tu.ledger_txn_id = pg.ledger_txn_id
             LEFT JOIN withdrawal w ON w.withdrawal_id = t.withdrawal_id
+            LEFT JOIN \"order\" o ON o.order_id = t.order_id
             -- Spec 016: the caller's own tax invoice for a settlement, or the one a credit note corrects.
             LEFT JOIN tax_invoice ti ON t.event_kind = 'balance_payment' AND ti.order_id = t.order_id AND ti.customer_id = ?
             LEFT JOIN credit_note cn ON cn.ledger_txn_id = t.ledger_txn_id
@@ -75,7 +76,7 @@ final class ListCustomerWalletHistoryAction
                 'held_change' => $r->held_change,
                 'available_after' => $r->available_after,
                 'held_after' => $r->held_after,
-                // A top-up's number (spec 009 R12) or a withdrawal's (spec 013 R9); orders and listings fill theirs when they exist.
+                // The order's number (app notes 2026-10-26), else a top-up's (spec 009 R12) or a withdrawal's (spec 013 R9).
                 'reference' => $r->topup_ref,
                 'invoice_id' => $r->invoice_id,
             ], $rows),

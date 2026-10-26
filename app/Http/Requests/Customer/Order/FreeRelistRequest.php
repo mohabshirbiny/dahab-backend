@@ -16,8 +16,8 @@ use OpenApi\Attributes as OA;
     description: "Spec 018. Exactly the field the piece's category needs: making_charge_per_g for gold, asking_price for a stone or gold with a stone. The karat, the weight, the photos and the branch options are copied from the sale.",
     required: ['ownership_legal_doc_id'],
     properties: [
-        new OA\Property(property: 'making_charge_per_g', type: 'string', nullable: true, example: '250.00', description: 'EGP per gram, >= 0, at most 2 decimals; gold only'),
-        new OA\Property(property: 'asking_price', type: 'string', nullable: true, example: '120000.00', description: 'EGP, > 0, at most 2 decimals; diamond and gold_with_diamond only'),
+        new OA\Property(property: 'making_charge_per_g', type: 'string', nullable: true, example: '250.00', description: 'EGP per gram, >= 0, at most 2 decimals; gold only; not above the fee of the sold piece (previous_making_charge_per_g)'),
+        new OA\Property(property: 'asking_price', type: 'string', nullable: true, example: '120000.00', description: 'EGP, > 0, at most 2 decimals; diamond and gold_with_diamond only; not above what the buyer paid (free_relist.previous_price, app notes 2026-10-26)'),
         new OA\Property(property: 'description', type: 'string', nullable: true, description: 'At most 2000 characters'),
         new OA\Property(property: 'ownership_legal_doc_id', type: 'integer', description: 'The id of the current ownership declaration (GET /reference/legal-documents/ownership_declaration)'),
     ],

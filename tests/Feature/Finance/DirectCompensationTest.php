@@ -35,7 +35,8 @@ it('pays a verified customer without a dispute: the entry, the row, the wallet, 
 
     Finance::pay($this, $customer, '800')->assertCreated()
         ->assertJsonPath('data.amount', '800.0000')->assertJsonPath('data.reason', 'wasted_trip')
-        ->assertJsonPath('data.dispute', null)->assertJsonPath('data.order', null)->assertJsonPath('data.party', null)
+        // Every payment names one of the customer's orders (app notes 2026-10-26); the party follows.
+        ->assertJsonPath('data.dispute', null)->assertJsonPath('data.order.ref', Finance::orderOf($this, $customer)->order_ref)->assertJsonPath('data.party', 'seller')
         ->assertJsonPath('data.customer.display_ref', $customer->display_ref)
         ->assertJsonPath('data.paid_by.id', $finance->staff_id);
 
@@ -43,7 +44,7 @@ it('pays a verified customer without a dispute: the entry, the row, the wallet, 
     expect(Finance::available($customer))->toBe('900.0000')
         ->and(Finance::equity())->toBe(bcsub($equity, '800', 4))
         ->and(Finance::globalSum())->toBe('0.0000')
-        ->and($row->dispute_id)->toBeNull()->and($row->order_id)->toBeNull()->and($row->paid_by)->toBe($finance->staff_id)
+        ->and($row->dispute_id)->toBeNull()->and($row->order_id)->toBe(Finance::orderOf($this, $customer)->order_id)->and($row->paid_by)->toBe($finance->staff_id)
         ->and(DatabaseActor::elevate('maintenance', fn () => AuditLog::query()->where('action', 'compensation.paid')->sole()->actor_staff_id))->toBe($finance->staff_id);
     Bus::assertDispatched(NotifyCustomerJob::class, fn ($j) => $j->customerId === $customer->customer_id && $j->notification->event === WalletEvent::COMPENSATION_PAID);
 });
@@ -84,10 +85,17 @@ it('shares the caps with the dispute payments: per payment, per day, and uncappe
 
 it('pays only a verified customer, suspended or not, recording the status', function () {
     $finance = Finance::staff($this, SeedRole::FINANCE);
-    Finance::pay($this, Customer::factory()->pendingVerification()->create(), '10')->assertForbidden()->assertJsonPath('code', 'verification_required');
+    // Verification is checked before the order.
+    Finance::pay($this, Customer::factory()->pendingVerification()->create(), '10', ['order_id' => (string) Str::uuid()])->assertForbidden()->assertJsonPath('code', 'verification_required');
 
-    $suspended = Customer::factory()->suspended(byStaffId: $finance->staff_id)->create();
-    Finance::pay($this, $suspended, '10')->assertCreated();
+    // The order comes first (a suspended seller accepts nothing), then the suspension.
+    $suspended = Customer::factory()->verified()->create();
+    $order = Finance::orderOf($this, $suspended);
+    DatabaseActor::elevate('maintenance', fn () => DB::table('customer')->where('customer_id', $suspended->customer_id)->update([
+        'status' => 'suspended', 'status_before_suspension' => 'active', 'is_suspended' => true,
+        'suspended_reason' => 'off_platform_dealing', 'suspended_by' => $finance->staff_id, 'suspended_at' => now(),
+    ]));
+    Finance::pay($this, $suspended, '10', ['order_id' => $order->order_id])->assertCreated();
     $audit = DatabaseActor::elevate('maintenance', fn () => AuditLog::query()->where('action', 'compensation.paid')->sole());
     expect($audit->after_json['customer_status'] ?? null)->toBe('suspended');
 });

@@ -197,18 +197,20 @@ it('holds one payer\'s day cap across a direct payment and a dispute payment at 
         $order = Disputes::awaitingBalance($this);
         Disputes::opened($this, $order);
 
-        return [Disputes::of($order), Finance::customer('0')];
-    }, function (Dispute $dispute, Customer $customer) {
+        $customer = Finance::customer('0');
+
+        return [Disputes::of($order), $customer, Finance::orderOf($this, $customer)->order_id];
+    }, function (Dispute $dispute, Customer $customer, string $orderId) {
         $finance = Staff::factory()->role(SeedRole::FINANCE)->create();
         // 3,000 of the 5,000 day already paid, committed.
         foreach (['2000', '1000'] as $amount) {
             fcAs('staff', null, $finance->staff_id, fn () => app(PayDirectCompensationAction::class)
-                ->handle($finance, $customer->customer_id, $amount, CompensationReason::GOODWILL, 'Earlier goodwill payment.'));
+                ->handle($finance, $customer->customer_id, $amount, CompensationReason::GOODWILL, 'Earlier goodwill payment.', $orderId));
         }
 
         DB::beginTransaction();
         fcAs('staff', null, $finance->staff_id, fn () => app(PayDirectCompensationAction::class)
-            ->handle($finance, $customer->customer_id, '2000', CompensationReason::WASTED_TRIP, 'A wasted trip to the branch.'));
+            ->handle($finance, $customer->customer_id, '2000', CompensationReason::WASTED_TRIP, 'A wasted trip to the branch.', $orderId));
 
         $resolve = fn () => fcAs('staff', null, $finance->staff_id, fn () => app(ResolveDisputeAction::class)
             ->handle($finance, $dispute->dispute_id, DisputeOutcome::RESUME, 'Resolved with compensation for the delay.',

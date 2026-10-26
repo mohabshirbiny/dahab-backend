@@ -83,7 +83,7 @@ final class FreeRelistAction
             }
 
             $this->assertPrice($origin->category, $data);
-            $this->assertFeeNotAbovePrevious($origin, $data);
+            $this->assertFeeNotAbovePrevious($origin, $order, $data);
 
             $branchIds = $this->enabledBranchIdsOf($origin);
             $result = $order->latestInspection();
@@ -170,15 +170,27 @@ final class FreeRelistAction
     }
 
     /**
-     * A free relist may not ask more making charge than the sale it came from.
+     * A free relist may not ask more than the sale it came from: gold no more making charge per
+     * gram, a stone piece no more than the price the buyer paid for it (app notes 2026-10-26).
      *
      * @param  array<string, mixed>  $data
      */
-    private function assertFeeNotAbovePrevious(Listing $origin, array $data): void
+    private function assertFeeNotAbovePrevious(Listing $origin, Order $order, array $data): void
     {
-        $previous = $origin->making_charge_per_g;
+        if ($origin->category !== PieceCategory::GOLD) {
+            $paid = $order->final_buyer_total;
+            if ($paid !== null && Money::cmp((string) $data['asking_price'], (string) $paid) > 0) {
+                $shown = number_format((float) $paid, 2, '.', '');
+                throw ValidationException::withMessages([
+                    'asking_price' => ["The price may not be more than what you paid for the piece ({$shown} EGP)."],
+                ]);
+            }
 
-        if ($origin->category !== PieceCategory::GOLD || $previous === null) {
+            return;
+        }
+
+        $previous = $origin->making_charge_per_g;
+        if ($previous === null) {
             return;
         }
 

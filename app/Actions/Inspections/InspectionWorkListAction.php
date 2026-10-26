@@ -40,7 +40,7 @@ final class InspectionWorkListAction
                 ->orWhere(fn (Builder $e) => $e->where('accepted_at', $cursor->value)->where('order_id', '>', $cursor->id))))
             ->orderBy('accepted_at')->orderBy('order_id')
             ->limit($perPage + 1)
-            ->with(['listing.pieceType', 'branch', 'inspections', 'collection', 'sellerReturn', 'stateChanges'])
+            ->with(['listing.pieceType', 'listing.certificates', 'branch', 'inspections', 'collection', 'sellerReturn', 'stateChanges'])
             ->get();
 
         $more = $rows->count() > $perPage;

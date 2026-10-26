@@ -59,7 +59,7 @@ it('exports the same figures as the statement, with a BOM', function () {
         ->and($rows[1])->toBe(['Opening', $json['summary']['opening'], 'In', $json['summary']['in'], 'Out', $json['summary']['out'], 'Closing', $json['summary']['closing']])
         ->and($rows[2][0])->toBe('When')
         ->and(array_slice($rows, 3))->toHaveCount(2)
-        ->and(array_map(fn ($r) => array_slice($r, 7), array_slice($rows, 3)))
+        ->and(array_map(fn ($r) => array_slice($r, 8), array_slice($rows, 3)))
         ->toBe(array_map(fn ($r) => [$r['before'], $r['in'], $r['out'], $r['after']], $json['rows']));
 });
 
