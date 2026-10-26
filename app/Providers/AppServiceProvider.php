@@ -230,6 +230,14 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // The new-device SMS code of a staff sign-in: the TOTP budget, per challenge and per IP.
+        RateLimiter::for('auth.staff.device_code', function (Request $request) use ($mfa) {
+            return [
+                $this->limit($mfa['per_session_max'], $mfa['per_session_window'], 'staff-device-code:'.$this->identity($request, 'challenge_id')),
+                $this->limit($mfa['per_ip_max'], $mfa['per_ip_window'], 'staff-device-code-ip:'.$request->ip()),
+            ];
+        });
+
         // Spec 021: the held device polls its approval (every 5 s); per ref and per IP. The ref is
         // hashed so the bucket key never holds it.
         $poll = config('dahab-auth.rate_limits.staff_device_approval');

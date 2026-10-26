@@ -4911,6 +4911,84 @@
             }
         }
     },
+    "listing.relisted.message": {
+        "en": {
+            "mail": {
+                "subject": "Your piece is back on the market",
+                "intro": [
+                    "Your piece (Ring 21K) is back on the market:",
+                    "Please add a clearer photo."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: Your piece (Ring 21K) is back on the market: Please add a clearer photo.",
+            "inbox": {
+                "type": "listing.relisted",
+                "title_en": "Your piece is back on the market",
+                "title_ar": "قطعتك رجعت السوق تاني",
+                "body_en": "Your piece (Ring 21K) is back on the market: Please add a clearer photo.",
+                "body_ar": "قطعتك (خاتم عيار 21) رجعت السوق تاني: Please add a clearer photo."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "قطعتك رجعت السوق تاني",
+                "intro": [
+                    "قطعتك (خاتم عيار 21) رجعت السوق تاني:",
+                    "Please add a clearer photo."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: قطعتك (خاتم عيار 21) رجعت السوق تاني: Please add a clearer photo.",
+            "inbox": {
+                "type": "listing.relisted",
+                "title_en": "Your piece is back on the market",
+                "title_ar": "قطعتك رجعت السوق تاني",
+                "body_en": "Your piece (Ring 21K) is back on the market: Please add a clearer photo.",
+                "body_ar": "قطعتك (خاتم عيار 21) رجعت السوق تاني: Please add a clearer photo."
+            }
+        }
+    },
+    "listing.relisted.bare": {
+        "en": {
+            "mail": {
+                "subject": "Your piece is back on the market",
+                "intro": [
+                    "Your piece (Ring 21K) is back on the market:"
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: Your piece (Ring 21K) is back on the market:",
+            "inbox": {
+                "type": "listing.relisted",
+                "title_en": "Your piece is back on the market",
+                "title_ar": "قطعتك رجعت السوق تاني",
+                "body_en": "Your piece (Ring 21K) is back on the market:",
+                "body_ar": "قطعتك (خاتم عيار 21) رجعت السوق تاني:"
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "قطعتك رجعت السوق تاني",
+                "intro": [
+                    "قطعتك (خاتم عيار 21) رجعت السوق تاني:"
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: قطعتك (خاتم عيار 21) رجعت السوق تاني:",
+            "inbox": {
+                "type": "listing.relisted",
+                "title_en": "Your piece is back on the market",
+                "title_ar": "قطعتك رجعت السوق تاني",
+                "body_en": "Your piece (Ring 21K) is back on the market:",
+                "body_ar": "قطعتك (خاتم عيار 21) رجعت السوق تاني:"
+            }
+        }
+    },
     "wallet.compensation_paid": {
         "en": {
             "mail": {

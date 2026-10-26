@@ -25,6 +25,10 @@ final class ListListingsForReviewAction
     public function handle(ListingState $state, ?ListingCursor $cursor, int $perPage): array
     {
         $query = Listing::query()->where('listing.state', $state->value)->with(self::RELATIONS);
+        if ($state === ListingState::WITHDRAWN) {
+            // How each piece came down (can_relist, taken_down_by).
+            $query->with('changes');
+        }
 
         // "Oldest first" for the waiting queue; everything else most recent first.
         $page = ListingPage::byTime($query, 'state_changed_at', $state !== ListingState::IN_REVIEW, $cursor, $perPage);
@@ -64,11 +68,11 @@ final class ListListingsForReviewAction
         ];
     }
 
-    /** @return array{in_review: int, changes_requested: int, approved_today: int, rejected: int, live: int, reserved: int, accepted: int} */
+    /** @return array{in_review: int, changes_requested: int, approved_today: int, rejected: int, live: int, reserved: int, accepted: int, withdrawn: int} */
     private function counts(): array
     {
         $byState = DB::table('listing')->selectRaw('state, count(*) AS n')
-            ->whereIn('state', [ListingState::IN_REVIEW->value, ListingState::CHANGES_REQUESTED->value, ListingState::REJECTED->value, ListingState::LIVE->value, ListingState::RESERVED->value, ListingState::ACCEPTED->value])
+            ->whereIn('state', [ListingState::IN_REVIEW->value, ListingState::CHANGES_REQUESTED->value, ListingState::REJECTED->value, ListingState::LIVE->value, ListingState::RESERVED->value, ListingState::ACCEPTED->value, ListingState::WITHDRAWN->value])
             ->groupBy('state')->pluck('n', 'state');
 
         return [
@@ -83,6 +87,8 @@ final class ListListingsForReviewAction
             // Spec 011: pieces with buyers in line, and pieces a seller accepted.
             'reserved' => (int) ($byState[ListingState::RESERVED->value] ?? 0),
             'accepted' => (int) ($byState[ListingState::ACCEPTED->value] ?? 0),
+            // Off the market: taken down, or closed after a return.
+            'withdrawn' => (int) ($byState[ListingState::WITHDRAWN->value] ?? 0),
         ];
     }
 }

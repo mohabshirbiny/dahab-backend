@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 use App\Actions\Listings\DecideListingAction;
 use App\Actions\Listings\ListListingsForReviewAction;
 use App\Actions\Listings\ReadListingMediaAction;
+use App\Actions\Listings\RelistListingAction;
 use App\Enums\ListingDecision;
 use App\Enums\ListingState;
 use App\Http\Controllers\Controller;
@@ -205,7 +206,7 @@ class ListingController extends Controller
         path: '/dashboard/listings/{listing}/takedown',
         operationId: 'dashboardTakeDownListing',
         summary: 'Take a live or reserved listing down',
-        description: 'Spec 010 FR-030, Part 2 §3; spec 011 FR-019. live or reserved → withdrawn with a reason the seller reads; off the market at once. Final. From reserved, every buyer in line is released (released_declined) and refunded in the same transaction and told the piece was withdrawn; the audit row (listing.taken_down) carries released_count. The seller gets the reason by SMS/email after commit. Idempotent. Requires listing.takedown.',
+        description: 'Spec 010 FR-030, Part 2 §3; spec 011 FR-019. live or reserved → withdrawn with a reason the seller reads; off the market at once; POST /dashboard/listings/{listing}/relist puts it back. From reserved, every buyer in line is released (released_declined) and refunded in the same transaction and told the piece was withdrawn; the audit row (listing.taken_down) carries released_count. The seller gets the reason by SMS/email after commit. Idempotent. Requires listing.takedown.',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ListingReasonRequest')),
         tags: ['Dashboard Listings'],
@@ -226,6 +227,35 @@ class ListingController extends Controller
     public function takedown(DecideListingRequest $request, string $listing, DecideListingAction $decide, ListListingsForReviewAction $list): JsonResponse
     {
         $decide->handle($request->user('staff'), $listing, ListingDecision::TAKEN_DOWN, $request->note(), $request->attributes->get('context'));
+
+        return $this->detail($request, $listing, $list);
+    }
+
+    #[OA\Post(
+        path: '/dashboard/listings/{listing}/relist',
+        operationId: 'dashboardRelistListing',
+        summary: 'Put a taken-down listing back on the market',
+        description: 'withdrawn → live, at once and with no new review, for a piece taken down from live or reserved — by its seller or by staff (can_relist; not one that left after a sale or a return). A reason the seller reads; the seller is told by SMS/email after commit (listing.relisted). Refused while new listings, the category or everything is stopped, the seller is suspended or closed, or the karat is turned off. Audit listing.relisted. Idempotent. Requires listing.takedown.',
+        security: [['dashboardBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ListingReasonRequest')),
+        tags: ['Dashboard Listings'],
+        parameters: [
+            new OA\Parameter(name: 'listing', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The live listing', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/DashboardListing')])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_listing_transition (not withdrawn) | listing_not_relistable (details.reason: not_taken_down, account_closed) | seller_suspended | platform_stopped | category_stopped | karat_disabled | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed (reason 10–1000 characters) | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function relist(DecideListingRequest $request, string $listing, RelistListingAction $relist, ListListingsForReviewAction $list): JsonResponse
+    {
+        $relist->byStaff($request->user('staff'), $listing, (string) $request->note(), $request->attributes->get('context'));
 
         return $this->detail($request, $listing, $list);
     }

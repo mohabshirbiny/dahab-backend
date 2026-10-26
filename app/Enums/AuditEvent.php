@@ -20,6 +20,9 @@ enum AuditEvent: string
     case STAFF_MFA_ENROLLED = 'auth.staff.mfa_enrolled';
     case STAFF_MFA_VERIFIED = 'auth.staff.mfa_verified';
     case STAFF_MFA_FAILED = 'auth.staff.mfa_failed';
+    // A staff sign-in from a device not yet known, confirmed by an SMS code (auth.staff_new_device_sms).
+    case STAFF_DEVICE_CODE_SENT = 'auth.staff.device_code_sent';
+    case STAFF_DEVICE_CODE_FAILED = 'auth.staff.device_code_failed';
     case STAFF_PASSWORD_RESET_REQUESTED = 'auth.staff.password_reset_requested';
     case STAFF_PASSWORD_RESET_COMPLETED = 'auth.staff.password_reset_completed';
     case STAFF_PERMISSION_DENIED = 'auth.staff.permission_denied';
@@ -78,6 +81,7 @@ enum AuditEvent: string
     case LISTING_CHANGES_REQUESTED = 'listing.changes_requested';
     case LISTING_REJECTED = 'listing.rejected';
     case LISTING_TAKEN_DOWN = 'listing.taken_down';
+    case LISTING_RELISTED = 'listing.relisted';
     // Spec 022: the seller changed the price of a live piece.
     case LISTING_PRICE_CHANGED = 'listing.price_changed';
     case ORDER_CANCELLED = 'order.cancelled';
@@ -204,6 +208,7 @@ enum AuditEvent: string
     case FOUNDER_DEVICE_REFUSED = 'founder.device_refused';
     case FOUNDER_DEVICE_APPROVAL_COLLECTED = 'founder.device_approval_collected';
     case FOUNDER_DEVICE_TRUSTED_BY_CONSOLE = 'founder.device_trusted_by_console';
+    case FOUNDER_DEVICE_TRUSTED_BY_SMS = 'founder.device_trusted_by_sms';
     case FOUNDER_FROZEN = 'founder.frozen';
     case FOUNDER_UNFREEZE_CONFIRMED = 'founder.unfreeze_confirmed';
     case FOUNDER_UNFROZEN = 'founder.unfrozen';
@@ -229,6 +234,8 @@ enum AuditEvent: string
             self::STAFF_MFA_ENROLLED => 'Authenticator app set up',
             self::STAFF_MFA_VERIFIED => 'Two-step code accepted',
             self::STAFF_MFA_FAILED => 'Two-step code refused',
+            self::STAFF_DEVICE_CODE_SENT => 'New-device code sent to staff',
+            self::STAFF_DEVICE_CODE_FAILED => 'New-device code refused',
             self::STAFF_PASSWORD_RESET_REQUESTED => 'Staff asked for a password link',
             self::STAFF_PASSWORD_RESET_COMPLETED => 'Staff password reset',
             self::STAFF_PERMISSION_DENIED => 'Action refused: no permission',
@@ -286,6 +293,7 @@ enum AuditEvent: string
             self::LISTING_CHANGES_REQUESTED => 'Changes requested on a listing',
             self::LISTING_REJECTED => 'Listing rejected',
             self::LISTING_TAKEN_DOWN => 'Listing taken down',
+            self::LISTING_RELISTED => 'Listing back on the market',
             self::LISTING_PRICE_CHANGED => 'Listing price changed',
             self::ORDER_CANCELLED => 'Acceptance cancelled',
             self::ORDER_RECEIVED => 'Piece received at the branch',
@@ -396,6 +404,7 @@ enum AuditEvent: string
             self::FOUNDER_DEVICE_REFUSED => 'New founder device refused',
             self::FOUNDER_DEVICE_APPROVAL_COLLECTED => 'Approved founder device signed in',
             self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE => 'Founder device trusted from the server',
+            self::FOUNDER_DEVICE_TRUSTED_BY_SMS => 'Founder first device confirmed by SMS code',
             self::FOUNDER_FROZEN => 'Founder account frozen',
             self::FOUNDER_UNFREEZE_CONFIRMED => 'Unfreeze confirmation given',
             self::FOUNDER_UNFROZEN => 'Founder account unfrozen',
@@ -407,10 +416,10 @@ enum AuditEvent: string
     public function category(): AuditCategory
     {
         return match ($this) {
-            self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_PASSWORD_RESET_REQUESTED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
+            self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_DEVICE_CODE_SENT, self::STAFF_DEVICE_CODE_FAILED, self::STAFF_PASSWORD_RESET_REQUESTED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
             self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED, self::STAFF_CREATED, self::STAFF_DISABLED, self::STAFF_ENABLED => AuditCategory::ACCOUNTS,
             self::FOUNDER_DEVICE_APPROVAL_REQUESTED, self::FOUNDER_DEVICE_APPROVED, self::FOUNDER_DEVICE_REFUSED,
-            self::FOUNDER_DEVICE_APPROVAL_COLLECTED, self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE, self::FOUNDER_FROZEN,
+            self::FOUNDER_DEVICE_APPROVAL_COLLECTED, self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE, self::FOUNDER_DEVICE_TRUSTED_BY_SMS, self::FOUNDER_FROZEN,
             self::FOUNDER_UNFREEZE_CONFIRMED, self::FOUNDER_UNFROZEN, self::FOUNDER_UNFREEZE_CONFIRM_FAILED => AuditCategory::ACCOUNTS,
             self::IDENTITY_DOCUMENT_SUBMITTED, self::IDENTITY_DOCUMENT_VIEWED, self::IDENTITY_DOCUMENT_APPROVED, self::IDENTITY_DOCUMENT_REJECTED, self::IDENTITY_DOCUMENT_RESUBMISSION_REQUESTED, self::IDENTITY_DOCUMENT_RESUBMITTED, self::IDENTITY_DOCUMENT_REOPENED, self::CUSTOMER_VERIFICATION_APPROVED, self::CUSTOMER_VERIFICATION_REJECTED, self::CUSTOMER_VERIFICATION_DETAILS_VIEWED => AuditCategory::IDENTITY,
             self::RLS_SYSTEM_ELEVATION, self::RLS_MAINTENANCE_ELEVATION, self::AUDIT_LOG_EXPORTED,
@@ -424,7 +433,7 @@ enum AuditEvent: string
             self::TOPUP_MATCHED, self::TOPUP_CREDITED_BY_HAND, self::TOPUP_HELD, self::TOPUP_UNHELD,
             self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
             self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,
-            self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN, self::LISTING_PRICE_CHANGED => AuditCategory::LISTINGS,
+            self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN, self::LISTING_RELISTED, self::LISTING_PRICE_CHANGED => AuditCategory::LISTINGS,
             self::ORDER_CANCELLED, self::ORDER_RECEIVED, self::ORDER_BRANCH_CHANGED, self::ORDER_DEADLINE_EXTENDED,
             self::ORDER_PRICE_PROPOSED, self::ORDER_HANDED_OVER, self::ORDER_HANDOVER_FAILED, self::ORDER_RETURN_HANDED_OVER,
             self::INSPECTION_RESULT_RECORDED, self::ORDER_SELLER_CANCELLED, self::ORDER_DECIDED, self::ORDER_PAID,
@@ -485,6 +494,7 @@ enum AuditEvent: string
             self::FOUNDER_DEVICE_APPROVED,
             self::FOUNDER_DEVICE_REFUSED,
             self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE,
+            self::FOUNDER_DEVICE_TRUSTED_BY_SMS,
             self::FOUNDER_FROZEN,
             self::FOUNDER_UNFREEZE_CONFIRMED,
             self::FOUNDER_UNFROZEN,

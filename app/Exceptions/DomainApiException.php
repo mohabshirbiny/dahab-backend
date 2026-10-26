@@ -213,6 +213,23 @@ class DomainApiException extends RuntimeException
         return new self('illegal_listing_transition', 409, 'This listing cannot move to that state.');
     }
 
+    /**
+     * A withdrawn listing comes back only when it was taken down off the market (from live or
+     * reserved); the seller brings back only what they took down themselves. Reasons:
+     * `not_taken_down` (it left after a sale or a return), `taken_down_by_staff` (seller only),
+     * `account_closed` (the seller closed their account).
+     */
+    public static function listingNotRelistable(string $reason): self
+    {
+        $message = match ($reason) {
+            'taken_down_by_staff' => 'Dahab took this piece down, so only Dahab can put it back. Contact customer service.',
+            'account_closed' => 'The seller closed their account, so this piece cannot go back on the market.',
+            default => 'This listing did not come off the market by a take-down, so it cannot go back. List the piece again.',
+        };
+
+        return new self('listing_not_relistable', 409, $message, ['reason' => $reason]);
+    }
+
     /** Only a draft or a listing sent back for changes can be edited (spec 010 FR-006). */
     public static function listingNotEditable(): self
     {

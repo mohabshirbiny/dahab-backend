@@ -121,6 +121,8 @@ it('guards every customer and dashboard route with the right guard and ability, 
         'api/v1/dashboard/auth/mfa/enroll',
         // Spec 021: credentialed by the approval_ref + device id, and by password + TOTP; never a token.
         'api/v1/dashboard/auth/device-approval/status',
+        'api/v1/dashboard/auth/device-code/verify',
+        'api/v1/dashboard/auth/device-code/resend',
         'api/v1/dashboard/auth/frozen/confirm-unfreeze',
     ];
 
@@ -194,7 +196,8 @@ it('guards every customer and dashboard route with the right guard and ability, 
     // later:     customer wallet statement.pdf and order media (2); dashboard identity-documents reopen (1).
     //            The public reference certificate-costs carries no guard.
     //            Dashboard make a customer a market maker (1); the buyer's ID at the handover (1).
-    expect($checked)->toBe(263);
+    //            Settings page and relist: customer and dashboard listing relist (2); device-code verify/resend are public.
+    expect($checked)->toBe(270);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

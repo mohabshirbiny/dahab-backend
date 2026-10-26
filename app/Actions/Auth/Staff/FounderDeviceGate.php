@@ -4,9 +4,11 @@ namespace App\Actions\Auth\Staff;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
+use App\Enums\SettingKey;
 use App\Exceptions\AuthApiException;
 use App\Models\FounderDeviceApproval;
 use App\Models\Staff;
+use App\Support\Pricing\Settings;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,16 +21,30 @@ use Illuminate\Support\Str;
  * Called by the three paths that end in CompleteStaffSignInAction (login without an MFA step,
  * MFA verify, MFA enroll), just before it. Returns null to let the sign-in complete, or the held
  * answer (R18). Non-founders, known devices and `founder_device_approval_enforced = false` pass.
+ *
+ * Setting `auth.staff_new_device_sms` (on by default, docs/features/settings-page-and-relist.md):
+ * any staff member on a device not yet known for them gets a code by SMS to the staff phone
+ * (`device_code_required`), and so does a founder with no known device at all, instead of waiting
+ * for `founder:trust-device`. A founder who has a known device still waits for the other founder.
+ * A staff member with no phone on file is not asked (there is nowhere to send the code).
  */
 final class FounderDeviceGate
 {
-    public function __construct(private readonly RecordAuditLogAction $audit) {}
+    public function __construct(
+        private readonly RecordAuditLogAction $audit,
+        private readonly Settings $settings,
+        private readonly StaffDeviceCodeAction $deviceCode,
+    ) {}
 
-    /** @return array{device_approval_required: true, approval_id: string, approval_ref: string, expires_at: string, poll_interval_seconds: int}|null */
+    /** @return array<string, mixed>|null the held answer (`device_approval_required` or `device_code_required`), or null to sign in */
     public function hold(Staff $staff, RequestContext $ctx): ?array
     {
+        $sms = config('dahab-auth.staff_device_sms_enforced')
+            && $this->settings->bool(SettingKey::AUTH_STAFF_NEW_DEVICE_SMS)
+            && filled($staff->phone);
+
         if (! $staff->is_founder || ! config('dahab-auth.founder_device_approval_enforced')) {
-            return null;
+            return $sms ? $this->codeFor($staff, $ctx) : null;
         }
 
         // R3: the approval needs a fingerprint, and without one the device could never be known.
@@ -38,6 +54,10 @@ final class FounderDeviceGate
 
         if ($staff->isKnownDevice($ctx->deviceFingerprintHash)) {
             return null;
+        }
+
+        if ($sms && ! $staff->deviceFingerprints()->exists()) {
+            return $this->deviceCode->issue($staff, $ctx);
         }
 
         $ref = self::newRef();
@@ -83,6 +103,16 @@ final class FounderDeviceGate
             'expires_at' => $approval->expires_at->toIso8601String(),
             'poll_interval_seconds' => (int) config('dahab-auth.founder_device_approval.poll_interval_seconds'),
         ];
+    }
+
+    /** A code by SMS unless the device is already known; the code needs a device id to bind to. */
+    private function codeFor(Staff $staff, RequestContext $ctx): ?array
+    {
+        if ($ctx->deviceFingerprintHash === null) {
+            throw AuthApiException::deviceIdRequired();
+        }
+
+        return $staff->isKnownDevice($ctx->deviceFingerprintHash) ? null : $this->deviceCode->issue($staff, $ctx);
     }
 
     /** The HMAC stored for a poll ref (the spec 013/017 link pattern); the ref itself is never stored. */

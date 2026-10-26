@@ -71,6 +71,9 @@ enum SettingKey: string
     case CERTIFICATE_OTHER_LAB_COST_EGP = 'certificate.other_lab_cost_egp';
     case CERTIFICATE_NONE_COST_EGP = 'certificate.none_cost_egp';
 
+    /** A staff member on a device not yet known confirms it by an SMS code; a founder's first device too. */
+    case AUTH_STAFF_NEW_DEVICE_SMS = 'auth.staff_new_device_sms';
+
     /** Money and price rules (Finance + CEO) or operations (founders) — research R1. */
     public function group(): SettingGroup
     {
@@ -100,7 +103,8 @@ enum SettingKey: string
             self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
             self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING,
             self::PAYOUT_FIRST_SALE_ENABLED, self::PAYOUT_FIRST_SALE_COMP_OFFSETS_WRITEOFF,
-            self::PROMO_SELLER_CODES_ENABLED, self::REFERRAL_ENABLED, self::MARKETMAKER_REQUIRE_APPROVAL => true,
+            self::PROMO_SELLER_CODES_ENABLED, self::REFERRAL_ENABLED, self::MARKETMAKER_REQUIRE_APPROVAL,
+            self::AUTH_STAFF_NEW_DEVICE_SMS => true,
             default => false,
         };
     }
@@ -135,7 +139,8 @@ enum SettingKey: string
             self::MANUALPRICE_CONFIRMER_MUST_DIFFER, self::VISIBILITY_RAPAPORT_REFERENCE, self::VISIBILITY_PAYOUT_AVERAGES,
             self::VISIBILITY_LISTING_STATS, self::VISIBILITY_SHARING,
             self::PAYOUT_FIRST_SALE_ENABLED, self::PAYOUT_FIRST_SALE_COMP_OFFSETS_WRITEOFF,
-            self::PROMO_SELLER_CODES_ENABLED, self::REFERRAL_ENABLED, self::MARKETMAKER_REQUIRE_APPROVAL => null,
+            self::PROMO_SELLER_CODES_ENABLED, self::REFERRAL_ENABLED, self::MARKETMAKER_REQUIRE_APPROVAL,
+            self::AUTH_STAFF_NEW_DEVICE_SMS => null,
             // A share of a commission strictly between nothing and all of it (data-model §7).
             self::REFERRAL_FRIEND_PERCENT_OFF => '0.0001',
             // An amount that must be there (not zero).
