@@ -5394,6 +5394,41 @@
                             "response": []
                         },
                         {
+                            "name": "Open Stone Certificate",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/orders/{{order_id}}/certificates/{{media_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "orders",
+                                        "{{order_id}}",
+                                        "certificates",
+                                        "{{media_id}}"
+                                    ]
+                                },
+                                "description": "App notes 2026-10-26. A stone certificate the seller uploaded (ids in `certificates` on the work list and the order detail), decrypted, no-store. inspection.enter or order.view. 404 for any other media."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "List Extension Requests",
                             "request": {
                                 "method": "GET",
@@ -6571,6 +6606,45 @@
                             "response": []
                         },
                         {
+                            "name": "List Compensation Orders",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/compensation/orders?customer_id={{customer_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "compensation",
+                                        "orders"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "customer_id",
+                                            "value": "{{customer_id}}"
+                                        }
+                                    ]
+                                },
+                                "description": "App notes 2026-10-26. The customer's orders (buyer or seller, open and closed, newest first, at most 100) that a compensation can name. compensation.pay."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Pay Compensation (no dispute)",
                             "request": {
                                 "method": "POST",
@@ -6609,10 +6683,10 @@
                                         "compensation"
                                     ]
                                 },
-                                "description": "Spec 015 FR-004. compensation.pay; the caps per payment and per day unless compensation.uncapped. order_id optional (one of the customer's orders).",
+                                "description": "Spec 015 FR-004. compensation.pay; the caps per payment and per day unless compensation.uncapped. order_id required since 2026-10-26: one of the customer's orders (List Compensation Orders); 422 otherwise.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"amount\": \"800\",\n  \"reason\": \"wasted_trip\",\n  \"note\": \"Came to the branch while it was closed.\"\n}",
+                                    "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"order_id\": \"{{order_id}}\",\n  \"amount\": \"800\",\n  \"reason\": \"wasted_trip\",\n  \"note\": \"Came to the branch while it was closed.\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"

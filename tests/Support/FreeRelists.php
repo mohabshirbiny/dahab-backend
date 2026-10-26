@@ -70,7 +70,8 @@ final class FreeRelists
         $category = Listing::query()->findOrFail($order->listing_id)->category;
         $price = $category === PieceCategory::GOLD
             ? ['making_charge_per_g' => '250.00']
-            : ['asking_price' => $category === PieceCategory::DIAMOND ? '130000.00' : '90000.00'];
+            // A stone piece may not be relisted above what the buyer paid (app notes 2026-10-26).
+            : ['asking_price' => $category === PieceCategory::DIAMOND ? '115000.00' : '78000.00'];
 
         return array_merge($price, [
             'description' => 'Back on the market, same piece.',

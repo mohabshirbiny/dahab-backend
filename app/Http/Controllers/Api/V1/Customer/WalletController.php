@@ -37,7 +37,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'held_change', type: 'string', example: '400.0000'),
         new OA\Property(property: 'available_after', type: 'string', example: '600.0000'),
         new OA\Property(property: 'held_after', type: 'string', example: '400.0000'),
-        new OA\Property(property: 'reference', type: 'string', nullable: true, description: 'The related top-up (TOP-{n}) or withdrawal (WD-{n}, spec 013) number; null otherwise'),
+        new OA\Property(property: 'reference', type: 'string', nullable: true, description: 'The order number (DH-YYYY-NNNNNN) when the movement belongs to an order, else the related top-up (TOP-{n}) or withdrawal (WD-{n}, spec 013) number; null otherwise'),
         new OA\Property(property: 'invoice_id', type: 'string', format: 'uuid', nullable: true, description: 'Spec 016: your own tax invoice for a settlement (balance_payment) or the invoice a credit note corrects (credit_note); null otherwise'),
     ],
 )]

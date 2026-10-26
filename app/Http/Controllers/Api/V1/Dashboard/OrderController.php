@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Inspections\RecordInspectionResultAction;
 use App\Actions\Listings\ListListingsForReviewAction;
+use App\Actions\Listings\ReadListingMediaAction;
 use App\Actions\Orders\CancelAcceptanceAction;
 use App\Actions\Orders\Staff\ChangeOrderBranchAction;
 use App\Actions\Orders\Staff\ExportOrdersAction;
@@ -16,6 +17,7 @@ use App\Actions\Orders\Staff\ReceivePieceAction;
 use App\Actions\Orders\Staff\ShowOrderAction;
 use App\Actions\Orders\Staff\ViewBuyerIdAction;
 use App\Actions\Orders\Staff\ViewProxyIdAction;
+use App\Enums\ListingMediaKind;
 use App\Enums\StaffPermission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Order\CancelOrderRequest;
@@ -30,10 +32,13 @@ use App\Http\Resources\Staff\InspectionResultResource;
 use App\Http\Resources\Staff\ListingResource;
 use App\Http\Resources\Staff\StaffOrderResource;
 use App\Http\Resources\Staff\WorkListItemResource;
+use App\Models\ListingMedia;
+use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Orders, staff side (spec 011 cancel; spec 012 the life after acceptance:
@@ -430,6 +435,31 @@ class OrderController extends Controller
         $side = $this->side($request);
 
         return $this->image($view->handle($request->user('staff'), $order, $side, $request->attributes->get('context')), 'buyer-id-'.$side);
+    }
+
+    #[OA\Get(
+        path: '/dashboard/orders/{order}/certificates/{media}',
+        operationId: 'dashboardOrderCertificate',
+        summary: 'Open the stone certificate the seller uploaded',
+        description: 'App notes 2026-10-26: the inspector checks the stone against its certificate. One stone certificate file of the piece of the order (ids in `certificates` on the work list and the order detail), decrypted and streamed, never cached. 404 for any other media. Requires inspection.enter or order.view.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Orders'],
+        parameters: [
+            new OA\Parameter(name: 'order', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'media', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The file', content: new OA\MediaType(mediaType: 'application/octet-stream', schema: new OA\Schema(type: 'string', format: 'binary'))),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function certificate(string $order, string $media, ReadListingMediaAction $read): StreamedResponse
+    {
+        $listingId = Order::query()->findOrFail($order, ['listing_id'])->listing_id;
+        ListingMedia::query()->where('listing_id', $listingId)->where('kind', ListingMediaKind::STONE_CERTIFICATE->value)->findOrFail($media, ['media_id']);
+
+        return $read->handle($listingId, $media);
     }
 
     private function side(Request $request): string

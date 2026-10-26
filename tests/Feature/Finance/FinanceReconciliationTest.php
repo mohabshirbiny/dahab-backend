@@ -48,7 +48,8 @@ it('keeps every book balanced across compensation, adjustments, movements, holds
         ->join('account AS a', 'a.account_id', '=', 'p.account_id')->where('p.ledger_txn_id', $txn)->where('a.kind', $kind)->sum('p.amount'));
 
     expect(Finance::globalSum())->toBe('0.0000')
-        ->and(Finance::bankCash())->toBe(bcadd(bcsub('500000', '250', 4), '201000', 4))
+        // 201,000 topped up by the two customers, and 60,000 by the buyer of the order the compensation names.
+        ->and(Finance::bankCash())->toBe(bcadd(bcsub('500000', '250', 4), '261000', 4))
         ->and(Finance::available($customer))->toBe('1500.0000');
     foreach ($rows['comp'] as $c) {
         expect(bcadd($lineOf($c->ledger_txn_id, 'cust_available'), '0', 4))->toBe(bcadd((string) $c->amount, '0', 4));

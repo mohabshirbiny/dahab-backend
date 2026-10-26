@@ -84,16 +84,31 @@ it('creates a new live listing owned by the buyer, copied from the piece, with n
 it('relists a diamond and a gold piece with a stone on the entered asking price', function () {
     $diamond = Listing::factory()->diamond()->withPhotos(3)->live()->create();
     $one = FreeRelists::ac018CollectedOrder($this, $diamond);
-    FreeRelists::ac018Relist($this, Orders::buyer($one), $one, FreeRelists::ac018RelistPayload($one, ['asking_price' => '125000.00']))->assertCreated();
+    FreeRelists::ac018Relist($this, Orders::buyer($one), $one, FreeRelists::ac018RelistPayload($one, ['asking_price' => '118000.00']))->assertCreated();
 
     $stone = Listing::factory()->goldWithDiamond()->withPhotos(3)->live()->create();
     $two = FreeRelists::ac018CollectedOrder($this, $stone);
-    FreeRelists::ac018Relist($this, Orders::buyer($two), $two, FreeRelists::ac018RelistPayload($two, ['asking_price' => '95000.00']))->assertCreated();
+    FreeRelists::ac018Relist($this, Orders::buyer($two), $two, FreeRelists::ac018RelistPayload($two, ['asking_price' => '79000.00']))->assertCreated();
 
     $a = Listing::query()->where('relisted_from_order_id', $one->order_id)->sole();
     $b = Listing::query()->where('relisted_from_order_id', $two->order_id)->sole();
-    expect((string) $a->asking_price)->toBe('125000.0000')->and($a->karat_code)->toBeNull()
-        ->and((string) $b->asking_price)->toBe('95000.0000')->and($b->karat_code)->toBe(21);
+    expect((string) $a->asking_price)->toBe('118000.0000')->and($a->karat_code)->toBeNull()
+        ->and((string) $b->asking_price)->toBe('79000.0000')->and($b->karat_code)->toBe(21);
+});
+
+it('refuses a stone piece relisted above what the buyer paid, and offers that price as the ceiling', function () {
+    $diamond = Listing::factory()->diamond()->withPhotos(3)->live()->create();
+    $order = FreeRelists::ac018CollectedOrder($this, $diamond);
+    $paid = (string) $order->refresh()->final_buyer_total;
+
+    Orders::show($this, Orders::buyer($order), $order)->assertOk()
+        ->assertJsonPath('data.free_relist.previous_price', bcadd($paid, '0', 4))
+        ->assertJsonPath('data.free_relist.previous_making_charge_per_g', null);
+
+    FreeRelists::ac018Relist($this, Orders::buyer($order), $order, FreeRelists::ac018RelistPayload($order, ['asking_price' => bcadd($paid, '0.01', 2)]))
+        ->assertUnprocessable()->assertJsonValidationErrors('asking_price');
+    FreeRelists::ac018Relist($this, Orders::buyer($order), $order, FreeRelists::ac018RelistPayload($order, ['asking_price' => bcadd($paid, '0', 2)]))
+        ->assertCreated();
 });
 
 it('answers 404 to anyone but the buyer', function () {

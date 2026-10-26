@@ -48,7 +48,7 @@ final class BuildCustomerStatementAction
                 WHERE a.customer_id = ?
                 GROUP BY p.ledger_txn_id
             ), running AS (
-                SELECT m.*, t.created_at, t.event_kind::text AS kind, t.withdrawal_id,
+                SELECT m.*, t.created_at, t.event_kind::text AS kind, t.withdrawal_id, t.order_id,
                        SUM(m.available_change) OVER (ORDER BY m.seq) AS available_after,
                        SUM(m.held_change)      OVER (ORDER BY m.seq) AS held_after
                 FROM mine m
@@ -59,10 +59,11 @@ final class BuildCustomerStatementAction
                    r.held_change::numeric(18,4)::text      AS held_change,
                    r.available_after::numeric(18,4)::text  AS available_after,
                    r.held_after::numeric(18,4)::text       AS held_after,
-                   COALESCE('TOP-' || tu.topup_no, 'WD-' || w.withdrawal_no) AS reference
+                   COALESCE(o.order_ref, 'TOP-' || tu.topup_no, 'WD-' || w.withdrawal_no) AS reference
             FROM running r
             LEFT JOIN topup tu ON tu.ledger_txn_id = r.ledger_txn_id
             LEFT JOIN withdrawal w ON w.withdrawal_id = r.withdrawal_id
+            LEFT JOIN \"order\" o ON o.order_id = r.order_id
             WHERE r.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND r.created_at < (?::timestamp AT TIME ZONE '{$tz}')
             ORDER BY r.seq
             LIMIT ".(self::MAX_ROWS + 1).'

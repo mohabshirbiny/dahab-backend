@@ -7,6 +7,7 @@ use App\Enums\SeedRole;
 use App\Models\Account;
 use App\Models\AuditLog;
 use App\Models\Customer;
+use App\Models\ReceivingAccount;
 use App\Models\Staff;
 use App\Models\TopUp;
 use App\Support\DatabaseActor;
@@ -357,5 +358,7 @@ it('shows a credited top-up with its number, method and how it was matched (spec
     expect($row['kind'])->toBe('topup')
         ->and($row['reference'])->toBe('TOP-'.$matched->topup_no)
         ->and($row['memo'])->toBe("Top-up TOP-{$matched->topup_no} · InstaPay · matched from notice {$matched->reference}")
-        ->and($row['in'])->toBe('20000.0000');
+        ->and($row['in'])->toBe('20000.0000')
+        // App notes 2026-10-26: the Dahab account the money came into (an InstaPay account has no bank name: its label).
+        ->and($row['bank'])->toBe(['direction' => 'in', 'name' => ReceivingAccount::query()->findOrFail($matched->notice_account_id)->label]);
 });

@@ -2830,6 +2830,130 @@
       "max_length": 44
     },
     {
+      "key": "order.estimate.title",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "What you will receive",
+      "default_ar": "اللي هيوصلك",
+      "placeholders": [],
+      "max_length": 42
+    },
+    {
+      "key": "order.estimate.piece",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "The sale price",
+      "default_ar": "سعر البيع",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.estimate.saving",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "Saved on the commission",
+      "default_ar": "وفّرت من العمولة",
+      "placeholders": [],
+      "max_length": 46
+    },
+    {
+      "key": "order.estimate.certificate",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "IGI certificate",
+      "default_ar": "شهادة IGI",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.estimate.receive",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "You receive",
+      "default_ar": "هتستلم",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "order.estimate.stated",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "An estimate on the weight you stated. The final figure follows the weight IGI measures.",
+      "default_ar": "ده تقدير على الوزن اللي كتبته. الرقم النهائي بيتحسب على الوزن اللي IGI بتقيسه.",
+      "placeholders": [],
+      "max_length": 174
+    },
+    {
+      "key": "order.estimate.indicative",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "An estimate. It is fixed once the piece passes inspection.",
+      "default_ar": "ده تقدير. بيتثبت أول ما القطعة تعدّي الفحص.",
+      "placeholders": [],
+      "max_length": 116
+    },
+    {
+      "key": "order.estimate.final",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: what the seller receives",
+      "default_en": "This reaches your wallet as soon as the buyer pays the balance.",
+      "default_ar": "المبلغ ده بيوصل محفظتك أول ما المشتري يدفع الباقي.",
+      "placeholders": [],
+      "max_length": 126
+    },
+    {
+      "key": "order.pay.pending_topups.title",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "Waiting for Dahab to confirm",
+      "default_ar": "مستني تأكيد دهب",
+      "placeholders": [],
+      "max_length": 56
+    },
+    {
+      "key": "order.pay.pending_topups.note",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Order: pay the balance",
+      "default_en": "You told us about a transfer. Once Dahab matches it, it is added to your wallet and you can pay from here.",
+      "default_ar": "إنت بلغتنا بتحويل. أول ما دهب تطابقه، هيتضاف لمحفظتك وتقدر تدفع من هنا.",
+      "placeholders": [],
+      "max_length": 212
+    },
+    {
+      "key": "order.free_relist.form.previous_price",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission",
+      "default_en": "You paid {price} EGP for this piece. The new price can be the same or lower, not higher.",
+      "default_ar": "إنت دفعت {price} جنيه في القطعة دي. السعر الجديد لازم يبقى زيه أو أقل، مش أكتر.",
+      "placeholders": [
+        "price"
+      ],
+      "max_length": 176
+    },
+    {
+      "key": "order.free_relist.form.error_price_above_paid",
+      "kind": "app",
+      "area": "Orders",
+      "where": "Relist with no commission",
+      "default_en": "The price can not be more than what you paid ({price} EGP).",
+      "default_ar": "السعر مينفعش يبقى أكتر من اللي دفعته ({price} جنيه).",
+      "placeholders": [
+        "price"
+      ],
+      "max_length": 118
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",
@@ -14008,6 +14132,36 @@
       "default_ar": "تسوية بيعة",
       "placeholders": [],
       "max_length": 40
+    },
+    {
+      "key": "shared.sale_paid",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Shared texts",
+      "default_en": "Sale paid",
+      "default_ar": "البيعة اتدفعت",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "shared.paid_for_a_piece_you_sold",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Shared texts",
+      "default_en": "Paid for a piece you sold",
+      "default_ar": "اتدفعلك تمن قطعة بعتها",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "shared.your_share_of_a_piece_you_sold",
+      "kind": "app",
+      "area": "Shared",
+      "where": "Shared texts",
+      "default_en": "Your share of a piece you sold, after commission and VAT, paid when the buyer paid the balance.",
+      "default_ar": "نصيبك من قطعة بعتها بعد العمولة والضريبة، اتدفع لما المشتري دفع الباقي.",
+      "placeholders": [],
+      "max_length": 190
     },
     {
       "key": "shared.sell",

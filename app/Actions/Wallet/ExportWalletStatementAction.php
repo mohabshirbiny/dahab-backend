@@ -62,9 +62,9 @@ final class ExportWalletStatementAction
         $splitHead = $dahab ? ['Commission', 'Spread', 'VAT', 'First-sale advance', 'Certificate fee'] : [];
 
         if ($query->grain === 'each') {
-            $put(['When', 'What', 'Wallet', 'Reference', 'By', 'Entered by hand', 'Memo', 'Before', 'In', 'Out', 'After', ...$splitHead]);
+            $put(['When', 'What', 'Wallet', 'Reference', 'Bank', 'By', 'Entered by hand', 'Memo', 'Before', 'In', 'Out', 'After', ...$splitHead]);
             foreach ($statement['rows'] as $r) {
-                $put([$r['created_at'], $r['label'], $r['wallet']['display_ref'] ?? '', $r['reference'] ?? '', $r['actor']['name'] ?? '', $r['by_hand'] ? 'Yes' : 'No', $r['memo'] ?? '', $r['before'], $r['in'], $r['out'], $r['after'], ...$split($r)]);
+                $put([$r['created_at'], $r['label'], $r['wallet']['display_ref'] ?? '', $r['reference'] ?? '', $r['bank']['name'] ?? '', $r['actor']['name'] ?? '', $r['by_hand'] ? 'Yes' : 'No', $r['memo'] ?? '', $r['before'], $r['in'], $r['out'], $r['after'], ...$split($r)]);
             }
         } else {
             $put(['Period', 'Movements', 'Before', 'In', 'Out', 'After', ...$splitHead]);

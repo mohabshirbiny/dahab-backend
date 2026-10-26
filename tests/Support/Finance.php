@@ -6,6 +6,8 @@ use App\Enums\AccountKind;
 use App\Enums\SeedRole;
 use App\Models\Account;
 use App\Models\Customer;
+use App\Models\GoldPrice;
+use App\Models\Order;
 use App\Models\Staff;
 use App\Support\DatabaseActor;
 use Illuminate\Http\UploadedFile;
@@ -74,7 +76,35 @@ final class Finance
         return $test->postJson('/api/v1/dashboard/compensation', array_merge([
             'customer_id' => $customer->customer_id, 'amount' => $amount, 'reason' => 'wasted_trip',
             'note' => 'They came to the branch for nothing.',
+            'order_id' => array_key_exists('order_id', $overrides) ? null : self::orderOf($test, $customer)->order_id,
         ], $overrides), self::key($key));
+    }
+
+    /** @var array<string, string> one order per customer, so a replay sends the same body */
+    private static array $orders = [];
+
+    /**
+     * An order of the customer (as the seller, so their wallet is untouched) for the order every
+     * compensation names (app notes 2026-10-26). The staff member acting before acts again after.
+     */
+    public static function orderOf(TestCase $test, Customer $customer): Order
+    {
+        if (isset(self::$orders[$customer->customer_id]) && ($order = Order::query()->find(self::$orders[$customer->customer_id])) !== null) {
+            return $order;
+        }
+        $staff = app('auth')->guard('staff')->user();
+        if (! GoldPrice::query()->exists()) {
+            Orders::workedPrices();
+        }
+        $order = Orders::accepted($test, Orders::ring($customer));
+        if ($staff instanceof Staff) {
+            Disputes::actAs($staff);
+        } else {
+            app('auth')->forgetGuards();
+        }
+        self::$orders[$customer->customer_id] = $order->order_id;
+
+        return $order;
     }
 
     public static function adjust(TestCase $test, Customer $customer, string $direction, string $amount, array $overrides = [], ?string $key = null): TestResponse

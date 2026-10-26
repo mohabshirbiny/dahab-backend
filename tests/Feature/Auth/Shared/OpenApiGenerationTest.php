@@ -231,6 +231,7 @@ const OPENAPI_DASHBOARD_ORDER_PATHS = [
     'post /dashboard/extension-requests/{extensionRequest}/accept',
     'post /dashboard/extension-requests/{extensionRequest}/refuse',
     'get /dashboard/orders/{order}/buyer-id',
+    'get /dashboard/orders/{order}/certificates/{media}',
     'get /dashboard/orders/{order}/proxy-id',
 ];
 
@@ -329,6 +330,7 @@ const OPENAPI_DASHBOARD_FINANCE_PATHS = [
     'get /dashboard/compensation',
     'post /dashboard/compensation',
     'get /dashboard/compensation/export',
+    'get /dashboard/compensation/orders',
     'post /dashboard/customers/{customer}/wallet-adjustments',
     'get /dashboard/wallet-adjustments',
     'post /dashboard/uploads',

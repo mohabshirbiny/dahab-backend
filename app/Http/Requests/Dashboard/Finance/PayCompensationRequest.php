@@ -10,13 +10,13 @@ use OpenApi\Attributes as OA;
 /** Pay compensation outside a dispute (spec 015 FR-004). */
 #[OA\Schema(
     schema: 'PayCompensationRequest',
-    required: ['customer_id', 'amount', 'reason', 'note'],
+    required: ['customer_id', 'amount', 'reason', 'note', 'order_id'],
     properties: [
         new OA\Property(property: 'customer_id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'amount', type: 'string', example: '800', description: '> 0, at most 4 decimal places; capped unless compensation.uncapped'),
         new OA\Property(property: 'reason', type: 'string', enum: ['igi_delay', 'dahab_mistake', 'wasted_trip', 'dispute_settlement', 'goodwill']),
         new OA\Property(property: 'note', type: 'string', minLength: 10, maxLength: 1000, description: 'For the record; never sent to the customer'),
-        new OA\Property(property: 'order_id', type: 'string', format: 'uuid', nullable: true, description: 'Optionally one of the customer\'s orders'),
+        new OA\Property(property: 'order_id', type: 'string', format: 'uuid', description: 'The customer\'s order the payment is for (required since 2026-10-26; GET /dashboard/compensation/orders lists them)'),
     ],
 )]
 class PayCompensationRequest extends FormRequest
@@ -35,7 +35,7 @@ class PayCompensationRequest extends FormRequest
             'amount' => self::AMOUNT,
             'reason' => ['required', 'string', Rule::enum(CompensationReason::class)],
             'note' => ['required', 'string', 'min:10', 'max:1000'],
-            'order_id' => ['sometimes', 'nullable', 'uuid'],
+            'order_id' => ['required', 'uuid'],
         ];
     }
 }

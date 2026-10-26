@@ -736,6 +736,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 // The buyer's own ID at the handover (docs/features/handover-id-check.md).
                 Route::get('/{order}/buyer-id', [DashboardOrderController::class, 'buyerId'])
                     ->whereUuid('order')->middleware('staff.permission:order.handover|order.view')->name('buyer-id');
+                // App notes 2026-10-26: the stone certificate the seller uploaded, for the inspector.
+                Route::get('/{order}/certificates/{media}', [DashboardOrderController::class, 'certificate'])
+                    ->whereUuid(['order', 'media'])->middleware('staff.permission:inspection.enter|order.view')->name('certificates.show');
                 Route::post('/{order}/seller-return/handover', [DashboardOrderController::class, 'sellerReturnHandover'])
                     ->whereUuid('order')->middleware(['staff.permission:order.handover', 'idempotent'])->name('seller-return.handover');
             });
@@ -816,6 +819,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->middleware('staff.permission:'.StaffPermission::COMPENSATION_READ)->name('index');
                 Route::get('/export', [DashboardCompensationController::class, 'export'])
                     ->middleware('staff.permission:'.StaffPermission::COMPENSATION_READ)->name('export');
+                // App notes 2026-10-26: the customer's orders, for the order every payment names.
+                Route::get('/orders', [DashboardCompensationController::class, 'orders'])
+                    ->middleware('staff.permission:compensation.pay')->name('orders');
                 Route::post('/', [DashboardCompensationController::class, 'store'])
                     ->middleware(['staff.permission:compensation.pay', 'idempotent'])->name('store');
             });

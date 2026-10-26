@@ -9,6 +9,7 @@ use App\Enums\ListingMediaKind;
 use App\Enums\ListingState;
 use App\Enums\OrderState;
 use App\Enums\PartyRole;
+use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
 use App\Http\Resources\ListingMediaResource;
 use App\Models\Branch;
@@ -69,7 +70,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'dispute_outcome', type: 'string', enum: ['resumed', 'cancelled'], nullable: true, description: 'Spec 014: from the order history, once a dispute on it was resolved (either party)'),
         new OA\Property(property: 'extension_request', type: 'object', nullable: true, description: 'Spec 014, the seller only: {state: waiting|accepted|refused|lapsed, reason, detail, hours_granted, answer_note, requested_at, answered_at}'),
         new OA\Property(property: 'proxy', type: 'object', nullable: true, description: 'Spec 014, the buyer only: {name, phone_masked, named_at}'),
-        new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, always present. The buyer\'s offer to relist the collected piece at 0% commission: {status: none|open|used|expired, ends_at (the server\'s window end, working hours from the handover) | null, listing_id | null, previous_making_charge_per_g (gold, open offer: the fee on the sold piece; the new fee may not exceed it) | null}. Always none for the seller.'),
+        new OA\Property(property: 'free_relist', type: 'object', description: 'Spec 018, always present. The buyer\'s offer to relist the collected piece at 0% commission: {status: none|open|used|expired, ends_at (the server\'s window end, working hours from the handover) | null, listing_id | null, previous_making_charge_per_g (gold, open offer: the fee on the sold piece; the new fee may not exceed it) | null, previous_price (a stone piece, open offer: what the buyer paid; the new asking price may not exceed it) | null}. Always none for the seller.'),
         new OA\Property(property: 'rating', type: 'object', description: 'Spec 018, your own party only: {can_rate, opens_at, closes_at, given: {stars, note, created_at} | null}'),
         new OA\Property(property: 'no_fee', type: 'boolean', description: 'Spec 018: true on the seller\'s order when the sale was a free relist — Dahab charged no commission (the seller invoice is of 0 since 2026-10-25)'),
         new OA\Property(property: 'commission', type: 'object', nullable: true, description: 'Seller only (spec 023): {recorded, ordinary_egp, charged_egp, saved_egp (net of VAT), ordinary_total_egp, charged_total_egp, saved_total_egp (VAT included; null for orders settled before 2026-10-25), waiver, code}'),
@@ -77,6 +78,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'timeline', type: 'array', items: new OA\Items(type: 'object')),
         new OA\Property(property: 'collection_code', type: 'string', nullable: true, description: 'Detail only, the buyer, while ready to collect'),
         new OA\Property(property: 'return_code', type: 'string', nullable: true, description: 'Detail only, the seller, while the return is open'),
+        new OA\Property(property: 'seller_estimate', type: 'object', nullable: true, description: 'Detail only, the seller, from acceptance until the buyer pays (app notes 2026-10-26): {gross_egp (the piece at the locked seller rate or the asking price), commission_total_egp (VAT included, after any waiver), commission_ordinary_total_egp, saved_total_egp, certificate_fee_egp, proceeds_egp (what reaches the wallet), weight_g, weight_measured, indicative (false once the balance is due)}; null for the buyer, once paid (see seller_proceeds) and when cancelled'),
     ],
 )]
 class CustomerOrderResource extends JsonResource
@@ -200,7 +202,9 @@ class CustomerOrderResource extends JsonResource
             // Spec 018. The offer belongs to the buyer; the seller of the sale has none.
             // `previous_making_charge_per_g`: the fee on the sold piece — the ceiling for the new fee (gold, open offer).
             'free_relist' => ($offer = $seller ? FreeRelistOffer::none() : FreeRelistOffer::for($o, $collection, $o->freeRelistListing))->toArray()
-                + ['previous_making_charge_per_g' => $offer->isOpen() && $listing->making_charge_per_g !== null ? (string) $listing->making_charge_per_g : null],
+                + ['previous_making_charge_per_g' => $offer->isOpen() && $listing->making_charge_per_g !== null ? (string) $listing->making_charge_per_g : null,
+                    // App notes 2026-10-26: a stone piece may not be relisted above what the buyer paid for it.
+                    'previous_price' => $offer->isOpen() && $listing->category !== PieceCategory::GOLD && $o->final_buyer_total !== null ? bcadd((string) $o->final_buyer_total, '0', 4) : null],
             'rating' => self::rating($o, $seller, $me),
             'no_fee' => $seller && $listing->isFreeRelist(),
             // Spec 023: the seller's advance and what the commission cost them (null for the buyer).
@@ -214,9 +218,39 @@ class CustomerOrderResource extends JsonResource
             $data['collection_code'] = ! $seller && $collection !== null && $collection->collected_at === null && $o->state === OrderState::READY_TO_COLLECT
                 ? $collection->code_encrypted : null;
             $data['return_code'] = $seller && $return !== null && $return->isOpen() ? $return->code_encrypted : null;
+            // App notes 2026-10-26: what the sale would pay the seller, before the buyer pays (detail only: it reads the seller's credits).
+            $data['seller_estimate'] = $seller ? self::sellerEstimate($o, $listing, $result, $rates) : null;
         }
 
         return $data;
+    }
+
+    /**
+     * The seller's money before the settlement (app notes 2026-10-26): the same figures the payment
+     * will post, on the measured weight once IGI has weighed the piece (else the stated one) and the
+     * rates locked at acceptance. Null once paid (seller_proceeds holds the real figure) or cancelled.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function sellerEstimate(Order $o, Listing $listing, ?InspectionResult $result, PricingRates $rates): ?array
+    {
+        if ($o->seller_proceeds !== null || ! $o->state->isOpen()) {
+            return null;
+        }
+        $f = app(OrderSettlement::class)->compute($o, $listing, $o->buyRequest, $result, $rates);
+
+        return [
+            'gross_egp' => $f->sellerGross,
+            'commission_total_egp' => bcadd($f->commission, $f->vat, 4),
+            'commission_ordinary_total_egp' => $f->ordinaryCommissionTotal,
+            'saved_total_egp' => $f->commissionGivenUpTotal,
+            'certificate_fee_egp' => $f->certificateFee,
+            'proceeds_egp' => $f->proceeds,
+            'weight_g' => $f->weight === '' ? null : $f->weight,
+            'weight_measured' => $result?->measured_weight_g !== null,
+            // Fixed once the buyer owes the balance; until then the weight or a regrade may still change it.
+            'indicative' => $o->state !== OrderState::AWAITING_BALANCE,
+        ];
     }
 
     /**

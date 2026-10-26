@@ -148,6 +148,12 @@ class Listing extends Model
         return $this->media()->where('kind', ListingMediaKind::PHOTO->value);
     }
 
+    /** The stone certificate the seller uploaded (private media), shown to the inspector (app notes 2026-10-26). */
+    public function certificates(): HasMany
+    {
+        return $this->media()->where('kind', ListingMediaKind::STONE_CERTIFICATE->value);
+    }
+
     public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class, 'listing_branch_option', 'listing_id', 'branch_id', 'listing_id', 'branch_id')
