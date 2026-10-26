@@ -71,6 +71,7 @@ it('shows one listing with everything the seller attached', function () {
         'relisted_from_order', // spec 018
         'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw',
         'can_change_price', // spec 022
+        'can_relist', 'taken_down_by', // settings page and relist
         'queue_count', 'order', // spec 011
         'promo', 'pays_advance', // spec 023
     ])

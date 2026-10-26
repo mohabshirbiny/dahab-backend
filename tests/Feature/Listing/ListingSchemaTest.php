@@ -94,12 +94,14 @@ it('defines the listing states, with rejected', function () {
         ->and($states)->toHaveCount(15);
 });
 
-it('seeds the allowed moves, with no way out of withdrawn or rejected', function () {
+it('seeds the allowed moves: rejected is final, withdrawn only goes back live', function () {
     $moves = DB::table('listing_transition')->get()->map(fn ($r) => $r->from_state.'>'.$r->to_state)->all();
 
+    // Settings page and relist: a taken-down piece is brought back (withdrawn > live).
     expect($moves)->toContain('draft>in_review', 'in_review>live', 'in_review>changes_requested', 'in_review>rejected',
-        'changes_requested>in_review', 'live>withdrawn', 'live>suspended_hold', 'suspended_hold>live')
-        ->and(DB::table('listing_transition')->whereIn('from_state', ['withdrawn', 'rejected'])->count())->toBe(0);
+        'changes_requested>in_review', 'live>withdrawn', 'live>suspended_hold', 'suspended_hold>live', 'withdrawn>live')
+        ->and(DB::table('listing_transition')->where('from_state', 'rejected')->count())->toBe(0)
+        ->and(DB::table('listing_transition')->where('from_state', 'withdrawn')->pluck('to_state')->all())->toBe(['live']);
 });
 
 it('refuses rows of the wrong shape', function (array $overrides) {
@@ -141,7 +143,6 @@ it('refuses a move that is not in listing_transition', function (array $path, st
 })->with([
     'draft to live' => [[], 'live'],
     'draft to rejected' => [[], 'rejected'],
-    'withdrawn to live' => [['in_review', 'live', 'withdrawn'], 'live'],
     'withdrawn to in review' => [['in_review', 'live', 'withdrawn'], 'in_review'],
     'rejected to in review' => [['in_review', 'rejected'], 'in_review'],
     'rejected to live' => [['in_review', 'rejected'], 'live'],

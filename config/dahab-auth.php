@@ -163,6 +163,14 @@ return [
 
     'founder_device_approval_enforced' => (bool) env('DAHAB_AUTH_FOUNDER_DEVICE_APPROVAL', true) || env('APP_ENV') === 'production',
 
+    /*
+    | The new-device SMS code for staff (setting auth.staff_new_device_sms, which staff change on
+    | the Settings page). This switch only lets the test suite and local development leave the
+    | setting out; it is forced on in production, like `mfa_enforced`.
+    */
+
+    'staff_device_sms_enforced' => (bool) env('DAHAB_AUTH_STAFF_DEVICE_SMS', true) || env('APP_ENV') === 'production',
+
     'founder_device_approval' => [
         'ttl_minutes' => 15,
         'poll_interval_seconds' => 5,

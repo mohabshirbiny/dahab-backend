@@ -187,6 +187,7 @@ const OPENAPI_CUSTOMER_LISTING_PATHS = [
     'get /customer/me/listings/{listing}/media/{media}',
     'post /customer/me/listings/{listing}/submit',
     'post /customer/me/listings/{listing}/withdraw',
+    'post /customer/me/listings/{listing}/relist',
     'post /customer/me/listings/{listing}/price', // spec 022
     // Spec 023: codes on the sell form, referral and commission credits.
     'post /customer/me/commission-preview',
@@ -305,6 +306,7 @@ const OPENAPI_DASHBOARD_LISTING_PATHS = [
     'post /dashboard/listings/{listing}/request-changes',
     'post /dashboard/listings/{listing}/reject',
     'post /dashboard/listings/{listing}/takedown',
+    'post /dashboard/listings/{listing}/relist',
 ];
 
 const OPENAPI_MARKET_PATHS = [
@@ -410,6 +412,9 @@ const OPENAPI_ACCOUNT_PATHS = [
 const OPENAPI_FOUNDER_SECURITY_PUBLIC_PATHS = [
     'post /dashboard/auth/device-approval/status',
     'post /dashboard/auth/frozen/confirm-unfreeze',
+    // Settings page and relist: the new-device SMS code of a staff sign-in.
+    'post /dashboard/auth/device-code/verify',
+    'post /dashboard/auth/device-code/resend',
 ];
 
 const OPENAPI_FOUNDER_SECURITY_PATHS = [
@@ -737,6 +742,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'StaffAppText', 'StaffAppTextVersion', 'StaffAppTextDraft', 'DashboardSaveAppTextDraft', 'DashboardRevertAppText',
         // Spec 021: founder-account security and the notices.
         'StaffDeviceApprovalPending', 'StaffDeviceApprovalStatusRequest', 'StaffFrozenConfirmUnfreezeRequest',
+        'StaffDeviceCodePending', 'StaffDeviceCodeVerifyRequest', 'StaffDeviceCodeResendRequest',
         'DashboardDeviceApproval', 'DashboardDeviceApprovalDecision', 'DashboardFounderDevices',
         'DashboardAccountFreeze', 'DashboardFreezeConfirmation', 'DashboardFreezeFounder', 'DashboardConfirmUnfreeze',
         'DashboardStaffNotice',

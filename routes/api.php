@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Dashboard\AuditLogController as DashboardAuditLo
 use App\Http\Controllers\Api\V1\Dashboard\Auth\FounderDeviceApprovalStatusController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\FrozenFounderController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffAuthController;
+use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffDeviceCodeController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffMfaController;
 use App\Http\Controllers\Api\V1\Dashboard\Auth\StaffPasswordResetController;
 use App\Http\Controllers\Api\V1\Dashboard\BankMovementController as DashboardBankMovementController;
@@ -316,6 +317,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                         ->whereUuid('listing')->middleware('idempotent')->name('submit');
                     Route::post('/{listing}/withdraw', [CustomerListingController::class, 'withdraw'])
                         ->whereUuid('listing')->middleware('idempotent')->name('withdraw');
+                    // A piece the seller took down goes back live (settings-page-and-relist).
+                    Route::post('/{listing}/relist', [CustomerListingController::class, 'relist'])
+                        ->whereUuid('listing')->middleware('idempotent')->name('relist');
                     // Spec 011: the seller answers the first buyer in line.
                     Route::post('/{listing}/accept', [CustomerListingQueueController::class, 'accept'])
                         ->whereUuid('listing')->middleware('idempotent')->name('accept');
@@ -456,6 +460,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::middleware(['throttle:auth.staff.mfa', 'db.elevate:bootstrap'])->prefix('mfa')->name('mfa.')->group(function () {
                 Route::post('/verify', [StaffMfaController::class, 'verify'])->name('verify');
                 Route::post('/enroll', [StaffMfaController::class, 'enroll'])->name('enroll');
+            });
+
+            // A staff sign-in from a device not yet known, held for the code sent by SMS
+            // (setting auth.staff_new_device_sms). Public; the challenge is bound to the device.
+            Route::middleware(['throttle:auth.staff.device_code', 'db.elevate:bootstrap'])->prefix('device-code')->name('device-code.')->group(function () {
+                Route::post('/verify', [StaffDeviceCodeController::class, 'verify'])->name('verify');
+                Route::post('/resend', [StaffDeviceCodeController::class, 'resend'])->name('resend');
             });
 
             // Spec 021: a founder's held sign-in from a new device polls its approval. Public.
@@ -701,6 +712,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->whereUuid('listing')->middleware(['staff.permission:listing.request_changes', 'idempotent'])->name('request-changes');
                 Route::post('/{listing}/takedown', [DashboardListingController::class, 'takedown'])
                     ->whereUuid('listing')->middleware(['staff.permission:listing.takedown', 'idempotent'])->name('takedown');
+                Route::post('/{listing}/relist', [DashboardListingController::class, 'relist'])
+                    ->whereUuid('listing')->middleware(['staff.permission:listing.takedown', 'idempotent'])->name('relist');
             });
 
         // Spec 011: cancel an acceptance. Spec 012: the order's life after acceptance —

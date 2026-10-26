@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Staff;
 
+use App\Actions\Listings\RelistListingAction;
 use App\Enums\ListingState;
 use App\Enums\OrderState;
 use App\Enums\StaffPermission;
@@ -21,7 +22,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'DashboardListing',
     description: 'A listing as review staff see it (spec 010): every field and every media item (the private invoice included), the seller, and what the signed-in staff member may do with it now. The detail endpoint adds `history` and the "sent back" counters.',
-    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'seller', 'created_at', 'listed_at', 'state_changed_at', 'can_approve', 'can_request_changes', 'can_reject', 'can_take_down'],
+    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'seller', 'created_at', 'listed_at', 'state_changed_at', 'can_approve', 'can_request_changes', 'can_reject', 'can_take_down', 'can_relist', 'taken_down_by'],
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'state', type: 'string', example: 'in_review'),
@@ -54,6 +55,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'can_request_changes', type: 'boolean'),
         new OA\Property(property: 'can_reject', type: 'boolean'),
         new OA\Property(property: 'can_take_down', type: 'boolean', description: 'Live or (spec 011) reserved, and the caller holds listing.takedown'),
+        new OA\Property(property: 'can_relist', type: 'boolean', description: 'Withdrawn from live or reserved (by the seller or by staff), and the caller holds listing.takedown: POST /dashboard/listings/{id}/relist'),
+        new OA\Property(property: 'taken_down_by', type: 'string', enum: ['seller', 'staff'], nullable: true, description: 'Who took a withdrawn piece off the market; null when it is not withdrawn or left another way'),
         new OA\Property(property: 'queue', type: 'array', description: 'Detail only (spec 011). The queued buy requests, in line order, read-only.', items: new OA\Items(properties: [
             new OA\Property(property: 'id', type: 'string', format: 'uuid'),
             new OA\Property(property: 'place_in_line', type: 'integer'),
@@ -116,6 +119,7 @@ class ListingResource extends JsonResource
         /** @var Staff|null $staff */
         $staff = $request->user('staff');
         $can = fn (StaffPermission $p): bool => $staff !== null && $staff->can($p->value);
+        $takenDown = RelistListingAction::takeDownOf($l);
 
         return CustomerListingResource::fields($l, $pricer->quote($l), ListingMediaResource::DASHBOARD) + [
             'gold_rate_per_gram' => $l->karat_code === null ? null : $pricer->karatPrices($l->karat_code)?->buyersPay,
@@ -134,6 +138,8 @@ class ListingResource extends JsonResource
             'can_reject' => in_array($l->state, [ListingState::IN_REVIEW, ListingState::CHANGES_REQUESTED], true) && $can(StaffPermission::LISTING_REVIEW),
             // Spec 011: a reserved piece can be taken down too; its line is released and refunded.
             'can_take_down' => in_array($l->state, [ListingState::LIVE, ListingState::RESERVED], true) && $can(StaffPermission::LISTING_TAKEDOWN),
+            'can_relist' => $takenDown !== null && $can(StaffPermission::LISTING_TAKEDOWN),
+            'taken_down_by' => $takenDown === null ? null : ($takenDown->actor_staff_id !== null ? 'staff' : 'seller'),
         ] + ($l->relationLoaded('queuedRequests') ? ['queue' => self::queue($l)] : [])
           + ($l->relationLoaded('order') ? ['order' => self::order($l, $can(StaffPermission::ORDER_CANCEL))] : []);
     }

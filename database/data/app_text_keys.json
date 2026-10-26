@@ -1468,6 +1468,96 @@
       "max_length": 60
     },
     {
+      "key": "listing.relist.button",
+      "kind": "app",
+      "area": "Selling",
+      "where": "My listings and the piece page",
+      "default_en": "Put it back on the market",
+      "default_ar": "رجّعها السوق",
+      "placeholders": [],
+      "max_length": 50
+    },
+    {
+      "key": "listing.relist.ask_title",
+      "kind": "app",
+      "area": "Selling",
+      "where": "My listings and the piece page",
+      "default_en": "Put this piece back on the market",
+      "default_ar": "ترجّع القطعة دي السوق؟",
+      "placeholders": [],
+      "max_length": 66
+    },
+    {
+      "key": "listing.relist.ask_body",
+      "kind": "app",
+      "area": "Selling",
+      "where": "My listings and the piece page",
+      "default_en": "Buyers can see it again at once, at the price it had. It does not go through review again.",
+      "default_ar": "المشترين هيشوفوها تاني على طول، بنفس السعر اللي كان عليها. ومش هتتراجع تاني.",
+      "placeholders": [],
+      "max_length": 180
+    },
+    {
+      "key": "listing.relist.taken_down_by_you",
+      "kind": "app",
+      "area": "Selling",
+      "where": "My listings and the piece page",
+      "default_en": "You took this piece off the market. You can put it back whenever you like.",
+      "default_ar": "إنت شلت القطعة دي من السوق. تقدر ترجّعها وقت ما تحب.",
+      "placeholders": [],
+      "max_length": 148
+    },
+    {
+      "key": "listing.relist.taken_down_by_dahab",
+      "kind": "app",
+      "area": "Selling",
+      "where": "My listings and the piece page",
+      "default_en": "Dahab took this piece off the market. Only Dahab can put it back: contact customer service.",
+      "default_ar": "دهب شالت القطعة دي من السوق. دهب بس اللي تقدر ترجّعها: كلّم خدمة العملاء.",
+      "placeholders": [],
+      "max_length": 182
+    },
+    {
+      "key": "listing.relist.not_relistable",
+      "kind": "app",
+      "area": "Selling",
+      "where": "My listings and the piece page",
+      "default_en": "This piece cannot go back on the market. To sell it, list it again.",
+      "default_ar": "القطعة دي مينفعش ترجع السوق. لو عايز تبيعها، اعرضها من الأول.",
+      "placeholders": [],
+      "max_length": 134
+    },
+    {
+      "key": "sell.figures.weight_invalid",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Enter the weight in grams: more than 0, with at most two decimals.",
+      "default_ar": "اكتب الوزن بالجرام: أكبر من صفر، وبحد أقصى رقمين بعد العلامة.",
+      "placeholders": [],
+      "max_length": 132
+    },
+    {
+      "key": "sell.figures.amount_invalid",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Enter an amount in EGP, with at most two decimals.",
+      "default_ar": "اكتب المبلغ بالجنيه، وبحد أقصى رقمين بعد العلامة.",
+      "placeholders": [],
+      "max_length": 100
+    },
+    {
+      "key": "sell.figures.fix_figures",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "Correct the figures above to continue.",
+      "default_ar": "صحّح الأرقام اللي فوق عشان تكمّل.",
+      "placeholders": [],
+      "max_length": 76
+    },
+    {
       "key": "buy_request.balance_due.title",
       "kind": "app",
       "area": "Buying",

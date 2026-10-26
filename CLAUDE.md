@@ -415,6 +415,11 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `POST /dashboard/compensation` requires `order_id` (`GET /dashboard/compensation/orders`); `stone` + `certificates` on the
   work list and order detail, `GET /dashboard/orders/{order}/certificates/{media}` (`inspection.enter|order.view`); a stone free
   relist is capped at what the buyer paid (`free_relist.previous_price`).
+  Settings page and relist (`docs/features/settings-page-and-relist.md`, 2026-10-27): setting `auth.staff_new_device_sms` (default on)
+  — staff on a device not yet known get `device_code_required` and confirm by SMS (`/dashboard/auth/device-code/verify|resend`), a
+  founder only for a first device (instead of `founder:trust-device`); staff with no phone are not asked; `withdrawn → live`:
+  `POST /customer/me/listings/{id}/relist` (own take-down only) and `POST /dashboard/listings/{id}/relist` (`listing.takedown`),
+  `can_relist`, `taken_down_by`, `meta.counts.withdrawn`.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -456,6 +461,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   The code form's buyer part: What the buyer gets (seller's price / lower deposit / % or amount off the price) and Paid for by.
   App notes on sales: Pay compensation picks the order; the statement shows *Received in / Paid to* the bank; the inspection
   dialog shows the stone as stated with *Open the certificate* (no certificate number); Orders has *All, closed too*.
+  Settings page and relist: *Commission rates* is now *Platform settings* (sections open and close, *Sign-in security*), the
+  `/device-code` sign-in screen, and Listings' *Taken down* tab with *Put it back on the market*.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -503,6 +510,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   App notes on sales: the seller's line hides the buyer; *What you will receive* on the seller's order; *Waiting for Dahab to
   confirm* top-ups on the pay screen; the sell estimate says VAT included; the stone relist is capped; texts `order.estimate.*`,
   `order.pay.pending_topups.*` (AR-DRAFT).
+  Settings page and relist: *Change making charge* (piece page and My listings), *Put it back on the market* for a piece the seller
+  took down, and sell step 1 takes the weight, making charge and asking price as typed numbers; texts `listing.relist.*`,
+  `sell.figures.*` (AR-DRAFT).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

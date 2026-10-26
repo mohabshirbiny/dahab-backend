@@ -50,6 +50,8 @@ final class DecideListingAction
             ListingDecision::CHANGES_REQUESTED => [ListingState::IN_REVIEW, ListingState::CHANGES_REQUESTED, AuditEvent::LISTING_CHANGES_REQUESTED],
             ListingDecision::REJECTED => [ListingState::IN_REVIEW, ListingState::REJECTED, AuditEvent::LISTING_REJECTED],
             ListingDecision::TAKEN_DOWN => [ListingState::LIVE, ListingState::WITHDRAWN, AuditEvent::LISTING_TAKEN_DOWN],
+            // Bringing a piece back is RelistListingAction: it checks how the piece came down.
+            ListingDecision::RELISTED => throw new \LogicException('Relist through RelistListingAction.'),
         };
 
         return DB::transaction(function () use ($actor, $listingId, $decision, $note, $ctx, $from, $to, $event) {

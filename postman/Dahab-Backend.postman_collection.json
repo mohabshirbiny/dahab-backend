@@ -345,6 +345,10 @@
             "key": "notice_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "staff_device_challenge_id",
+            "value": ""
         }
     ],
     "item": [
@@ -413,6 +417,9 @@
                                             "    } else if (data.session_ref) {",
                                             "        pm.collectionVariables.set('staff_mfa_session_ref', data.session_ref);",
                                             "    }",
+                                            "}",
+                                            "if (pm.response.code === 200 && pm.response.json().data.device_code_required) {",
+                                            "    pm.collectionVariables.set('staff_device_challenge_id', pm.response.json().data.challenge_id);",
                                             "}"
                                         ]
                                     }
@@ -479,6 +486,9 @@
                                             "    } else if (data.session_ref) {",
                                             "        pm.collectionVariables.set('staff_mfa_session_ref', data.session_ref);",
                                             "    }",
+                                            "}",
+                                            "if (pm.response.code === 200 && pm.response.json().data.device_code_required) {",
+                                            "    pm.collectionVariables.set('staff_device_challenge_id', pm.response.json().data.challenge_id);",
                                             "}"
                                         ]
                                     }
@@ -545,6 +555,9 @@
                                             "    } else if (data.session_ref) {",
                                             "        pm.collectionVariables.set('staff_mfa_session_ref', data.session_ref);",
                                             "    }",
+                                            "}",
+                                            "if (pm.response.code === 200 && pm.response.json().data.device_code_required) {",
+                                            "    pm.collectionVariables.set('staff_device_challenge_id', pm.response.json().data.challenge_id);",
                                             "}"
                                         ]
                                     }
@@ -832,6 +845,126 @@
                                     }
                                 }
                             ]
+                        },
+                        {
+                            "name": "Staff Device Code Verify",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/device-code/verify",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "device-code",
+                                        "verify"
+                                    ]
+                                },
+                                "description": "A staff sign-in from a device not yet known (setting auth.staff_new_device_sms, on by default) answers device_code_required + challenge_id: a code was sent by SMS to the staff phone (123456 locally). Send it here with the same X-Device-Id ({{device_id}}). 200 → staff + session (the device becomes known; the test script saves the tokens); 401 otp_invalid (wrong code, 5 wrong void the challenge, another device) | otp_expired. A founder gets this only for a first device. Public; throttled per challenge and per IP.",
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"challenge_id\": \"{{staff_device_challenge_id}}\",\n    \"code\": \"123456\"\n}"
+                                }
+                            },
+                            "response": [],
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    const data = pm.response.json().data;",
+                                            "    if (data.session) {",
+                                            "        pm.collectionVariables.set('staff_access_token', data.session.access_token);",
+                                            "        pm.collectionVariables.set('staff_refresh_token', data.session.refresh_token);",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Staff Device Code Resend",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Id",
+                                        "value": "{{device_id}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "X-Device-Platform",
+                                        "value": "web",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/auth/device-code/resend",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "auth",
+                                        "device-code",
+                                        "resend"
+                                    ]
+                                },
+                                "description": "A fresh SMS code for the held staff sign-in, after the cooldown (429 too_many_requests with details.resend_available_at before it; at most otp.max_sends_per_hour codes). Same X-Device-Id. Public.",
+                                "auth": {
+                                    "type": "noauth"
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"challenge_id\": \"{{staff_device_challenge_id}}\"\n}"
+                                }
+                            },
+                            "response": [],
+                            "event": []
                         },
                         {
                             "name": "Frozen: Confirm Unfreeze",
@@ -4602,6 +4735,60 @@
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"reason\": \"A buyer reported that the photos are taken from another listing.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Relist Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/listings/{{listing_id}}/relist",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "relist"
+                                    ]
+                                },
+                                "description": "withdrawn → live, no new review, for a piece taken down from live or reserved by its seller or by staff (can_relist). A reason the seller reads; the seller is told by SMS/email. 409 listing_not_relistable (details.reason not_taken_down | account_closed), seller_suspended, platform_stopped, category_stopped, karat_disabled. Requires listing.takedown; Idempotency-Key.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"The seller sent better photos; the piece can go back on the market.\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -12233,6 +12420,42 @@
                                     ]
                                 },
                                 "description": "Spec 010, spec 011 FR-019. live or reserved → withdrawn, off the market at once. Final: there is no relisting. From reserved, every buyer in line is released and refunded and told. 409 illegal_listing_transition otherwise. Trade gate; Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Relist Listing",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/relist",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "relist"
+                                    ]
+                                },
+                                "description": "Put back on the market a piece the seller took down themself (can_relist): withdrawn → live, no review. 409 listing_not_relistable (details.reason taken_down_by_staff | not_taken_down | account_closed), platform_stopped, category_stopped, karat_disabled. Trade gate; Idempotency-Key."
                             },
                             "response": []
                         },

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Customer;
 
+use App\Actions\Listings\RelistListingAction;
 use App\Enums\ListingState;
 use App\Http\Resources\ListingMediaResource;
 use App\Models\Branch;
@@ -18,7 +19,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'CustomerListing',
     description: 'One of the seller\'s own listings (spec 010). `staff_message` is what Dahab wrote when it asked for changes, rejected the piece or took it down. `current_price` is what a buyer would pay now and `you_would_receive` what would reach the seller after commission and VAT; both are indicative, recomputed on every read, and null when no price can be quoted.',
-    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw', 'can_change_price', 'queue_count', 'order'],
+    required: ['id', 'state', 'category', 'piece_type', 'karat', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'description', 'media', 'branch_options', 'current_price', 'price_available', 'price_is_indicative', 'you_would_receive', 'staff_message', 'staff_message_at', 'created_at', 'listed_at', 'state_changed_at', 'can_edit', 'can_submit', 'can_withdraw', 'can_change_price', 'can_relist', 'taken_down_by', 'queue_count', 'order'],
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'state', type: 'string', description: 'A listing_state value; clients must tolerate ones they do not know', example: 'changes_requested'),
@@ -59,6 +60,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'can_submit', type: 'boolean', description: 'Draft or changes requested'),
         new OA\Property(property: 'can_withdraw', type: 'boolean', description: 'Live, or (spec 011) reserved: the line is then released and refunded'),
         new OA\Property(property: 'can_change_price', type: 'boolean', description: 'Spec 022: live, and the price is not fixed by a market-maker approval. POST /customer/me/listings/{id}/price'),
+        new OA\Property(property: 'can_relist', type: 'boolean', description: 'Withdrawn from live or reserved by the seller themself: POST /customer/me/listings/{id}/relist puts it back live'),
+        new OA\Property(property: 'taken_down_by', type: 'string', enum: ['seller', 'staff'], nullable: true, description: 'Who took a withdrawn piece off the market; null when it is not withdrawn or left another way (a sale, a return)'),
         new OA\Property(property: 'queue_count', type: 'integer', description: 'Spec 011: buyers waiting in line'),
         new OA\Property(property: 'promo', type: 'object', nullable: true, description: 'Spec 023: the code recorded on this sale {code, kind, source, commission{mode, percent}, pays_advance, status: active|spent|voided, can_change}'),
         new OA\Property(property: 'pays_advance', type: 'object', nullable: true, description: 'Spec 023: {available, cap_egp, reason} when the code or a staff enablement opens the advance, or when the seller\'s first sale (a gold piece) would be paid ahead automatically (also with reason ceiling or seller_not_eligible); null otherwise (switch off, not gold, not the first sale)'),
@@ -78,6 +81,8 @@ class ListingResource extends JsonResource
         $quote = ListingPricer::for($request)->quote($l);
         $message = self::staffMessage($l);
 
+        $takenDown = RelistListingAction::takeDownOf($l);
+
         return self::fields($l, $quote, ListingMediaResource::CUSTOMER) + [
             'staff_message' => $message?->note,
             'staff_message_at' => $message?->changed_at->toIso8601String(),
@@ -90,6 +95,8 @@ class ListingResource extends JsonResource
             'can_withdraw' => $l->state === ListingState::LIVE || $l->state === ListingState::RESERVED,
             // Spec 022: only a live piece, and only while its price is not locked (C3).
             'can_change_price' => $l->state === ListingState::LIVE && ! ListingPriceLocks::isLocked($l),
+            'can_relist' => $takenDown !== null && $takenDown->actor_customer_id === $l->seller_id,
+            'taken_down_by' => $takenDown === null ? null : ($takenDown->actor_staff_id !== null ? 'staff' : 'seller'),
             'queue_count' => $l->active_queue_count,
             'order' => OrderSummaryResource::shape($l->relationLoaded('order') ? $l->order : null),
             'promo' => ListingPromoShape::of($l),

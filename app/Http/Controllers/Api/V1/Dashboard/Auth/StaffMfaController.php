@@ -70,6 +70,9 @@ class StaffMfaController extends Controller
                 new OA\Schema(properties: [
                     new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceApprovalPending'),
                 ]),
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceCodePending'),
+                ]),
             ])),
             new OA\Response(response: 401, description: 'mfa_invalid — wrong/replayed code, or an unknown, expired or already-used session_ref', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 422, description: 'validation_failed | device_id_required (a founder without X-Device-Id, spec 021)', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
@@ -87,7 +90,7 @@ class StaffMfaController extends Controller
             $ctx,
         );
 
-        if (isset($result['device_approval_required'])) {
+        if (! isset($result['session'])) {
             return response()->json(['data' => $result]);
         }
 
@@ -115,6 +118,9 @@ class StaffMfaController extends Controller
                 new OA\Schema(properties: [
                     new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceApprovalPending'),
                 ]),
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceCodePending'),
+                ]),
             ])),
             new OA\Response(response: 401, description: 'mfa_invalid — wrong code, or an unknown, expired or already-used session_ref', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
             new OA\Response(response: 422, description: 'validation_failed | device_id_required (a founder without X-Device-Id, spec 021)', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
@@ -127,7 +133,7 @@ class StaffMfaController extends Controller
         $ctx = $request->attributes->get('context');
         $result = $this->enroll->execute($request->validated('session_ref'), $request->validated('code'), $ctx);
 
-        if (isset($result['device_approval_required'])) {
+        if (! isset($result['session'])) {
             return response()->json(['data' => $result]);
         }
 

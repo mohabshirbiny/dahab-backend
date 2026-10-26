@@ -25,7 +25,7 @@ class StaffAuthController extends Controller
         path: '/dashboard/auth/login',
         operationId: 'dashboardAuthLogin',
         summary: 'Sign a staff member in with email and password',
-        description: 'Roles ceo/coo/finance (and any staff who enrolled voluntarily) do not receive a session here: the response is an MFA challenge (`mfa_required`) or, when no TOTP is enrolled yet, an enrollment payload (`mfa_enrollment_required`). Finish with `POST /dashboard/auth/mfa/verify` or `/mfa/enroll`. Spec 021: a founder must send `X-Device-Id`; a founder on a device not yet known gets `device_approval_required` (no token) — only here when MFA is off locally, otherwise at the MFA step.',
+        description: 'Roles ceo/coo/finance (and any staff who enrolled voluntarily) do not receive a session here: the response is an MFA challenge (`mfa_required`) or, when no TOTP is enrolled yet, an enrollment payload (`mfa_enrollment_required`). Finish with `POST /dashboard/auth/mfa/verify` or `/mfa/enroll`. Spec 021: a founder must send `X-Device-Id`; a founder on a device not yet known gets `device_approval_required` (no token) — only here when MFA is off locally, otherwise at the MFA step. With the setting auth.staff_new_device_sms on, any staff member on a device not yet known (a founder only for their first device) gets `device_code_required`: a code by SMS, confirmed at `POST /dashboard/auth/device-code/verify`; staff with no phone on file are not asked.',
         tags: ['Dashboard Auth'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/LoginStaffRequest')),
         responses: [
@@ -44,6 +44,9 @@ class StaffAuthController extends Controller
                 ]),
                 new OA\Schema(properties: [
                     new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceApprovalPending'),
+                ]),
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/StaffDeviceCodePending'),
                 ]),
             ])),
             new OA\Response(response: 401, description: 'invalid_credentials — same shape for unknown email, wrong password and a disabled account', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),

@@ -6,6 +6,7 @@ use App\Actions\Listings\ChangeListingPriceAction;
 use App\Actions\Listings\CreateListingAction;
 use App\Actions\Listings\ListOwnListingsAction;
 use App\Actions\Listings\ReadListingMediaAction;
+use App\Actions\Listings\RelistListingAction;
 use App\Actions\Listings\SubmitListingAction;
 use App\Actions\Listings\UpdateListingAction;
 use App\Actions\Listings\WithdrawListingAction;
@@ -224,7 +225,7 @@ class ListingController extends Controller
         path: '/customer/me/listings/{listing}/withdraw',
         operationId: 'customerWithdrawListing',
         summary: 'Take a live listing off the market',
-        description: 'Spec 010 FR-014, Part 2 §3; spec 011 FR-019. live or reserved → withdrawn, at once. Final: a withdrawn piece is sold again only as a new listing. From reserved, every buyer in line is released (released_declined), refunded in the same transaction and told the piece was withdrawn. Trade gate. Idempotent.',
+        description: 'Spec 010 FR-014, Part 2 §3; spec 011 FR-019. live or reserved → withdrawn, at once. The seller may put it back with POST /customer/me/listings/{listing}/relist (can_relist). From reserved, every buyer in line is released (released_declined), refunded in the same transaction and told the piece was withdrawn. Trade gate. Idempotent.',
         security: [['customerBearer' => []]],
         tags: ['Customer Listings'],
         parameters: [
@@ -243,6 +244,31 @@ class ListingController extends Controller
     public function withdraw(Request $request, string $listing, WithdrawListingAction $withdraw): JsonResponse
     {
         return $this->respond($request, $withdraw->handle($this->customer($request), $listing));
+    }
+
+    #[OA\Post(
+        path: '/customer/me/listings/{listing}/relist',
+        operationId: 'customerRelistListing',
+        summary: 'Put a piece the seller took down back on the market',
+        description: 'withdrawn → live, at once and with no new review, for a piece the seller took down themself from live or reserved (can_relist). A piece Dahab took down comes back only from the Dashboard. Refused while new listings, the category or everything is stopped, or the karat is turned off. Promo code credits voided by the take-down stay voided. Trade gate. Idempotent.',
+        security: [['customerBearer' => []]],
+        tags: ['Customer Listings'],
+        parameters: [
+            new OA\Parameter(name: 'listing', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The live listing', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CustomerListing')])),
+            new OA\Response(response: 400, description: 'idempotency_key_required', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 403, description: 'verification_required | account_suspended', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'illegal_listing_transition (not withdrawn) | listing_not_relistable (details.reason: not_taken_down, taken_down_by_staff, account_closed) | platform_stopped | category_stopped | karat_disabled | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function relist(Request $request, string $listing, RelistListingAction $relist): JsonResponse
+    {
+        return $this->respond($request, $relist->bySeller($this->customer($request), $listing, $request->attributes->get('context')));
     }
 
     private function customer(Request $request): Customer

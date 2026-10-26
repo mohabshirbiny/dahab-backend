@@ -1093,6 +1093,22 @@ final class CatalogueData
             'inbox' => true,
             'desc' => 'Listing taken down: the email subject (also the inbox title)',
         ],
+        'listing.relisted.sms' => [
+            'en' => 'Your piece ({piece}) is back on the market:',
+            'ar' => 'قطعتك ({piece}) رجعت السوق تاني:',
+            'vars' => ['piece'],
+            'read_only' => false,
+            'inbox' => true,
+            'desc' => 'Listing put back on the market by Dahab: the SMS sentence (also the email and the inbox)',
+        ],
+        'listing.relisted.mail_subject' => [
+            'en' => 'Your piece is back on the market',
+            'ar' => 'قطعتك رجعت السوق تاني',
+            'vars' => [],
+            'read_only' => false,
+            'inbox' => true,
+            'desc' => 'Listing put back on the market by Dahab: the email subject (also the inbox title)',
+        ],
         'wallet.compensation_paid.sms' => [
             'en' => 'Compensation from Dahab ({amount}) is in your wallet: {reason}.',
             'ar' => 'تعويض من دهب ({amount}) وصل محفظتك: {reason}.',

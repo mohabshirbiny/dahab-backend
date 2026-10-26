@@ -43,6 +43,8 @@
         <env name="DB_URL" value=""/>
         <env name="DAHAB_AUTH_PASSWORD_CHECK_PWNED" value="false"/>
         <env name="DAHAB_AUTH_MFA_ENFORCED" value="true"/>
+        <!-- The new-device SMS code is tested on its own (StaffDeviceCodeTest turns it on). -->
+        <env name="DAHAB_AUTH_STAFF_DEVICE_SMS" value="false"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
