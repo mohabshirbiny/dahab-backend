@@ -24,9 +24,9 @@ use Illuminate\Support\Str;
  *
  * Setting `auth.staff_new_device_sms` (on by default, docs/features/settings-page-and-relist.md):
  * any staff member on a device not yet known for them gets a code by SMS to the staff phone
- * (`device_code_required`), and so does a founder with no known device at all, instead of waiting
- * for `founder:trust-device`. A founder who has a known device still waits for the other founder.
- * A staff member with no phone on file is not asked (there is nowhere to send the code).
+ * (`device_code_required`), founders included (owner, 2026-10-27: any new founder device, not only
+ * the first). With the setting off, or no phone on file, a founder waits for the other founder as
+ * before; any other staff member is not asked (there is nowhere to send the code).
  */
 final class FounderDeviceGate
 {
@@ -56,7 +56,7 @@ final class FounderDeviceGate
             return null;
         }
 
-        if ($sms && ! $staff->deviceFingerprints()->exists()) {
+        if ($sms) {
             return $this->deviceCode->issue($staff, $ctx);
         }
 

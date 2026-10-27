@@ -22,8 +22,8 @@ use Illuminate\Support\Facades\Notification;
  * bound to the device that asked, honours `otp.*` (expiry, 5 tries, resend cooldown and hourly cap)
  * and the device becomes known only when the right code arrives.
  *
- * A founder reaches this only for their first device; a later new device of a founder still waits
- * for the other founder (FounderDeviceGate). Confirming a founder's first device alerts the founders.
+ * A founder reaches this for any new device while the setting is on (FounderDeviceGate); confirming
+ * a founder's device this way alerts the founders.
  */
 final class StaffDeviceCodeAction
 {
@@ -138,15 +138,15 @@ final class StaffDeviceCodeAction
             // The code is spent whatever happens next.
             $this->challenges->forget($challengeId);
             $staff = $this->available($challengeId, $challenge, $ctx);
-            $firstFounderDevice = $staff->is_founder && ! $staff->deviceFingerprints()->exists();
+            $firstDevice = ! $staff->deviceFingerprints()->exists();
 
             $session = $this->complete->execute($staff, $ctx, 'device_code');
 
-            if ($firstFounderDevice) {
+            if ($staff->is_founder) {
                 $this->audit->execute(
                     AuditEvent::FOUNDER_DEVICE_TRUSTED_BY_SMS,
                     'success',
-                    ['device_ref' => substr((string) $ctx->deviceFingerprintHash, 0, 8), 'platform' => (string) request()->header('X-Device-Platform', 'web')],
+                    ['device_ref' => substr((string) $ctx->deviceFingerprintHash, 0, 8), 'first_device' => $firstDevice, 'platform' => (string) request()->header('X-Device-Platform', 'web')],
                     'staff',
                     $staff->staff_id,
                     $ctx->withStaff($staff->staff_id),

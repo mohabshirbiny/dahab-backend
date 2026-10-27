@@ -60,6 +60,8 @@ enum AuditEvent: string
     case STAFF_CREATED = 'authz.staff.created';
     case STAFF_DISABLED = 'authz.staff.disabled';
     case STAFF_ENABLED = 'authz.staff.enabled';
+    case STAFF_UPDATED = 'authz.staff.updated';
+    case STAFF_DELETED = 'authz.staff.deleted';
     case SETTING_CHANGED = 'pricing.setting.changed';
     case ADJUSTMENT_CHANGED = 'pricing.adjustment.changed';
     case MANUAL_PRICE_ENTERED = 'pricing.manual_price.entered';
@@ -273,6 +275,8 @@ enum AuditEvent: string
             self::STAFF_CREATED => 'Staff member created',
             self::STAFF_DISABLED => 'Staff member disabled',
             self::STAFF_ENABLED => 'Staff member enabled',
+            self::STAFF_UPDATED => "Staff member's details changed",
+            self::STAFF_DELETED => 'Staff member deleted',
             self::SETTING_CHANGED => 'Setting changed',
             self::ADJUSTMENT_CHANGED => 'Karat price adjustment changed',
             self::MANUAL_PRICE_ENTERED => 'Manual gold price entered',
@@ -417,7 +421,7 @@ enum AuditEvent: string
     {
         return match ($this) {
             self::CUSTOMER_SIGN_IN, self::CUSTOMER_SIGN_IN_FAILED, self::CUSTOMER_OTP_SENT, self::CUSTOMER_OTP_VERIFIED, self::CUSTOMER_OTP_FAILED, self::CUSTOMER_PASSWORD_RESET_REQUESTED, self::CUSTOMER_PASSWORD_RESET_COMPLETED, self::STAFF_SIGN_IN, self::STAFF_SIGN_IN_FAILED, self::STAFF_MFA_ENROLLED, self::STAFF_MFA_VERIFIED, self::STAFF_MFA_FAILED, self::STAFF_DEVICE_CODE_SENT, self::STAFF_DEVICE_CODE_FAILED, self::STAFF_PASSWORD_RESET_REQUESTED, self::STAFF_PASSWORD_RESET_COMPLETED, self::STAFF_PERMISSION_DENIED, self::TOKEN_ROTATED, self::TOKEN_FAMILY_REVOKED, self::TOKEN_LOGOUT_ALL => AuditCategory::SESSIONS,
-            self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED, self::STAFF_CREATED, self::STAFF_DISABLED, self::STAFF_ENABLED => AuditCategory::ACCOUNTS,
+            self::CUSTOMER_REGISTERED, self::CUSTOMER_EMAIL_VERIFIED, self::CUSTOMER_SUSPENDED, self::CUSTOMER_UNSUSPENDED, self::CUSTOMER_REGISTRATION_SUBMITTED, self::ROLE_CREATED, self::ROLE_UPDATED, self::ROLE_PERMISSIONS_CHANGED, self::ROLE_MFA_CHANGED, self::ROLE_DELETED, self::STAFF_ROLES_CHANGED, self::ESCALATION_DENIED, self::STAFF_BRANCH_CHANGED, self::STAFF_CREATED, self::STAFF_DISABLED, self::STAFF_ENABLED, self::STAFF_UPDATED, self::STAFF_DELETED => AuditCategory::ACCOUNTS,
             self::FOUNDER_DEVICE_APPROVAL_REQUESTED, self::FOUNDER_DEVICE_APPROVED, self::FOUNDER_DEVICE_REFUSED,
             self::FOUNDER_DEVICE_APPROVAL_COLLECTED, self::FOUNDER_DEVICE_TRUSTED_BY_CONSOLE, self::FOUNDER_DEVICE_TRUSTED_BY_SMS, self::FOUNDER_FROZEN,
             self::FOUNDER_UNFREEZE_CONFIRMED, self::FOUNDER_UNFROZEN, self::FOUNDER_UNFREEZE_CONFIRM_FAILED => AuditCategory::ACCOUNTS,
@@ -483,6 +487,8 @@ enum AuditEvent: string
             self::MANUAL_PRICE_CONFIRMED,
             self::STAFF_CREATED,
             self::STAFF_DISABLED,
+            self::STAFF_UPDATED,
+            self::STAFF_DELETED,
         ];
     }
 

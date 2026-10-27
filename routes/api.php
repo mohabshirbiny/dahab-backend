@@ -621,6 +621,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::post('/{staff}/enable', [DashboardStaffController::class, 'enable'])
                     ->whereUuid('staff')
                     ->middleware(['staff.permission:staff.manage', 'idempotent'])->name('enable');
+                // Edit a member's details and delete a member (docs/features/staff-edit-delete.md).
+                Route::patch('/{staff}', [DashboardStaffController::class, 'update'])
+                    ->whereUuid('staff')
+                    ->middleware(['staff.permission:staff.manage', 'idempotent'])->name('update');
+                Route::delete('/{staff}', [DashboardStaffController::class, 'destroy'])
+                    ->whereUuid('staff')
+                    ->middleware(['staff.permission:staff.manage', 'idempotent'])->name('destroy');
             });
 
         // Pricing: gold prices, per-karat adjustments and settings (spec 005).

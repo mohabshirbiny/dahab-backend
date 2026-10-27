@@ -30,7 +30,7 @@ final class CreateStaffAction
     ) {}
 
     /**
-     * @param  array{full_name: string, email: string, phone?: ?string, roles: list<string>, branch_id?: ?int}  $data
+     * @param  array{full_name: string, email: string, phone: string, roles: list<string>, branch_id?: ?int}  $data
      */
     public function handle(Staff $actor, array $data, ?string $reason): Staff
     {
@@ -43,7 +43,7 @@ final class CreateStaffAction
             $staff = Staff::query()->create([
                 'full_name' => trim($data['full_name']),
                 'email' => mb_strtolower(trim($data['email'])),
-                'phone' => $data['phone'] ?? null,
+                'phone' => $data['phone'],
                 'is_active' => true,
                 'branch_id' => $data['branch_id'] ?? null,
                 'created_by' => $actor->staff_id,

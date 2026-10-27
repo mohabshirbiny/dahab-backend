@@ -79,10 +79,10 @@ class DomainApiException extends RuntimeException
         return new self('reset_link_invalid', 422, 'This link is no longer valid. Ask for a new one from the sign-in page.');
     }
 
-    /** A founder is never disabled through the API (spec 020, Part 2 §10). */
-    public static function founderProtected(): self
+    /** A founder is never disabled or deleted through the API, nor edited by anyone but a founder (spec 020, Part 2 §10). */
+    public static function founderProtected(string $message = 'A founder account cannot be disabled.'): self
     {
-        return new self('founder_protected', 403, 'A founder account cannot be disabled.');
+        return new self('founder_protected', 403, $message);
     }
 
     public static function staffAlreadyDisabled(): self

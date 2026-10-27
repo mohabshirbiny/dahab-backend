@@ -268,7 +268,7 @@ it('replays an idempotent create and demands the key', function () {
         ->assertStatus(400)->assertJsonPath('code', 'idempotency_key_required');
 });
 
-it('puts staff.manage on the three routes and no other', function () {
+it('puts staff.manage on the five routes and no other', function () {
     $routes = collect(Route::getRoutes()->getRoutes())->filter(fn ($r) => in_array('POST', $r->methods(), true)
         && preg_match('#^api/v1/dashboard/staff(/\{staff\}/(disable|enable))?$#', $r->uri()) === 1);
 
@@ -277,9 +277,9 @@ it('puts staff.manage on the three routes and no other', function () {
         expect($route->gatherMiddleware())->toContain('staff.permission:staff.manage')->toContain('idempotent');
     }
 
-    // And no other route asks for it.
+    // And no other route asks for it but edit and delete (docs/features/staff-edit-delete.md).
     $others = collect(Route::getRoutes()->getRoutes())->filter(fn ($r) => in_array('staff.permission:staff.manage', $r->gatherMiddleware(), true));
-    expect($others)->toHaveCount(3);
+    expect($others)->toHaveCount(5);
 });
 
 it('lets exactly one of two simultaneous disables win', function () {

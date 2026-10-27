@@ -15,11 +15,11 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Schema(
     schema: 'DashboardCreateStaff',
-    required: ['full_name', 'email', 'roles', 'reason'],
+    required: ['full_name', 'email', 'phone', 'roles', 'reason'],
     properties: [
         new OA\Property(property: 'full_name', type: 'string', minLength: 2, maxLength: 120, example: 'Amr Salah'),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'amr@dahab.eg'),
-        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '+201000000009', description: 'E.164, optional'),
+        new OA\Property(property: 'phone', type: 'string', example: '+201000000009', description: 'E.164, required: the new-device code and the alerts go to it'),
         new OA\Property(property: 'roles', type: 'array', minItems: 1, items: new OA\Items(type: 'string'), description: 'Existing role machine names'),
         new OA\Property(property: 'branch_id', type: 'integer', nullable: true, description: 'An enabled branch, optional'),
         new OA\Property(property: 'reason', type: 'string', minLength: 5, maxLength: 500),
@@ -43,8 +43,8 @@ class CreateStaffRequest extends FormRequest
     {
         return [
             'full_name' => ['required', 'string', 'min:2', 'max:120'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('staff', 'email')],
-            'phone' => ['nullable', 'string', 'regex:/^\+[1-9]\d{7,14}$/'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('staff', 'email')->whereNull('deleted_at')],
+            'phone' => ['required', 'string', 'regex:/^\+[1-9]\d{7,14}$/'],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['string', 'distinct', Rule::exists('roles', 'name')->where('guard_name', Staff::GUARD)],
             'branch_id' => ['nullable', 'integer', Rule::exists('branch', 'branch_id')->where('is_enabled', true)],

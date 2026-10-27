@@ -26,7 +26,7 @@ final class RequestStaffPasswordResetAction
 
     public function execute(string $email, RequestContext $ctx): void
     {
-        $staff = Staff::query()->where('email', $email)->first();
+        $staff = Staff::query()->where('email', $email)->whereNull('deleted_at')->first();
 
         if ($staff === null || $staff->is_system || ! $staff->is_active) {
             // Equal work for the caller; nothing is sent and nothing says why.

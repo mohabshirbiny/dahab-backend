@@ -21,7 +21,8 @@ uses(RefreshDatabase::class);
 
 // Settings page and relist: a staff member on a device not yet known confirms it with a code
 // sent by SMS to the staff phone (setting auth.staff_new_device_sms); a founder's first device
-// too, instead of founder:trust-device. A founder's later new device still waits for the other.
+// too, instead of founder:trust-device, and any later new founder device (with the setting off
+// a founder waits for the other founder).
 
 const SDC_PASSWORD = 'staff-passphrase-1';
 const SDC_SECRET = 'JBSWY3DPEHPK3PXP';
@@ -145,7 +146,19 @@ it('confirms a founder first device by SMS after MFA, and tells the founders', f
     Notification::assertSentTo(Staff::query()->where('is_founder', true)->get(), FounderSecurityNotification::class);
 });
 
-it('still holds a founder with a known device for the other founder', function () {
+it('confirms a later new founder device by SMS too, not by the other founder', function () {
+    $coo = Staff::factory()->role(SeedRole::COO)->founder()->withPassword(SDC_PASSWORD)->withMfa(SDC_SECRET, ['aaaaa-bbbbb'])
+        ->withKnownDevice('coo-laptop')->create(['phone' => '+201099999111']);
+
+    $ref = sdcLogin($this, $coo, 'coo-new-phone')->json('data.session_ref');
+    Cache::forget('staff-mfa-last-timestep:'.$coo->staff_id);
+    $this->postJson(SDC_MFA, ['session_ref' => $ref, 'code' => app(Google2FA::class)->getCurrentOtp(SDC_SECRET)], deviceHeaders('coo-new-phone'))
+        ->assertOk()->assertJsonPath('data.device_code_required', true);
+    expect(FounderDeviceApproval::query()->count())->toBe(0);
+});
+
+it('holds a new founder device for the other founder when the setting is off', function () {
+    Setting::query()->whereKey('auth.staff_new_device_sms')->update(['value_bool' => false]);
     $coo = Staff::factory()->role(SeedRole::COO)->founder()->withPassword(SDC_PASSWORD)->withMfa(SDC_SECRET, ['aaaaa-bbbbb'])
         ->withKnownDevice('coo-laptop')->create(['phone' => '+201099999111']);
 

@@ -3,20 +3,24 @@
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Actions\Authorization\CreateStaffAction;
+use App\Actions\Authorization\DeleteStaffAction;
 use App\Actions\Authorization\DisableStaffAction;
 use App\Actions\Authorization\EnableStaffAction;
 use App\Actions\Authorization\ListStaffAction;
 use App\Actions\Authorization\SetStaffBranchAction;
 use App\Actions\Authorization\SetStaffRolesAction;
+use App\Actions\Authorization\UpdateStaffAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Authorization\CreateStaffRequest;
 use App\Http\Requests\Dashboard\Authorization\ListStaffRequest;
 use App\Http\Requests\Dashboard\Authorization\SetStaffBranchRequest;
 use App\Http\Requests\Dashboard\Authorization\SetStaffRolesRequest;
 use App\Http\Requests\Dashboard\Authorization\StaffStatusChangeRequest;
+use App\Http\Requests\Dashboard\Authorization\UpdateStaffRequest;
 use App\Http\Resources\Staff\StaffMemberResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use OpenApi\Attributes as OA;
 
 /**
@@ -184,6 +188,61 @@ class StaffController extends Controller
         $enable->handle($request->user('staff'), $staff, $request->validated('reason'));
 
         return StaffMemberResource::make($this->staff->find($staff));
+    }
+
+    #[OA\Patch(
+        path: '/dashboard/staff/{staff}',
+        operationId: 'dashboardUpdateStaff',
+        summary: "Change a staff member's name, email or phone",
+        description: 'Only the fields sent change; a phone cannot be emptied. A founder\'s details are changed only by a founder (403 founder_protected). A new email voids open set-password links, and a member with no password yet gets a fresh invitation there. A reason is required. Audited (authz.staff.updated, before and after). Requires staff.manage and an Idempotency-Key.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Access Control'],
+        parameters: [
+            new OA\Parameter(name: 'staff', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DashboardUpdateStaff')),
+        responses: [
+            new OA\Response(response: 200, description: 'The updated staff member', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', ref: '#/components/schemas/DashboardStaffMember'),
+            ])),
+            new OA\Response(response: 403, description: 'permission_denied | founder_protected | account_frozen', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'validation_failed (including an email already used) | reason_required', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function update(UpdateStaffRequest $request, string $staff, UpdateStaffAction $update): StaffMemberResource
+    {
+        $update->handle($request->user('staff'), $staff, $request->safe()->only(['full_name', 'email', 'phone']), $request->validated('reason'));
+
+        return StaffMemberResource::make($this->staff->find($staff));
+    }
+
+    #[OA\Delete(
+        path: '/dashboard/staff/{staff}',
+        operationId: 'dashboardDeleteStaff',
+        summary: 'Delete a staff member',
+        description: 'A soft delete, final: the member leaves every list and lookup and cannot sign in, history keeps their name, and their email is free for a new account. Not yourself, never a founder; active or disabled. Every token is revoked and open set-password links are voided. A reason is required (body). Audited (authz.staff.deleted). Requires staff.manage and an Idempotency-Key.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Access Control'],
+        parameters: [
+            new OA\Parameter(name: 'staff', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/DashboardStaffStatusChange')),
+        responses: [
+            new OA\Response(response: 204, description: 'Deleted'),
+            new OA\Response(response: 403, description: 'permission_denied | escalation_denied (yourself) | founder_protected | account_frozen', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 409, description: 'last_role_manager', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+            new OA\Response(response: 422, description: 'reason_required | validation_failed', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function destroy(StaffStatusChangeRequest $request, string $staff, DeleteStaffAction $delete): Response
+    {
+        $delete->handle($request->user('staff'), $staff, $request->validated('reason'));
+
+        return response()->noContent();
     }
 
     #[OA\Put(
