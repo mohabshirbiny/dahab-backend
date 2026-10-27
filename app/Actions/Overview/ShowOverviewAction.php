@@ -58,13 +58,16 @@ final class ShowOverviewAction
     private function earnings(): array
     {
         $start = CarbonImmutable::now('Africa/Cairo')->startOfMonth();
+        // Read from the two accounts' postings (idx_posting_account), not from
+        // every entry of the month: the accounts are fixed in an array first.
         $row = DB::selectOne("
             SELECT COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_commission'), 0)::numeric(18,4)::text AS commission,
                    COALESCE(SUM(p.amount) FILTER (WHERE a.kind = 'dahab_spread'), 0)::numeric(18,4)::text     AS spread
             FROM ledger_posting p
             JOIN account a ON a.account_id = p.account_id
             JOIN ledger_transaction t ON t.ledger_txn_id = p.ledger_txn_id
-            WHERE a.kind IN ('dahab_commission', 'dahab_spread') AND t.created_at >= ?
+            WHERE p.account_id = ANY (ARRAY(SELECT account_id FROM account WHERE kind IN ('dahab_commission', 'dahab_spread')))
+              AND t.created_at >= ?
         ", [$start]);
 
         return ['month' => $start->format('Y-m'), 'commission' => $row->commission, 'spread' => $row->spread,
@@ -84,24 +87,28 @@ final class ShowOverviewAction
         $open = array_map(fn (OrderState $s) => $s->value, OrderState::open());
         $since = CarbonImmutable::now()->subDays(30);
 
+        // The held sums cover only the picked orders' requests
+        // (idx_ledger_txn_buy_request), never the whole ledger's history.
         $rows = DB::select("
-            WITH held AS (
-              SELECT t.buy_request_id, SUM(p.amount) AS amount
-              FROM ledger_posting p
-              JOIN account a ON a.account_id = p.account_id AND a.kind = 'cust_held'
-              JOIN ledger_transaction t ON t.ledger_txn_id = p.ledger_txn_id
-              WHERE t.buy_request_id IS NOT NULL
-              GROUP BY t.buy_request_id
-            ), picked AS (
+            WITH picked AS MATERIALIZED (
               SELECT CASE WHEN o.state::text LIKE 'cancelled%' THEN 'cancelled' ELSE o.state::text END AS state,
-                     o.locked_total_price, COALESCE(h.amount, 0) AS held
-              FROM \"order\" o LEFT JOIN held h ON h.buy_request_id = o.buy_request_id
+                     o.locked_total_price, o.buy_request_id
+              FROM \"order\" o
               WHERE o.state::text = ANY (?::text[])
                  OR (o.state = 'completed' AND o.completed_at >= ?)
                  OR (o.state::text LIKE 'cancelled%' AND (SELECT max(sc.changed_at) FROM order_state_change sc WHERE sc.order_id = o.order_id) >= ?)
+            ), held AS (
+              SELECT t.buy_request_id, SUM(p.amount) AS amount
+              FROM ledger_transaction t
+              JOIN ledger_posting p ON p.ledger_txn_id = t.ledger_txn_id
+              JOIN account a ON a.account_id = p.account_id AND a.kind = 'cust_held'
+              WHERE t.buy_request_id IN (SELECT buy_request_id FROM picked WHERE buy_request_id IS NOT NULL)
+              GROUP BY t.buy_request_id
             )
-            SELECT state, count(*) AS n, SUM(locked_total_price)::numeric(18,4)::text AS value, SUM(held)::numeric(18,4)::text AS held
-            FROM picked GROUP BY state
+            SELECT pk.state, count(*) AS n, SUM(pk.locked_total_price)::numeric(18,4)::text AS value,
+                   SUM(COALESCE(h.amount, 0))::numeric(18,4)::text AS held
+            FROM picked pk LEFT JOIN held h ON h.buy_request_id = pk.buy_request_id
+            GROUP BY pk.state
         ", ['{'.implode(',', $open).'}', $since, $since]);
 
         $order = [...$open, 'completed', 'cancelled'];
@@ -142,9 +149,8 @@ final class ShowOverviewAction
 
         $sql = implode("\nUNION ALL\n", array_map(fn (string $k) => '('.$parts[$k].')', $kinds));
         $limit = (int) config('dahab-finance.overview_needs_decision_limit');
-        $rows = DB::select("SELECT * FROM ({$sql}) x ORDER BY since, id LIMIT {$limit}");
-
-        $counts = collect(DB::select('SELECT kind, count(*) AS n FROM ('.$sql.') x GROUP BY kind'))->pluck('n', 'kind');
+        // One read: each row carries how many of its kind wait in all.
+        $rows = DB::select("SELECT *, count(*) OVER (PARTITION BY kind) AS of_kind FROM ({$sql}) x ORDER BY since, id LIMIT {$limit}");
 
         return array_map(fn ($r) => [
             'kind' => $r->kind,
@@ -152,7 +158,7 @@ final class ShowOverviewAction
             'subject' => $r->subject,
             'amount' => $r->amount,
             'waiting_since' => CarbonImmutable::parse($r->since)->toIso8601String(),
-            'waiting_of_kind' => (int) ($counts[$r->kind] ?? 0),
+            'waiting_of_kind' => (int) $r->of_kind,
             'acting_permission' => self::NEEDS_DECISION[$r->kind],
         ], $rows);
     }
