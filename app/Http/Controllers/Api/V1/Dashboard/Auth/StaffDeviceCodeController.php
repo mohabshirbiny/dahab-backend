@@ -12,7 +12,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Schema(
     schema: 'StaffDeviceCodePending',
-    description: 'Password (and MFA) accepted, but this device is not yet known for the staff member and the setting auth.staff_new_device_sms is on: a code was sent by SMS to the staff phone. No token is issued. Send it to `POST /dashboard/auth/device-code/verify` with the same `X-Device-Id`. A founder gets this only for their first device; a later new device waits for the other founder (StaffDeviceApprovalPending).',
+    description: 'Password (and MFA) accepted, but this device is not yet known for the staff member and the setting auth.staff_new_device_sms is on: a code was sent by SMS to the staff phone. No token is issued. Send it to `POST /dashboard/auth/device-code/verify` with the same `X-Device-Id`. A founder gets this for any new device while the setting is on; with it off a founder waits for the other founder (StaffDeviceApprovalPending).',
     required: ['device_code_required', 'challenge_id', 'phone_hint', 'expires_at', 'resend_available_at'],
     properties: [
         new OA\Property(property: 'device_code_required', type: 'boolean', enum: [true]),
@@ -30,7 +30,7 @@ class StaffDeviceCodeController extends Controller
         path: '/dashboard/auth/device-code/verify',
         operationId: 'dashboardAuthDeviceCodeVerify',
         summary: 'Confirm a new staff device with the SMS code and sign in',
-        description: 'The device becomes known and the session is issued. A founder\'s first device confirmed this way alerts the founders (founder.device_trusted_by_sms). Send the same X-Device-Id as at sign-in.',
+        description: 'The device becomes known and the session is issued. A founder\'s device confirmed this way alerts the founders (founder.device_trusted_by_sms). Send the same X-Device-Id as at sign-in.',
         tags: ['Dashboard Auth'],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/StaffDeviceCodeVerifyRequest')),
         responses: [

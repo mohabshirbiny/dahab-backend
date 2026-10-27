@@ -2195,7 +2195,7 @@
                                         "staff"
                                     ]
                                 },
-                                "description": "Creates a staff member WITHOUT a password (spec 020). 201 with the member (password_set false); an invitation link (DASHBOARD_URL/set-password?token=..., 48 hours) is mailed after commit and the member chooses the password. Roles are bounded by the permissions you hold (403 escalation_denied). reason required (422 reason_required); email must be new (422 validation_failed, errors.email). Founder status cannot be set. Saves new_staff_id. Requires staff.manage (the CEO) and an Idempotency-Key."
+                                "description": "Creates a staff member WITHOUT a password (spec 020). 201 with the member (password_set false); an invitation link (DASHBOARD_URL/set-password?token=..., 48 hours) is mailed after commit and the member chooses the password. Roles are bounded by the permissions you hold (403 escalation_denied). reason required (422 reason_required); email must be new and the phone (E.164) is required (422 validation_failed, errors.email / errors.phone). Founder status cannot be set. Saves new_staff_id. Requires staff.manage (the CEO) and an Idempotency-Key."
                             },
                             "response": [],
                             "event": [
@@ -2307,6 +2307,102 @@
                                     ]
                                 },
                                 "description": "Enables a disabled staff member (spec 020): the old password is deleted and a 48-hour set-password link is mailed - the link is the only way back in; the authenticator enrolment is kept. 403 escalation_denied (yourself); 409 staff_not_disabled; 422 reason_required. Requires staff.manage and an Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Edit Staff",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"full_name\": \"Amr Salah\",\n    \"email\": \"amr@dahab.test\",\n    \"phone\": \"+201000000009\",\n    \"reason\": \"Corrected the phone number\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff/{{new_staff_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff",
+                                        "{{new_staff_id}}"
+                                    ]
+                                },
+                                "description": "Changes a staff member's name, email or phone (docs/features/staff-edit-delete.md): only the fields sent change; the phone cannot be emptied (E.164). A founder's details are changed only by a founder (403 founder_protected). A new email voids open set-password links; a member with no password yet gets a fresh invitation there. 404 not_found; 422 validation_failed (email already used) / reason_required. Requires staff.manage and an Idempotency-Key."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Delete Staff",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"reason\": \"Left the company\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/staff/{{new_staff_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "staff",
+                                        "{{new_staff_id}}"
+                                    ]
+                                },
+                                "description": "Deletes a staff member (docs/features/staff-edit-delete.md): a soft delete, final. 204; the member leaves every list and lookup, every token is revoked, sign-in answers invalid_credentials, history keeps the name and the email is free for a new account. 403 escalation_denied (yourself) / founder_protected; 404 not_found; 409 last_role_manager; 422 reason_required. Requires staff.manage and an Idempotency-Key."
                             },
                             "response": []
                         }

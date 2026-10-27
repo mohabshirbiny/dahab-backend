@@ -34,7 +34,7 @@ final class LoginStaffAction
      */
     public function execute(string $email, string $password, RequestContext $ctx): array
     {
-        $staff = Staff::query()->where('email', $email)->with(['password', 'mfa'])->first();
+        $staff = Staff::query()->where('email', $email)->whereNull('deleted_at')->with(['password', 'mfa'])->first();
 
         // The system actor (spec 002 FR-061) has no password row, but refuse it
         // explicitly too: it must look exactly like an unknown account.

@@ -103,6 +103,9 @@ const OPENAPI_DASHBOARD_ACCESS_PATHS = [
     'post /dashboard/staff',
     'post /dashboard/staff/{staff}/disable',
     'post /dashboard/staff/{staff}/enable',
+    // Staff edit and delete.
+    'patch /dashboard/staff/{staff}',
+    'delete /dashboard/staff/{staff}',
 ];
 
 const OPENAPI_DASHBOARD_REFERENCE_PATHS = [
@@ -704,7 +707,7 @@ it('documents the request bodies and response schemas the endpoints use', functi
         'DashboardPermission', 'DashboardRole', 'DashboardRoleRef', 'DashboardStaffMember',
         'DashboardStoreRole', 'DashboardUpdateRole', 'DashboardDeleteRole', 'DashboardSetStaffRoles',
         'PasswordResetRequestRequest', 'PasswordResetConfirmRequest', 'StaffResetRequestRequest', 'StaffResetConfirmRequest',
-        'DashboardCreateStaff', 'DashboardStaffStatusChange',
+        'DashboardCreateStaff', 'DashboardStaffStatusChange', 'DashboardUpdateStaff',
         'DashboardSetStaffBranch', 'DashboardKarat', 'DashboardStoreKarat', 'DashboardBranch', 'DashboardBranchHour',
         'DashboardStoreBranch', 'DashboardUpdateBranch', 'DashboardBranchClosure', 'DashboardStoreBranchClosure',
         'DashboardStaffRef', 'DashboardManualPrice', 'DashboardEnterManualPrice', 'DashboardGoldPrice', 'DashboardKaratPrice',

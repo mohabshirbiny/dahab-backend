@@ -60,6 +60,7 @@ class Staff extends Authenticatable implements HasApiTokensContract
             'is_founder' => 'boolean',
             'is_system' => 'boolean',
             'created_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -108,10 +109,10 @@ class Staff extends Authenticatable implements HasApiTokensContract
             ->whereNull('unfrozen_at');
     }
 
-    /** Every staff member except the system actor (spec 002 FR-061). */
+    /** Every staff member except the system actor (spec 002 FR-061) and the deleted (staff-edit-delete). */
     public function scopeManageable(Builder $query): Builder
     {
-        return $query->where('is_system', false);
+        return $query->where('is_system', false)->whereNull('deleted_at');
     }
 
     /** Founders always; others when any of their roles requires MFA (spec 002 FR-040). */

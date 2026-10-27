@@ -34,7 +34,7 @@ final class ConfirmFrozenFounderUnfreezeAction
     /** @return array{freeze_id: string, slot: 1, waiting_for: 'founder'} */
     public function execute(string $email, string $password, ?string $code, ?string $recoveryCode, ?string $note, RequestContext $ctx): array
     {
-        $staff = Staff::query()->where('email', $email)->with(['password', 'mfa'])->first();
+        $staff = Staff::query()->where('email', $email)->whereNull('deleted_at')->with(['password', 'mfa'])->first();
 
         if ($staff === null || $staff->is_system || $staff->password === null) {
             $this->fail($ctx, 'unknown_account', null, $email);

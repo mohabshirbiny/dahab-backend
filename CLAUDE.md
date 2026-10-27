@@ -417,9 +417,13 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   relist is capped at what the buyer paid (`free_relist.previous_price`).
   Settings page and relist (`docs/features/settings-page-and-relist.md`, 2026-10-27): setting `auth.staff_new_device_sms` (default on)
   — staff on a device not yet known get `device_code_required` and confirm by SMS (`/dashboard/auth/device-code/verify|resend`), a
-  founder only for a first device (instead of `founder:trust-device`); staff with no phone are not asked; `withdrawn → live`:
+  founder for any new device (since staff-edit-delete; setting off or no phone: the other founder approves); staff with no phone
+  are not asked; `withdrawn → live`:
   `POST /customer/me/listings/{id}/relist` (own take-down only) and `POST /dashboard/listings/{id}/relist` (`listing.takedown`),
   `can_relist`, `taken_down_by`, `meta.counts.withdrawn`.
+  Staff edit and delete (`docs/features/staff-edit-delete.md`, 2026-10-27): `PATCH /dashboard/staff/{id}` (name, email, phone;
+  a founder's only by a founder) and `DELETE /dashboard/staff/{id}` (soft, final: `staff.deleted_at`, never yourself or a founder,
+  email freed — unique among staff not deleted), both `staff.manage`; the phone is required on `POST /dashboard/staff`.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -463,6 +467,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   dialog shows the stone as stated with *Open the certificate* (no certificate number); Orders has *All, closed too*.
   Settings page and relist: *Commission rates* is now *Platform settings* (sections open and close, *Sign-in security*), the
   `/device-code` sign-in screen, and Listings' *Taken down* tab with *Put it back on the market*.
+  Staff edit and delete: Staff → Accounts has *Edit* and *Delete*; *Add staff member* requires the phone.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page

@@ -19,7 +19,8 @@ Owner's notes of 2026-10-27:
 6. Listings has a *Taken down* tab; staff put a piece back live, and so does the seller from the app.
 
 Decisions (owner, 2026-10-27): the SMS code applies to all staff; a founder only for a first device (later new
-devices still wait for the other founder). The seller brings back only a piece they took down themself; staff
+devices still wait for the other founder) — **superseded the same day** by `docs/features/staff-edit-delete.md`:
+any new founder device gets the SMS code while the setting is on. The seller brings back only a piece they took down themself; staff
 bring back any taken-down piece. Back to live directly, no new review.
 
 ## Impact Summary
