@@ -833,6 +833,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // every POST is idempotent (`idempotent` runs last) and audited.
         Route::middleware(['auth:staff', 'abilities:staff:access', 'staff.standing'])->group(function () {
             Route::get('/overview', [DashboardOverviewController::class, 'show'])->name('overview');
+            // The navigation badges in one read; each count only with its page's code.
+            Route::get('/nav-counts', [DashboardOverviewController::class, 'navCounts'])->name('nav-counts');
 
             Route::prefix('compensation')->name('compensation.')->group(function () {
                 Route::get('/', [DashboardCompensationController::class, 'index'])

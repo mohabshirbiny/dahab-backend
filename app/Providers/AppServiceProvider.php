@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\GoldPriceFeed;
 use App\Exceptions\AuthApiException;
 use App\Models\PersonalAccessToken;
+use App\Models\Staff;
 use App\Notifications\Channels\InboxChannel;
 use App\Notifications\Channels\SmsChannel;
 use App\Notifications\Channels\StaffNoticeChannel;
@@ -82,8 +83,14 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiters(): void
     {
+        // A signed-in staff member gets a wider bucket than a customer: the Dashboard polls its
+        // badges, bell and Overview in every open tab, all against the one bucket. The sign-in,
+        // MFA, refresh and reset limiters below stay as they are.
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->getAuthIdentifier() ?: $request->ip());
+            $user = $request->user();
+
+            return Limit::perMinute($user instanceof Staff ? (int) config('dahab-auth.staff_api_per_minute', 240) : 60)
+                ->by($user?->getAuthIdentifier() ?: $request->ip());
         });
 
         // Every auth surface owns its limiter (and therefore its buckets):

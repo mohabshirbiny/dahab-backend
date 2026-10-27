@@ -2,6 +2,7 @@
 
 namespace App\Actions\Wallet;
 
+use App\Support\Overview\OverviewCache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -10,12 +11,19 @@ use Illuminate\Support\Facades\DB;
  * the whole-system check, which must read zero. The bank's cash is
  * -SUM(bank) (research R15). One pass over the postings, summed per account
  * first and then per kind: the same figures as the solvency_check and
- * ledger_global_zero views, which read the whole ledger five times.
+ * ledger_global_zero views, which read the whole ledger five times. Reused
+ * for a few seconds (OverviewCache); the route already requires wallet.view.
  */
 final class ShowLedgerOverviewAction
 {
     /** @return array{available: string, held: string, held_on_orders: string, pending_withdrawals: string, total_owed: string, bank: string, headroom: string, system_total: string} */
     public function handle(): array
+    {
+        return OverviewCache::section('wallets', fn () => $this->read());
+    }
+
+    /** @return array{available: string, held: string, held_on_orders: string, pending_withdrawals: string, total_owed: string, bank: string, headroom: string, system_total: string} */
+    private function read(): array
     {
         $row = DB::selectOne("
             WITH per_account AS (

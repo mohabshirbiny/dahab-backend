@@ -197,7 +197,7 @@ it('guards every customer and dashboard route with the right guard and ability, 
     //            The public reference certificate-costs carries no guard.
     //            Dashboard make a customer a market maker (1); the buyer's ID at the handover (1).
     //            Settings page and relist: customer and dashboard listing relist (2); device-code verify/resend are public.
-    expect($checked)->toBe(270);
+    expect($checked)->toBe(273);
 });
 
 it('keeps refresh routes on the refresh ability and access routes on the access ability', function () {

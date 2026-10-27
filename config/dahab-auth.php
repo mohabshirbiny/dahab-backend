@@ -13,6 +13,10 @@ return [
     'access_ttl_minutes' => (int) env('DAHAB_AUTH_ACCESS_TTL_MINUTES', 15),
     'refresh_ttl_days' => (int) env('DAHAB_AUTH_REFRESH_TTL_DAYS', 30),
 
+    // The general API bucket of a signed-in staff member, per minute, shared by all their
+    // tabs (customers keep 60). The sign-in, MFA, refresh and reset limiters are separate.
+    'staff_api_per_minute' => (int) env('DAHAB_AUTH_STAFF_API_PER_MINUTE', 240),
+
     /*
     |--------------------------------------------------------------------------
     | OTP challenge tuning

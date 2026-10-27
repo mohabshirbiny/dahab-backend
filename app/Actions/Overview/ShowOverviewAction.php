@@ -5,6 +5,7 @@ namespace App\Actions\Overview;
 use App\Enums\OrderState;
 use App\Enums\StaffPermission;
 use App\Models\Staff;
+use App\Support\Overview\OverviewCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -39,12 +40,14 @@ final class ShowOverviewAction
         $can = fn (string $code) => $viewer->can($code);
         $out = [];
 
+        // Global sections are reused for a few seconds, each under its own key and
+        // only read after the viewer's permission check (OverviewCache).
         if ($can(StaffPermission::WALLET_VIEW->value)) {
-            $out['earnings'] = $this->earnings();
+            $out['earnings'] = OverviewCache::section('earnings', fn () => $this->earnings());
         }
         if ($can(StaffPermission::ORDER_VIEW->value)) {
-            $out['orders'] = $this->orders();
-            $out['this_month'] = $this->thisMonth();
+            $out['orders'] = OverviewCache::section('orders', fn () => $this->orders());
+            $out['this_month'] = OverviewCache::section('this_month', fn () => $this->thisMonth());
         }
         $kinds = array_keys(array_filter(self::NEEDS_DECISION, $can));
         if ($kinds !== []) {

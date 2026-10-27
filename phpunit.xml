@@ -33,6 +33,8 @@
         <env name="ARGON_THREADS" value="1"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
+        <!-- Tests read the Overview fresh after every action; the cache has its own test. -->
+        <env name="DAHAB_OVERVIEW_CACHE_SECONDS" value="0"/>
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_HOST" value="127.0.0.1"/>
         <env name="DB_PORT" value="5432"/>

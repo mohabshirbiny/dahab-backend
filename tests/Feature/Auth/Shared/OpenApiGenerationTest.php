@@ -352,6 +352,7 @@ const OPENAPI_DASHBOARD_FINANCE_PATHS = [
 
 const OPENAPI_DASHBOARD_OVERVIEW_PATHS = [
     'get /dashboard/overview',
+    'get /dashboard/nav-counts',
 ];
 
 // Spec 016: tax invoices and credit notes.
