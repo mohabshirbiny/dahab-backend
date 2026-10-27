@@ -12470,7 +12470,7 @@
                                         "price"
                                     ]
                                 },
-                                "description": "Spec 022. The seller changes the figure of a live piece nobody has asked for: gold sends making_charge_per_g, a diamond or gold with diamond sends asking_price (at most 2 decimals; must differ from the current figure). No review, no state move, no notification. 409 platform_stopped (stop everything), listing_has_requests (reserved / accepted / at inspection / settling / sold), listing_not_live (any other state), listing_price_locked (approved for market makers); 422 validation_failed; 404 for a listing that is not yours. Answers the CustomerListing with can_change_price. Trade gate; Idempotency-Key.",
+                                "description": "Spec 022. The seller changes the figure of a live piece nobody has asked for, or of a piece waiting for review (seller notes 2026-10-27): gold sends making_charge_per_g, a diamond or gold with diamond sends asking_price (at most 2 decimals; must differ from the current figure). No review, no state move, no notification. 409 platform_stopped (stop everything), listing_has_requests (reserved / accepted / at inspection / settling / sold), listing_not_live (any other state), listing_price_locked (approved for market makers); 422 validation_failed; 404 for a listing that is not yours. Answers the CustomerListing with can_change_price. Trade gate; Idempotency-Key.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n    \"making_charge_per_g\": \"220.00\"\n}",

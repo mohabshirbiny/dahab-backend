@@ -424,6 +424,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Staff edit and delete (`docs/features/staff-edit-delete.md`, 2026-10-27): `PATCH /dashboard/staff/{id}` (name, email, phone;
   a founder's only by a founder) and `DELETE /dashboard/staff/{id}` (soft, final: `staff.deleted_at`, never yourself or a founder,
   email freed — unique among staff not deleted), both `staff.manage`; the phone is required on `POST /dashboard/staff`.
+  Seller notes (`docs/features/seller-notes-oct27.md`, 2026-10-27): the price change also works while the piece is `in_review`
+  (`can_change_price`, DH023 extended); `seller_sales_count` on the market piece (settled orders, function `seller_sales_count`);
+  advance rows carry `order_id`, `seller.customer_id`, `recovered_at`, `written_off_at`.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -468,6 +471,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Settings page and relist: *Commission rates* is now *Platform settings* (sections open and close, *Sign-in security*), the
   `/device-code` sign-in screen, and Listings' *Taken down* tab with *Put it back on the market*.
   Staff edit and delete: Staff → Accounts has *Edit* and *Delete*; *Add staff member* requires the phone.
+  Seller notes: *First-sale advances* page (Money, `first_sale.manage`), linked from Platform settings.
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page
@@ -518,6 +522,8 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Settings page and relist: *Change making charge* (piece page and My listings), *Put it back on the market* for a piece the seller
   took down, and sell step 1 takes the weight, making charge and asking price as typed numbers; texts `listing.relist.*`,
   `sell.figures.*` (AR-DRAFT).
+  Seller notes: the video plays inside the piece page (last gallery slide, *Watch the video*), My listings shows the photo,
+  buyers see "Has completed N sales on Dahab", *Change making charge* while in review; texts `piece.seller_*|video_*` (AR-DRAFT).
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

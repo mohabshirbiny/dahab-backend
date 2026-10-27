@@ -135,14 +135,29 @@ it('refuses a piece somebody asked for, with has_requests, and leaves the figure
         ->assertJsonPath('data.state', 'reserved')->assertJsonPath('data.can_change_price', false);
 });
 
-it('refuses every other state that is not live with listing_not_live', function () {
-    $draft = Listing::factory()->withPhotos(2)->create(['seller_id' => $this->seller->customer_id]);
+it('changes the making charge of a piece waiting for review, keeps it in review and records it', function () {
     $inReview = Listing::factory()->withPhotos(2)->inReview()->create(['seller_id' => $this->seller->customer_id]);
+    $before = $inReview->fresh();
+
+    Listings::as($this, $this->seller)->getJson(Listings::SELLER_URL."/{$inReview->listing_id}")
+        ->assertOk()->assertJsonPath('data.can_change_price', true);
+
+    changePrice($this, $this->seller, $inReview, ['making_charge_per_g' => '300'])->assertOk()
+        ->assertJsonPath('data.state', 'in_review')
+        ->assertJsonPath('data.making_charge_per_g', '300.0000')
+        ->assertJsonPath('data.can_change_price', true);
+
+    expect($inReview->fresh()->state_changed_at->equalTo($before->state_changed_at))->toBeTrue()
+        ->and((string) ListingPriceChange::query()->where('listing_id', $inReview->listing_id)->sole()->new_value)->toBe('300.0000');
+});
+
+it('refuses every other state that is not live or in review with listing_not_live', function () {
+    $draft = Listing::factory()->withPhotos(2)->create(['seller_id' => $this->seller->customer_id]);
     $changes = Listing::factory()->withPhotos(2)->changesRequested()->create(['seller_id' => $this->seller->customer_id]);
     $held = Listing::factory()->withPhotos(2)->suspendedHold()->create(['seller_id' => $this->seller->customer_id]);
     $withdrawn = Listing::factory()->withPhotos(2)->withdrawn()->create(['seller_id' => $this->seller->customer_id]);
 
-    foreach ([$draft, $inReview, $changes, $held, $withdrawn] as $listing) {
+    foreach ([$draft, $changes, $held, $withdrawn] as $listing) {
         changePrice($this, $this->seller, $listing, ['making_charge_per_g' => '200'])
             ->assertStatus(409)->assertJsonPath('code', 'listing_not_live');
     }

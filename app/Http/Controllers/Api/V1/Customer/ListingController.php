@@ -169,7 +169,7 @@ class ListingController extends Controller
         path: '/customer/me/listings/{listing}/price',
         operationId: 'customerChangeListingPrice',
         summary: 'Change the price of a live piece',
-        description: 'Spec 022. A live piece nobody has asked for: gold changes `making_charge_per_g`, a diamond or gold with diamond changes `asking_price`. No review, no state move, no notification; the piece keeps its place. Refused under stop everything (platform_stopped), once a buyer is in line (listing_has_requests), in any other state (listing_not_live) and while the piece is approved for market makers (listing_price_locked). Trade gate. Idempotent.',
+        description: 'Spec 022. A live piece nobody has asked for, or (seller notes 2026-10-27) a piece waiting for review: gold changes `making_charge_per_g`, a diamond or gold with diamond changes `asking_price`. No review, no state move, no notification; the piece keeps its place. Refused under stop everything (platform_stopped), once a buyer is in line (listing_has_requests), in any other state (listing_not_live) and while the piece is approved for market makers (listing_price_locked). Trade gate. Idempotent.',
         security: [['customerBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ChangeListingPriceRequest')),
         tags: ['Customer Listings'],

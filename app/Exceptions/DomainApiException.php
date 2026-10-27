@@ -970,7 +970,7 @@ class DomainApiException extends RuntimeException
     /** Spec 022: only a live piece's price can be changed; same code as listingNotLive(). */
     public static function listingNotLiveForPriceChange(): self
     {
-        return new self('listing_not_live', 409, "Only a live piece's price can be changed.");
+        return new self('listing_not_live', 409, 'Only the price of a live piece or of one waiting for review can be changed.');
     }
 
     /** Spec 022: a buyer is in line (or a price was locked), so the figure stays. */

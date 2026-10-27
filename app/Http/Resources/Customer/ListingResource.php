@@ -59,7 +59,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'can_edit', type: 'boolean', description: 'Draft or changes requested'),
         new OA\Property(property: 'can_submit', type: 'boolean', description: 'Draft or changes requested'),
         new OA\Property(property: 'can_withdraw', type: 'boolean', description: 'Live, or (spec 011) reserved: the line is then released and refunded'),
-        new OA\Property(property: 'can_change_price', type: 'boolean', description: 'Spec 022: live, and the price is not fixed by a market-maker approval. POST /customer/me/listings/{id}/price'),
+        new OA\Property(property: 'can_change_price', type: 'boolean', description: 'Spec 022: live (and the price is not fixed by a market-maker approval) or waiting for review. POST /customer/me/listings/{id}/price'),
         new OA\Property(property: 'can_relist', type: 'boolean', description: 'Withdrawn from live or reserved by the seller themself: POST /customer/me/listings/{id}/relist puts it back live'),
         new OA\Property(property: 'taken_down_by', type: 'string', enum: ['seller', 'staff'], nullable: true, description: 'Who took a withdrawn piece off the market; null when it is not withdrawn or left another way (a sale, a return)'),
         new OA\Property(property: 'queue_count', type: 'integer', description: 'Spec 011: buyers waiting in line'),
@@ -93,8 +93,8 @@ class ListingResource extends JsonResource
             'can_submit' => $l->state->isEditable(),
             // Spec 011: withdrawing a reserved piece releases and refunds its line.
             'can_withdraw' => $l->state === ListingState::LIVE || $l->state === ListingState::RESERVED,
-            // Spec 022: only a live piece, and only while its price is not locked (C3).
-            'can_change_price' => $l->state === ListingState::LIVE && ! ListingPriceLocks::isLocked($l),
+            // Spec 022: a live piece while its price is not locked (C3); also while it waits for review.
+            'can_change_price' => ($l->state === ListingState::LIVE && ! ListingPriceLocks::isLocked($l)) || $l->state === ListingState::IN_REVIEW,
             'can_relist' => $takenDown !== null && $takenDown->actor_customer_id === $l->seller_id,
             'taken_down_by' => $takenDown === null ? null : ($takenDown->actor_staff_id !== null ? 'staff' : 'seller'),
             'queue_count' => $l->active_queue_count,

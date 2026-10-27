@@ -3044,6 +3044,88 @@
       "max_length": 118
     },
     {
+      "key": "piece.seller_verified",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Verified seller",
+      "default_ar": "بايع متأكَّد من هويته",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "piece.seller_sales_none",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "New on Dahab, no completed sale yet",
+      "default_ar": "جديد على دهب، لسه مكمّلش أي بيعة",
+      "placeholders": [],
+      "max_length": 70
+    },
+    {
+      "key": "piece.seller_sales_one",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Has completed 1 sale on Dahab",
+      "default_ar": "كمّل بيعة واحدة على دهب",
+      "placeholders": [],
+      "max_length": 58
+    },
+    {
+      "key": "piece.seller_sales_many",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Has completed {count} sales on Dahab",
+      "default_ar": "كمّل {count} بيعات على دهب",
+      "placeholders": [
+        "count"
+      ],
+      "max_length": 72
+    },
+    {
+      "key": "piece.video_tap_to_play",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Tap to play the video",
+      "default_ar": "دوس عشان تشغّل الفيديو",
+      "placeholders": [],
+      "max_length": 42
+    },
+    {
+      "key": "piece.video_loading",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Loading the video…",
+      "default_ar": "بنحمّل الفيديو…",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "piece.video_failed",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "The video could not be loaded. Tap to try again.",
+      "default_ar": "الفيديو مااتحمّلش. دوس وجرّب تاني.",
+      "placeholders": [],
+      "max_length": 96
+    },
+    {
+      "key": "piece.video_close",
+      "kind": "app",
+      "area": "Browse",
+      "where": "Piece page",
+      "default_en": "Close",
+      "default_ar": "اقفل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",

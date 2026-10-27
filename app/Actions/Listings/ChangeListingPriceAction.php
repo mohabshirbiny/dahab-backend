@@ -18,7 +18,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * A seller changes the making charge (gold) or the asking price (stones) of
- * their live piece (spec 022). No review, no state move, no notification:
+ * their live piece (spec 022), or of a piece still waiting for review (seller
+ * notes 2026-10-27: the reviewer sees the new figure). No review, no state move, no notification:
  * `state_changed_at` and `listed_at` stay as they were. Refused under "stop
  * everything", once a buyer is in line, and while the piece is approved for
  * market makers. Everything is re-checked under the listing's row lock, so a
@@ -45,7 +46,7 @@ final class ChangeListingPriceAction
                 throw DomainApiException::listingHasRequests();
             }
 
-            if ($listing->state !== ListingState::LIVE) {
+            if ($listing->state !== ListingState::LIVE && $listing->state !== ListingState::IN_REVIEW) {
                 throw DomainApiException::listingNotLiveForPriceChange();
             }
 
