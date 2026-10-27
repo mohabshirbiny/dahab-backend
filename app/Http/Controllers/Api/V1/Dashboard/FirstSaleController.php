@@ -12,6 +12,7 @@ use App\Support\Pricing\Money;
 use App\Support\Pricing\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
@@ -85,7 +86,7 @@ class FirstSaleController extends Controller
         path: '/dashboard/first-sale-advances',
         operationId: 'dashboardFirstSaleAdvances',
         summary: 'Advances and the exposure',
-        description: 'Spec 023 R13. Newest first, keyset pages; `status` outstanding | recovered | written_off. meta carries the switch, the cap, the ceiling, the exact outstanding sum, the headroom and the written-off and shortfall totals. first_sale.manage.',
+        description: 'Spec 023 R13. Newest first, keyset pages; `status` outstanding | recovered | written_off. Each row: advance_id, order_id, order_ref, seller {customer_id, display_ref, full_name}, amount_egp, basis, promo_code, status, advanced_at, recovered_egp, shortfall_absorbed_egp, written_off_reason, recovered_at, written_off_at (the last two since the seller notes of 2026-10-27). meta carries the switch, the cap, the ceiling, the exact outstanding sum, the headroom and the written-off and shortfall totals. first_sale.manage.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Market makers'],
         parameters: [
@@ -123,11 +124,13 @@ class FirstSaleController extends Controller
 
         $sellers = Customer::query()->whereIn('customer_id', $rows->pluck('seller_id'))->get(['customer_id', 'display_ref', 'full_name'])->keyBy('customer_id');
         $orders = DB::table('order')->whereIn('order_id', $rows->pluck('order_id'))->pluck('order_ref', 'order_id');
+        $recoveredAt = DB::table('ledger_transaction')->whereIn('ledger_txn_id', $rows->pluck('recovered_txn_id')->filter())->pluck('created_at', 'ledger_txn_id');
 
         $data = $rows->map(fn (FirstSaleAdvance $a) => [
             'advance_id' => $a->advance_id,
+            'order_id' => $a->order_id,
             'order_ref' => $orders[$a->order_id] ?? null,
-            'seller' => ['display_ref' => $sellers[$a->seller_id]->display_ref ?? null, 'full_name' => $sellers[$a->seller_id]->full_name ?? null],
+            'seller' => ['customer_id' => $a->seller_id, 'display_ref' => $sellers[$a->seller_id]->display_ref ?? null, 'full_name' => $sellers[$a->seller_id]->full_name ?? null],
             'amount_egp' => bcadd((string) $a->amount_egp, '0', 4),
             'basis' => $a->basis->value,
             'promo_code' => $a->promo_code,
@@ -136,6 +139,8 @@ class FirstSaleController extends Controller
             'recovered_egp' => $a->recovered_egp === null ? null : bcadd((string) $a->recovered_egp, '0', 4),
             'shortfall_absorbed_egp' => $a->shortfall_absorbed_egp === null ? null : bcadd((string) $a->shortfall_absorbed_egp, '0', 4),
             'written_off_reason' => $a->written_off_reason?->value,
+            'recovered_at' => isset($recoveredAt[$a->recovered_txn_id]) ? Carbon::parse($recoveredAt[$a->recovered_txn_id])->toIso8601String() : null,
+            'written_off_at' => $a->written_off_at?->toIso8601String(),
         ])->values();
 
         $exposure = $eligibility->exposure();

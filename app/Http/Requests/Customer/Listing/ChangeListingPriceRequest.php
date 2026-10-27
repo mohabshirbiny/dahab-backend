@@ -55,7 +55,7 @@ class ChangeListingPriceRequest extends FormRequest
             throw DomainApiException::listingHasRequests();
         }
 
-        if ($state !== ListingState::LIVE) {
+        if ($state !== ListingState::LIVE && $state !== ListingState::IN_REVIEW) {
             throw DomainApiException::listingNotLiveForPriceChange();
         }
     }

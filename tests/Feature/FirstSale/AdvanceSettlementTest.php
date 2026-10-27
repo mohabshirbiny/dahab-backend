@@ -169,13 +169,30 @@ it('shows staff the exposure, the written-off total and the advances', function 
     ])
         ->and($res->json('data.0.status'))->toBe('outstanding')
         ->and($res->json('data.0.order_ref'))->toBe($order->order_ref)
-        ->and($res->json('data.0.basis'))->toBe('promo_code');
+        ->and($res->json('data.0.basis'))->toBe('promo_code')
+        ->and($res->json('data.0.order_id'))->toBe($order->order_id)
+        ->and($res->json('data.0.seller.customer_id'))->toBe($order->seller_id)
+        ->and($res->json('data.0.recovered_at'))->toBeNull()
+        ->and($res->json('data.0.written_off_at'))->toBeNull();
 
     $this->getJson('/api/v1/dashboard/first-sale-advances?status=recovered')->assertOk()->assertJsonPath('data', []);
 
     // The Operations role holds no first_sale.manage.
     Orders::staff($this, SeedRole::OPERATIONS);
     $this->getJson('/api/v1/dashboard/first-sale-advances')->assertForbidden();
+});
+
+it('gives the headroom back once the buyer pays and dates the recovery', function () {
+    $order = advancedOrder($this);
+    Orders::pay($this, Orders::buyer($order), $order)->assertOk();
+    balancesAndFire();
+
+    Orders::staff($this, SeedRole::FINANCE);
+    $res = $this->getJson('/api/v1/dashboard/first-sale-advances')->assertOk();
+    expect($res->json('meta.outstanding_egp'))->toBe('0.0000')
+        ->and($res->json('meta.headroom_egp'))->toBe('1000000.0000')
+        ->and($res->json('data.0.status'))->toBe('recovered')
+        ->and($res->json('data.0.recovered_at'))->not->toBeNull();
 });
 
 it('keeps a settlement without an advance exactly as before', function () {

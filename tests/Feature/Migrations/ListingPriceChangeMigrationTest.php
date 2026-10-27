@@ -76,9 +76,9 @@ it('keeps the history append-only with DH023', function () {
         ->and(lpcSqlState(fn () => DB::table('listing_price_change')->where('change_id', $c->change_id)->delete()))->toBe('DH023');
 });
 
-it('refuses a price write outside draft, changes requested and live with DH023', function () {
+it('refuses a price write outside draft, changes requested, in review and live with DH023', function () {
     foreach ([
-        Listing::factory()->withPhotos(2)->inReview()->create(),
+        Listing::factory()->withPhotos(2)->suspendedHold()->create(),
         Listing::factory()->withPhotos(2)->withdrawn()->create(),
     ] as $l) {
         expect(lpcSqlState(fn () => lpcSetPrice($l, '240.00')))->toBe('DH023');
@@ -100,6 +100,14 @@ it('lets a draft and a changes-requested price be edited with no history row', f
 
 it('refuses a live price change that has no history row, at commit', function () {
     $l = Listing::factory()->withPhotos(2)->live()->create();
+
+    DB::table('listing')->where('listing_id', $l->listing_id)->update(['making_charge_per_g' => '230.00']);
+
+    expect(lpcFireDeferred())->toBe('DH023');
+});
+
+it('refuses an in-review price change that has no history row, at commit', function () {
+    $l = Listing::factory()->withPhotos(2)->inReview()->create();
 
     DB::table('listing')->where('listing_id', $l->listing_id)->update(['making_charge_per_g' => '230.00']);
 
