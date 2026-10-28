@@ -524,7 +524,7 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   (AR-DRAFT).
   Buyer code card: *Have a promo code?* on the piece page above *Send buy request* (Apply shows price, discount, you pay,
   deposit; the code goes with the request; the old pop-up is gone); texts `buy.code.*` (AR-DRAFT).
-  App notes on sales: the seller's line hides the buyer; *What you will receive* on the seller's order; *Waiting for Dahab to
+  App notes on sales: the seller never sees how many buyers are in line, only the first request; *What you will receive* on the seller's order; *Waiting for Dahab to
   confirm* top-ups on the pay screen; the sell estimate says VAT included; the stone relist is capped; texts `order.estimate.*`,
   `order.pay.pending_topups.*` (AR-DRAFT).
   Settings page and relist: *Change making charge* (piece page and My listings), *Put it back on the market* for a piece the seller

@@ -9,7 +9,7 @@ Ten owner notes from testing the sale flow, on the customer app and the Dashboar
 
 | # | Note | What changed |
 |---|------|--------------|
-| 1 | The seller should not see who sent a buy request | The seller's line no longer shows "From buyer" (app only; the API is unchanged) |
+| 1 | The seller should not see how many buyers sent a buy request | The seller's card reads "A buy request still waiting" with the first request only; no count on the piece page, the state line or My listings (app only; the API still sends the line). First built wrong as hiding the buyer's reference; corrected 2026-10-28, the reference is shown again |
 | 2 | While the seller waits for the buyer to pay, show what they will receive | `seller_estimate` on the seller's order detail; *What you will receive* on the order screen |
 | 3, 4 | The reference on a wallet line must be the order number; a compensation must always name its order | `reference` = the order number on every wallet line of an order (app history, PDF, Dashboard statement); `order_id` required on `POST /dashboard/compensation`, picked in the form from `GET /dashboard/compensation/orders` |
 | 5 | Write "including VAT" on the commission, also for diamond and mixed pieces | Sell estimate reads *Dahab commission, VAT included* on every category |
