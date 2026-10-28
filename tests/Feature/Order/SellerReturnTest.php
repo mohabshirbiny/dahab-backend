@@ -81,6 +81,18 @@ it('hands the piece back against the seller code, at the branch, once', function
     returnHandover($this, $this->order, $this->code)->assertStatus(409);
 });
 
+it('sends an event with no detail as an empty object, for both parties (the app could not read [])', function () {
+    Orders::staff($this, SeedRole::IGI_BRANCH, $this->order->branch_id);
+    returnHandover($this, $this->order, $this->code)->assertOk();
+
+    foreach ([$this->seller, Orders::buyer($this->order)] as $party) {
+        $raw = Orders::show($this, $party, $this->order)->assertOk()->getContent();
+        expect($raw)->toContain('"event":"return_collected"')
+            ->and(preg_match('/"event":"return_collected","at":"[^"]+","detail":\{\}/', $raw))->toBe(1)
+            ->and($raw)->not->toContain('"detail":[]');
+    }
+});
+
 it('counts wrong codes, locks after five for fifteen minutes, and audits each', function () {
     Orders::staff($this, SeedRole::IGI_BRANCH);
     $wrong = $this->code === '000000' ? '111111' : '000000';
