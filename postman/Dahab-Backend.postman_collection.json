@@ -6787,6 +6787,38 @@
                                 "description": "Spec 015 FR-016. Any staff; each section only with its permission."
                             },
                             "response": []
+                        },
+                        {
+                            "name": "Nav Counts",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/nav-counts",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "nav-counts"
+                                    ]
+                                },
+                                "description": "The navigation badges in one read. Any staff; each count only with its page's code (absent, not 0, without it): customers_pending + customers_by_status (customer.view), topups_open (topup.match), listings_in_review (listing.review|request_changes|takedown), withdrawals_waiting (withdrawal.release), disputes_unresolved (dispute.handle), listing_reports_open (listing_report.handle)."
+                            },
+                            "response": []
                         }
                     ]
                 },

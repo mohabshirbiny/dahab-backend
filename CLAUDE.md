@@ -427,6 +427,11 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   Seller notes (`docs/features/seller-notes-oct27.md`, 2026-10-27): the price change also works while the piece is `in_review`
   (`can_change_price`, DH023 extended); `seller_sales_count` on the market piece (settled orders, function `seller_sales_count`);
   advance rows carry `order_id`, `seller.customer_id`, `recovered_at`, `written_off_at`.
+  Dashboard performance (`docs/features/dashboard-performance.md`, 2026-10-28): the Overview's SQL reads the ledger
+  once (golden test against the original statements), its global sections are cached 30 s per section after the
+  permission check (`DAHAB_OVERVIEW_CACHE_SECONDS`, 0 in tests), `GET /dashboard/nav-counts` gives every badge and the
+  Users tabs (each key only with its page's code), staff get 240 API requests a minute (customers 60), index
+  `idx_ledger_txn_buy_request`.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -472,6 +477,9 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `/device-code` sign-in screen, and Listings' *Taken down* tab with *Put it back on the market*.
   Staff edit and delete: Staff → Accounts has *Edit* and *Delete*; *Add staff member* requires the phone.
   Seller notes: *First-sale advances* page (Money, `first_sale.manage`), linked from Platform settings.
+  Dashboard performance: the Overview's panels load apart, the sidebar badges and Users tabs come from one
+  `nav-counts` request refreshed by every mutation, notices poll every minute (and on opening the bell), the banner
+  every two minutes, and Vuetify's icons are inline SVG (no icon font).
 - Flutter: registration + sign-in (with device OTP), session restore, refresh and sign-out are live;
   a suspended customer sees a notice with the plain reason (spec 007); the wallet balance and history are live
   (spec 008, `ApiWalletRepository`); Add funds and Your top-ups are live (spec 009); Home / Browse / the piece page

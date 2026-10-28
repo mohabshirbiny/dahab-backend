@@ -15,4 +15,8 @@ return [
 
     // Rows in the Overview's "Needs a decision".
     'overview_needs_decision_limit' => 10,
+
+    // How long the Overview's global figures (wallets, earnings, orders, this month) are reused
+    // before they are read again. Indicators only: no money action reads them. 0 turns it off.
+    'overview_cache_seconds' => (int) env('DAHAB_OVERVIEW_CACHE_SECONDS', 30),
 ];

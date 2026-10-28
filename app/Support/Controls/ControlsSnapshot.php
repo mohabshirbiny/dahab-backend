@@ -53,12 +53,12 @@ final class ControlsSnapshot
     /** @return array<string, bool> keyed by the name on the API (`rapaport_reference`, …) */
     public function visibility(): array
     {
+        $keys = array_values(array_filter(SettingKey::cases(), fn (SettingKey $k) => $k->visibilityName() !== null));
+        $values = $this->settings->bools($keys);
+
         $out = [];
-        foreach (SettingKey::cases() as $key) {
-            $name = $key->visibilityName();
-            if ($name !== null) {
-                $out[$name] = $this->settings->bool($key);
-            }
+        foreach ($keys as $key) {
+            $out[$key->visibilityName()] = $values[$key->value];
         }
 
         return $out;

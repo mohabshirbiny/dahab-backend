@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
+use App\Actions\Dashboard\NavCountsAction;
 use App\Actions\Overview\ShowOverviewAction;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
-/** The Dashboard Overview's figures (spec 015 US5): each section only for the codes that may see it. */
+/** The Dashboard Overview's figures (spec 015 US5) and the navigation badges: each only for the codes that may see it. */
 class OverviewController extends Controller
 {
     #[OA\Get(
@@ -44,5 +45,36 @@ class OverviewController extends Controller
     public function show(Request $request, ShowOverviewAction $overview): JsonResponse
     {
         return response()->json(['data' => (object) $overview->handle($request->user('staff'))]);
+    }
+
+    #[OA\Get(
+        path: '/dashboard/nav-counts',
+        operationId: 'dashboardNavCounts',
+        summary: 'The navigation badges in one read',
+        description: 'Any active staff member; a count is absent (not 0) when the viewer lacks its code. Each count uses the same filter as the list it badges. customers_pending and customers_by_status (customer.view): customers by status, every status present; topups_open (topup.match): pending or on hold, whatever the date; listings_in_review (listing.review, listing.request_changes or listing.takedown); withdrawals_waiting (withdrawal.release): requested or under review, as figures.waiting_count; disputes_unresolved (dispute.handle): open or passed on; listing_reports_open (listing_report.handle). Not cached.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Overview'],
+        responses: [
+            new OA\Response(response: 200, description: 'The counts', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', properties: [
+                    new OA\Property(property: 'customers_pending', type: 'integer', example: 12),
+                    new OA\Property(property: 'customers_by_status', type: 'object', example: ['pending_verification' => 12, 'active' => 340, 'rejected' => 3, 'suspended' => 1, 'closed' => 0], additionalProperties: new OA\AdditionalProperties(type: 'integer')),
+                    new OA\Property(property: 'topups_open', type: 'integer', example: 3),
+                    new OA\Property(property: 'listings_in_review', type: 'integer', example: 5),
+                    new OA\Property(property: 'withdrawals_waiting', type: 'integer', example: 2),
+                    new OA\Property(property: 'disputes_unresolved', type: 'integer', example: 1),
+                    new OA\Property(property: 'listing_reports_open', type: 'integer', example: 0),
+                ], type: 'object'),
+                new OA\Property(property: 'meta', properties: [new OA\Property(property: 'generated_at', type: 'string', format: 'date-time')], type: 'object'),
+            ])),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function navCounts(Request $request, NavCountsAction $counts): JsonResponse
+    {
+        return response()->json([
+            'data' => (object) $counts->handle($request->user('staff')),
+            'meta' => ['generated_at' => now()->toIso8601String()],
+        ]);
     }
 }
