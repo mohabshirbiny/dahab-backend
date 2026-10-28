@@ -18,7 +18,7 @@ use Carbon\CarbonImmutable;
  */
 final class OrderTimeline
 {
-    /** @return list<array{event: string, at: string, detail: array<string, mixed>}> */
+    /** @return list<array{event: string, at: string, detail: array<string, mixed>|\stdClass}> */
     public static function build(Order $order, bool $forStaff): array
     {
         $events = [];
@@ -99,7 +99,8 @@ final class OrderTimeline
 
         usort($events, fn ($a, $b) => [$a['at']->format('Y-m-d H:i:s.u'), $a['event']] <=> [$b['at']->format('Y-m-d H:i:s.u'), $b['event']]);
 
-        return array_map(fn ($e) => ['event' => $e['event'], 'at' => $e['at']->toIso8601String(), 'detail' => $e['detail']], $events);
+        // An event with no detail is sent as an empty object, never `[]` (a list broke the app's Orders tab, 2026-10-28).
+        return array_map(fn ($e) => ['event' => $e['event'], 'at' => $e['at']->toIso8601String(), 'detail' => $e['detail'] === [] ? new \stdClass : $e['detail']], $events);
     }
 
     private static function eventFor(OrderStateChange $change): ?string
