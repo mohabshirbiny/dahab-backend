@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Collection;
  * The branch work list (spec 012 FR-010, research R18): pieces to receive,
  * inspect, correct or hand over (to the buyer, or back to the seller) at the
  * caller's branch — every branch for staff with no assigned branch, who may
- * narrow it. Oldest first, so the longest-waiting piece is on top.
+ * narrow it. Newest first (owner notes of 2026-10-29).
  */
 final class InspectionWorkListAction
 {
@@ -36,9 +36,9 @@ final class InspectionWorkListAction
                     ->whereHas('collection', fn (Builder $c) => $c->whereNull('collected_at')))
                 ->orWhereHas('sellerReturn', fn (Builder $s) => $s->whereNull('collected_at')->whereNull('relisted_at')))
             ->when($cursor !== null, fn (Builder $q) => $q->where(fn (Builder $w) => $w
-                ->where('accepted_at', '>', $cursor->value)
-                ->orWhere(fn (Builder $e) => $e->where('accepted_at', $cursor->value)->where('order_id', '>', $cursor->id))))
-            ->orderBy('accepted_at')->orderBy('order_id')
+                ->where('accepted_at', '<', $cursor->value)
+                ->orWhere(fn (Builder $e) => $e->where('accepted_at', $cursor->value)->where('order_id', '<', $cursor->id))))
+            ->orderByDesc('accepted_at')->orderByDesc('order_id')
             ->limit($perPage + 1)
             ->with(['listing.pieceType', 'listing.certificates', 'branch', 'inspections', 'collection', 'sellerReturn', 'stateChanges'])
             ->get();

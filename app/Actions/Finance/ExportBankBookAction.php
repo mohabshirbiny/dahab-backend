@@ -19,13 +19,13 @@ final class ExportBankBookAction
         $cap = (int) config('dahab-finance.export_cap');
         $book = new BankBookQuery($from, $to);
         $summary = $book->summary();
-        $csv = new Csv(['At', 'What', 'Reference', 'Customer ref', 'How', 'In', 'Out', 'Cash after', 'By'], $cap);
+        $csv = new Csv(['At', 'What', 'Reference', 'Customer ref', 'How', 'Bank', 'In', 'Out', 'Cash after', 'By'], $cap);
 
         foreach ($book->rows($summary['opening'], null, $cap + 1) as $row) {
             $s = $row['source'];
             $continue = $csv->row([
                 $row['at'], $s['kind_label'] ?? $row['kind'],
-                $s['number'] ?? $s['reference'] ?? $s['reverses_txn_id'] ?? '', $s['customer_ref'] ?? '', $s['how'] ?? $s['reason'] ?? '',
+                $s['number'] ?? $s['reference'] ?? $s['reverses_txn_id'] ?? '', $s['customer_ref'] ?? '', $s['how'] ?? $s['reason'] ?? '', $row['bank']['label'] ?? '',
                 $row['direction'] === 'in' ? $row['amount'] : '', $row['direction'] === 'out' ? $row['amount'] : '',
                 $row['cash_after'], $row['actor']['name'] ?? $row['actor']['type'],
             ]);

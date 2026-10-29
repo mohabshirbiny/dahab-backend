@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The Disputes queue (spec 014 FR-008, research R17): oldest first, keyset
+ * The Disputes queue (spec 014 FR-008, research R17): newest first, keyset
  * pages on `(opened_at, dispute_id)`, by state (unresolved by default), the
  * caller's own (`assigned=me`), or a `DSP-`/`DH-` reference. Counts of open and
  * passed-on disputes feed the navigation badge. Staff scope.
@@ -39,7 +39,7 @@ final class ListDisputesAction
             });
         }
 
-        $page = KeysetPage::byTime($query, 'dispute', 'opened_at', 'dispute_id', false, $cursor, $perPage);
+        $page = KeysetPage::byTime($query, 'dispute', 'opened_at', 'dispute_id', true, $cursor, $perPage);
 
         $counts = DB::table('dispute')->whereIn('state', [DisputeState::OPEN->value, DisputeState::PASSED_ON->value])
             ->groupBy('state')->selectRaw('state, count(*) AS n')->pluck('n', 'state');

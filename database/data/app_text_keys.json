@@ -3126,6 +3126,26 @@
       "max_length": 40
     },
     {
+      "key": "account.prices.intro",
+      "kind": "app",
+      "area": "Account",
+      "where": "Settings and legal screens",
+      "default_en": "An independent reference decides what your gold is worth, not us. Evolve prices the gold and IGI checks every piece.",
+      "default_ar": "مرجع مستقل هو اللي بيحدد قيمة دهبك، مش إحنا. Evolve بتسعّر الدهب وIGI بتفحص كل قطعة.",
+      "placeholders": [],
+      "max_length": 232
+    },
+    {
+      "key": "sell.stone_guide",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell: step 1",
+      "default_en": "A guide only, not a valuation. IGI confirms the grade and value.",
+      "default_ar": "ده استرشادي بس، مش تقييم. IGI بتأكد الدرجة والقيمة.",
+      "placeholders": [],
+      "max_length": 128
+    },
+    {
       "key": "auth.continue",
       "kind": "app",
       "area": "Browse",

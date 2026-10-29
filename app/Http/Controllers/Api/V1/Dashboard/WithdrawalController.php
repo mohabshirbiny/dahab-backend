@@ -36,7 +36,7 @@ class WithdrawalController extends Controller
         path: '/dashboard/withdrawals',
         operationId: 'dashboardWithdrawals',
         summary: 'The withdrawals queue',
-        description: 'Spec 013 FR-012. Oldest first, keyset pages. Default state requested,under_review. meta.figures: waiting (count, sum), released today (count, sum), on hold, average hours to release over 30 days. withdrawal.release or wallet.view (read only).',
+        description: 'Spec 013 FR-012. Newest first, keyset pages. Default state requested,under_review. meta.figures: waiting (count, sum), released today (count, sum), on hold, average hours to release over 30 days. withdrawal.release or wallet.view (read only).',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Withdrawals'],
         parameters: [
@@ -213,7 +213,7 @@ class WithdrawalController extends Controller
         path: '/dashboard/withdrawals/{withdrawal}/release',
         operationId: 'dashboardWithdrawalRelease',
         summary: 'Record the bank transfer and release',
-        description: 'Spec 013 FR-013 (Part 2 §9 release). Send the transfer at the bank first, then record it. under_review, not held, the account the customer\'s and active or removing. Ledger: held −X, bank +X. No pause re-check (every open withdrawal was cancelled at the account change). withdrawal.release. Idempotent, audited.',
+        description: 'Spec 013 FR-013 (Part 2 §9 release). Send the transfer at the bank first, then record it. under_review, not held, the account the customer\'s and active or removing. Ledger: held −X, bank +X, from the Dahab account named in paid_from_account_id (owner notes of 2026-10-29). No pause re-check (every open withdrawal was cancelled at the account change). withdrawal.release. Idempotent, audited.',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/ReleaseWithdrawalRequest')),
         tags: ['Dashboard Withdrawals'],
@@ -231,7 +231,8 @@ class WithdrawalController extends Controller
     public function release(ReleaseWithdrawalRequest $request, string $withdrawal, ReleaseWithdrawalAction $release, ListWithdrawalsAction $list): JsonResponse
     {
         $release->handle($this->staff($request), $withdrawal, (string) $request->validated('bank_txn_number'),
-            $request->validated('transfer_reference'), $request->validated('value_date'), $request->attributes->get('context'));
+            $request->validated('transfer_reference'), $request->validated('value_date'), $request->attributes->get('context'),
+            (int) $request->validated('paid_from_account_id'));
 
         return $this->detail($request, $withdrawal, $list);
     }

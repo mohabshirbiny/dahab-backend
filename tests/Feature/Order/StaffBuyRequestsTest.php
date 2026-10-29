@@ -30,15 +30,15 @@ beforeEach(function () {
     $this->c = BuyRequests::queued($this, BuyRequests::funded('20000'), $this->second);
 });
 
-it('lists queued requests across listings, soonest deadline first, with the place in line', function () {
+it('lists queued requests across listings, newest request first, with the place in line', function () {
     Orders::staff($this, SeedRole::OPERATIONS);
 
     $res = $this->getJson(STAFF_BUY_REQUESTS_URL)->assertOk();
 
-    expect(collect($res->json('data'))->pluck('id')->all())->toBe([$this->a->buy_request_id, $this->b->buy_request_id, $this->c->buy_request_id])
+    expect(collect($res->json('data'))->pluck('id')->all())->toBe([$this->c->buy_request_id, $this->b->buy_request_id, $this->a->buy_request_id])
         ->and($res->json('data.1.place_in_line'))->toBe(2)
         ->and($res->json('data.1.queue_length'))->toBe(2)
-        ->and($res->json('data.0.deposit_amount'))->toBe('11126.2500')
+        ->and($res->json('data.2.deposit_amount'))->toBe('11126.2500')
         ->and($res->json('meta.counts'))->toBe(['queued' => 3, 'near_expiry' => 0]);
 });
 
@@ -47,7 +47,7 @@ it('flags and filters the ones close to expiry, and filters by listing and state
     $this->travelTo($this->a->seller_reply_deadline->subHours(5));
 
     $near = $this->getJson(STAFF_BUY_REQUESTS_URL.'?near_expiry=1')->assertOk();
-    expect(collect($near->json('data'))->pluck('id')->all())->toBe([$this->a->buy_request_id, $this->b->buy_request_id])
+    expect(collect($near->json('data'))->pluck('id')->all())->toBe([$this->b->buy_request_id, $this->a->buy_request_id])
         ->and($near->json('data.0.near_expiry'))->toBeTrue()
         ->and($near->json('meta.counts.near_expiry'))->toBe(2);
 

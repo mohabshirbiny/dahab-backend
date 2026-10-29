@@ -148,6 +148,6 @@ it('gives the same orders, earnings and waiting counts as the original statement
     ]);
     $since = array_column($data['needs_decision'], 'waiting_since');
     $sorted = $since;
-    sort($sorted);
+    rsort($sorted);
     expect($since)->toBe($sorted);
 });

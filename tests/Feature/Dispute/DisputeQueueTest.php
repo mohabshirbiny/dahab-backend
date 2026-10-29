@@ -21,7 +21,7 @@ beforeEach(function () {
     Orders::workedPrices();
 });
 
-it('lists unresolved disputes oldest first with counts, filters and keyset pages', function () {
+it('lists unresolved disputes newest first with counts, filters and keyset pages', function () {
     $a = Disputes::awaitingBalance($this);
     $first = Disputes::opened($this, $a);
     $this->travel(5)->minutes();
@@ -30,19 +30,19 @@ it('lists unresolved disputes oldest first with counts, filters and keyset pages
 
     $me = Orders::staff($this, SeedRole::OPERATIONS);
     $res = $this->getJson(Disputes::STAFF_URL)->assertOk()
-        ->assertJsonPath('data.0.ref', $first->dispute_ref)
-        ->assertJsonPath('data.0.order.ref', $a->order_ref)
-        ->assertJsonPath('data.0.raised_as', 'buyer')
-        ->assertJsonPath('data.1.ref', $second->dispute_ref)
-        ->assertJsonPath('data.1.raised_as', 'seller')
+        ->assertJsonPath('data.1.ref', $first->dispute_ref)
+        ->assertJsonPath('data.1.order.ref', $a->order_ref)
+        ->assertJsonPath('data.1.raised_as', 'buyer')
+        ->assertJsonPath('data.0.ref', $second->dispute_ref)
+        ->assertJsonPath('data.0.raised_as', 'seller')
         ->assertJsonPath('meta.counts.open', 2)
         ->assertJsonPath('meta.counts.passed_on', 0);
-    expect($res->json('data.0.age_seconds'))->toBeGreaterThanOrEqual(300);
+    expect($res->json('data.1.age_seconds'))->toBeGreaterThanOrEqual(300);
 
     $this->getJson(Disputes::STAFF_URL.'?per_page=1')->assertOk()->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.ref', $first->dispute_ref);
+        ->assertJsonPath('data.0.ref', $second->dispute_ref);
     $next = $this->getJson(Disputes::STAFF_URL.'?per_page=1')->json('meta.next_cursor');
-    $this->getJson(Disputes::STAFF_URL.'?per_page=1&cursor='.$next)->assertJsonPath('data.0.ref', $second->dispute_ref);
+    $this->getJson(Disputes::STAFF_URL.'?per_page=1&cursor='.$next)->assertJsonPath('data.0.ref', $first->dispute_ref);
 
     $this->getJson(Disputes::STAFF_URL.'?q='.$b->order_ref)->assertJsonCount(1, 'data')->assertJsonPath('data.0.ref', $second->dispute_ref);
     $this->getJson(Disputes::STAFF_URL.'?q='.strtolower($first->dispute_ref))->assertJsonCount(1, 'data');

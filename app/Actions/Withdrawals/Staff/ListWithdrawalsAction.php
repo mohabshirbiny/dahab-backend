@@ -13,13 +13,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The staff Withdrawals list (spec 013 US6, FR-012): oldest first, keyset
+ * The staff Withdrawals list (spec 013 US6, FR-012): newest first, keyset
  * pages, the page's signals, each customer's available balance, and the
  * figures of the design's header. Staff scope; relations eager-loaded.
  */
 final class ListWithdrawalsAction
 {
-    public const RELATIONS = ['customer', 'account.checkedBy', 'reviewer', 'holder'];
+    public const RELATIONS = ['customer', 'account.checkedBy', 'reviewer', 'holder', 'paidFrom'];
 
     public function __construct(private readonly WithdrawalSignals $signals) {}
 
@@ -27,7 +27,7 @@ final class ListWithdrawalsAction
     public function handle(WithdrawalListQuery $filters, ?ListingCursor $cursor, int $perPage): array
     {
         $query = $filters->apply(Withdrawal::query()->with(self::RELATIONS));
-        $page = KeysetPage::byTime($query, 'withdrawal', 'requested_at', 'withdrawal_id', false, $cursor, $perPage);
+        $page = KeysetPage::byTime($query, 'withdrawal', 'requested_at', 'withdrawal_id', true, $cursor, $perPage);
 
         return $page + [
             'signals' => $this->signals->for($page['rows']),

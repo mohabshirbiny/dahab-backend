@@ -99,7 +99,7 @@ it('refuses today and the future, and validates', function () {
     Finance::close($this, now('Africa/Cairo')->toDateString(), '3250')->assertStatus(422)->assertJsonPath('code', 'day_not_ended');
     Finance::close($this, now('Africa/Cairo')->addDay()->toDateString(), '3250')->assertStatus(422)->assertJsonPath('code', 'day_not_ended');
     Finance::close($this, 'yesterday', '3250')->assertStatus(422)->assertJsonValidationErrors('date');
-    Finance::close($this, $this->yesterday, 'lots')->assertStatus(422)->assertJsonValidationErrors('bank_balance');
+    Finance::close($this, $this->yesterday, 'lots')->assertStatus(422)->assertJsonValidationErrors('bank_balances.0.balance');
 });
 
 it('lists the recent days with the month figures', function () {

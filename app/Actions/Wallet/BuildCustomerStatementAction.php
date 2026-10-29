@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * The customer's own wallet statement for a Cairo-day period (wallet statement PDF, item 10):
  * the same rows, labels and running balance as `GET /customer/me/wallet/transactions`
- * (ListCustomerWalletHistoryAction), oldest first, with the available and held balances at the
+ * (ListCustomerWalletHistoryAction), newest first, with the available and held balances at the
  * start and the end. Every figure comes from the customer's own ledger lines, read under their
  * own forced-RLS scope: there is no customer id parameter to the endpoint.
  *
@@ -65,7 +65,7 @@ final class BuildCustomerStatementAction
             LEFT JOIN withdrawal w ON w.withdrawal_id = r.withdrawal_id
             LEFT JOIN \"order\" o ON o.order_id = r.order_id
             WHERE r.created_at >= (?::timestamp AT TIME ZONE '{$tz}') AND r.created_at < (?::timestamp AT TIME ZONE '{$tz}')
-            ORDER BY r.seq
+            ORDER BY r.seq DESC
             LIMIT ".(self::MAX_ROWS + 1).'
         ', [$customer->customer_id, $start, $end]);
 

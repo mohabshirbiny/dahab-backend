@@ -8,8 +8,10 @@ use App\Models\Account;
 use App\Models\Customer;
 use App\Models\GoldPrice;
 use App\Models\Order;
+use App\Models\ReceivingAccount;
 use App\Models\Staff;
 use App\Support\DatabaseActor;
+use App\Support\SystemActor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -120,18 +122,63 @@ final class Finance
             ['Accept' => 'application/json'])->assertCreated()->json('data.token');
     }
 
+    /** Dahab's bank account the tests move money through (owner notes of 2026-10-29: every movement names one). */
+    public static function bank(): ReceivingAccount
+    {
+        return ReceivingAccount::query()->where('label', 'Finance test bank')->first()
+            ?? ReceivingAccount::factory()->bankTransfer()->create(['label' => 'Finance test bank', 'sort_order' => -1]);
+    }
+
     public static function record(TestCase $test, string $kind, string $direction, string $amount, array $overrides = [], ?string $key = null): TestResponse
     {
+        $bank = $kind === 'own_transfer'
+            ? ['receiving_account_id' => self::bank()->receiving_account_id, 'to_receiving_account_id' => ReceivingAccount::factory()->create()->receiving_account_id]
+            : ['receiving_account_id' => self::bank()->receiving_account_id];
+
         return $test->postJson('/api/v1/dashboard/bank-movements', array_merge([
             'kind' => $kind, 'direction' => $direction, 'amount' => $amount,
             'occurred_on' => now('Africa/Cairo')->toDateString(), 'reason' => 'Recorded from the bank advice.',
-        ], $overrides), self::key($key));
+        ], $bank, $overrides), self::key($key));
     }
 
+    /**
+     * Close a day with `$bankBalance` across all accounts: every account the day asks for is typed
+     * at its own books and the test bank carries the difference, so the total behaves as before.
+     */
     public static function close(TestCase $test, string $date, string $bankBalance, ?string $explanation = null, ?string $key = null): TestResponse
     {
+        if (preg_match('/^-?\d{1,14}(\.\d{1,4})?$/', $bankBalance) !== 1) {
+            return self::closeWith($test, $date, [['receiving_account_id' => self::bank()->receiving_account_id, 'balance' => $bankBalance]], $explanation, $key);
+        }
+        $bankId = self::bank()->receiving_account_id;
+        $day = $test->getJson('/api/v1/dashboard/daily-close?date='.$date)->json('data');
+        // Money the tests post straight to the ledger names no account: assign it to the test bank on that date.
+        if ($day !== null && bccomp($day['not_assigned'] ?? '0', '0', 4) > 0 && ! ($day['close']['is_locked'] ?? false)) {
+            DatabaseActor::elevate('maintenance', fn () => DB::table('bank_movement')->insert([
+                'kind' => 'own_transfer', 'amount' => '-'.$day['not_assigned'], 'occurred_on' => $date,
+                'reason' => 'Assigning the money from before banks were named.', 'recorded_by' => SystemActor::id(),
+                'receiving_account_id' => null, 'to_receiving_account_id' => $bankId,
+            ]));
+            $day = $test->getJson('/api/v1/dashboard/daily-close?date='.$date)->json('data');
+        }
+        $lines = [];
+        $books = '0';
+        foreach ($day['banks'] ?? [] as $b) {
+            $books = bcadd($books, $b['books'], 4);
+            $lines[$b['receiving_account_id']] = $b['books'];
+        }
+        $books = bcadd($books, $day['not_assigned'] ?? '0', 4);
+        $lines[$bankId] = bcadd($lines[$bankId] ?? '0', bcsub($bankBalance, $books, 4), 4);
+
+        return self::closeWith($test, $date, array_map(fn ($id, $balance) => ['receiving_account_id' => $id, 'balance' => $balance],
+            array_keys($lines), array_values($lines)), $explanation, $key);
+    }
+
+    /** @param  list<array{receiving_account_id: int, balance: string}>  $balances */
+    public static function closeWith(TestCase $test, string $date, array $balances, ?string $explanation = null, ?string $key = null): TestResponse
+    {
         return $test->postJson('/api/v1/dashboard/daily-close', array_filter([
-            'date' => $date, 'bank_balance' => $bankBalance, 'explanation' => $explanation,
+            'date' => $date, 'bank_balances' => $balances, 'explanation' => $explanation,
         ], fn ($v) => $v !== null), self::key($key));
     }
 

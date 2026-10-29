@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The staff review queue (spec 010 US2, FR-027, research R14/R15): listings
- * of every seller in one state — waiting ones oldest first, the rest newest
- * first — with the counts the screen's chips show. Staff scope; gated by any
+ * of every seller in one state, newest first (owner notes of 2026-10-29)
+ * — with the counts the screen's chips show. Staff scope; gated by any
  * listing permission. Relations are eager-loaded (no N+1).
  */
 final class ListListingsForReviewAction
@@ -30,8 +30,8 @@ final class ListListingsForReviewAction
             $query->with('changes');
         }
 
-        // "Oldest first" for the waiting queue; everything else most recent first.
-        $page = ListingPage::byTime($query, 'state_changed_at', $state !== ListingState::IN_REVIEW, $cursor, $perPage);
+        // Most recent first in every state (owner notes of 2026-10-29).
+        $page = ListingPage::byTime($query, 'state_changed_at', true, $cursor, $perPage);
 
         return $page + ['counts' => $this->counts()];
     }

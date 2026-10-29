@@ -27,13 +27,13 @@ final class ExportWithdrawalsAction
         $put = fn (array $cells) => fputcsv($out, array_map([self::class, 'cell'], $cells), escape: '');
 
         $put(['Number', 'Requested at', 'Customer ref', 'Customer name', 'Amount', 'State', 'On hold', 'Bank', 'Account holder',
-            'Account number or IBAN', 'Reviewer', 'Released at', 'Bank transaction number', 'Transfer reference', 'Value date', 'Rejection reason']);
+            'Account number or IBAN', 'Reviewer', 'Released at', 'Paid from', 'Bank transaction number', 'Transfer reference', 'Value date', 'Rejection reason']);
 
         $rows = 0;
         $truncated = false;
         $query->apply(Withdrawal::query())
-            ->with(['customer', 'account', 'reviewer'])
-            ->orderBy('requested_at')->orderBy('withdrawal_id')
+            ->with(['customer', 'account', 'reviewer', 'paidFrom'])
+            ->orderByDesc('requested_at')->orderByDesc('withdrawal_id')
             ->limit($cap + 1)
             ->get()
             ->each(function (Withdrawal $w) use ($put, $cap, &$rows, &$truncated) {
@@ -48,7 +48,7 @@ final class ExportWithdrawalsAction
                     bcadd((string) $w->amount, '0', 4), $w->state->label(), $w->isOnHold() ? 'yes' : '',
                     $w->account?->bank_name, $w->account?->account_name, $w->account?->account_number_or_iban,
                     $w->reviewer?->full_name ?? '', $w->released_at?->toIso8601String() ?? '',
-                    $w->bank_txn_number ?? '', $w->transfer_reference ?? '', $w->value_date?->toDateString() ?? '',
+                    $w->paidFrom?->label ?? '', $w->bank_txn_number ?? '', $w->transfer_reference ?? '', $w->value_date?->toDateString() ?? '',
                     $w->rejection_reason?->label() ?? '',
                 ]);
 

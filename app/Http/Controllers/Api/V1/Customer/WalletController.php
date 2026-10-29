@@ -129,7 +129,7 @@ class WalletController extends Controller
         path: '/customer/me/wallet/statement.pdf',
         operationId: 'customerWalletStatementPdf',
         summary: 'Your own wallet statement as a PDF',
-        description: 'Wallet statement PDF (item 10). The movements of the signed-in customer for a Cairo-day period, oldest first: the same rows, labels and running available balance as /customer/me/wallet/transactions, with the name and number, the period, the available balance at the start and the end, money in and out, and the held balance at the end. Bilingual (English / Arabic). Default period: the last 90 days ending today; at most 366 days; never past today. There is no customer parameter (forced RLS). Verified customers; a suspended customer may still download. Audited (wallet.statement.downloaded). Throttled: 10 a minute.',
+        description: 'Wallet statement PDF (item 10). The movements of the signed-in customer for a Cairo-day period, newest first: the same rows, labels and running available balance as /customer/me/wallet/transactions, with the name and number, the period, the available balance at the start and the end, money in and out, and the held balance at the end. Bilingual (English / Arabic). Default period: the last 90 days ending today; at most 366 days; never past today. There is no customer parameter (forced RLS). Verified customers; a suspended customer may still download. Audited (wallet.statement.downloaded). Throttled: 10 a minute.',
         security: [['customerBearer' => []]],
         tags: ['Customer Wallet'],
         parameters: [

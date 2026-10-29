@@ -229,7 +229,7 @@ it('closes a day once when two people close it together', function () {
     $yesterday = now('Africa/Cairo')->subDay()->toDateString();
     fcCommitted(fn () => [Staff::factory()->role(SeedRole::FINANCE)->create(), Staff::factory()->role(SeedRole::FINANCE)->create()],
         function (Staff $a, Staff $b) use ($yesterday) {
-            $close = fn (Staff $by) => fn () => fcAs('staff', null, $by->staff_id, fn () => app(CloseDayAction::class)->handle($by, $yesterday, '0', null));
+            $close = fn (Staff $by) => fn () => fcAs('staff', null, $by->staff_id, fn () => app(CloseDayAction::class)->handle($by, $yesterday, [], null));
 
             DB::beginTransaction();
             $close($a)();
@@ -258,7 +258,7 @@ it('waits for an entry stamped before midnight that is still committing, and cou
                     [$id, Account::internal(AccountKind::BANK), $id, Ledger::available($customer)]);
             });
 
-            $close = fn () => fcAs('staff', null, $finance->staff_id, fn () => app(CloseDayAction::class)->handle($finance, $yesterday, '500', null));
+            $close = fn () => fcAs('staff', null, $finance->staff_id, fn () => app(CloseDayAction::class)->handle($finance, $yesterday, [], 'Money from before banks were named.'));
             $waited = fcBlocked(fn () => DB::transaction($close));
             DB::commit();
             DatabaseActor::reapply();
@@ -266,6 +266,6 @@ it('waits for an entry stamped before midnight that is still committing, and cou
             expect($waited)->toBeTrue()
                 ->and(fcAfter($close))->toBe('ran')
                 ->and(DatabaseActor::elevate('maintenance', fn () => (array) DB::table('daily_close')->first(['books_bank', 'difference', 'is_locked'])))
-                ->toEqual(['books_bank' => '500.0000', 'difference' => '0.0000', 'is_locked' => true]);
+                ->toEqual(['books_bank' => '500.0000', 'difference' => '-500.0000', 'is_locked' => true]);
         });
 });

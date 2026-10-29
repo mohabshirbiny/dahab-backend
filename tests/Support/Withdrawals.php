@@ -151,7 +151,8 @@ final class Withdrawals
 
     public static function release(TestCase $test, Withdrawal $withdrawal, string $bankTxn = 'FT2610031234', ?string $key = null): TestResponse
     {
-        return self::act($test, $withdrawal, 'release', ['bank_txn_number' => $bankTxn, 'transfer_reference' => $withdrawal->number(), 'value_date' => now()->toDateString()], $key);
+        return self::act($test, $withdrawal, 'release', ['bank_txn_number' => $bankTxn, 'transfer_reference' => $withdrawal->number(), 'value_date' => now()->toDateString(),
+            'paid_from_account_id' => Finance::bank()->receiving_account_id], $key);
     }
 
     public static function customer(Withdrawal|PayoutAccount $row): Customer

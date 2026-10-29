@@ -10,7 +10,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 final class ListIdentityDocumentsAction
 {
     /**
-     * Oldest first, so the review queue is worked in submission order.
+     * Newest first (owner notes of 2026-10-29: every list reads newest to oldest).
      *
      * @return LengthAwarePaginator<int, IdentityDocument>
      */
@@ -19,8 +19,8 @@ final class ListIdentityDocumentsAction
         return IdentityDocument::query()
             ->with('customer')
             ->where('status', $status->value)
-            ->orderBy('created_at')
-            ->orderBy('document_id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('document_id')
             ->paginate($perPage);
     }
 }

@@ -50,9 +50,10 @@ class BankMovementController extends Controller
     {
         $movement = $record->handle($request->user('staff'), BankMovementKind::from($request->validated('kind')), $request->validated('direction'),
             $request->validated('amount'), $request->validated('occurred_on'), $request->validated('reason'),
-            $request->validated('proof_upload_token'), $request->attributes->get('context'));
+            $request->validated('proof_upload_token'), $request->attributes->get('context'),
+            $request->validated('receiving_account_id'), $request->validated('to_receiving_account_id'));
 
-        return response()->json(['data' => (new BankMovementResource($movement->load('recorder')))->resolve($request)], 201);
+        return response()->json(['data' => (new BankMovementResource($movement->load(['recorder', 'account', 'toAccount'])))->resolve($request)], 201);
     }
 
     #[OA\Get(
@@ -138,7 +139,7 @@ class BankMovementController extends Controller
         path: '/dashboard/bank-book',
         operationId: 'dashboardBankBook',
         summary: 'Every bank posting of a period',
-        description: 'Spec 015 FR-011. Top-ups matched or credited by hand, withdrawals released, movements recorded by hand and reversals, oldest first (by posting), keyset pages; each with direction, amount, cash_after, actor and source. meta.summary: opening, in, out, closing cash (cash = −SUM(bank)). from/to Cairo dates (default the last 30 days, at most 366 days). bank.record or wallet.view.',
+        description: 'Spec 015 FR-011. Top-ups matched or credited by hand, withdrawals released, movements recorded by hand and reversals, newest first (by posting), keyset pages; each with direction, amount, cash_after, bank ({id, label} of the Dahab account it belongs to, or null when not assigned — owner notes of 2026-10-29), actor and source. meta.summary: opening, in, out, closing cash (cash = −SUM(bank)). from/to Cairo dates (default the last 30 days, at most 366 days). bank.record or wallet.view.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Finance'],
         parameters: [

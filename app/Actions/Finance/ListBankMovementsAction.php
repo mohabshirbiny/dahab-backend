@@ -19,7 +19,7 @@ final class ListBankMovementsAction
     /** @return Builder<BankMovement> */
     public static function query(string $from, string $to, ?BankMovementKind $kind): Builder
     {
-        return BankMovement::query()->with('recorder')
+        return BankMovement::query()->with(['recorder', 'account', 'toAccount'])
             ->whereBetween('bank_movement.occurred_on', [$from, $to])
             ->when($kind !== null, fn (Builder $q) => $q->where('bank_movement.kind', $kind->value));
     }

@@ -432,6 +432,12 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   permission check (`DAHAB_OVERVIEW_CACHE_SECONDS`, 0 in tests), `GET /dashboard/nav-counts` gives every badge and the
   Users tabs (each key only with its page's code), staff get 240 API requests a minute (customers 60), index
   `idx_ledger_txn_buy_request`.
+  Bank per account (`docs/features/bank-per-account.md`, 2026-10-29): Dahab's receiving accounts are the money's banks —
+  `GET /dashboard/banks`; a bank movement names its account (`receiving_account_id`; an own-account transfer the one it left,
+  none = cash not assigned, and `to_receiving_account_id`, counted on its statement date); a release names
+  `paid_from_account_id` (fixed, DH007); the daily close takes `bank_balances[]` (one per account) and stores
+  `daily_close_bank` lines plus the not-assigned cash, locking when every line is 0 or with an explanation (`BankAccounts`);
+  `bank` on bank-book rows. Every Dashboard list, the statements, the bank book and the customer's statement PDF are newest first.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live

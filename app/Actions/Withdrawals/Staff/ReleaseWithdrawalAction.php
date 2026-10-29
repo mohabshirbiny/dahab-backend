@@ -23,7 +23,9 @@ use Illuminate\Support\Facades\DB;
  * or `removing` (analysis I1); post held → bank; record the bank details,
  * the reviewer and the release txn; remove a `removing` account whose last
  * open withdrawal this was; audit. The pause is not re-checked: every open
- * withdrawal was cancelled when the account in use changed (R6).
+ * withdrawal was cancelled when the account in use changed (R6). The Dahab
+ * account the transfer left is recorded too (owner notes of 2026-10-29), so
+ * each account's books and daily close know the money went out of it.
  */
 final class ReleaseWithdrawalAction
 {
@@ -34,12 +36,12 @@ final class ReleaseWithdrawalAction
         private readonly RecordAuditLogAction $audit,
     ) {}
 
-    public function handle(Staff $actor, string $withdrawalId, string $bankTxnNumber, ?string $transferReference, ?string $valueDate, ?RequestContext $ctx = null): Withdrawal
+    public function handle(Staff $actor, string $withdrawalId, string $bankTxnNumber, ?string $transferReference, ?string $valueDate, ?RequestContext $ctx = null, ?int $paidFromAccountId = null): Withdrawal
     {
         // Spec 019 US7 D5: no release while everything is stopped; held money stays held.
         app(Controls::class)->assertPlatformRunning();
 
-        return DB::transaction(function () use ($actor, $withdrawalId, $bankTxnNumber, $transferReference, $valueDate, $ctx) {
+        return DB::transaction(function () use ($actor, $withdrawalId, $bankTxnNumber, $transferReference, $valueDate, $ctx, $paidFromAccountId) {
             [$withdrawal, $accounts] = $this->lockWithdrawal($withdrawalId);
 
             if ($withdrawal->state !== WithdrawalState::UNDER_REVIEW) {
@@ -62,13 +64,14 @@ final class ReleaseWithdrawalAction
                 'bank_txn_number' => $bankTxnNumber,
                 'transfer_reference' => $transferReference,
                 'value_date' => $valueDate,
+                'paid_from_account_id' => $paidFromAccountId,
             ]);
             $this->finishRemoval($accounts, $withdrawal->payout_account_id, null, $actor->staff_id);
 
             $this->audit->execute(AuditEvent::WITHDRAWAL_RELEASED, 'success',
                 ['number' => $withdrawal->number(), 'amount' => $withdrawal->amount, 'account' => $account->shortLabel(),
                     'bank_txn_number' => $bankTxnNumber, 'transfer_reference' => $transferReference, 'value_date' => $valueDate,
-                    'release_txn_id' => $txn->ledger_txn_id],
+                    'release_txn_id' => $txn->ledger_txn_id, 'paid_from_account_id' => $paidFromAccountId],
                 'withdrawal', $withdrawal->withdrawal_id, $ctx, actorStaffId: $actor->staff_id,
                 before: ['state' => WithdrawalState::UNDER_REVIEW->value]);
 

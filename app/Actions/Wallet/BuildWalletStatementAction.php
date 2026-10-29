@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * A Wallet statement (spec 008 FR-016, SC-006; research R7): opening, in,
  * out and closing for a Cairo-day period, and one row per ledger entry (or
- * per Cairo day / month) with the balance before and after it, oldest
- * first, keyset-paginated. Every figure is derived from the ledger lines on
+ * per Cairo day / month) with the balance before and after it, newest
+ * first (owner notes of 2026-10-29), keyset-paginated. Every figure is derived from the ledger lines on
  * each request, so it always reconciles:
  *   opening + in − out = closing, and before + in − out = after per row.
  *
@@ -229,8 +229,10 @@ final class BuildWalletStatementAction
                    'TOP-' || tu.topup_no AS topup_ref,
                    'WD-' || w.withdrawal_no AS withdrawal_ref,
                    o.order_ref, bm.kind AS bank_kind,
-                   -- App notes 2026-10-26: the bank the money came into (Dahab's receiving account) or went to (the customer's payout account).
-                   COALESCE(ra.bank_name, ra.label) AS bank_in, pa.bank_name AS bank_out
+                   -- App notes 2026-10-26: the bank the money came into (Dahab's receiving account) or went to (the customer's payout account);
+                   -- owner notes 2026-10-29: a bank movement's own Dahab account.
+                   COALESCE(ra.bank_name, ra.label, CASE WHEN bm.amount > 0 THEN COALESCE(bra.bank_name, bra.label) END) AS bank_in,
+                   COALESCE(pa.bank_name, CASE WHEN bm.amount < 0 THEN COALESCE(bra.bank_name, bra.label) END) AS bank_out
             FROM period pr
             LEFT JOIN staff s ON s.staff_id = pr.staff_id
             LEFT JOIN customer ac ON ac.customer_id = pr.actor_customer_id
@@ -241,8 +243,9 @@ final class BuildWalletStatementAction
             LEFT JOIN payout_account pa ON pa.payout_account_id = w.payout_account_id
             LEFT JOIN \"order\" o ON o.order_id = pr.order_id
             LEFT JOIN bank_movement bm ON bm.ledger_txn_id = pr.ledger_txn_id
-            WHERE (?::bigint IS NULL OR pr.seq > ?::bigint)
-            ORDER BY pr.seq
+            LEFT JOIN receiving_account bra ON bra.receiving_account_id = bm.receiving_account_id
+            WHERE (?::bigint IS NULL OR pr.seq < ?::bigint)
+            ORDER BY pr.seq DESC
             LIMIT {$limit}
         ", [...$bindings, $opening->balance, $opening->held, $start, $end, $cursor?->seq, $cursor?->seq]);
 
@@ -464,8 +467,8 @@ final class BuildWalletStatementAction
                    t_out::numeric(18,4)::text AS t_out,
                    t_held::numeric(18,4)::text AS t_held
             FROM running
-            WHERE (?::text IS NULL OR period > ?::text)
-            ORDER BY period
+            WHERE (?::text IS NULL OR period < ?::text)
+            ORDER BY period DESC
             LIMIT {$limit}
         ", [...$bindings, $start, $end, $opening, $cursor?->period, $cursor?->period]);
 

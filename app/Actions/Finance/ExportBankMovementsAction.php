@@ -18,11 +18,11 @@ final class ExportBankMovementsAction
     public function handle(Staff $viewer, string $from, string $to, ?BankMovementKind $kind): array
     {
         $cap = (int) config('dahab-finance.export_cap');
-        $csv = new Csv(['Number', 'Statement date', 'Kind', 'What it was for', 'In', 'Out', 'Proof', 'Recorded by', 'Recorded at', 'In the ledger'], $cap);
+        $csv = new Csv(['Number', 'Statement date', 'Kind', 'Bank', 'To bank', 'What it was for', 'In', 'Out', 'Proof', 'Recorded by', 'Recorded at', 'In the ledger'], $cap);
 
         ListBankMovementsAction::query($from, $to, $kind)->orderByDesc('recorded_at')->orderByDesc('movement_id')->limit($cap + 1)->get()
             ->each(fn (BankMovement $m) => $csv->row([
-                $m->number(), $m->occurred_on->toDateString(), $m->kind->label(), $m->reason,
+                $m->number(), $m->occurred_on->toDateString(), $m->kind->label(), $m->account?->label, $m->toAccount?->label, $m->reason,
                 $m->direction() === 'in' ? $m->magnitude() : '', $m->direction() === 'out' ? $m->magnitude() : '',
                 $m->proof_ref === null ? '' : 'yes', $m->recorder?->full_name, $m->recorded_at->setTimezone('Africa/Cairo')->toIso8601String(),
                 $m->ledger_txn_id === null ? 'no' : 'yes',

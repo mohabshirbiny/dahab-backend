@@ -28,7 +28,7 @@ class PayoutAccountController extends Controller
         path: '/dashboard/payout-accounts',
         operationId: 'dashboardPayoutAccounts',
         summary: 'Payout accounts to check',
-        description: 'Spec 013 FR-003. state (default pending_review, oldest first; others newest first), q (display reference, E.164 phone or name), keyset. Each item has the customer\'s verified ID name. meta.waiting is the number under review.',
+        description: 'Spec 013 FR-003. state (default pending_review; newest first), q (display reference, E.164 phone or name), keyset. Each item has the customer\'s verified ID name. meta.waiting is the number under review.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Withdrawals'],
         parameters: [

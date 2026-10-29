@@ -32,7 +32,7 @@ class IdentityDocumentController extends Controller
     #[OA\Get(
         path: '/dashboard/identity-documents',
         operationId: 'dashboardListIdentityDocuments',
-        summary: 'List identity documents by status (oldest first)',
+        summary: 'List identity documents by status (newest first)',
         description: 'Requires identity.view. Defaults to status=pending. Metadata only.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Identity'],

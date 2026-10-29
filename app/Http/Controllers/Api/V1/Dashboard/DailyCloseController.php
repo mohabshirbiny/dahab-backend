@@ -9,7 +9,9 @@ use App\Http\Requests\Dashboard\Finance\CloseDayRequest;
 use App\Http\Resources\Staff\DailyCloseResource;
 use App\Models\DailyClose;
 use App\Models\Staff;
+use App\Support\Finance\BankAccounts;
 use App\Support\Finance\CloseFigures;
+use App\Support\Pricing\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +50,15 @@ class DailyCloseController extends Controller
                     new OA\Property(property: 'movements_in', type: 'string', description: 'Recorded by hand with this statement date'),
                     new OA\Property(property: 'movements_out', type: 'string'),
                 ], type: 'object'),
+                new OA\Property(property: 'banks', type: 'array', description: 'Owner notes of 2026-10-29: the accounts to type a balance for (active, or holding money), in display order, each with its books at the cut-off', items: new OA\Items(properties: [
+                    new OA\Property(property: 'receiving_account_id', type: 'integer'),
+                    new OA\Property(property: 'label', type: 'string'),
+                    new OA\Property(property: 'bank_name', type: 'string', nullable: true),
+                    new OA\Property(property: 'method', type: 'string', enum: ['bank_transfer', 'instapay', 'wallet']),
+                    new OA\Property(property: 'is_active', type: 'boolean'),
+                    new OA\Property(property: 'books', type: 'string'),
+                ], type: 'object')),
+                new OA\Property(property: 'not_assigned', type: 'string', description: 'Bank cash from before banks were named (no account); moved to an account with an own-account transfer'),
                 new OA\Property(property: 'close', ref: '#/components/schemas/StaffDailyClose', nullable: true),
                 new OA\Property(property: 'can_close', type: 'boolean'),
             ], type: 'object')])),
@@ -96,6 +107,7 @@ class DailyCloseController extends Controller
 
         $rows = DailyClose::query()->with(['saver', 'closer'])
             ->whereBetween('close_date', [$from->toDateString(), $to->toDateString()])->orderByDesc('close_date')->get();
+        DailyClose::withBanks($rows);
         $last = DailyClose::query()->where('difference', '<>', 0)->where('close_date', '<=', $to->toDateString())->orderByDesc('close_date')->first();
         $lastEnded = $to->lessThan($today) ? $to : $today->subDay();
 
@@ -115,7 +127,7 @@ class DailyCloseController extends Controller
         path: '/dashboard/daily-close',
         operationId: 'dashboardDailyCloseStore',
         summary: 'Close a day',
-        description: 'Spec 015 FR-014. Only an ended Cairo day (day_not_ended). The books are the ledger at the day\'s midnight cut-off; difference = bank_balance − books bank. 0 locks the day; a non-zero difference locks it only with an explanation, otherwise it is saved unlocked (state: saved) and can be closed again. A locked day: day_already_closed. day.close. Idempotent, audited (day.closed / day.saved).',
+        description: 'Spec 015 FR-014. Only an ended Cairo day (day_not_ended). The books are the ledger at the day\'s midnight cut-off; bank_balances: one statement balance per account (bank_balance is their sum); each line\'s difference is its balance − its books, and cash not assigned to an account is a line of its own. Every line 0 (and nothing unassigned) locks the day; otherwise it locks only with an explanation, otherwise it is saved unlocked (state: saved) and can be closed again. A locked day: day_already_closed. day.close. Idempotent, audited (day.closed / day.saved).',
         security: [['dashboardBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/CloseDayRequest')),
         tags: ['Dashboard Finance'],
@@ -132,8 +144,10 @@ class DailyCloseController extends Controller
     )]
     public function store(CloseDayRequest $request, CloseDayAction $close): JsonResponse
     {
-        $row = $close->handle($request->user('staff'), $request->validated('date'), $request->validated('bank_balance'),
+        $row = $close->handle($request->user('staff'), $request->validated('date'), $request->balances(),
             $request->validated('explanation'), $request->attributes->get('context'));
+
+        DailyClose::withBanks([$row]);
 
         return response()->json(['data' => [
             'state' => $row->is_locked ? 'locked' : 'saved',
@@ -147,12 +161,18 @@ class DailyCloseController extends Controller
         /** @var Staff $staff */
         $staff = $request->user('staff');
         $close = DailyClose::query()->with(['saver', 'closer'])->whereKey($date)->first();
+        if ($close !== null) {
+            DailyClose::withBanks([$close]);
+        }
         $ended = CloseFigures::ended($date);
+        $byAccount = BankAccounts::booksAt($ended ? CloseFigures::cutOff($date) : null);
 
         return [
             'date' => $date,
             'ended' => $ended,
             'books' => CloseFigures::at($date),
+            'banks' => BankAccounts::forClose($byAccount),
+            'not_assigned' => Money::fixed4($byAccount[BankAccounts::NOT_ASSIGNED] ?? '0'),
             'close' => $close === null ? null : (new DailyCloseResource($close))->resolve($request),
             'can_close' => $ended && ! ($close?->is_locked ?? false) && $staff->can(StaffPermission::DAY_CLOSE->value),
         ];
