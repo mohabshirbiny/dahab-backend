@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\Finance;
 use Tests\Support\Listings;
 use Tests\Support\TopUps;
 use Tests\Support\Withdrawals;
@@ -23,7 +24,7 @@ beforeEach(function () {
     Notification::fake();
 });
 
-it('lists the queue oldest first with figures, signals and full numbers for Finance', function () {
+it('lists the queue newest first with figures, signals and full numbers for Finance', function () {
     $first = Withdrawals::requested($this, '42000', '56760');
     $this->travel(1)->minutes();
     $second = Withdrawals::requested($this, '1000', '5000');
@@ -31,27 +32,28 @@ it('lists the queue oldest first with figures, signals and full numbers for Fina
 
     $res = $this->getJson(Withdrawals::STAFF.'/withdrawals')->assertOk()
         ->assertJsonCount(2, 'data')
-        ->assertJsonPath('data.0.id', $first->withdrawal_id)
-        ->assertJsonPath('data.0.customer.available', '14760.0000')
-        ->assertJsonPath('data.0.account.number', Withdrawals::iban())
-        ->assertJsonPath('data.0.signals.identity_verified', true)
-        ->assertJsonPath('data.0.signals.first_payout_to_account', true)
-        ->assertJsonPath('data.0.signals.payouts_to_account', 0)
-        ->assertJsonPath('data.0.signals.topped_up_never_traded', true)
-        ->assertJsonPath('data.0.can.review', true)
-        ->assertJsonPath('data.0.can.release', false)
+        ->assertJsonPath('data.0.id', $second->withdrawal_id)
+        ->assertJsonPath('data.1.id', $first->withdrawal_id)
+        ->assertJsonPath('data.1.customer.available', '14760.0000')
+        ->assertJsonPath('data.1.account.number', Withdrawals::iban())
+        ->assertJsonPath('data.1.signals.identity_verified', true)
+        ->assertJsonPath('data.1.signals.first_payout_to_account', true)
+        ->assertJsonPath('data.1.signals.payouts_to_account', 0)
+        ->assertJsonPath('data.1.signals.topped_up_never_traded', true)
+        ->assertJsonPath('data.1.can.review', true)
+        ->assertJsonPath('data.1.can.release', false)
         ->assertJsonPath('meta.figures.waiting_count', 2)
         ->assertJsonPath('meta.figures.waiting_sum', '43000.0000')
         ->assertJsonPath('meta.figures.on_hold_count', 0);
 
-    expect($res->json('data.1.id'))->toBe($second->withdrawal_id);
+    expect($res->json('data.1.id'))->toBe($first->withdrawal_id);
 
     $this->getJson(Withdrawals::STAFF.'/withdrawals?q='.Withdrawals::customer($second)->display_ref)->assertOk()
         ->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $second->withdrawal_id);
     $this->getJson(Withdrawals::STAFF.'/withdrawals?state=released')->assertOk()->assertJsonCount(0, 'data');
     $this->getJson(Withdrawals::STAFF.'/withdrawals?state=bogus')->assertUnprocessable();
     $this->getJson(Withdrawals::STAFF.'/withdrawals?per_page=1')->assertOk()->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.id', $first->withdrawal_id);
+        ->assertJsonPath('data.0.id', $second->withdrawal_id);
 });
 
 it('takes for review, holds, unholds, then releases to the bank with the bank record', function () {
@@ -60,7 +62,7 @@ it('takes for review, holds, unholds, then releases to the bank with the bank re
     $bankBefore = TopUps::bankCash();
     $finance = Withdrawals::staff($this, SeedRole::FINANCE);
 
-    Withdrawals::act($this, $w, 'release', ['bank_txn_number' => 'FT1'])->assertConflict()->assertJsonPath('code', 'illegal_withdrawal_transition');
+    Withdrawals::act($this, $w, 'release', ['bank_txn_number' => 'FT1', 'paid_from_account_id' => Finance::bank()->receiving_account_id])->assertConflict()->assertJsonPath('code', 'illegal_withdrawal_transition');
 
     Withdrawals::act($this, $w, 'review')->assertOk()->assertJsonPath('data.state', 'under_review')
         ->assertJsonPath('data.reviewer.id', $finance->staff_id);
@@ -104,7 +106,7 @@ it('takes for review, holds, unholds, then releases to the bank with the bank re
 it('validates the release record', function () {
     $w = Withdrawals::underReview($this);
 
-    Withdrawals::act($this, $w, 'release', [])->assertUnprocessable()->assertJsonValidationErrors('bank_txn_number');
+    Withdrawals::act($this, $w, 'release', [])->assertUnprocessable()->assertJsonValidationErrors(['bank_txn_number', 'paid_from_account_id']);
     Withdrawals::act($this, $w, 'release', ['bank_txn_number' => 'FT1234', 'value_date' => now()->addDay()->toDateString()])
         ->assertUnprocessable()->assertJsonValidationErrors('value_date');
     expect($w->refresh()->state)->toBe(WithdrawalState::UNDER_REVIEW);

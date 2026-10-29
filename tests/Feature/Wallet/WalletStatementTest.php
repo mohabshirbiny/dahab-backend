@@ -29,6 +29,12 @@ function statement($test, Staff $staff, array $query)
     return $test->withToken(staffAccessToken($staff))->getJson('/api/v1/dashboard/wallet-statement?'.http_build_query($query));
 }
 
+/** The statement lists newest first (owner notes of 2026-10-29); the checks read it oldest first. */
+function oldestFirst(array $rows): array
+{
+    return array_reverse($rows);
+}
+
 /** SC-006, on any page: before + in − out = after, and rows chain. */
 function assertReconciles(array $summary, array $rows, bool $firstPage = true, bool $lastPage = true): void
 {
@@ -92,7 +98,7 @@ beforeEach(function () {
 it('reconciles one customer\'s August on available, with holds as outs and held beside', function () {
     $r = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id] + $this->august)->assertOk();
     $summary = $r->json('data.summary');
-    $rows = $r->json('data.rows');
+    $rows = oldestFirst($r->json('data.rows'));
 
     expect($summary)->toMatchArray([
         'view' => 'customer',
@@ -120,7 +126,7 @@ it('reconciles one customer\'s August on available, with holds as outs and held 
 it('reconciles all customer wallets on the total owed, where a hold moves nothing', function () {
     $r = statement($this, $this->finance, ['view' => 'customers'] + $this->august)->assertOk();
     $summary = $r->json('data.summary');
-    $rows = $r->json('data.rows');
+    $rows = oldestFirst($r->json('data.rows'));
     $hold = collect($rows)->firstWhere('kind', 'deposit_hold');
 
     expect($summary)->toMatchArray(['opening' => '23808.0000', 'in' => '42120.0000', 'out' => '0.0000', 'closing' => '65928.0000'])
@@ -137,16 +143,16 @@ it('reconciles the Dahab wallet on commission and spread, with VAT beside it', f
     $r = statement($this, $this->finance, ['view' => 'dahab'] + $this->august)->assertOk();
 
     expect($r->json('data.summary'))->toMatchArray(['opening' => '0.0000', 'in' => '862.5000', 'closing' => '862.5000', 'vat_payable' => '84.0000'])
-        ->and($r->json('data.rows'))->toHaveCount(2);
+        ->and(oldestFirst($r->json('data.rows')))->toHaveCount(2);
 
-    assertReconciles($r->json('data.summary'), $r->json('data.rows'));
+    assertReconciles($r->json('data.summary'), oldestFirst($r->json('data.rows')));
 });
 
 it('shows commission and spread apart on the Dahab wallet, adding up to the combined figures', function () {
     // Testing fixes item 9: display only, nothing in the ledger changes.
     $r = statement($this, $this->finance, ['view' => 'dahab'] + $this->august)->assertOk();
     $s = $r->json('data.summary');
-    $rows = $r->json('data.rows');
+    $rows = oldestFirst($r->json('data.rows'));
 
     expect($s)->toMatchArray([
         'commission_in' => '600.0000', 'commission_out' => '0.0000',
@@ -162,13 +168,13 @@ it('shows commission and spread apart on the Dahab wallet, adding up to the comb
     }
 
     $month = statement($this, $this->finance, ['view' => 'dahab', 'grain' => 'month'] + $this->august)->assertOk();
-    expect($month->json('data.rows.0'))->toMatchArray(['commission' => '600.0000', 'spread' => '262.5000'])
+    expect(oldestFirst($month->json('data.rows'))[0])->toMatchArray(['commission' => '600.0000', 'spread' => '262.5000'])
         ->and($month->json('data.summary.commission_in'))->toBe('600.0000');
 
     // The other views do not carry the split.
     $customers = statement($this, $this->finance, ['view' => 'customers'] + $this->august)->assertOk();
     expect($customers->json('data.summary'))->not->toHaveKey('commission_in')
-        ->and($customers->json('data.rows.0'))->not->toHaveKey('commission');
+        ->and(oldestFirst($customers->json('data.rows'))[0])->not->toHaveKey('commission');
 });
 
 it('runs Dahab\'s own money on external_equity, every movement named and grouped', function () {
@@ -188,7 +194,7 @@ it('runs Dahab\'s own money on external_equity, every movement named and grouped
 
     $r = statement($this, $this->finance, ['view' => 'equity'] + $this->august)->assertOk();
     $s = $r->json('data.summary');
-    $rows = collect($r->json('data.rows'));
+    $rows = collect(oldestFirst($r->json('data.rows')));
 
     // In: 50,000 capital + 1,000 advance back. Out: 800 compensation + 684 + 262.5 (the earnings
     // slices of the fixture) + 1,000 advance + 300 adjustment.
@@ -221,7 +227,7 @@ it('runs Dahab\'s own money on external_equity, every movement named and grouped
     expect($rows->pluck('kind'))->not->toContain('topup')->not->toContain('deposit_hold');
 
     $month = statement($this, $this->finance, ['view' => 'equity', 'grain' => 'month'] + $this->august)->assertOk();
-    expect($month->json('data.rows.0'))->toMatchArray(['count' => 7, 'in' => '51000.0000', 'out' => '3046.5000'])
+    expect(oldestFirst($month->json('data.rows'))[0])->toMatchArray(['count' => 7, 'in' => '51000.0000', 'out' => '3046.5000'])
         ->and($month->json('data.summary.groups'))->toHaveCount(7);
 });
 
@@ -237,7 +243,7 @@ it('lists the first-sale advance on the Dahab wallet apart from what Dahab earne
 
     $r = statement($this, $this->finance, ['view' => 'dahab'] + $this->august)->assertOk();
     $s = $r->json('data.summary');
-    $rows = collect($r->json('data.rows'));
+    $rows = collect(oldestFirst($r->json('data.rows')));
 
     expect($s)->toMatchArray([
         'in' => '1062.5000', 'out' => '0.0000', 'closing' => '1062.5000',   // 600 + 262.5 + 200, the advances apart
@@ -257,7 +263,7 @@ it('lists the first-sale advance on the Dahab wallet apart from what Dahab earne
     expect($rows->pluck('kind'))->not->toContain('compensation');
 
     $month = statement($this, $this->finance, ['view' => 'dahab', 'grain' => 'month'] + $this->august)->assertOk();
-    expect($month->json('data.rows.0'))->toMatchArray(['count' => 5, 'advance' => '-300.0000'])
+    expect(oldestFirst($month->json('data.rows'))[0])->toMatchArray(['count' => 5, 'advance' => '-300.0000'])
         ->and($month->json('data.summary'))->toMatchArray(['advance_out' => '1300.0000', 'advance_back' => '1000.0000']);
 
     // The customer views are unchanged.
@@ -269,32 +275,32 @@ it('shows the VAT of each Dahab wallet entry beside the commission, outside the 
     $s = $r->json('data.summary');
 
     expect($s)->toMatchArray(['vat_in' => '84.0000', 'vat_out' => '0.0000', 'in' => '862.5000'])
-        ->and(collect($r->json('data.rows'))->map(fn ($row) => [$row['kind'], $row['commission'], $row['vat']])->all())
+        ->and(collect(oldestFirst($r->json('data.rows')))->map(fn ($row) => [$row['kind'], $row['commission'], $row['vat']])->all())
         ->toBe([['commission', '600.0000', '84.0000'], ['spread', '0.0000', '0.0000']]);
 
     $month = statement($this, $this->finance, ['view' => 'dahab', 'grain' => 'month'] + $this->august)->assertOk();
-    expect($month->json('data.rows.0.vat'))->toBe('84.0000')
+    expect(oldestFirst($month->json('data.rows'))[0]['vat'])->toBe('84.0000')
         ->and($month->json('data.summary.vat_in'))->toBe('84.0000');
 
     $customers = statement($this, $this->finance, ['view' => 'customers'] + $this->august)->assertOk();
     expect($customers->json('data.summary'))->not->toHaveKey('vat_in')
-        ->and($customers->json('data.rows.0'))->not->toHaveKey('vat');
+        ->and(oldestFirst($customers->json('data.rows'))[0])->not->toHaveKey('vat');
 });
 
 it('groups by Cairo day and by month, matching the rows they summarise', function () {
-    $each = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id] + $this->august)->json('data.rows');
+    $each = oldestFirst(statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id] + $this->august)->json('data.rows'));
     $days = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id, 'grain' => 'day'] + $this->august)->assertOk();
     $month = statement($this, $this->finance, ['view' => 'customer', 'customer_id' => $this->mona->customer_id, 'grain' => 'month', 'from' => '2026-07-01', 'to' => '2026-09-30'])->assertOk();
 
-    expect(collect($days->json('data.rows'))->pluck('period')->all())->toBe(['2026-08-02', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30'])
-        ->and(collect($days->json('data.rows'))->sum('count'))->toBe(count($each))
-        ->and(collect($month->json('data.rows'))->map(fn ($r) => [$r['period'], $r['count']])->all())->toBe([['2026-07', 1], ['2026-08', 6], ['2026-09', 1]]);
+    expect(collect(oldestFirst($days->json('data.rows')))->pluck('period')->all())->toBe(['2026-08-02', '2026-08-26', '2026-08-27', '2026-08-28', '2026-08-29', '2026-08-30'])
+        ->and(collect(oldestFirst($days->json('data.rows')))->sum('count'))->toBe(count($each))
+        ->and(collect(oldestFirst($month->json('data.rows')))->map(fn ($r) => [$r['period'], $r['count']])->all())->toBe([['2026-07', 1], ['2026-08', 6], ['2026-09', 1]]);
 
-    assertReconciles($days->json('data.summary'), $days->json('data.rows'));
-    assertReconciles($month->json('data.summary'), $month->json('data.rows'));
+    assertReconciles($days->json('data.summary'), oldestFirst($days->json('data.rows')));
+    assertReconciles($month->json('data.summary'), oldestFirst($month->json('data.rows')));
 });
 
-it('pages oldest first with continuous balances', function () {
+it('pages newest first with continuous balances', function () {
     $query = ['view' => 'customer', 'customer_id' => $this->mona->customer_id, 'per_page' => 2] + $this->august;
     $rows = [];
     $cursor = null;
@@ -305,7 +311,7 @@ it('pages oldest first with continuous balances', function () {
     } while ($cursor !== null);
 
     expect($rows)->toHaveCount(6);
-    assertReconciles($page->json('data.summary'), $rows);
+    assertReconciles($page->json('data.summary'), oldestFirst($rows));
 });
 
 it('validates the query', function (array $query) {
@@ -354,7 +360,7 @@ it('shows a credited top-up with its number, method and how it was matched (spec
     $today = now('Africa/Cairo')->toDateString();
     $res = statement($this, $finance, ['view' => 'customer', 'customer_id' => $customer->customer_id, 'from' => $today, 'to' => $today, 'grain' => 'each'])->assertOk();
 
-    $row = $res->json('data.rows.0');
+    $row = oldestFirst($res->json('data.rows'))[0];
     expect($row['kind'])->toBe('topup')
         ->and($row['reference'])->toBe('TOP-'.$matched->topup_no)
         ->and($row['memo'])->toBe("Top-up TOP-{$matched->topup_no} · InstaPay · matched from notice {$matched->reference}")

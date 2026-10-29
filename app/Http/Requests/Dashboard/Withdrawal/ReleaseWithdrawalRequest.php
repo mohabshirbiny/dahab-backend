@@ -7,9 +7,10 @@ use OpenApi\Attributes as OA;
 
 #[OA\Schema(
     schema: 'ReleaseWithdrawalRequest',
-    required: ['bank_txn_number'],
+    required: ['bank_txn_number', 'paid_from_account_id'],
     properties: [
         new OA\Property(property: 'bank_txn_number', type: 'string', minLength: 3, maxLength: 64, description: 'The bank transaction number of the transfer sent at Dahab\'s bank'),
+        new OA\Property(property: 'paid_from_account_id', type: 'integer', description: 'Owner notes of 2026-10-29: the Dahab account (a receiving account, inactive allowed) the transfer was sent from'),
         new OA\Property(property: 'transfer_reference', type: 'string', maxLength: 64, nullable: true, example: 'WD-12'),
         new OA\Property(property: 'value_date', type: 'string', format: 'date', nullable: true, description: 'Not in the future'),
     ],
@@ -25,6 +26,7 @@ class ReleaseWithdrawalRequest extends FormRequest
     {
         return [
             'bank_txn_number' => ['required', 'string', 'min:3', 'max:64'],
+            'paid_from_account_id' => ['required', 'integer', 'exists:receiving_account,receiving_account_id'],
             'transfer_reference' => ['nullable', 'string', 'max:64'],
             'value_date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
         ];

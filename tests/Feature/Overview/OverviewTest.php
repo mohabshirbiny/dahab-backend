@@ -75,7 +75,7 @@ it('gives each role only its sections', function () {
     expect($this->getJson(OVERVIEW_URL)->assertOk()->json('data'))->toBe([]);
 });
 
-it('lists the oldest waiting items first, at most ten', function () {
+it('lists the newest waiting items first, at most ten', function () {
     foreach (range(1, 12) as $i) {
         IdentityDocument::factory()->create(['customer_id' => Customer::factory()->pendingVerification()->create()->customer_id,
             'created_at' => now()->subHours(20 - $i)]);
@@ -84,7 +84,7 @@ it('lists the oldest waiting items first, at most ten', function () {
     $rows = $this->getJson(OVERVIEW_URL)->assertOk()->json('data.needs_decision');
     expect($rows)->toHaveCount(10)
         ->and($rows[0]['waiting_of_kind'])->toBe(12)
-        ->and($rows[0]['waiting_since'] <= $rows[9]['waiting_since'])->toBeTrue();
+        ->and($rows[0]['waiting_since'] >= $rows[9]['waiting_since'])->toBeTrue();
 });
 
 it('needs a signed-in staff member', function () {

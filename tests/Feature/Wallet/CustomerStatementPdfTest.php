@@ -72,10 +72,10 @@ it('sends the caller\'s own statement as a PDF with their real name and balances
         ->and($s['money_in'])->toBe('500.0000')
         ->and($s['money_out'])->toBe('300.0000')
         ->and(collect($s['rows'])->map(fn ($r) => [$r['kind'], $r['label_en'], $r['amount'], $r['available_after']])->all())->toBe([
-            ['topup', 'Added by bank transfer', '500.0000', '1500.0000'],
             ['deposit_hold', 'Deposit held on a purchase', '-300.0000', '1200.0000'],
+            ['topup', 'Added by bank transfer', '500.0000', '1500.0000'],
         ])
-        ->and($s['rows'][0]['label_ar'])->toBe('شحن بتحويل بنكي');
+        ->and($s['rows'][1]['label_ar'])->toBe('شحن بتحويل بنكي');
 });
 
 it('never shows another customer\'s rows', function () {
@@ -94,7 +94,7 @@ it('agrees with the transactions endpoint row for row', function () {
     $history = $this->bearer($token)->getJson('/api/v1/customer/me/wallet/transactions')->assertOk()->json('data');
 
     $pdfRows = $this->renderer->printed[0]['rows'];
-    expect(array_reverse(array_map(fn ($r) => [$r['id'], $r['available_change'], $r['available_after'], $r['held_after']], $pdfRows)))
+    expect(array_map(fn ($r) => [$r['id'], $r['available_change'], $r['available_after'], $r['held_after']], $pdfRows))
         ->toBe(array_map(fn ($r) => [$r['id'], $r['available_change'], $r['available_after'], $r['held_after']], $history));
 });
 

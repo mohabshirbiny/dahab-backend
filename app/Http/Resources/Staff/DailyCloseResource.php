@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Staff;
 
 use App\Models\DailyClose;
+use App\Models\DailyCloseBank;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use OpenApi\Attributes as OA;
@@ -30,6 +31,13 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'saved_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'closed_by', type: 'object', nullable: true, description: '{id, name}'),
         new OA\Property(property: 'closed_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'banks', type: 'array', description: 'Owner notes of 2026-10-29: one line per account (statement_balance typed, books, difference); the line with receiving_account_id null is the cash not assigned to an account (statement_balance null). Empty for a day closed before.', items: new OA\Items(properties: [
+            new OA\Property(property: 'receiving_account_id', type: 'integer', nullable: true),
+            new OA\Property(property: 'label', type: 'string', nullable: true),
+            new OA\Property(property: 'statement_balance', type: 'string', nullable: true),
+            new OA\Property(property: 'books', type: 'string'),
+            new OA\Property(property: 'difference', type: 'string'),
+        ], type: 'object')),
     ],
 )]
 class DailyCloseResource extends JsonResource
@@ -60,6 +68,13 @@ class DailyCloseResource extends JsonResource
             'saved_at' => $c->saved_at->toIso8601String(),
             'closed_by' => $c->closed_by === null ? null : ['id' => $c->closed_by, 'name' => $c->closer?->full_name],
             'closed_at' => $c->closed_at?->toIso8601String(),
+            'banks' => $c->relationLoaded('banks') ? $c->banks->map(fn (DailyCloseBank $l) => [
+                'receiving_account_id' => $l->receiving_account_id === null ? null : (int) $l->receiving_account_id,
+                'label' => $l->account?->label,
+                'statement_balance' => $l->statement_balance === null ? null : $m($l->statement_balance),
+                'books' => $m($l->books_balance),
+                'difference' => $m($l->difference),
+            ])->values()->all() : [],
         ];
     }
 }

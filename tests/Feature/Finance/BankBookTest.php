@@ -44,7 +44,10 @@ it('lists every bank posting with its source and a running cash figure', functio
     Finance::record($this, 'bank_charge', 'out', '250')->assertCreated();
 
     $res = $this->getJson(BOOK_URL)->assertOk();
-    $rows = collect($res->json('data'));
+    // Newest first (owner notes of 2026-10-29); read back oldest first below.
+    expect($res->json('data.0.source.type'))->toBe('bank_movement')->and($res->json('data.0.bank.id'))->toBe(Finance::bank()->receiving_account_id)
+        ->and($res->json('data.1.bank.id'))->toBe(Finance::bank()->receiving_account_id);
+    $rows = collect($res->json('data'))->reverse()->values();
     $closing = Finance::bankCash();
 
     expect($rows->pluck('source.type')->all())->toBe(['topup', 'topup', 'topup', 'withdrawal', 'bank_movement'])
@@ -67,10 +70,12 @@ it('opens a later period from the cash before it, shows a reversal, and pages by
     $txn = Finance::record($this, 'bank_charge', 'out', '100')->assertCreated()->json('data.ledger_txn_id');
     DB::transaction(fn () => app(ReverseLedgerEntryAction::class)->handle($txn, $finance->staff_id, 'Charge reversed by the bank.'));
 
-    $res = $this->getJson(BOOK_URL.'?per_page=2')->assertOk()->assertJsonCount(2, 'data');
-    $next = $this->getJson(BOOK_URL.'?per_page=2&cursor='.$res->json('meta.next_cursor'))->assertOk()->assertJsonCount(1, 'data')
+    $res = $this->getJson(BOOK_URL.'?per_page=2')->assertOk()->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.source.type', 'reversal')->assertJsonPath('data.0.source.reverses_txn_id', $txn)
-        ->assertJsonPath('data.0.direction', 'in')->assertJsonPath('data.0.cash_after', '1000.0000');
+        ->assertJsonPath('data.0.direction', 'in')->assertJsonPath('data.0.cash_after', '1000.0000')
+        ->assertJsonPath('data.0.bank.id', Finance::bank()->receiving_account_id);
+    $next = $this->getJson(BOOK_URL.'?per_page=2&cursor='.$res->json('meta.next_cursor'))->assertOk()->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.source.kind', 'capital_in')->assertJsonPath('data.0.cash_after', '1000.0000');
 
     $tomorrow = now('Africa/Cairo')->addDay()->toDateString();
     $this->getJson(BOOK_URL."?from={$tomorrow}&to={$tomorrow}")->assertOk()->assertJsonCount(0, 'data')

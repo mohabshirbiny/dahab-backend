@@ -25,7 +25,7 @@ class InspectionController extends Controller
         path: '/dashboard/inspections/work-list',
         operationId: 'dashboardInspectionWorkList',
         summary: 'Pieces to handle at my branch',
-        description: 'Spec 012 FR-010, research R18. Orders awaiting delivery (receive), at inspection (inspect), waiting for the buyer or the balance (correct), ready to collect (hand over) and returned pieces waiting for their seller (return_handover) — at your assigned branch, or every branch (optionally one) when you have none. Oldest first. Only inspection fields: no price, no wallet, no buyer or seller. Requires inspection.enter, order.receive or order.handover.',
+        description: 'Spec 012 FR-010, research R18. Orders awaiting delivery (receive), at inspection (inspect), waiting for the buyer or the balance (correct), ready to collect (hand over) and returned pieces waiting for their seller (return_handover) — at your assigned branch, or every branch (optionally one) when you have none. Newest first. Only inspection fields: no price, no wallet, no buyer or seller. Requires inspection.enter, order.receive or order.handover.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Orders'],
         parameters: [

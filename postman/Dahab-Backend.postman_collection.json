@@ -6538,7 +6538,7 @@
                                 "description": "Spec 013 FR-013. Send the transfer at the bank first, then record it. held → bank. 409 withdrawal_on_hold | illegal_withdrawal_transition | payout_account_not_active.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"bank_txn_number\": \"FT2610031234\",\n  \"transfer_reference\": \"WD-1\",\n  \"value_date\": \"2026-10-03\"\n}",
+                                    "raw": "{\n  \"bank_txn_number\": \"FT2610031234\",\n  \"paid_from_account_id\": {{receiving_account_id}},\n  \"transfer_reference\": \"WD-1\",\n  \"value_date\": \"2026-10-03\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -7236,7 +7236,7 @@
                                 "description": "Spec 015 FR-010. bank.record. kind: capital_in | operating_expense | bank_charge | profit_draw | own_transfer | supplier_refund | other; direction in/out. Remove proof_upload_token to record without proof.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"kind\": \"bank_charge\",\n  \"direction\": \"out\",\n  \"amount\": \"250\",\n  \"occurred_on\": \"2026-10-03\",\n  \"reason\": \"Monthly account fee.\",\n  \"proof_upload_token\": \"{{proof_upload_token}}\"\n}",
+                                    "raw": "{\n  \"kind\": \"bank_charge\",\n  \"direction\": \"out\",\n  \"amount\": \"250\",\n  \"occurred_on\": \"2026-10-03\",\n  \"reason\": \"Monthly account fee.\",\n  \"receiving_account_id\": {{receiving_account_id}},\n  \"to_receiving_account_id\": null,\n  \"proof_upload_token\": \"{{proof_upload_token}}\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -7545,6 +7545,38 @@
                             "response": []
                         },
                         {
+                            "name": "List Banks (Dahab accounts to pick)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/banks",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "banks"
+                                    ]
+                                },
+                                "description": "Owner notes of 2026-10-29: the receiving accounts as the money's banks, for the pickers of a bank movement, a withdrawal release and the daily close. bank.record, wallet.view, withdrawal.release or day.close."
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Close a Day",
                             "request": {
                                 "method": "POST",
@@ -7586,7 +7618,7 @@
                                 "description": "Spec 015 FR-014. day.close. Only an ended day; 0 locks; a non-zero difference locks only with an explanation, else saved.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"date\": \"2026-10-03\",\n  \"bank_balance\": \"3142880\",\n  \"explanation\": null\n}",
+                                    "raw": "{\n  \"date\": \"2026-10-03\",\n  \"bank_balances\": [\n    { \"receiving_account_id\": {{receiving_account_id}}, \"balance\": \"3142880\" }\n  ],\n  \"explanation\": null\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"

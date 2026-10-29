@@ -34,7 +34,7 @@ class DisputeController extends Controller
         path: '/dashboard/disputes',
         operationId: 'dashboardDisputes',
         summary: 'The Disputes queue',
-        description: 'Spec 014 FR-008. Oldest first, keyset-paginated. state: unresolved (default: open + passed_on) | open | passed_on | resolved; assigned=me; q: a DSP- or DH- reference. meta.counts feeds the navigation badge. Requires dispute.handle.',
+        description: 'Spec 014 FR-008. Newest first, keyset-paginated. state: unresolved (default: open + passed_on) | open | passed_on | resolved; assigned=me; q: a DSP- or DH- reference. meta.counts feeds the navigation badge. Requires dispute.handle.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Disputes'],
         parameters: [

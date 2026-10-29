@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property WithdrawalState $state
  * @property string $hold_txn_id
  * @property string|null $release_txn_id
+ * @property int|null $paid_from_account_id
  * @property string|null $return_txn_id
  * @property string|null $reviewed_by
  * @property CarbonImmutable|null $held_at
@@ -89,6 +90,12 @@ class Withdrawal extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
+    }
+
+    /** The Dahab account the transfer was sent from (owner notes of 2026-10-29). */
+    public function paidFrom(): BelongsTo
+    {
+        return $this->belongsTo(ReceivingAccount::class, 'paid_from_account_id', 'receiving_account_id');
     }
 
     public function reviewer(): BelongsTo

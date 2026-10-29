@@ -25,6 +25,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'recorded_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'posts_to_ledger', type: 'boolean', description: 'False for an own-account transfer'),
         new OA\Property(property: 'ledger_txn_id', type: 'string', format: 'uuid', nullable: true),
+        new OA\Property(property: 'bank', type: 'object', nullable: true, description: 'Owner notes of 2026-10-29: {id, label} of the Dahab account (an own-account transfer: the one it left); null for a movement recorded before, or cash not assigned'),
+        new OA\Property(property: 'to_bank', type: 'object', nullable: true, description: '{id, label}: the account an own-account transfer reached'),
     ],
 )]
 class BankMovementResource extends JsonResource
@@ -49,6 +51,8 @@ class BankMovementResource extends JsonResource
             'recorded_at' => $m->recorded_at->toIso8601String(),
             'posts_to_ledger' => $m->ledger_txn_id !== null,
             'ledger_txn_id' => $m->ledger_txn_id,
+            'bank' => $m->account === null ? null : ['id' => $m->account->receiving_account_id, 'label' => $m->account->label],
+            'to_bank' => $m->toAccount === null ? null : ['id' => $m->toAccount->receiving_account_id, 'label' => $m->toAccount->label],
         ];
     }
 }

@@ -25,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $recorded_by
  * @property string|null $ledger_txn_id
  * @property CarbonImmutable $recorded_at
+ * @property int|null $receiving_account_id
+ * @property int|null $to_receiving_account_id
  */
 class BankMovement extends Model
 {
@@ -68,6 +70,17 @@ class BankMovement extends Model
     public function magnitude(): string
     {
         return ltrim(bcadd((string) $this->amount, '0', 4), '-');
+    }
+
+    /** The Dahab account (owner notes of 2026-10-29); for an own-account transfer, the one it left. */
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(ReceivingAccount::class, 'receiving_account_id', 'receiving_account_id');
+    }
+
+    public function toAccount(): BelongsTo
+    {
+        return $this->belongsTo(ReceivingAccount::class, 'to_receiving_account_id', 'receiving_account_id');
     }
 
     public function recorder(): BelongsTo

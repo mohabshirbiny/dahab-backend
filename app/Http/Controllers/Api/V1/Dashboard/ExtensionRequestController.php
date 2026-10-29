@@ -28,7 +28,7 @@ class ExtensionRequestController extends Controller
         path: '/dashboard/extension-requests',
         operationId: 'dashboardExtensionRequests',
         summary: 'Sellers\' requests for more time',
-        description: 'Spec 014 FR-024, FR-027. state: waiting (default) | accepted | refused | lapsed | all; month=YYYY-MM (Cairo). Oldest first, keyset-paginated. Each row: the order and its branch, the seller, the reason and what they wrote, the deadline now and the seconds left, the extensions before. Requires order.extend_deadline or order.view.',
+        description: 'Spec 014 FR-024, FR-027. state: waiting (default) | accepted | refused | lapsed | all; month=YYYY-MM (Cairo). Newest first, keyset-paginated. Each row: the order and its branch, the seller, the reason and what they wrote, the deadline now and the seconds left, the extensions before. Requires order.extend_deadline or order.view.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Orders'],
         parameters: [

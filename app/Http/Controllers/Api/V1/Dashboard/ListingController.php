@@ -35,7 +35,7 @@ class ListingController extends Controller
         path: '/dashboard/listings',
         operationId: 'dashboardListings',
         summary: 'The listing review queue',
-        description: 'Spec 010 FR-027. Listings of every seller in one state (default in_review, oldest first; other states most recent first), keyset-paginated. meta.counts has the numbers for the screen\'s chips: in_review, changes_requested, approved_today (Cairo day), rejected, live. Requires any of listing.review, listing.request_changes, listing.takedown.',
+        description: 'Spec 010 FR-027. Listings of every seller in one state (default in_review; every state most recent first), keyset-paginated. meta.counts has the numbers for the screen\'s chips: in_review, changes_requested, approved_today (Cairo day), rejected, live. Requires any of listing.review, listing.request_changes, listing.takedown.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Listings'],
         parameters: [

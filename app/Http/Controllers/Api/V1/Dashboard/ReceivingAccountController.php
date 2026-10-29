@@ -21,6 +21,39 @@ use OpenApi\Attributes as OA;
 class ReceivingAccountController extends Controller
 {
     #[OA\Get(
+        path: '/dashboard/banks',
+        operationId: 'dashboardBanks',
+        summary: 'Dahab\'s accounts to pick from',
+        description: 'Owner notes of 2026-10-29: the receiving accounts as the money\'s banks, for the pickers of a bank movement, a withdrawal release and the daily close: id, label, bank name, method and whether active; active first, then by method and sort order. Requires bank.record, wallet.view, withdrawal.release or day.close.',
+        security: [['dashboardBearer' => []]],
+        tags: ['Dashboard Finance'],
+        responses: [
+            new OA\Response(response: 200, description: 'The accounts', content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'data', type: 'array', items: new OA\Items(properties: [
+                    new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'label', type: 'string'),
+                    new OA\Property(property: 'bank_name', type: 'string', nullable: true),
+                    new OA\Property(property: 'method', type: 'string', enum: ['bank_transfer', 'instapay', 'wallet']),
+                    new OA\Property(property: 'is_active', type: 'boolean'),
+                ], type: 'object')),
+            ])),
+            new OA\Response(response: 403, description: 'permission_denied', content: new OA\JsonContent(ref: '#/components/schemas/ApiError')),
+        ],
+    )]
+    public function banks(): JsonResponse
+    {
+        $accounts = ReceivingAccount::query()->orderByDesc('is_active')->displayOrder()->get();
+
+        return response()->json(['data' => $accounts->map(fn (ReceivingAccount $a) => [
+            'id' => $a->receiving_account_id,
+            'label' => $a->label,
+            'bank_name' => $a->bank_name,
+            'method' => $a->method->value,
+            'is_active' => $a->is_active,
+        ])->values()->all()]);
+    }
+
+    #[OA\Get(
         path: '/dashboard/receiving-accounts',
         operationId: 'dashboardReceivingAccounts',
         summary: 'Dahab\'s receiving accounts',

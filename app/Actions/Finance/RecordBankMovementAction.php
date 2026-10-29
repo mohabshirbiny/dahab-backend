@@ -29,6 +29,11 @@ use Illuminate\Support\Facades\DB;
  * equity (money in: bank −X, external_equity +X; out: the reverse — the bank
  * sign rule, spec 008 R15). The entry posts now whatever the statement date,
  * so a closed day never changes. The optional proof is a staff upload token.
+ *
+ * The movement names its Dahab account (owner notes of 2026-10-29): an
+ * own-account transfer names the one it left (none: cash not yet assigned to
+ * an account) and the one it reached, and moves the money between them in
+ * the per-account books (BankAccounts) without a ledger entry.
  */
 final class RecordBankMovementAction
 {
@@ -39,7 +44,7 @@ final class RecordBankMovementAction
     ) {}
 
     public function handle(Staff $staff, BankMovementKind $kind, string $direction, string $amount, string $occurredOn, string $reason,
-        ?string $proofToken = null, ?RequestContext $ctx = null): BankMovement
+        ?string $proofToken = null, ?RequestContext $ctx = null, ?int $accountId = null, ?int $toAccountId = null): BankMovement
     {
         $amount = Money::fixed4($amount);
         $signed = $direction === 'in' ? $amount : '-'.$amount;
@@ -50,7 +55,7 @@ final class RecordBankMovementAction
                 ?? throw DomainApiException::uploadTokenInvalid();
         }
 
-        $movement = DB::transaction(function () use ($staff, $kind, $signed, $amount, $direction, $occurredOn, $reason, $proof, $ctx) {
+        $movement = DB::transaction(function () use ($staff, $kind, $signed, $amount, $direction, $occurredOn, $reason, $proof, $ctx, $accountId, $toAccountId) {
             $txnId = null;
             if ($kind->postsToLedger()) {
                 [$bank, $equity] = DatabaseActor::ledger(fn () => [Account::internal(AccountKind::BANK), Account::internal(AccountKind::EXTERNAL_EQUITY)]);
@@ -72,11 +77,13 @@ final class RecordBankMovementAction
                 'recorded_by' => $staff->staff_id,
                 'ledger_txn_id' => $txnId,
                 'recorded_at' => CarbonImmutable::now(),
+                'receiving_account_id' => $accountId,
+                'to_receiving_account_id' => $kind === BankMovementKind::OWN_TRANSFER ? $toAccountId : null,
             ]);
 
             $this->audit->execute(AuditEvent::BANK_MOVEMENT_RECORDED, 'success',
                 ['kind' => $kind->value, 'direction' => $direction, 'amount' => $amount, 'occurred_on' => $occurredOn,
-                    'has_proof' => $proof !== null, 'ledger_txn_id' => $txnId],
+                    'has_proof' => $proof !== null, 'ledger_txn_id' => $txnId, 'receiving_account_id' => $accountId, 'to_receiving_account_id' => $toAccountId],
                 'bank_movement', $movement->movement_id, $ctx, actorStaffId: $staff->staff_id, reason: $reason);
 
             return $movement;

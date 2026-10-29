@@ -126,7 +126,7 @@ final class ShowOverviewAction
     }
 
     /**
-     * Oldest first, at most the configured number, each kind only for the
+     * Newest first (owner notes of 2026-10-29), at most the configured number, each kind only for the
      * holders of its acting code.
      *
      * @param  list<string>  $kinds
@@ -153,7 +153,7 @@ final class ShowOverviewAction
         $sql = implode("\nUNION ALL\n", array_map(fn (string $k) => '('.$parts[$k].')', $kinds));
         $limit = (int) config('dahab-finance.overview_needs_decision_limit');
         // One read: each row carries how many of its kind wait in all.
-        $rows = DB::select("SELECT *, count(*) OVER (PARTITION BY kind) AS of_kind FROM ({$sql}) x ORDER BY since, id LIMIT {$limit}");
+        $rows = DB::select("SELECT *, count(*) OVER (PARTITION BY kind) AS of_kind FROM ({$sql}) x ORDER BY since DESC, id DESC LIMIT {$limit}");
 
         return array_map(fn ($r) => [
             'kind' => $r->kind,

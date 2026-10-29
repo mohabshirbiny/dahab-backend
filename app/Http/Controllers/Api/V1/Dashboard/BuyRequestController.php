@@ -22,7 +22,7 @@ class BuyRequestController extends Controller
         path: '/dashboard/buy-requests',
         operationId: 'dashboardBuyRequests',
         summary: 'Buy requests across listings',
-        description: 'Spec 012 FR-023. Soonest seller-reply deadline first, keyset-paginated. state = queued (default) | accepted | ended; listing_id; near_expiry = queued and the reply deadline within 6 hours; branch_id = one of the listing\'s branches. Buyers and sellers by display reference only. meta.counts: queued, near_expiry. Read-only. Requires buy_request.view.',
+        description: 'Spec 012 FR-023. Newest request first, keyset-paginated. state = queued (default) | accepted | ended; listing_id; near_expiry = queued and the reply deadline within 6 hours; branch_id = one of the listing\'s branches. Buyers and sellers by display reference only. meta.counts: queued, near_expiry. Read-only. Requires buy_request.view.',
         security: [['dashboardBearer' => []]],
         tags: ['Dashboard Orders'],
         parameters: [

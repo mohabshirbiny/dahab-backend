@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
  * research R7), ordered by the posting (monotonic, so entries stamped at the
  * same instant keep their order), each with its source: a top-up (matched
  * notice or credited by hand), a released withdrawal, a movement recorded by
- * hand, or a reversal. The bank's cash is −SUM(bank) (spec 008 R15), so money
+ * hand, or a reversal. Newest first (owner notes of 2026-10-29). The bank's cash is −SUM(bank) (spec 008 R15), so money
  * in is a negative posting.
  */
 final class BankBookQuery
@@ -58,11 +58,11 @@ final class BankBookQuery
     }
 
     /**
-     * The rows after `$afterPosting`, at most `$limit`, with their sources.
+     * The rows before `$beforePosting` (newest first), at most `$limit`, with their sources.
      *
      * @return list<array<string, mixed>>
      */
-    public function rows(string $opening, ?int $afterPosting, int $limit): array
+    public function rows(string $opening, ?int $beforePosting, int $limit): array
     {
         $rows = DB::select('
             WITH book AS (
@@ -72,8 +72,8 @@ final class BankBookQuery
               FROM ledger_posting p JOIN ledger_transaction t ON t.ledger_txn_id = p.ledger_txn_id
               WHERE p.account_id = ? AND t.created_at >= ? AND t.created_at < ?
             )
-            SELECT * FROM book WHERE posting_id > ? ORDER BY posting_id LIMIT ?
-        ', [$this->bank, $this->start, $this->end, $afterPosting ?? 0, $limit]);
+            SELECT * FROM book WHERE (?::bigint IS NULL OR posting_id < ?::bigint) ORDER BY posting_id DESC LIMIT ?
+        ', [$this->bank, $this->start, $this->end, $beforePosting, $beforePosting, $limit]);
 
         $txns = array_map(fn ($r) => $r->ledger_txn_id, $rows);
         $topups = TopUp::query()->whereIn('ledger_txn_id', $txns)->get()->keyBy('ledger_txn_id');
@@ -82,8 +82,11 @@ final class BankBookQuery
         $accounts = ReceivingAccount::query()->whereIn('receiving_account_id', $topups->pluck('receiving_account_id')->filter()->unique())->pluck('label', 'receiving_account_id');
         $customers = DB::table('customer')->whereIn('customer_id', $topups->pluck('customer_id')->unique())->pluck('display_ref', 'customer_id');
         $staff = Staff::query()->whereIn('staff_id', array_filter(array_map(fn ($r) => $r->staff_id, $rows)))->pluck('full_name', 'staff_id');
+        // Owner notes of 2026-10-29: the Dahab account each posting belongs to.
+        $banks = BankAccounts::ofEntries($txns);
+        $bankLabels = ReceivingAccount::query()->whereIn('receiving_account_id', array_unique(array_values($banks)))->pluck('label', 'receiving_account_id');
 
-        return array_map(function ($r) use ($opening, $topups, $withdrawals, $movements, $accounts, $customers, $staff) {
+        return array_map(function ($r) use ($opening, $topups, $withdrawals, $movements, $accounts, $customers, $staff, $banks, $bankLabels) {
             $amount = (string) $r->amount;
 
             return [
@@ -94,6 +97,7 @@ final class BankBookQuery
                 'direction' => bccomp($amount, '0', 4) < 0 ? 'in' : 'out',
                 'amount' => ltrim(bcadd($amount, '0', 4), '-'),
                 'cash_after' => bcsub($opening, bcadd((string) $r->run, '0', 4), 4),
+                'bank' => isset($banks[$r->ledger_txn_id]) ? ['id' => $banks[$r->ledger_txn_id], 'label' => $bankLabels[$banks[$r->ledger_txn_id]] ?? null] : null,
                 'actor' => $r->staff_id !== null
                     ? ['type' => isset($staff[$r->staff_id]) ? 'staff' : 'system', 'name' => $staff[$r->staff_id] ?? null]
                     : ['type' => 'customer', 'name' => null],
@@ -125,7 +129,7 @@ final class BankBookQuery
         };
     }
 
-    /** The posting id a cursor points after. */
+    /** The posting id a cursor points before. */
     public static function decodeCursor(?string $cursor): ?int
     {
         if ($cursor === null || $cursor === '') {

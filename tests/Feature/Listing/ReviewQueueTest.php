@@ -28,7 +28,7 @@ function waiting(Customer $seller, string $state = 'inReview'): Listing
     return Listing::factory()->withPhotos(2)->{$state}()->create(['seller_id' => $seller->customer_id]);
 }
 
-it('lists waiting listings of every seller, oldest first', function () {
+it('lists waiting listings of every seller, newest first', function () {
     $first = waiting($this->seller);
     $this->travel(1)->minutes();
     $second = waiting(Customer::factory()->verified()->create());
@@ -39,7 +39,7 @@ it('lists waiting listings of every seller, oldest first', function () {
 
     $res = $this->getJson(Listings::STAFF_URL)->assertOk()->assertJsonPath('meta.per_page', 25);
 
-    expect(array_column($res->json('data'), 'id'))->toBe([$first->listing_id, $second->listing_id, $third->listing_id])
+    expect(array_column($res->json('data'), 'id'))->toBe([$third->listing_id, $second->listing_id, $first->listing_id])
         ->and(array_unique(array_column($res->json('data'), 'state')))->toBe(['in_review']);
 });
 

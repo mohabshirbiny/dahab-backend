@@ -698,6 +698,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 Route::patch('/{account}', [DashboardReceivingAccountController::class, 'update'])
                     ->whereNumber('account')->middleware('staff.permission:topup.accounts.manage')->name('update');
             });
+        // The same accounts as the money's banks (owner notes of 2026-10-29): the pickers of finance.
+        Route::get('/banks', [DashboardReceivingAccountController::class, 'banks'])
+            ->middleware(['auth:staff', 'abilities:staff:access', 'staff.standing',
+                'staff.permission:bank.record|wallet.view|withdrawal.release|day.close'])->name('banks.index');
 
         // Listings to review (spec 010): CEO, COO and Operations by default. Reading
         // needs any listing permission; each decision its own. Every POST is

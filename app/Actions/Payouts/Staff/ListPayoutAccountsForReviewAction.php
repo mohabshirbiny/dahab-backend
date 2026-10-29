@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
- * Payout accounts to check (spec 013 FR-003): oldest first, keyset pages,
+ * Payout accounts to check (spec 013 FR-003): newest first, keyset pages,
  * with the customer's verified ID name beside the holder name. `q` matches
  * the display reference, the E.164 phone or the name (spec 007 search).
  */
@@ -31,7 +31,7 @@ final class ListPayoutAccountsForReviewAction
             });
 
         $page = KeysetPage::byTime($query, 'payout_account', 'created_at', 'payout_account_id',
-            $state !== PayoutAccountState::PENDING_REVIEW, $cursor, $perPage);
+            true, $cursor, $perPage);
 
         return $page + ['waiting' => PayoutAccount::query()->where('state', PayoutAccountState::PENDING_REVIEW->value)->count()];
     }

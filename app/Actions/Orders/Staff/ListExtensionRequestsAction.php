@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Sellers' requests for more time for staff (spec 014 FR-024, FR-027, research
- * R17): *More time requested* (waiting, oldest first) and *Extension requests*
+ * R17): *More time requested* (waiting, newest first) and *Extension requests*
  * of a month. Each row carries the order, its branch and running deadline, the
  * seller's display reference, and how many extensions the order had before
  * the request (`extensions_before`, one query per page).
@@ -40,7 +40,7 @@ final class ListExtensionRequestsAction
                 ->where('order_extension_request.requested_at', '<', $start->addMonth());
         }
 
-        $page = KeysetPage::byTime($query, 'order_extension_request', 'requested_at', 'request_id', false, $cursor, $perPage);
+        $page = KeysetPage::byTime($query, 'order_extension_request', 'requested_at', 'request_id', true, $cursor, $perPage);
 
         $ids = $page['rows']->pluck('request_id')->all();
         $before = $ids === [] ? collect() : DB::table('order_extension_request as r')

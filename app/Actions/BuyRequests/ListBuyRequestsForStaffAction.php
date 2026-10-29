@@ -33,9 +33,9 @@ final class ListBuyRequestsForStaffAction
             ->when($nearExpiry, fn (Builder $q) => $q->where('state', BuyRequestState::QUEUED->value)->where('seller_reply_deadline', '<=', $soon))
             ->when($branchId !== null, fn (Builder $q) => $q->whereHas('listing.branches', fn (Builder $b) => $b->where('branch.branch_id', $branchId)))
             ->when($cursor !== null, fn (Builder $q) => $q->where(fn (Builder $w) => $w
-                ->where('seller_reply_deadline', '>', $cursor->value)
-                ->orWhere(fn (Builder $e) => $e->where('seller_reply_deadline', $cursor->value)->where('buy_request_id', '>', $cursor->id))))
-            ->orderBy('seller_reply_deadline')->orderBy('buy_request_id')
+                ->where('requested_at', '<', $cursor->value)
+                ->orWhere(fn (Builder $e) => $e->where('requested_at', $cursor->value)->where('buy_request_id', '<', $cursor->id))))
+            ->orderByDesc('requested_at')->orderByDesc('buy_request_id')
             ->limit($perPage + 1)
             ->with(['listing.pieceType', 'listing.photos', 'listing.seller:customer_id,display_ref', 'buyer:customer_id,display_ref', 'order'])
             ->get();
@@ -54,7 +54,7 @@ final class ListBuyRequestsForStaffAction
         return [
             'rows' => $rows,
             'next_cursor' => $more && $last !== null
-                ? (new ListingCursor($last->seller_reply_deadline->format('Y-m-d H:i:s.uP'), $last->buy_request_id))->encode()
+                ? (new ListingCursor($last->requested_at->format('Y-m-d H:i:s.uP'), $last->buy_request_id))->encode()
                 : null,
             'counts' => [
                 'queued' => BuyRequest::query()->where('state', BuyRequestState::QUEUED->value)->count(),
