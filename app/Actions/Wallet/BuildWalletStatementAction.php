@@ -536,6 +536,8 @@ final class BuildWalletStatementAction
             return $summary + [
                 'vat_payable' => $vat,
                 'certificates_payable' => $certificatesHeld,
+                // What Dahab owes each lab: the costs of the sales settled with it, all time. Sums to the above.
+                'payable_by_lab' => $this->payableByLab($end),
                 'certificate_in' => $totals->certificate_in,
                 'certificate_out' => $totals->certificate_out,
                 'commission_in' => $totals->commission_in,
@@ -552,5 +554,21 @@ final class BuildWalletStatementAction
         }
 
         return $summary;
+    }
+
+    /** @return list<array{lab_id: int, name_en: string, name_ar: string, amount: string}> */
+    private function payableByLab(string $end): array
+    {
+        return array_map(fn ($r) => ['lab_id' => (int) $r->lab_id, 'name_en' => $r->name_en, 'name_ar' => $r->name_ar, 'amount' => $r->amount], DB::select("
+            SELECT l.lab_id, l.name_en, l.name_ar,
+                   SUM(COALESCE(o.certificate_cost, 0) + COALESCE(o.gold_inspection_cost, 0))::numeric(18,4)::text AS amount
+            FROM \"order\" o
+            JOIN lab l ON l.lab_id = o.lab_id
+            JOIN ledger_transaction t ON t.ledger_txn_id = o.settlement_txn_id
+            WHERE t.created_at < (?::timestamp AT TIME ZONE '".self::TZ."')
+            GROUP BY l.lab_id, l.name_en, l.name_ar
+            HAVING SUM(COALESCE(o.certificate_cost, 0) + COALESCE(o.gold_inspection_cost, 0)) <> 0
+            ORDER BY l.lab_id
+        ", [$end]));
     }
 }

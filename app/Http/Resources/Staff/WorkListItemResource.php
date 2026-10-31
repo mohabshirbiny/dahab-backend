@@ -98,6 +98,7 @@ class WorkListItemResource extends JsonResource
             'stated_weight_g' => $l->stated_weight_g === null ? null : bcadd((string) $l->stated_weight_g, '0', 3),
             // App notes 2026-10-26: the stone and its certificate as the seller stated them, for the inspector.
             'stone' => $l->stoneDetails(),
+            'lab_id' => $o->lab_id,
             'certificates' => self::certificates($o),
             'latest_inspection' => $latest === null ? null : InspectionResultResource::shape($latest),
             'branch' => ['id' => $o->branch_id, 'name_en' => $o->branch?->name_en, 'name_ar' => $o->branch?->name_ar],

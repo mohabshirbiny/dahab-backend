@@ -6,17 +6,18 @@ use App\Actions\Reference\QuoteAction;
 use App\Actions\Reference\ShowGoldPricesAction;
 use App\Enums\LegalDocumentCode;
 use App\Enums\PieceCategory;
-use App\Enums\SettingKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reference\QuoteRequest;
 use App\Http\Resources\Customer\CustomerOrderResource;
 use App\Models\Branch;
 use App\Models\Karat;
+use App\Models\Lab;
 use App\Models\LegalDocument;
 use App\Models\PieceType;
 use App\Support\Content\BundleBuilder;
 use App\Support\Controls\ControlsSnapshot;
-use App\Support\Pricing\Settings;
+use App\Support\Listings\CertificateFee;
+use App\Support\Pricing\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -104,6 +105,7 @@ class ReferenceController extends Controller
             new OA\Response(response: 200, description: 'Branches', content: new OA\JsonContent(properties: [
                 new OA\Property(property: 'data', type: 'array', items: new OA\Items(properties: [
                     new OA\Property(property: 'id', type: 'integer'),
+                    new OA\Property(property: 'lab_id', type: 'integer'),
                     new OA\Property(property: 'name_en', type: 'string'),
                     new OA\Property(property: 'name_ar', type: 'string'),
                     new OA\Property(property: 'address_en', type: 'string'),
@@ -284,8 +286,8 @@ class ReferenceController extends Controller
     #[OA\Get(
         path: '/reference/certificate-costs',
         operationId: 'referenceCertificateCosts',
-        summary: 'What IGI\'s certificate costs the seller, by the certificate they bring',
-        description: 'Part 3 §5 / OI-3.2. From the settings certificate.igi_cost_egp, certificate.other_lab_cost_egp and certificate.none_cost_egp (the Dashboard\'s Rates page). For the sell form of a diamond or gold with diamond; not yet taken at settlement. Public.',
+        summary: 'What the main lab certificate costs the seller, by the certificate they bring',
+        description: 'The costs of the main lab. Kept for older clients; GET /reference/labs has every lab. Public.',
         tags: ['Reference'],
         responses: [new OA\Response(response: 200, description: 'Costs in EGP', content: new OA\JsonContent(properties: [
             new OA\Property(property: 'data', properties: [
@@ -295,13 +297,53 @@ class ReferenceController extends Controller
             ], type: 'object'),
         ]))],
     )]
-    public function certificateCosts(Settings $settings): JsonResponse
+    public function certificateCosts(): JsonResponse
     {
+        $lab = Lab::main();
+
         return response()->json(['data' => [
-            'igi' => $settings->numeric(SettingKey::CERTIFICATE_IGI_COST_EGP),
-            'other_lab' => $settings->numeric(SettingKey::CERTIFICATE_OTHER_LAB_COST_EGP),
-            'none' => $settings->numeric(SettingKey::CERTIFICATE_NONE_COST_EGP),
+            'igi' => Money::fixed4((string) $lab->certificate_own_cost_egp),
+            'other_lab' => Money::fixed4((string) $lab->certificate_other_cost_egp),
+            'none' => Money::fixed4((string) $lab->certificate_none_cost_egp),
         ]]);
+    }
+
+    #[OA\Get(
+        path: '/reference/labs',
+        operationId: 'referenceLabs',
+        summary: 'The labs a seller can choose, with their costs and open branches',
+        description: 'Enabled labs that have an enabled branch; the main lab first. own: their own certificate; other: another lab certificate; none: no certificate. gold is null when it is 0. Public.',
+        tags: ['Reference'],
+        responses: [new OA\Response(response: 200, description: 'Labs', content: new OA\JsonContent(properties: [
+            new OA\Property(property: 'data', type: 'array', items: new OA\Items(properties: [
+                new OA\Property(property: 'id', type: 'integer'),
+                new OA\Property(property: 'name_en', type: 'string'),
+                new OA\Property(property: 'name_ar', type: 'string'),
+                new OA\Property(property: 'costs', properties: [
+                    new OA\Property(property: 'own', type: 'string'),
+                    new OA\Property(property: 'other', type: 'string'),
+                    new OA\Property(property: 'none', type: 'string'),
+                    new OA\Property(property: 'gold', type: 'string', nullable: true),
+                ], type: 'object'),
+                new OA\Property(property: 'branches', type: 'array', items: new OA\Items(type: 'object'), description: 'As GET /reference/branches'),
+            ], type: 'object')),
+        ]))],
+    )]
+    public function labs(CertificateFee $fees): JsonResponse
+    {
+        $labs = Lab::query()->where('is_enabled', true)->orderBy('lab_id')
+            ->with(['branches' => fn ($q) => $q->where('is_enabled', true)->orderBy('branch_id')->with('hours')])->get();
+
+        return response()->json(['data' => $labs->filter(fn (Lab $l) => $l->branches->isNotEmpty())->map(fn (Lab $l) => [
+            ...$l->summary(),
+            'costs' => [
+                'own' => Money::fixed4((string) $l->certificate_own_cost_egp),
+                'other' => Money::fixed4((string) $l->certificate_other_cost_egp),
+                'none' => Money::fixed4((string) $l->certificate_none_cost_egp),
+                'gold' => $fees->goldCost($l),
+            ],
+            'branches' => $l->branches->map(fn (Branch $b) => CustomerOrderResource::branch($b))->values()->all(),
+        ])->values()->all()]);
     }
 
     #[OA\Get(
@@ -376,7 +418,9 @@ class ReferenceController extends Controller
             new OA\Parameter(name: 'weight_g', in: 'query', required: false, schema: new OA\Schema(type: 'string', example: '10.000')),
             new OA\Parameter(name: 'making_per_g', in: 'query', required: false, schema: new OA\Schema(type: 'string', example: '300')),
             new OA\Parameter(name: 'asking_price', in: 'query', required: false, schema: new OA\Schema(type: 'string')),
-            new OA\Parameter(name: 'certificate', in: 'query', required: false, description: 'Stone pieces only: the certificate the seller brings; its cost (GET /reference/certificate-costs) is taken out of the payout.', schema: new OA\Schema(type: 'string', enum: ['igi', 'other_lab', 'none'])),
+            new OA\Parameter(name: 'certificate', in: 'query', required: false, description: 'Stone pieces only: the certificate the seller brings; its cost at the lab is taken out of the payout. igi is read as lab with the main lab.', schema: new OA\Schema(type: 'string', enum: ['lab', 'other_lab', 'none', 'igi'])),
+            new OA\Parameter(name: 'certificate_lab_id', in: 'query', required: false, description: 'With certificate=lab: the lab that issued it.', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'lab_id', in: 'query', required: false, description: 'The lab that inspects the piece (GET /reference/labs); the main lab when absent.', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
             new OA\Response(response: 200, description: 'The estimate', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', properties: [
@@ -388,7 +432,8 @@ class ReferenceController extends Controller
                 new OA\Property(property: 'commission', type: 'string'),
                 new OA\Property(property: 'vat', type: 'string'),
                 new OA\Property(property: 'certificate_fee', type: 'string', description: 'The certificate cost taken out of the payout (0 when no certificate is named)'),
-                new OA\Property(property: 'payout', type: 'string', description: 'After commission, VAT and the certificate fee'),
+                new OA\Property(property: 'gold_inspection_fee', type: 'string', nullable: true, description: 'Gold only: the lab gold inspection cost out of the payout; null when it is 0'),
+                new OA\Property(property: 'payout', type: 'string', description: 'After commission, VAT and the lab cost'),
                 new OA\Property(property: 'commission_rate', type: 'string', description: 'Percent'),
                 new OA\Property(property: 'minimum_applied', type: 'boolean'),
                 new OA\Property(property: 'indicative', type: 'boolean'),
@@ -401,7 +446,9 @@ class ReferenceController extends Controller
     public function quote(QuoteRequest $request, QuoteAction $quote): JsonResponse
     {
         return response()->json(['data' => $quote->handle($request->category(), $request->validated('karat') === null ? null : (int) $request->validated('karat'),
-            $request->validated('weight_g'), $request->validated('making_per_g'), $request->validated('asking_price'), $request->certificate())])
+            $request->validated('weight_g'), $request->validated('making_per_g'), $request->validated('asking_price'), $request->certificate(),
+            $request->validated('certificate_lab_id') === null ? null : (int) $request->validated('certificate_lab_id'),
+            $request->validated('lab_id') === null ? null : (int) $request->validated('lab_id'))])
             ->header('Cache-Control', 'public, max-age=30');
     }
 }

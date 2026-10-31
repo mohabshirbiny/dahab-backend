@@ -104,6 +104,7 @@ final class FreeRelistAction
                 'description' => $data['description'] ?? null,
                 'state' => ListingState::DRAFT,
                 'relisted_from_order_id' => $order->order_id,
+                'lab_id' => $origin->lab_id,
             ]);
 
             $this->recordListingCreated($new, $buyer);
@@ -212,6 +213,11 @@ final class FreeRelistAction
 
         $enabled = $ids === [] ? [] : Branch::query()->whereIn('branch_id', $ids)->where('is_enabled', true)
             ->orderBy('branch_id')->pluck('branch_id')->map(fn ($id) => (int) $id)->all();
+
+        if ($enabled === [] && $origin->lab_id !== null) {
+            $enabled = Branch::query()->where('lab_id', $origin->lab_id)->where('is_enabled', true)
+                ->orderBy('branch_id')->limit(1)->pluck('branch_id')->map(fn ($id) => (int) $id)->all();
+        }
 
         if ($enabled === []) {
             throw DomainApiException::branchOptionsRequired();

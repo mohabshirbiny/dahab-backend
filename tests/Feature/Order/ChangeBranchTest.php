@@ -5,6 +5,7 @@ use App\Enums\SeedRole;
 use App\Jobs\NotifyCustomerJob;
 use App\Models\AuditLog;
 use App\Models\Branch;
+use App\Models\Lab;
 use App\Models\OrderBranchChange;
 use App\Models\OrderDeadlineExtension;
 use App\Support\DatabaseActor;
@@ -73,12 +74,12 @@ it('extends the deadline when asked, as a recorded extension, clearing the remin
         ->and(OrderDeadlineExtension::query()->sole()->which->value)->toBe('reach_branch');
 });
 
-it('refuses a branch the seller never named, a disabled one, the same one, an earlier deadline', function () {
+it('refuses a branch of another lab, a disabled one, the same one, an earlier deadline', function () {
     Orders::staff($this, SeedRole::OPERATIONS);
-    $foreign = Branch::factory()->create();
+    $foreign = Branch::factory()->create(['lab_id' => Lab::factory()->create()->lab_id]);
 
     changeBranch($this, $this->order, ['branch_id' => $foreign->branch_id, 'reason' => 'Trying another branch.'])
-        ->assertStatus(409)->assertJsonPath('code', 'branch_not_in_options');
+        ->assertStatus(422)->assertJsonPath('code', 'branch_not_in_lab');
     changeBranch($this, $this->order, ['branch_id' => $this->order->branch_id, 'reason' => 'Trying the same branch.'])->assertStatus(422);
     changeBranch($this, $this->order, ['branch_id' => $this->other->branch_id, 'reason' => 'Trying an earlier deadline.',
         'extend_to' => $this->order->reach_branch_deadline->subHour()->toIso8601String()])
@@ -87,7 +88,7 @@ it('refuses a branch the seller never named, a disabled one, the same one, an ea
 
     DatabaseActor::elevate('maintenance', fn () => DB::table('branch')->where('branch_id', $this->other->branch_id)->update(['is_enabled' => false]));
     changeBranch($this, $this->order, ['branch_id' => $this->other->branch_id, 'reason' => 'Trying a closed branch.'])
-        ->assertStatus(409)->assertJsonPath('code', 'branch_not_in_options');
+        ->assertStatus(422)->assertJsonPath('code', 'branch_not_in_lab');
 });
 
 it('refuses once the piece reached a branch, and staff without the permission; replays once', function () {

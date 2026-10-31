@@ -10,6 +10,7 @@ use OpenApi\Attributes as OA;
     schema: 'DashboardUpdateBranch',
     minProperties: 1,
     properties: [
+        new OA\Property(property: 'lab_id', type: 'integer', description: 'Only while no unfinished piece or open order uses the branch (branch_in_use)'),
         new OA\Property(property: 'name_en', type: 'string', maxLength: 150),
         new OA\Property(property: 'name_ar', type: 'string', maxLength: 150),
         new OA\Property(property: 'address_en', type: 'string', maxLength: 500),
@@ -25,7 +26,7 @@ class UpdateBranchRequest extends FormRequest
 {
     use ValidatesBranchWeek;
 
-    private const FIELDS = ['name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'timezone', 'is_enabled', 'hours'];
+    private const FIELDS = ['lab_id', 'name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'timezone', 'is_enabled', 'hours'];
 
     public function authorize(): bool
     {
@@ -35,6 +36,7 @@ class UpdateBranchRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'lab_id' => ['sometimes', 'required', 'integer', 'exists:lab,lab_id'],
             'name_en' => ['sometimes', 'required', 'string', 'max:150'],
             'name_ar' => ['sometimes', 'required', 'string', 'max:150'],
             'address_en' => ['sometimes', 'required', 'string', 'max:500'],

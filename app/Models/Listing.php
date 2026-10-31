@@ -33,7 +33,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $stated_weight_g
  * @property string|null $making_charge_per_g
  * @property string|null $asking_price
+ * @property int|null $lab_id the lab that inspects the piece; null only for rows made outside the API (they count as the main lab)
  * @property CertificateKind|null $certificate_kind the certificate a stone piece comes with (its cost is taken at settlement); null before this existed
+ * @property int|null $certificate_lab_id the listed lab behind that certificate
+ * @property string|null $certificate_other_lab_name what the seller typed for another lab; staff only
  * @property string|null $stone_carat stones only: the stone weight in carats, as the seller states it
  * @property string|null $stone_clarity stones only: vvs | vs | si | i
  * @property string|null $stone_cut stones only: excellent | very_good | good
@@ -62,6 +65,9 @@ class Listing extends Model
 
     protected $guarded = ['listing_id', 'listed_at', 'state_changed_at'];
 
+    /** Every quote of the piece reads them: one query per list, not per row. */
+    protected $with = ['lab', 'certificateLab'];
+
     protected function casts(): array
     {
         return [
@@ -69,12 +75,30 @@ class Listing extends Model
             'certificate_kind' => CertificateKind::class,
             'state' => ListingState::class,
             'piece_type_id' => 'integer',
+            'lab_id' => 'integer',
+            'certificate_lab_id' => 'integer',
             'karat_code' => 'integer',
             'active_queue_count' => 'integer',
             'created_at' => 'immutable_datetime',
             'listed_at' => 'immutable_datetime',
             'state_changed_at' => 'immutable_datetime',
         ];
+    }
+
+    public function lab(): BelongsTo
+    {
+        return $this->belongsTo(Lab::class, 'lab_id', 'lab_id');
+    }
+
+    public function certificateLab(): BelongsTo
+    {
+        return $this->belongsTo(Lab::class, 'certificate_lab_id', 'lab_id');
+    }
+
+    /** The lab cannot take it: disabled, or none of its branches is. A piece with no lab counts as open. */
+    public function needsLabChoice(): bool
+    {
+        return $this->lab_id !== null && ! $this->lab?->isOpen();
     }
 
     public function seller(): BelongsTo
@@ -86,7 +110,7 @@ class Listing extends Model
      * The stone as the seller describes it, for every reader of the piece (seller, buyer, staff):
      * the certificate it comes with and its carat, clarity and cut. Null for gold.
      *
-     * @return array{certificate_kind: string|null, carat: string|null, clarity: string|null, cut: string|null}|null
+     * @return array{certificate_kind: string|null, certificate_lab: array{id: int, name_en: string, name_ar: string}|null, carat: string|null, clarity: string|null, cut: string|null}|null
      */
     public function stoneDetails(): ?array
     {
@@ -96,6 +120,7 @@ class Listing extends Model
 
         return [
             'certificate_kind' => $this->certificate_kind?->value,
+            'certificate_lab' => $this->certificateLab?->summary(),
             'carat' => $this->stone_carat === null ? null : bcadd((string) $this->stone_carat, '0', 2),
             'clarity' => $this->stone_clarity,
             'cut' => $this->stone_cut,
@@ -218,7 +243,16 @@ class Listing extends Model
     public function scopePubliclyVisible(Builder $query): Builder
     {
         return $query->whereIn('listing.state', array_map(fn (ListingState $s) => $s->value, ListingState::PUBLIC))
-            ->notHiddenByPause();
+            ->notHiddenByPause()->notHiddenByLab();
+    }
+
+    /** Leaves out `live` pieces whose lab cannot take them; they return by themselves when it can. */
+    public function scopeNotHiddenByLab(Builder $query): Builder
+    {
+        return $query->whereRaw(
+            "NOT (listing.state = 'live' AND listing.lab_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM lab l"
+            .' JOIN branch b ON b.lab_id = l.lab_id WHERE l.lab_id = listing.lab_id AND l.is_enabled AND b.is_enabled))',
+        );
     }
 
     /** Leaves out `live` pieces of a category with an active pause (spec 019 US7, FR-071). */

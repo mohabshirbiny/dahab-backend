@@ -92,7 +92,7 @@ it('shows the inspector the stone as stated and opens its certificate through th
 
     Orders::staff($this, SeedRole::IGI_BRANCH);
     $item = collect($this->getJson('/api/v1/dashboard/inspections/work-list')->assertOk()->json('data'))->firstWhere('order_id', $order->order_id);
-    expect($item['stone'])->toBe(['certificate_kind' => 'other_lab', 'carat' => '0.70', 'clarity' => 'vs', 'cut' => 'very_good'])
+    expect($item['stone'])->toBe(['certificate_kind' => 'other_lab', 'certificate_lab' => null, 'carat' => '0.70', 'clarity' => 'vs', 'cut' => 'very_good'])
         ->and($item['certificates'])->toBe([['id' => $certificate->media_id, 'mime' => 'application/pdf']]);
 
     $file = $this->get("/api/v1/dashboard/orders/{$order->order_id}/certificates/{$certificate->media_id}")->assertOk();

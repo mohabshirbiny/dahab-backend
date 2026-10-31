@@ -37,7 +37,7 @@ class AnswerBuyRequestRequest extends FormRequest
         $rules = ['buy_request_id' => ['required', 'uuid']];
 
         if ($this->routeIs('api.v1.customer.me.listings.accept')) {
-            $rules['branch_id'] = ['required', 'integer', 'min:1'];
+            $rules['branch_id'] = ['sometimes', 'nullable', 'integer', 'min:1'];
         }
 
         return $rules;

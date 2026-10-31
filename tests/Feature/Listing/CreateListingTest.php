@@ -31,7 +31,7 @@ function createListing($test, Customer $customer, array $body, ?string $key = nu
 }
 
 it('creates a gold draft with everything that belongs to it', function () {
-    $branches = Branch::factory()->count(2)->create();
+    $branches = Branch::factory()->count(1)->create();
     $body = Listings::goldBody($this, $this->seller, [
         'branch_option_ids' => $branches->pluck('branch_id')->all(),
         'video_token' => Listings::uploadToken($this, $this->seller, 'listing_video', Listings::mp4()),
@@ -55,7 +55,7 @@ it('creates a gold draft with everything that belongs to it', function () {
         ->assertJsonPath('data.can_submit', true)
         ->assertJsonPath('data.can_withdraw', false)
         ->assertJsonCount(4, 'data.media')
-        ->assertJsonCount(2, 'data.branch_options');
+        ->assertJsonCount(1, 'data.branch_options');
 
     $listing = Listing::query()->sole();
     $media = DB::table('listing_media')->where('listing_id', $listing->listing_id)->orderBy('kind')->orderBy('position')->get();
@@ -151,7 +151,6 @@ it('refuses a listing without an enabled branch', function (Closure $branches) {
     'none' => [fn () => []],
     'a disabled branch' => [fn () => [Branch::factory()->disabled()->create()->branch_id]],
     'an unknown branch' => [fn () => [32000]],
-    'one open and one disabled' => [fn () => [Branch::factory()->create()->branch_id, Branch::factory()->disabled()->create()->branch_id]],
 ]);
 
 it('refuses a listing without the branch list at all', function () {

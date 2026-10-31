@@ -2598,6 +2598,131 @@
                             "response": []
                         },
                         {
+                            "name": "List Labs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/labs",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "labs"
+                                    ]
+                                },
+                                "description": "Every lab, the main lab first, with its costs and live_pieces. Requires reference.view."
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Create Lab",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/labs",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "labs"
+                                    ]
+                                },
+                                "description": "Adds a lab. The names and three certificate costs are required; gold_inspection_cost_egp defaults to 0. Requires branches.manage. Audited.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name_en\": \"IGI\",\n  \"name_ar\": \"IGI\",\n  \"certificate_own_cost_egp\": \"0\",\n  \"certificate_other_cost_egp\": \"1000\",\n  \"certificate_none_cost_egp\": \"2000\",\n  \"gold_inspection_cost_egp\": \"0\",\n  \"is_enabled\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Update Lab",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{staff_access_token}}",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/dashboard/labs/{{lab_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "dashboard",
+                                        "labs",
+                                        "{{lab_id}}"
+                                    ]
+                                },
+                                "description": "Any field. A changed cost applies to pieces not yet accepted and their sellers are told. Requires branches.manage. Audited.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"gold_inspection_cost_egp\": \"250\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Add Branch",
                             "event": [
                                 {
@@ -2646,7 +2771,7 @@
                                 "description": "Adds a branch with its whole week. Several intervals per day are allowed (split day); they must not overlap (422 hours.N). timezone is an IANA name, default Africa/Cairo. Requires branches.manage.\n\ncontact_phone (≤ 30) and map_url (http/https link, ≤ 500) are optional; customers see them with the hours on GET /reference/branches and on their orders. null clears them.",
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"name_en\": \"IGI Heliopolis\",\n    \"name_ar\": \"فرع مصر الجديدة\",\n    \"address_en\": \"12 Baghdad St, Heliopolis\",\n    \"address_ar\": \"12 شارع بغداد، مصر الجديدة\",\n    \"contact_phone\": \"+20 2 2401 0000\",\n    \"map_url\": \"https://maps.google.com/?q=IGI+Heliopolis\",\n    \"timezone\": \"Africa/Cairo\",\n    \"hours\": [\n        {\n            \"dow\": 0,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"18:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"10:00\",\n            \"closes_at\": \"14:00\"\n        },\n        {\n            \"dow\": 1,\n            \"opens_at\": \"16:00\",\n            \"closes_at\": \"20:00\"\n        }\n    ]\n}",
+                                    "raw": "{\n  \"name_en\": \"IGI Heliopolis\",\n  \"name_ar\": \"فرع مصر الجديدة\",\n  \"address_en\": \"12 Baghdad St, Heliopolis\",\n  \"address_ar\": \"12 شارع بغداد، مصر الجديدة\",\n  \"contact_phone\": \"+20 2 2401 0000\",\n  \"map_url\": \"https://maps.google.com/?q=IGI+Heliopolis\",\n  \"timezone\": \"Africa/Cairo\",\n  \"hours\": [\n    {\n      \"dow\": 0,\n      \"opens_at\": \"10:00\",\n      \"closes_at\": \"18:00\"\n    },\n    {\n      \"dow\": 1,\n      \"opens_at\": \"10:00\",\n      \"closes_at\": \"14:00\"\n    },\n    {\n      \"dow\": 1,\n      \"opens_at\": \"16:00\",\n      \"closes_at\": \"20:00\"\n    }\n  ],\n  \"lab_id\": 1\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -5126,7 +5251,7 @@
                                         "inspection-results"
                                     ]
                                 },
-                                "description": "Spec 012 FR-011. The server derives the outcome (pass | weight_adjust | stone_regrade | karat_cancel | fake_cancel). Requires inspection.enter (ceo, igi_branch), branch-scoped. Send supersedes_id (the latest inspection_id) only to correct. Saves inspection_id.",
+                                "description": "Spec 012 FR-011. The server derives the outcome (pass | weight_adjust | stone_regrade | karat_cancel | fake_cancel). Requires inspection.enter (ceo, igi_branch), branch-scoped. Send supersedes_id (the latest inspection_id) only to correct. Saves inspection_id.\n\ncertificate_kind_found (lab|other_lab|none) and certificate_lab_id_found: the certificate actually found, when it differs from what the seller stated.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"measured_karat\": 21,\n  \"measured_weight_g\": \"9.900\",\n  \"measured_stone_grade\": null,\n  \"certificate_number\": \"IGI-EG-88214\",\n  \"inspector_note\": \"Hallmark clear and matches 21K.\",\n  \"is_counterfeit\": false,\n  \"stone_below_claim\": false,\n  \"supersedes_id\": null\n}",
@@ -12664,6 +12789,56 @@
                             ]
                         },
                         {
+                            "name": "Choose Listing Lab",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Idempotency-Key",
+                                        "value": "{{$guid}}",
+                                        "type": "text",
+                                        "description": "Required. A new UUID per send; reuse a fixed value to see the replay (Idempotent-Replayed: true)."
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/customer/me/listings/{{listing_id}}/lab",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "customer",
+                                        "me",
+                                        "listings",
+                                        "{{listing_id}}",
+                                        "lab"
+                                    ]
+                                },
+                                "description": "A live piece with needs_lab_choice: choose a branch of another lab. Idempotent.",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"branch_id\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            },
+                            "response": []
+                        },
+                        {
                             "name": "Accept First Buy Request",
                             "request": {
                                 "method": "POST",
@@ -12700,7 +12875,7 @@
                                         "accept"
                                     ]
                                 },
-                                "description": "Spec 011 FR-014. The head of the queue only, at one of the listing's enabled branch options. Creates the order (DH-YYYY-NNNNNN, reach_branch_deadline in working hours), keeps the head's deposit held, releases and refunds everyone else, listing reserved → accepted. 409 not_queue_head | queue_empty | branch_not_in_options | buyer_suspended | branch_hours_unavailable.",
+                                "description": "Spec 011 FR-014. The head of the queue only, at one of the listing's enabled branch options. Creates the order (DH-YYYY-NNNNNN, reach_branch_deadline in working hours), keeps the head's deposit held, releases and refunds everyone else, listing reserved → accepted. 409 not_queue_head | queue_empty | branch_not_in_options | buyer_suspended | branch_hours_unavailable.\n\nbranch_id is needed only when the listing says needs_branch_choice.",
                                 "body": {
                                     "mode": "raw",
                                     "raw": "{\n  \"buy_request_id\": \"{{buy_request_id}}\",\n  \"branch_id\": \"{{branch_id}}\"\n}",
@@ -15823,6 +15998,36 @@
                                     }
                                 }
                             ]
+                        },
+                        {
+                            "name": "Labs",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/reference/labs",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "reference",
+                                        "labs"
+                                    ]
+                                },
+                                "description": "Public. Enabled labs with an enabled branch: costs {own, other, none, gold (null at 0)} and branches.",
+                                "auth": {
+                                    "type": "noauth"
+                                }
+                            },
+                            "response": []
                         },
                         {
                             "name": "Ownership Declaration",

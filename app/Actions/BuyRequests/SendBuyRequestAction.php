@@ -84,6 +84,9 @@ final class SendBuyRequestAction
             if (! $seen->state->isPublic()) {
                 throw DomainApiException::listingNotPurchasable();
             }
+            if ($seen->state === ListingState::LIVE && $seen->needsLabChoice()) {
+                throw DomainApiException::labNotAvailable();
+            }
 
             // A buyer who owes the balance, or an answer to a new price, on an order settles it first.
             $owed = Order::query()->where('buyer_id', $buyer->customer_id)

@@ -63,10 +63,10 @@ it('changes only what is sent', function () {
         ->assertJsonCount(1, 'data.branch_options');
 });
 
-it('replaces the branch set', function () {
-    $new = Branch::factory()->count(2)->create()->pluck('branch_id')->all();
+it('replaces the branch', function () {
+    $new = Branch::factory()->count(1)->create()->pluck('branch_id')->all();
 
-    editListing($this, $this->seller, $this->listing, ['branch_option_ids' => $new])->assertOk()->assertJsonCount(2, 'data.branch_options');
+    editListing($this, $this->seller, $this->listing, ['branch_option_ids' => $new])->assertOk()->assertJsonCount(1, 'data.branch_options');
 
     expect(DB::table('listing_branch_option')->where('listing_id', $this->listing->listing_id)->pluck('branch_id')->sort()->values()->all())->toBe($new);
 
@@ -74,7 +74,7 @@ it('replaces the branch set', function () {
     editListing($this, $this->seller, $this->listing, ['branch_option_ids' => [Branch::factory()->disabled()->create()->branch_id]])
         ->assertStatus(422)->assertJsonPath('code', 'branch_options_required');
 
-    expect(DB::table('listing_branch_option')->where('listing_id', $this->listing->listing_id)->count())->toBe(2);
+    expect(DB::table('listing_branch_option')->where('listing_id', $this->listing->listing_id)->count())->toBe(1);
 });
 
 it('adds and removes photos and deletes what was removed', function () {

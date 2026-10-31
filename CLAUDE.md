@@ -438,6 +438,14 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `paid_from_account_id` (fixed, DH007); the daily close takes `bank_balances[]` (one per account) and stores
   `daily_close_bank` lines plus the not-assigned cash, locking when every line is 0 or with an explanation (`BankAccounts`);
   `bank` on bank-book rows. Every Dashboard list, the statements, the bank book and the customer's statement PDF are newest first.
+  Labs and certificate costs (`docs/features/labs-and-certificate-costs.md`, 2026-10-31): `lab` (`/dashboard/labs*`, `reference.view` |
+  `branches.manage`; public `GET /reference/labs`) holds the own / other / none certificate costs and the gold inspection cost (0 appears
+  nowhere); every branch belongs to one, IGI first with the old settings' values (the `certificate.*` settings are gone). A new listing has
+  one branch and takes its lab (`listing.lab_id`, `certificate_kind` `lab|other_lab|none`, `certificate_lab_id`,
+  `certificate_other_lab_name`, staff and seller only; `igi` still read on input). `order.lab_id|certificate_cost|gold_inspection_cost` lock
+  at acceptance (`branch_id` optional, `needs_branch_choice`), taken from the seller at pay-balance onto `igi_certificates`, `payable_by_lab`
+  on the Dahab statement. A disabled lab hides its live pieces (`needs_lab_choice`, `POST /customer/me/listings/{id}/lab`); inspection may
+  correct the certificate (`certificate_kind_found`); staff move an order within its lab only. Paying a lab is not built; IGI texts stay until a second lab goes live.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
@@ -538,6 +546,10 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   `sell.figures.*` (AR-DRAFT).
   Seller notes: the video plays inside the piece page (last gallery slide, *Watch the video*), My listings shows the photo,
   buyers see "Has completed N sales on Dahab", *Change making charge* while in review; texts `piece.seller_*|video_*` (AR-DRAFT).
+  Labs and certificate costs: Sell step 1 asks which certificate (a button per lab, *Another lab* with its name, *No certificate*) and lists
+  labs with cost, *Recommended*, branches with address and hours, one branch chosen; Sell step 3 no longer asks; accepting names a branch only
+  when needed; a piece whose lab stopped asks for another; texts `labs.*` (AR-DRAFT). Dashboard: *Labs and branches*, *Certificate found* on
+  the inspection, same-lab Change branch, lab fees by lab on the statement.
 - Flutter's `API_BASE_URL` defaults to `http://127.0.0.1:8000/api/v1` (`lib/core/config/app_config.dart`); the production host is passed
   with `--dart-define` only when building a deploy version.
 

@@ -70,7 +70,7 @@ class ListingQueueController extends Controller
         path: '/customer/me/listings/{listing}/accept',
         operationId: 'customerAcceptBuyRequest',
         summary: 'Accept the first buyer in line',
-        description: 'Spec 011 FR-014, Part 2 §5. Only the head of the queue, at one of the listing\'s enabled branch options. One transaction: the order is created (order_ref DH-YYYY-NNNNNN, awaiting_delivery, reach_branch_deadline counted in working hours at that branch from deadline.reach_branch_working_hours); the head becomes accepted and keeps its deposit held; everyone else in line is released (released_not_chosen) and refunded; the piece moves reserved → accepted and leaves the market. Buyers are told after commit. Trade gate. Idempotent.',
+        description: 'Spec 011 FR-014, Part 2 §5. Only the head of the queue, at its branch. branch_id is needed only when needs_branch_choice is true: an old piece with several open branches names one of them, a closed branch is replaced by an open one of the same lab, and a lab that stopped taking pieces is replaced by an open branch of another lab, at that lab\'s cost. One transaction: the order is created (order_ref DH-YYYY-NNNNNN, awaiting_delivery, reach_branch_deadline counted in working hours at that branch from deadline.reach_branch_working_hours); the head becomes accepted and keeps its deposit held; everyone else in line is released (released_not_chosen) and refunded; the piece moves reserved → accepted and leaves the market. Buyers are told after commit. Trade gate. Idempotent.',
         security: [['customerBearer' => []]],
         requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(ref: '#/components/schemas/AcceptBuyRequestRequest')),
         tags: ['Customer Buy Requests'],
@@ -90,14 +90,14 @@ class ListingQueueController extends Controller
             new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 403, description: 'verification_required | account_suspended', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
-            new OA\Response(response: 409, description: 'not_queue_head | queue_empty | branch_not_in_options | buyer_suspended | branch_hours_unavailable | illegal_listing_transition | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'not_queue_head | queue_empty | branch_not_in_options | lab_not_available | buyer_suspended | branch_hours_unavailable | illegal_listing_transition | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
             new OA\Response(response: 422, description: 'validation_failed | idempotency_key_mismatch', content: new OA\JsonContent(ref: self::ERR)),
         ],
     )]
     public function accept(AnswerBuyRequestRequest $request, string $listing, AcceptBuyRequestAction $accept, ListOwnListingsAction $own): JsonResponse
     {
         $seller = $this->customer($request);
-        $done = $accept->handle($seller, $listing, (string) $request->validated('buy_request_id'), (int) $request->validated('branch_id'));
+        $done = $accept->handle($seller, $listing, (string) $request->validated('buy_request_id'), $request->validated('branch_id') === null ? null : (int) $request->validated('branch_id'));
 
         return response()->json(['data' => [
             'order' => OrderSummaryResource::shape($done['order']),

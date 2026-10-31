@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Setting;
+use App\Models\Lab;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -14,8 +14,8 @@ it('gives each certificate cost from the settings, to anyone', function () {
         ->assertExactJson(['data' => ['igi' => '0.0000', 'other_lab' => '1000.0000', 'none' => '2000.0000']]);
 });
 
-it('follows a changed setting at once', function () {
-    Setting::query()->whereKey('certificate.other_lab_cost_egp')->update(['value_numeric' => 750]);
+it('follows the main lab at once', function () {
+    Lab::main()->update(['certificate_other_cost_egp' => 750]);
 
     $this->getJson(CERT_COSTS_URL)->assertOk()->assertJsonPath('data.other_lab', '750.0000');
 });

@@ -29,7 +29,7 @@ it('keeps a diamond\'s stone details and shows them to the seller', function () 
     ]);
 
     Listings::as($this, $this->seller)->postJson(Listings::SELLER_URL, $body, Listings::key())->assertCreated()
-        ->assertJsonPath('data.stone', ['certificate_kind' => 'none', 'carat' => '0.70', 'clarity' => 'vs', 'cut' => 'very_good'])
+        ->assertJsonPath('data.stone', ['certificate_kind' => 'none', 'certificate_lab' => null, 'carat' => '0.70', 'clarity' => 'vs', 'cut' => 'very_good'])
         ->assertJsonPath('data.certificate_fee', '2000.0000');
 });
 
@@ -50,7 +50,7 @@ it('shows a buyer on the market and on the order that the stone comes without a 
         'seller_id' => $this->seller->customer_id, 'certificate_kind' => 'none',
         'stone_carat' => '1.10', 'stone_clarity' => 'si', 'stone_cut' => 'good',
     ]);
-    $stone = ['certificate_kind' => 'none', 'carat' => '1.10', 'clarity' => 'si', 'cut' => 'good'];
+    $stone = ['certificate_kind' => 'none', 'certificate_lab' => null, 'carat' => '1.10', 'clarity' => 'si', 'cut' => 'good'];
 
     Listings::anonymous($this)->getJson(Listings::MARKET_URL."/{$diamond->listing_id}")->assertOk()->assertJsonPath('data.stone', $stone);
     expect(collect(Listings::anonymous($this)->getJson(Listings::MARKET_URL)->json('data'))->firstWhere('id', $diamond->listing_id)['stone'])->toBe($stone);

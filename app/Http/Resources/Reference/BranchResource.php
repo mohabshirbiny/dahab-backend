@@ -14,6 +14,7 @@ use OpenApi\Attributes as OA;
     required: ['id', 'name_en', 'name_ar', 'address_en', 'address_ar', 'timezone', 'is_enabled', 'hours'],
     properties: [
         new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'lab_id', type: 'integer'),
         new OA\Property(property: 'name_en', type: 'string'),
         new OA\Property(property: 'name_ar', type: 'string'),
         new OA\Property(property: 'address_en', type: 'string'),
@@ -34,6 +35,7 @@ class BranchResource extends JsonResource
 
         return [
             'id' => $b->branch_id,
+            'lab_id' => $b->lab_id,
             'name_en' => $b->name_en,
             'name_ar' => $b->name_ar,
             'address_en' => $b->address_en,

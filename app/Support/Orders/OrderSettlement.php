@@ -95,10 +95,11 @@ final class OrderSettlement
         );
         $breakdown = $resolution->applyTo($ordinary);
 
-        // Package D: the certificate cost locked at acceptance comes out of the seller's proceeds only;
-        // the buyer's total, the commission and the VAT are unchanged. Orders accepted before it pay none.
+        // What the lab costs, locked at acceptance, comes out of the seller's proceeds only; the
+        // buyer's total, the commission and the VAT are unchanged. Orders accepted before it pay none.
         $certificateFee = Money::fixed4($order->certificate_cost === null ? '0' : (string) $order->certificate_cost);
-        $proceeds = Money::fixed4(Money::sub($breakdown->sellerProceeds, $certificateFee));
+        $goldInspectionFee = Money::fixed4($order->gold_inspection_cost === null ? '0' : (string) $order->gold_inspection_cost);
+        $proceeds = Money::fixed4(Money::sub(Money::sub($breakdown->sellerProceeds, $certificateFee), $goldInspectionFee));
 
         // 2026-10-26: a buyer code's discount off the price, paid by Dahab's commission or the spread and
         // capped by it; read on the buyer's side (the ordinary commission), so no seller waiver changes it.
@@ -130,6 +131,7 @@ final class OrderSettlement
             // The positive spread a dealer's purchase hands to the dealer instead of Dahab (spec 019 6B).
             spreadGivenUp: $request->promo_gives_spread && Money::cmp($breakdown->spread, '0') > 0 ? Money::fixed4($breakdown->spread) : '0.0000',
             certificateFee: $certificateFee,
+            goldInspectionFee: $goldInspectionFee,
             ordinaryCommissionTotal: $resolution->ordinaryTotal,
             priceDiscount: $discount,
             priceDiscountFundedBy: $priceDiscount->fundedBy,
@@ -180,7 +182,7 @@ final class OrderSettlement
                 $lines[] = new LedgerLine(Account::internal(AccountKind::EXTERNAL_EQUITY), $recovered);
             }
             foreach ([
-                [AccountKind::IGI_CERTIFICATES, $f->certificateFee],
+                [AccountKind::IGI_CERTIFICATES, Money::fixed4(Money::add($f->certificateFee, $f->goldInspectionFee))],
                 [AccountKind::DAHAB_COMMISSION, $f->commission],
                 [AccountKind::VAT_PAYABLE, $f->vat],
                 [AccountKind::DAHAB_SPREAD, $toDealer ? '0' : $f->spread],

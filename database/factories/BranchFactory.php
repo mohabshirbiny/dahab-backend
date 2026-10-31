@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Branch;
+use App\Models\Lab;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +19,7 @@ class BranchFactory extends Factory
     public function definition(): array
     {
         return [
+            'lab_id' => fn () => Lab::main()->lab_id,
             'name_en' => 'IGI '.$this->faker->unique()->city(),
             'name_ar' => 'فرع',
             'address_en' => $this->faker->streetAddress(),

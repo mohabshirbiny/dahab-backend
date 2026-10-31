@@ -131,7 +131,7 @@ it('accepts only the head, at a named enabled branch, and never a suspended buye
     BuyRequests::accept($this, $this->seller, $this->listing, $head, $elsewhere)->assertStatus(409)->assertJsonPath('code', 'branch_not_in_options');
 
     Branch::query()->whereKey($this->branch)->update(['is_enabled' => false]);
-    BuyRequests::accept($this, $this->seller, $this->listing, $head, $this->branch)->assertStatus(409)->assertJsonPath('code', 'branch_not_in_options');
+    BuyRequests::accept($this, $this->seller, $this->listing, $head, $this->branch)->assertStatus(422)->assertJsonPath('code', 'branch_not_in_lab');
     Branch::query()->whereKey($this->branch)->update(['is_enabled' => true]);
 
     DB::table('customer')->where('customer_id', $head->buyer_id)->update([

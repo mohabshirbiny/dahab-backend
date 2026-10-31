@@ -6,6 +6,7 @@ use App\Enums\CertificateKind;
 use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
 use App\Models\Karat;
+use App\Models\Lab;
 use App\Support\Listings\CertificateFee;
 use App\Support\Pricing\Money;
 use App\Support\Pricing\Piece;
@@ -23,7 +24,7 @@ final class QuoteAction
     public function __construct(private readonly PricingContext $pricing, private readonly CertificateFee $certificateFee) {}
 
     /** @return array<string, mixed> */
-    public function handle(PieceCategory $category, ?int $karatCode, ?string $weight, ?string $makingPerGram, ?string $askingPrice, ?CertificateKind $certificate = null): array
+    public function handle(PieceCategory $category, ?int $karatCode, ?string $weight, ?string $makingPerGram, ?string $askingPrice, ?CertificateKind $certificate = null, ?int $certificateLabId = null, ?int $labId = null): array
     {
         $price = $this->pricing->currentPrice();
         if ($category !== PieceCategory::DIAMOND && $price === null) {
@@ -61,8 +62,10 @@ final class QuoteAction
         $pct = $category === PieceCategory::GOLD ? $rates->goldPct : $rates->stonePct;
         $base = $category === PieceCategory::GOLD ? $making : Money::fixed4((string) $askingPrice);
 
-        // Package D: a stone piece's certificate cost comes out of the payout; gold has none.
-        $fee = $category === PieceCategory::GOLD ? '0.0000' : $this->certificateFee->forKind($certificate);
+        // What the chosen lab costs comes out of the payout (the main lab until one is chosen).
+        $lab = $labId === null ? Lab::main() : Lab::query()->findOrFail($labId);
+        $goldFee = $category === PieceCategory::GOLD ? $this->certificateFee->goldCost($lab) : null;
+        $fee = $category === PieceCategory::GOLD ? '0.0000' : $this->certificateFee->forKind($certificate, $certificateLabId, $lab);
 
         return [
             'category' => $category->value,
@@ -73,7 +76,8 @@ final class QuoteAction
             'commission' => $b->commission,
             'vat' => $b->vat,
             'certificate_fee' => $fee,
-            'payout' => CertificateFee::net($b->sellerProceeds, $fee),
+            'gold_inspection_fee' => $goldFee,
+            'payout' => CertificateFee::net(CertificateFee::net($b->sellerProceeds, $fee), $goldFee),
             'commission_rate' => Money::fixed4($pct),
             // Package C: the minimum is VAT-inclusive, like the rate.
             'minimum_applied' => bccomp($b->commissionTotal(), Money::round4(Money::percent($base, $pct)), 4) > 0,

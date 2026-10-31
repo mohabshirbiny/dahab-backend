@@ -333,6 +333,36 @@ class DomainApiException extends RuntimeException
         return new self('queue_empty', 409, 'There is no request waiting on this piece.');
     }
 
+    public static function labNotAvailable(): self
+    {
+        return new self('lab_not_available', 409, 'This lab is not taking pieces right now. Choose another lab.');
+    }
+
+    public static function certificateLabRequired(): self
+    {
+        return new self('certificate_lab_required', 422, 'Choose the lab that issued the certificate.');
+    }
+
+    public static function otherLabNameRequired(): self
+    {
+        return new self('other_lab_name_required', 422, 'Write the name of the lab that issued the certificate.');
+    }
+
+    public static function branchNotInLab(): self
+    {
+        return new self('branch_not_in_lab', 422, 'Choose an open branch of the same lab.');
+    }
+
+    public static function branchInUse(): self
+    {
+        return new self('branch_in_use', 409, 'This branch has pieces on the way or on the market, so its lab cannot change.');
+    }
+
+    public static function certificateCostTooHigh(): self
+    {
+        return new self('certificate_cost_too_high', 422, 'This certificate cost would leave the seller nothing from the sale.');
+    }
+
     public static function branchNotInOptions(): self
     {
         return new self('branch_not_in_options', 409, 'Choose one of the open branches you named for this piece.');

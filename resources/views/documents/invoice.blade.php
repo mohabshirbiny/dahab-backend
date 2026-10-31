@@ -73,7 +73,10 @@
 </table>
 <table class="lines" style="margin-top:5mm">
     @if(isset($l['certificate_fee']))
-    <tr><td class="c1">Stone certificate fee (taken from the proceeds)</td><td class="num c2">{{ $m($l['certificate_fee']) }}</td><td class="ar c3" lang="ar">رسوم شهادة الأحجار (تُخصم من المبلغ)</td></tr>
+    <tr><td class="c1">Stone certificate fee{{ isset($l['lab_name_en']) ? ', '.$l['lab_name_en'] : '' }} (taken from the proceeds)</td><td class="num c2">{{ $m($l['certificate_fee']) }}</td><td class="ar c3" lang="ar">رسوم شهادة الأحجار{{ isset($l['lab_name_ar']) ? '، '.$l['lab_name_ar'] : '' }} (تُخصم من المبلغ)</td></tr>
+    @endif
+    @if(isset($l['gold_inspection_fee']))
+    <tr><td class="c1">Gold inspection{{ isset($l['lab_name_en']) ? ', '.$l['lab_name_en'] : '' }} (taken from the proceeds)</td><td class="num c2">{{ $m($l['gold_inspection_fee']) }}</td><td class="ar c3" lang="ar">فحص الدهب{{ isset($l['lab_name_ar']) ? '، '.$l['lab_name_ar'] : '' }} (تُخصم من المبلغ)</td></tr>
     @endif
     <tr class="total"><td class="c1">Paid to your wallet</td><td class="num c2">{{ $m($l['paid_to_wallet'] ?? null) }}</td><td class="ar c3" lang="ar">اتحول لمحفظتك</td></tr>
 </table>

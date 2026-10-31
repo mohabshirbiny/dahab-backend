@@ -116,9 +116,14 @@ class StaffOrderResource extends JsonResource
             'locked_total_price' => bcadd((string) $o->locked_total_price, '0', 4),
             'deposit_amount' => $deposit,
             'locked_seller_unit_rate' => $o->locked_seller_unit_rate === null ? null : bcadd((string) $o->locked_seller_unit_rate, '0', 4),
-            // Package D: the IGI certificate cost locked at acceptance and the kind the seller named (null: none).
+            // What the lab costs, locked at acceptance, and the certificate as it now stands (null: none).
+            'lab' => $o->lab?->summary(),
             'certificate_cost' => $o->certificate_cost === null ? null : bcadd((string) $o->certificate_cost, '0', 4),
+            'gold_inspection_cost' => $o->gold_inspection_cost === null ? null : bcadd((string) $o->gold_inspection_cost, '0', 4),
             'certificate_kind' => $o->listing?->certificate_kind?->value,
+            'certificate_lab' => $o->listing?->certificateLab?->summary(),
+            'certificate_other_lab_name' => $o->listing?->certificate_other_lab_name,
+            'certificate_kind_found' => $o->certificate_kind_found,
             // App notes 2026-10-26: the certificate files the seller uploaded, through GET …/certificates/{media}.
             'certificates' => WorkListItemResource::certificates($o),
             'locked_buyer_unit_rate' => $o->buyRequest->locked_unit_rate === null ? null : bcadd((string) $o->buyRequest->locked_unit_rate, '0', 4),
@@ -130,6 +135,7 @@ class StaffOrderResource extends JsonResource
                 'vat_amount' => (string) $o->vat_amount,
                 'spread_amount' => (string) $o->spread_amount,
                 'certificate_fee' => bcadd((string) ($o->certificate_cost ?? '0'), '0', 4),
+                'gold_inspection_fee' => bcadd((string) ($o->gold_inspection_cost ?? '0'), '0', 4),
                 'seller_proceeds' => (string) $o->seller_proceeds,
                 'balance_amount' => (string) $o->balance_amount,
             ],

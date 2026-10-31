@@ -5,6 +5,7 @@ namespace App\Http\Requests\Customer\Listing;
 use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
 use App\Models\Listing;
+use App\Support\Listings\ListingCertificate;
 use Illuminate\Foundation\Http\FormRequest;
 use OpenApi\Attributes as OA;
 
@@ -17,12 +18,14 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'stated_weight_g', type: 'string', example: '8.100'),
         new OA\Property(property: 'making_charge_per_g', type: 'string', example: '240.00'),
         new OA\Property(property: 'asking_price', type: 'string'),
-        new OA\Property(property: 'certificate_kind', type: 'string', enum: ['igi', 'other_lab', 'none'], nullable: true, description: 'Stones only: the certificate the seller brings; its cost is taken from the proceeds'),
+        new OA\Property(property: 'certificate_kind', type: 'string', enum: ['lab', 'other_lab', 'none'], nullable: true, description: 'Stones only: the certificate the seller brings; its cost is taken from the proceeds. igi is still read as lab with the main lab'),
+        new OA\Property(property: 'certificate_lab_id', type: 'integer', nullable: true, description: 'With lab: an enabled lab that issued it'),
+        new OA\Property(property: 'certificate_other_lab_name', type: 'string', nullable: true, description: 'With other_lab: the name of the lab'),
         new OA\Property(property: 'stone_carat', type: 'string', nullable: true, example: '0.70', description: 'Stones only: the stone weight in carats as the seller states it, > 0, at most 2 decimals'),
         new OA\Property(property: 'stone_clarity', type: 'string', enum: ['vvs', 'vs', 'si', 'i'], nullable: true, description: 'Stones only'),
         new OA\Property(property: 'stone_cut', type: 'string', enum: ['excellent', 'very_good', 'good'], nullable: true, description: 'Stones only'),
         new OA\Property(property: 'description', type: 'string', nullable: true),
-        new OA\Property(property: 'branch_option_ids', type: 'array', items: new OA\Items(type: 'integer'), description: 'Replaces the whole set; at least one enabled branch'),
+        new OA\Property(property: 'branch_option_ids', type: 'array', items: new OA\Items(type: 'integer'), description: 'Exactly one enabled branch of an enabled lab; the listing takes that lab'),
         new OA\Property(property: 'add_photo_tokens', type: 'array', items: new OA\Items(type: 'string')),
         new OA\Property(property: 'remove_media_ids', type: 'array', items: new OA\Items(type: 'string', format: 'uuid')),
         new OA\Property(property: 'photo_order', type: 'array', items: new OA\Items(type: 'string', format: 'uuid'), description: 'Every photo id of the listing after this edit, in display order'),
@@ -65,6 +68,8 @@ class UpdateListingRequest extends FormRequest
             }
         }
 
+        $this->merge(ListingCertificate::fromLegacy($this->all()));
+
         if ($this->has('branch_option_ids') && (! is_array($this->input('branch_option_ids')) || $this->input('branch_option_ids') === [])) {
             throw DomainApiException::branchOptionsRequired();
         }
@@ -75,7 +80,7 @@ class UpdateListingRequest extends FormRequest
         return [
             'category' => ['prohibited'],
             ...ListingRules::for($this->listing()->category, partial: true),
-            'branch_option_ids' => ['sometimes', 'array', 'min:1', 'max:50'],
+            'branch_option_ids' => ['sometimes', 'array', 'size:1'],
             'branch_option_ids.*' => ['integer', 'distinct'],
             'add_photo_tokens' => ['sometimes', 'array', 'max:'.config('dahab-listings.max_photos')],
             'add_photo_tokens.*' => ['string', 'max:200', 'distinct'],

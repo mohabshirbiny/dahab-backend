@@ -34,7 +34,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $cancelled_at
  * @property string|null $cancel_reason
  * @property string|null $locked_seller_unit_rate
- * @property string|null $certificate_cost package D: the IGI certificate cost locked at acceptance, taken from the seller's proceeds at settlement (null: none)
+ * @property int|null $lab_id the lab that inspects the piece
+ * @property string|null $certificate_cost the lab's certificate cost locked at acceptance, taken from the seller's proceeds at settlement (null: none)
+ * @property string|null $gold_inspection_cost the lab's gold inspection cost locked at acceptance, taken the same way (null: none)
+ * @property string|null $certificate_kind_found what inspection found when it differed from what the seller stated
  * @property CarbonImmutable|null $decision_due_deadline
  * @property string|null $proposed_price
  * @property string|null $proposed_by
@@ -112,6 +115,11 @@ class Order extends Model
     public function buyRequest(): BelongsTo
     {
         return $this->belongsTo(BuyRequest::class, 'buy_request_id', 'buy_request_id');
+    }
+
+    public function lab(): BelongsTo
+    {
+        return $this->belongsTo(Lab::class, 'lab_id', 'lab_id');
     }
 
     public function branch(): BelongsTo

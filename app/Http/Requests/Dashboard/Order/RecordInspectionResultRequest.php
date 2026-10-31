@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Dashboard\Order;
 
+use App\Enums\CertificateKind;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
 
 /**
@@ -22,6 +24,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'is_counterfeit', type: 'boolean', default: false),
         new OA\Property(property: 'stone_below_claim', type: 'boolean', default: false, description: 'Stone categories only'),
         new OA\Property(property: 'supersedes_id', type: 'string', format: 'uuid', nullable: true, description: 'Only to correct the latest result'),
+        new OA\Property(property: 'certificate_kind_found', type: 'string', enum: ['lab', 'other_lab', 'none'], nullable: true, description: 'Stone pieces: the certificate actually found, when it differs from what the seller stated. The cost moves to the current cost of the order lab; the seller is told.'),
+        new OA\Property(property: 'certificate_lab_id_found', type: 'integer', nullable: true, description: 'With lab: the lab that issued it'),
     ],
 )]
 class RecordInspectionResultRequest extends FormRequest
@@ -42,6 +46,8 @@ class RecordInspectionResultRequest extends FormRequest
             'is_counterfeit' => ['sometimes', 'boolean'],
             'stone_below_claim' => ['sometimes', 'boolean'],
             'supersedes_id' => ['nullable', 'uuid'],
+            'certificate_kind_found' => ['nullable', Rule::enum(CertificateKind::class)],
+            'certificate_lab_id_found' => ['nullable', 'integer', 'exists:lab,lab_id', 'required_if:certificate_kind_found,lab'],
         ];
     }
 }

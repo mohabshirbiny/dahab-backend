@@ -3,6 +3,7 @@
 use App\Enums\SeedRole;
 use App\Models\AuditLog;
 use App\Models\Branch;
+use App\Models\Lab;
 use App\Models\Staff;
 use Database\Seeders\DashboardRolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,6 +21,7 @@ beforeEach(function () {
 function branchBody(array $overrides = []): array
 {
     return array_merge([
+        'lab_id' => Lab::main()->lab_id,
         'name_en' => 'IGI Heliopolis',
         'name_ar' => 'فرع مصر الجديدة',
         'address_en' => '12 Baghdad St',

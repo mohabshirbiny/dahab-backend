@@ -9,6 +9,7 @@ use App\Exceptions\DomainApiException;
 use App\Models\Customer;
 use App\Models\Listing;
 use App\Models\ListingMedia;
+use App\Support\Listings\ListingCertificate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -22,7 +23,7 @@ final class UpdateListingAction
 {
     use AttachesListingMedia, MovesListing;
 
-    private const FIELDS = ['piece_type_id', 'karat_code', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'certificate_kind', 'stone_carat', 'stone_clarity', 'stone_cut', 'description'];
+    private const FIELDS = ['piece_type_id', 'karat_code', 'stated_weight_g', 'making_charge_per_g', 'asking_price', 'stone_carat', 'stone_clarity', 'stone_cut', 'description'];
 
     private const SINGLES = [
         'video_token' => ListingMediaKind::VIDEO,
@@ -45,10 +46,19 @@ final class UpdateListingAction
                 throw DomainApiException::listingNotEditable();
             }
 
-            $listing->fill(array_intersect_key($data, array_flip(self::FIELDS)))->save();
+            $listing->fill(array_intersect_key($data, array_flip(self::FIELDS)));
+            if (array_intersect_key($data, array_flip(['certificate_kind', 'certificate_lab_id', 'certificate_other_lab_name'])) !== []) {
+                $listing->fill(ListingCertificate::columns($data + [
+                    'certificate_kind' => $listing->certificate_kind?->value,
+                    'certificate_lab_id' => $listing->certificate_lab_id,
+                    'certificate_other_lab_name' => $listing->certificate_other_lab_name,
+                ]));
+            }
+            $listing->save();
 
             if (array_key_exists('branch_option_ids', $data)) {
                 $branchIds = CreateListingAction::enabledBranchIds((array) $data['branch_option_ids']);
+                $listing->forceFill(['lab_id' => CreateListingAction::labOfBranches($branchIds)])->save();
                 DB::table('listing_branch_option')->where('listing_id', $listing->listing_id)->delete();
                 DB::table('listing_branch_option')->insert(array_map(
                     fn (int $id) => ['listing_id' => $listing->listing_id, 'branch_id' => $id],

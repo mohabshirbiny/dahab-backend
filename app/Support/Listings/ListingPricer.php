@@ -76,6 +76,7 @@ final class ListingPricer
         if (! $gold) {
             // A fixed asking price: what the buyer pays does not depend on the gold price.
             $fee = app(CertificateFee::class)->forListing($listing);
+
             return new ListingQuote(
                 currentPrice: Money::round4((string) $listing->asking_price),
                 priceIsIndicative: false,
@@ -94,6 +95,7 @@ final class ListingPricer
         }
 
         $rate = $breakdown->karatPrices->buyersPay;
+        $goldFee = app(CertificateFee::class)->goldForListing($listing);
 
         return new ListingQuote(
             currentPrice: $breakdown->buyerTotal,
@@ -101,9 +103,10 @@ final class ListingPricer
             ratePerGram: $rate,
             goldValue: Money::round4(Money::mul($rate, (string) $listing->stated_weight_g)),
             makingTotal: Money::round4(Money::mul((string) $listing->making_charge_per_g, (string) $listing->stated_weight_g)),
-            youWouldReceive: $breakdown->sellerProceeds,
+            youWouldReceive: CertificateFee::net($breakdown->sellerProceeds, $goldFee),
             sellerGross: $breakdown->sellerGross,
             commissionVatIncluded: $breakdown->commissionTotal(),
+            goldInspectionFee: $goldFee,
         );
     }
 

@@ -27,6 +27,7 @@ use App\Support\Pricing\Settings;
 use App\Support\WorkingHours\WorkingHoursResolver;
 use App\Support\WorkingHours\WorkingHoursUnavailable;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The seller accepts the first in line (spec 011 US3, FR-014; Part 2 §5,
@@ -47,8 +48,53 @@ final class AcceptBuyRequestAction
         private readonly Settings $settings,
     ) {}
 
+    /**
+     * The branch of this order. A piece with one open branch needs no choice. An old piece with several
+     * names one of them. A closed branch gives way to an open one of the same lab, and a lab that
+     * stopped taking pieces to an open branch of another: the listing then takes that branch and lab.
+     */
+    private function branchFor(Listing $listing, ?int $branchId): Branch
+    {
+        $open = $listing->branches()->where('branch.is_enabled', true)->get();
+
+        if ($listing->needsLabChoice()) {
+            $branch = Branch::query()->whereKey($branchId)->where('is_enabled', true)->first();
+            if ($branch === null || ! $branch->lab->is_enabled) {
+                throw DomainApiException::labNotAvailable();
+            }
+
+            return $this->moveToBranch($listing, $branch);
+        }
+
+        if ($open->isNotEmpty()) {
+            $branch = $branchId === null && $open->count() === 1 ? $open->first() : $open->firstWhere('branch_id', $branchId);
+            if (! $branch instanceof Branch) {
+                throw DomainApiException::branchNotInOptions();
+            }
+
+            return $branch;
+        }
+
+        $branch = Branch::query()->whereKey($branchId)->where('is_enabled', true)->first();
+        if ($branch === null || ($listing->lab_id !== null && $branch->lab_id !== $listing->lab_id)) {
+            throw DomainApiException::branchNotInLab();
+        }
+
+        return $this->moveToBranch($listing, $branch);
+    }
+
+    private function moveToBranch(Listing $listing, Branch $branch): Branch
+    {
+        DB::table('listing_branch_option')->where('listing_id', $listing->listing_id)->delete();
+        DB::table('listing_branch_option')->insert(['listing_id' => $listing->listing_id, 'branch_id' => $branch->branch_id]);
+        $listing->forceFill(['lab_id' => $branch->lab_id])->save();
+        $listing->unsetRelation('lab');
+
+        return $branch;
+    }
+
     /** @return array{order: Order, listing: Listing, released_count: int} */
-    public function handle(Customer $seller, string $listingId, string $requestId, int $branchId): array
+    public function handle(Customer $seller, string $listingId, string $requestId, ?int $branchId = null): array
     {
         // The seller's own listing, under their own row isolation (404 otherwise).
         Listing::query()->where('seller_id', $seller->customer_id)->findOrFail($listingId);
@@ -73,10 +119,7 @@ final class AcceptBuyRequestAction
                 throw DomainApiException::buyerSuspended();
             }
 
-            $branch = $listing->branches()->where('branch.branch_id', $branchId)->where('branch.is_enabled', true)->first();
-            if (! $branch instanceof Branch) {
-                throw DomainApiException::branchNotInOptions();
-            }
+            $branch = $this->branchFor($listing, $branchId);
 
             $now = CarbonImmutable::now();
             try {
@@ -105,8 +148,10 @@ final class AcceptBuyRequestAction
                 'reach_branch_deadline' => $deadline,
                 'locked_total_price' => $head->locked_total_price,
                 'locked_seller_unit_rate' => $sellerRate,
-                // Package D: the certificate cost the seller was shown, fixed now; taken from their proceeds at settlement.
-                'certificate_cost' => app(CertificateFee::class)->forListing($listing),
+                'lab_id' => $branch->lab_id,
+                // What the lab costs, fixed now; taken from the seller's proceeds at settlement.
+                'certificate_cost' => app(CertificateFee::class)->forListing($listing, $branch->lab),
+                'gold_inspection_cost' => app(CertificateFee::class)->goldForListing($listing, $branch->lab),
             ]);
             $this->recordOrderCreated($order, $seller);
 

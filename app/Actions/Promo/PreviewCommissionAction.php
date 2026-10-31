@@ -5,10 +5,12 @@ namespace App\Actions\Promo;
 use App\Enums\CertificateKind;
 use App\Enums\CreditKind;
 use App\Enums\CreditSource;
+use App\Enums\PieceCategory;
 use App\Enums\SettingKey;
 use App\Enums\WaiverKind;
 use App\Exceptions\DomainApiException;
 use App\Models\Customer;
+use App\Models\Lab;
 use App\Models\Listing;
 use App\Support\DatabaseActor;
 use App\Support\FirstSale\FirstSaleEligibility;
@@ -65,9 +67,13 @@ final class PreviewCommissionAction
         }
         $rates = $pricer->rates();
 
-        $fee = app(CertificateFee::class)->forKind(CertificateKind::tryFrom((string) ($v['certificate'] ?? '')));
+        $lab = filled($v['lab_id'] ?? null) ? Lab::query()->findOrFail((int) $v['lab_id']) : Lab::main();
+        $certificate = (string) ($v['certificate'] ?? '');
+        $kind = $certificate === CertificateKind::LEGACY_IGI ? CertificateKind::LAB : CertificateKind::tryFrom($certificate);
+        $goldFee = $listing->category === PieceCategory::GOLD ? app(CertificateFee::class)->goldCost($lab) : null;
+        $fee = Money::fixed4(Money::add(app(CertificateFee::class)->forKind($kind, isset($v['certificate_lab_id']) ? (int) $v['certificate_lab_id'] : null, $lab), $goldFee ?? '0'));
 
-        return DatabaseActor::promo(function () use ($seller, $v, $ctx, $ordinary, $rates, $listing, $fee) {
+        return DatabaseActor::promo(function () use ($seller, $v, $ctx, $ordinary, $rates, $listing, $fee, $goldFee) {
             $pool = $this->credits->candidates($this->credits->usable($seller->customer_id, null));
             $without = $this->waivers->resolve($ordinary->commissionTotal(), $rates, false, false, $pool);
 
@@ -105,8 +111,9 @@ final class PreviewCommissionAction
                     'minimum_egp' => Money::fixed4($rates->minimumEgp),
                     'floor_applied' => $limited,
                 ],
-                // Package D: the certificate cost the seller named is out of both figures.
-                'certificate_fee_egp' => $fee,
+                // What the lab costs the seller is out of both figures; a gold cost of 0 appears nowhere.
+                'certificate_fee_egp' => $goldFee === null ? $fee : '0.0000',
+                'gold_inspection_fee_egp' => $goldFee,
                 'you_receive' => [
                     'without_promo_egp' => CertificateFee::net($without->applyTo($ordinary)->sellerProceeds, $fee),
                     'with_promo_egp' => CertificateFee::net($with->applyTo($ordinary)->sellerProceeds, $fee),

@@ -11,6 +11,7 @@ use App\Actions\Orders\OpenSellerReturnAction;
 use App\Actions\Orders\ReleaseOrderDepositAction;
 use App\Actions\Orders\SuspendSellerAction;
 use App\Enums\AuditEvent;
+use App\Enums\CertificateKind;
 use App\Enums\InspectionOutcome;
 use App\Enums\ListingState;
 use App\Enums\OrderEvent;
@@ -26,6 +27,7 @@ use App\Models\ListingStateChange;
 use App\Models\Order;
 use App\Models\OrderStateChange;
 use App\Models\Staff;
+use App\Support\Listings\CertificateFee;
 use App\Support\Orders\DeadlinePolicy;
 use App\Support\Orders\OrderSettlement;
 use App\Support\Orders\StaffBranchScope;
@@ -64,7 +66,8 @@ final class RecordInspectionResultAction
     /**
      * @param  array{measured_karat?: int|null, measured_weight_g?: string|null, measured_stone_grade?: string|null,
      *               certificate_number?: string|null, inspector_note?: string|null, is_counterfeit?: bool,
-     *               stone_below_claim?: bool, supersedes_id?: string|null}  $input
+     *               stone_below_claim?: bool, supersedes_id?: string|null, certificate_kind_found?: string|null,
+     *               certificate_lab_id_found?: int|null}  $input
      * @return array{inspection: InspectionResult, order: Order}
      */
     public function handle(Staff $actor, string $orderId, array $input, ?RequestContext $ctx = null): array
@@ -89,7 +92,24 @@ final class RecordInspectionResultAction
             $result = InspectionResult::query()->create($this->row($order, $listing, $actor, $input, $supersedes));
             $result->refresh();
 
+            $corrected = $this->correctCertificate($order, $listing, $input);
+
             $this->apply($order, $listing, $result, $actor, $supersedes !== null);
+
+            if ($corrected !== null) {
+                $this->assertCostLeavesProceeds($order, $listing, $result);
+                $this->audit->execute(
+                    AuditEvent::ORDER_CERTIFICATE_CORRECTED,
+                    'success',
+                    ['order_ref' => $order->order_ref, 'certificate_kind' => $order->certificate_kind_found, 'certificate_cost' => (string) $order->certificate_cost],
+                    'order',
+                    $order->order_id,
+                    $ctx,
+                    actorStaffId: $actor->staff_id,
+                    before: $corrected,
+                );
+                $this->tellOrder($order->seller_id, OrderEvent::CERTIFICATE_CORRECTED, $order, $listing, amount: (string) $order->certificate_cost);
+            }
 
             $this->audit->execute(
                 AuditEvent::INSPECTION_RESULT_RECORDED,
@@ -108,6 +128,47 @@ final class RecordInspectionResultAction
 
             return ['inspection' => $result, 'order' => $order];
         });
+    }
+
+    /**
+     * The certificate inspection found, when it is not what the seller stated: the cost moves to the
+     * lab's current cost for what was found, on the order, and the listing tells the truth from now on.
+     *
+     * @return array{certificate_kind: string|null, certificate_cost: string|null}|null what it was, null when nothing changed
+     */
+    private function correctCertificate(Order $order, Listing $listing, array $input): ?array
+    {
+        $kind = CertificateKind::tryFrom((string) ($input['certificate_kind_found'] ?? ''));
+        if ($kind === null || ! CertificateKind::appliesTo($listing->category) || $listing->isFreeRelist()) {
+            return null;
+        }
+        $labId = $kind === CertificateKind::LAB ? (int) $input['certificate_lab_id_found'] : null;
+        if ($kind === $listing->certificate_kind && $labId === $listing->certificate_lab_id) {
+            return null;
+        }
+
+        $before = ['certificate_kind' => $listing->certificate_kind?->value, 'certificate_cost' => $order->certificate_cost === null ? null : (string) $order->certificate_cost];
+
+        $listing->forceFill(['certificate_kind' => $kind, 'certificate_lab_id' => $labId, 'certificate_other_lab_name' => $kind === CertificateKind::OTHER_LAB ? $listing->certificate_other_lab_name : null])->save();
+        $order->forceFill([
+            'certificate_kind_found' => $kind->value,
+            'certificate_cost' => app(CertificateFee::class)->forKind($kind, $labId, $order->lab),
+        ])->save();
+
+        return $before;
+    }
+
+    /** A new cost above what the seller would get could never settle: refused now, not at payment. */
+    private function assertCostLeavesProceeds(Order $order, Listing $listing, InspectionResult $result): void
+    {
+        if ($result->outcome->cancels() || $result->outcome === InspectionOutcome::STONE_REGRADE) {
+            return;
+        }
+
+        $request = BuyRequest::query()->whereKey($order->buy_request_id)->firstOrFail();
+        if (Money::cmp($this->settlement->compute($order, $listing, $request, $result, waivers: false)->proceeds, '0') <= 0) {
+            throw DomainApiException::certificateCostTooHigh();
+        }
     }
 
     private function assertMayRecord(Order $order, ?string $supersedes): void
@@ -170,6 +231,8 @@ final class RecordInspectionResultAction
             'weight_diff_pct' => $diff,
             'outcome' => $outcome,
             'supersedes_id' => $supersedes,
+            'certificate_kind_found' => $input['certificate_kind_found'] ?? null,
+            'certificate_lab_id_found' => $input['certificate_lab_id_found'] ?? null,
         ];
     }
 
