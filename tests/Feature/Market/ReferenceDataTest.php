@@ -43,7 +43,7 @@ it('lists the enabled branches with their names, addresses, contact details and 
     $data = $this->getJson('/api/v1/reference/branches')->assertOk()->json('data');
 
     expect(array_column($data, 'name_en'))->toBe(['IGI Nasr City'])
-        ->and(array_keys($data[0]))->toBe(['id', 'name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'hours'])
+        ->and(array_keys($data[0]))->toBe(['id', 'lab_id', 'name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'hours'])
         ->and($data[0]['id'])->toBe($open->branch_id);
 });
 

@@ -93,10 +93,17 @@ final class InvoiceLines
                     'amount' => $waived,
                 ];
             }
-            // Package D: the stone certificate cost taken from the proceeds (not a Dahab charge, no VAT); absent when none.
+            // What the lab cost, taken from the proceeds (not a Dahab charge, no VAT); absent when none.
             if (Money::cmp($f->certificateFee, '0') > 0) {
                 $lines['certificate_fee'] = $f->certificateFee;
                 $lines['certificate_kind'] = $listing->certificate_kind?->value;
+            }
+            if (Money::cmp($f->goldInspectionFee, '0') > 0) {
+                $lines['gold_inspection_fee'] = $f->goldInspectionFee;
+            }
+            if (Money::cmp(Money::add($f->certificateFee, $f->goldInspectionFee), '0') > 0) {
+                $lines['lab_name_en'] = $order->lab?->name_en;
+                $lines['lab_name_ar'] = $order->lab?->name_ar;
             }
         }
 

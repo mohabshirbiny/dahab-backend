@@ -17,8 +17,9 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'DashboardStoreBranch',
-    required: ['name_en', 'name_ar', 'address_en', 'address_ar', 'hours'],
+    required: ['lab_id', 'name_en', 'name_ar', 'address_en', 'address_ar', 'hours'],
     properties: [
+        new OA\Property(property: 'lab_id', type: 'integer', description: 'The lab this branch belongs to'),
         new OA\Property(property: 'name_en', type: 'string', maxLength: 150),
         new OA\Property(property: 'name_ar', type: 'string', maxLength: 150),
         new OA\Property(property: 'address_en', type: 'string', maxLength: 500),
@@ -42,6 +43,7 @@ class StoreBranchRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'lab_id' => ['required', 'integer', 'exists:lab,lab_id'],
             'name_en' => ['required', 'string', 'max:150'],
             'name_ar' => ['required', 'string', 'max:150'],
             'address_en' => ['required', 'string', 'max:500'],

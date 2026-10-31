@@ -1,3 +1,5 @@
+> Superseded in part by [labs-and-certificate-costs.md](labs-and-certificate-costs.md): costs now live on each lab, not in settings.
+
 # Certificate fee at settlement (package D)
 
 **What.** The seller of a stone piece (diamond, gold with diamond) names the certificate they bring

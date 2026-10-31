@@ -32,7 +32,9 @@ class CommissionPreviewRequest extends FormRequest
             'weight_g' => $diamond ? ['prohibited'] : ['required', ...ListingRules::WEIGHT],
             'making_charge_per_g' => $gold ? ['required', ...ListingRules::MONEY, 'gte:0'] : ['prohibited'],
             'asking_price' => $gold ? ['prohibited'] : ['required', ...ListingRules::MONEY, 'gt:0'],
-            'certificate' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::enum(CertificateKind::class)],
+            'certificate' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::in([...array_column(CertificateKind::cases(), 'value'), CertificateKind::LEGACY_IGI])],
+            'certificate_lab_id' => $gold ? ['prohibited'] : ['sometimes', 'nullable', 'integer', 'exists:lab,lab_id'],
+            'lab_id' => ['sometimes', 'nullable', 'integer', 'exists:lab,lab_id'],
             'code' => ['sometimes', 'nullable', 'string', 'max:64'],
         ];
     }

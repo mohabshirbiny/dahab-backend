@@ -4,7 +4,12 @@ namespace App\Actions\Reference;
 
 use App\Actions\Auth\Shared\RecordAuditLogAction;
 use App\Enums\AuditEvent;
+use App\Enums\ListingState;
+use App\Enums\OrderState;
+use App\Exceptions\DomainApiException;
 use App\Models\Branch;
+use App\Models\Listing;
+use App\Models\Order;
 use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 
@@ -26,6 +31,9 @@ final class UpdateBranchAction
             $branch = Branch::query()->lockForUpdate()->findOrFail($branchId);
 
             $branch->fill(array_intersect_key($data, array_flip(Branch::EDITABLE)));
+            if ($branch->isDirty('lab_id') && self::inUse($branchId)) {
+                throw DomainApiException::branchInUse();
+            }
             $changed = array_keys($branch->getDirty());
 
             if ($changed !== []) {
@@ -60,5 +68,15 @@ final class UpdateBranchAction
 
             return $branch;
         });
+    }
+
+    /** A piece not yet finished, or an open order, holds this branch to its lab and cost. */
+    private static function inUse(int $branchId): bool
+    {
+        $open = array_map(fn (OrderState $s) => $s->value, array_filter(OrderState::cases(), fn (OrderState $s) => ! $s->isFinal()));
+
+        return Order::query()->where('branch_id', $branchId)->whereIn('state', $open)->exists()
+            || Listing::query()->whereIn('listing_id', DB::table('listing_branch_option')->where('branch_id', $branchId)->select('listing_id'))
+                ->whereNotIn('state', [ListingState::SOLD->value, ListingState::WITHDRAWN->value, ListingState::REJECTED->value])->exists();
     }
 }

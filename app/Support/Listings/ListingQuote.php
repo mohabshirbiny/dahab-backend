@@ -20,8 +20,10 @@ final readonly class ListingQuote
         public ?string $youWouldReceive,
         public ?string $sellerGross = null,
         public ?string $commissionVatIncluded = null,
-        // Package D: what IGI's certificate costs the seller, already out of `youWouldReceive` (null: none).
+        // What the lab's certificate costs the seller, already out of `youWouldReceive` (null: none).
         public ?string $certificateFee = null,
+        // The lab's gold inspection cost, already out of `youWouldReceive` (null: none, or 0).
+        public ?string $goldInspectionFee = null,
     ) {}
 
     public function priceAvailable(): bool

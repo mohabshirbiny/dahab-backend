@@ -303,6 +303,82 @@
             }
         }
     },
+    "order.certificate_corrected.full": {
+        "en": {
+            "mail": {
+                "subject": "Order DH-2026-000042",
+                "intro": [
+                    "The lab checked the certificate on order DH-2026-000042. What it costs you is now 58,200.50 EGP, taken from your money when the buyer pays."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: The lab checked the certificate on order DH-2026-000042. What it costs you is now 58,200.50 EGP, taken from your money when the buyer pays.",
+            "inbox": {
+                "type": "order.certificate_corrected",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "The lab checked the certificate on order DH-2026-000042. What it costs you is now 58,200.50 EGP, taken from your money when the buyer pays.",
+                "body_ar": "المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت 58,200.50 EGP، وهتتخصم من فلوسك لما المشتري يدفع."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "طلب DH-2026-000042",
+                "intro": [
+                    "المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت 58,200.50 EGP، وهتتخصم من فلوسك لما المشتري يدفع."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت 58,200.50 EGP، وهتتخصم من فلوسك لما المشتري يدفع.",
+            "inbox": {
+                "type": "order.certificate_corrected",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "The lab checked the certificate on order DH-2026-000042. What it costs you is now 58,200.50 EGP, taken from your money when the buyer pays.",
+                "body_ar": "المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت 58,200.50 EGP، وهتتخصم من فلوسك لما المشتري يدفع."
+            }
+        }
+    },
+    "order.certificate_corrected.bare": {
+        "en": {
+            "mail": {
+                "subject": "Order DH-2026-000042",
+                "intro": [
+                    "The lab checked the certificate on order DH-2026-000042. What it costs you is now , taken from your money when the buyer pays."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: The lab checked the certificate on order DH-2026-000042. What it costs you is now , taken from your money when the buyer pays.",
+            "inbox": {
+                "type": "order.certificate_corrected",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "The lab checked the certificate on order DH-2026-000042. What it costs you is now , taken from your money when the buyer pays.",
+                "body_ar": "المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت ، وهتتخصم من فلوسك لما المشتري يدفع."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "طلب DH-2026-000042",
+                "intro": [
+                    "المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت ، وهتتخصم من فلوسك لما المشتري يدفع."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت ، وهتتخصم من فلوسك لما المشتري يدفع.",
+            "inbox": {
+                "type": "order.certificate_corrected",
+                "title_en": "Order DH-2026-000042",
+                "title_ar": "طلب DH-2026-000042",
+                "body_en": "The lab checked the certificate on order DH-2026-000042. What it costs you is now , taken from your money when the buyer pays.",
+                "body_ar": "المعمل راجع الشهادة في الطلب DH-2026-000042. التكلفة عليك بقت ، وهتتخصم من فلوسك لما المشتري يدفع."
+            }
+        }
+    },
     "order.deadline_extended.full": {
         "en": {
             "mail": {
@@ -3837,6 +3913,120 @@
             },
             "sms": "Dahab: حسابك على دهب اتقفل. السجلات اللي القانون بيطلبها محفوظة للمدة المطلوبة. شكراً إنك كنت معانا.",
             "inbox": null
+        }
+    },
+    "account.lab_cost_changed.plain": {
+        "en": {
+            "mail": {
+                "subject": "A lab changed its cost",
+                "intro": [
+                    "+201012345678 changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: +201012345678 changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+            "inbox": {
+                "type": "account.lab_cost_changed",
+                "title_en": "A lab changed its cost",
+                "title_ar": "المعمل غيّر التكلفة",
+                "body_en": "+201012345678 changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+                "body_ar": "+201012345678 غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "المعمل غيّر التكلفة",
+                "intro": [
+                    "+201012345678 غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: +201012345678 غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة.",
+            "inbox": {
+                "type": "account.lab_cost_changed",
+                "title_en": "A lab changed its cost",
+                "title_ar": "المعمل غيّر التكلفة",
+                "body_en": "+201012345678 changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+                "body_ar": "+201012345678 غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+            }
+        }
+    },
+    "account.lab_cost_changed.stopped": {
+        "en": {
+            "mail": {
+                "subject": "A lab changed its cost",
+                "intro": [
+                    "a@example.test changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: a@example.test changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+            "inbox": {
+                "type": "account.lab_cost_changed",
+                "title_en": "A lab changed its cost",
+                "title_ar": "المعمل غيّر التكلفة",
+                "body_en": "a@example.test changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+                "body_ar": "a@example.test غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "المعمل غيّر التكلفة",
+                "intro": [
+                    "a@example.test غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: a@example.test غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة.",
+            "inbox": {
+                "type": "account.lab_cost_changed",
+                "title_en": "A lab changed its cost",
+                "title_ar": "المعمل غيّر التكلفة",
+                "body_en": "a@example.test changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+                "body_ar": "a@example.test غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+            }
+        }
+    },
+    "account.lab_cost_changed.paused": {
+        "en": {
+            "mail": {
+                "subject": "A lab changed its cost",
+                "intro": [
+                    "Chrome on Windows changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: Chrome on Windows changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+            "inbox": {
+                "type": "account.lab_cost_changed",
+                "title_en": "A lab changed its cost",
+                "title_ar": "المعمل غيّر التكلفة",
+                "body_en": "Chrome on Windows changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+                "body_ar": "Chrome on Windows غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+            }
+        },
+        "ar": {
+            "mail": {
+                "subject": "المعمل غيّر التكلفة",
+                "intro": [
+                    "Chrome on Windows غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+                ],
+                "outro": [],
+                "action": null
+            },
+            "sms": "Dahab: Chrome on Windows غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة.",
+            "inbox": {
+                "type": "account.lab_cost_changed",
+                "title_en": "A lab changed its cost",
+                "title_ar": "المعمل غيّر التكلفة",
+                "body_en": "Chrome on Windows changed what it costs. Your pieces with this lab that no buyer has been accepted for follow the new cost; see it on your listing.",
+                "body_ar": "Chrome on Windows غيّر التكلفة بتاعته. قطعك في المعمل ده اللي لسه ما قبلتش عليها مشتري هتمشي بالتكلفة الجديدة، وهتلاقيها في القطعة."
+            }
         }
     },
     "payout.account_added.full": {

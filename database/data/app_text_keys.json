@@ -2920,6 +2920,232 @@
       "max_length": 44
     },
     {
+      "key": "labs.certificate_question",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Which certificate do you have?",
+      "default_ar": "معاك شهادة من أنهي معمل؟",
+      "placeholders": [],
+      "max_length": 60
+    },
+    {
+      "key": "labs.another_lab",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Another lab",
+      "default_ar": "معمل تاني",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.no_certificate",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "No certificate",
+      "default_ar": "من غير شهادة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.other_lab_name",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Name of the lab",
+      "default_ar": "اسم المعمل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.other_lab_name_missing",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Write the name of the lab that issued the certificate.",
+      "default_ar": "اكتب اسم المعمل اللي طلّع الشهادة.",
+      "placeholders": [],
+      "max_length": 108
+    },
+    {
+      "key": "labs.choose_lab",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Where will you bring the piece?",
+      "default_ar": "هتودي القطعة فين؟",
+      "placeholders": [],
+      "max_length": 62
+    },
+    {
+      "key": "labs.choose_branch_hint",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Choose one lab and one of its branches.",
+      "default_ar": "اختار معمل واحد وفرع واحد منه.",
+      "placeholders": [],
+      "max_length": 78
+    },
+    {
+      "key": "labs.choose_branch_missing",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Choose a branch to bring the piece to.",
+      "default_ar": "اختار الفرع اللي هتودي له القطعة.",
+      "placeholders": [],
+      "max_length": 76
+    },
+    {
+      "key": "labs.recommended",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Recommended",
+      "default_ar": "موصى به",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.free",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Free",
+      "default_ar": "مجانًا",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.none_open",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "No lab is taking pieces right now. Try again later.",
+      "default_ar": "مفيش معمل بيستقبل قطع دلوقتي. جرّب تاني بعدين.",
+      "placeholders": [],
+      "max_length": 102
+    },
+    {
+      "key": "labs.certificate_cost",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Certificate cost",
+      "default_ar": "تكلفة الشهادة",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.inspection_cost",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "Gold inspection",
+      "default_ar": "فحص الدهب",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.certificate_note",
+      "kind": "app",
+      "area": "Selling",
+      "where": "Sell step 1: certificate and lab",
+      "default_en": "The cost comes out of your money when the piece sells. The lab checks the certificate against the stone at handover.",
+      "default_ar": "التكلفة بتتخصم من فلوسك لما القطعة تتباع. المعمل بيراجع الشهادة على الحجر عند التسليم.",
+      "placeholders": [],
+      "max_length": 232
+    },
+    {
+      "key": "labs.cert_from",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "{lab} certificate",
+      "default_ar": "شهادة {lab}",
+      "placeholders": [
+        "lab"
+      ],
+      "max_length": 40
+    },
+    {
+      "key": "labs.lab_gone",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "This lab is not taking pieces right now, so your piece is off the market. Choose another lab to bring it back.",
+      "default_ar": "المعمل ده مش بيستقبل قطع دلوقتي، فالقطعة مش ظاهرة في السوق. اختار معمل تاني عشان ترجع.",
+      "placeholders": [],
+      "max_length": 220
+    },
+    {
+      "key": "labs.choose_another",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "Choose another lab",
+      "default_ar": "اختار معمل تاني",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.new_cost",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "Your piece is at {lab} now.",
+      "default_ar": "قطعتك دلوقتي في {lab}.",
+      "placeholders": [
+        "lab"
+      ],
+      "max_length": 54
+    },
+    {
+      "key": "labs.not_available",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "This lab is not taking pieces right now. Choose another.",
+      "default_ar": "المعمل ده مش بيستقبل قطع دلوقتي. اختار غيره.",
+      "placeholders": [],
+      "max_length": 112
+    },
+    {
+      "key": "labs.accept_title",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "Accept this request?",
+      "default_ar": "تقبل الطلب ده؟",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "labs.accept_body",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "Bring the piece to {branch}. Your deadline is counted in working hours there.",
+      "default_ar": "ودّي القطعة لـ {branch}. المهلة بتتحسب بساعات العمل هناك.",
+      "placeholders": [
+        "branch"
+      ],
+      "max_length": 154
+    },
+    {
+      "key": "labs.accept_yes",
+      "kind": "app",
+      "area": "Selling",
+      "where": "A seller's piece",
+      "default_en": "Accept",
+      "default_ar": "اقبل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
       "key": "order.estimate.title",
       "kind": "app",
       "area": "Orders",

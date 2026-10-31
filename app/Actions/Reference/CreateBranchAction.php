@@ -21,6 +21,7 @@ final class CreateBranchAction
     {
         return DB::transaction(function () use ($actor, $data) {
             $branch = Branch::query()->create([
+                'lab_id' => $data['lab_id'],
                 'name_en' => $data['name_en'],
                 'name_ar' => $data['name_ar'],
                 'address_en' => $data['address_en'],

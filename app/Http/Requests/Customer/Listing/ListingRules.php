@@ -47,6 +47,8 @@ final class ListingRules
             'asking_price' => $gold ? ['prohibited'] : [$need, ...self::MONEY, 'gt:0'],
             // A stone piece names the certificate it comes with; its cost is taken from the seller at settlement.
             'certificate_kind' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::enum(CertificateKind::class)],
+            'certificate_lab_id' => $gold ? ['prohibited'] : ['sometimes', 'nullable', 'integer'],
+            'certificate_other_lab_name' => $gold ? ['prohibited'] : ['sometimes', 'nullable', 'string', 'min:2', 'max:100'],
             // What the stone is, as the seller states it (IGI checks it); shown to the buyer, above all without a certificate.
             'stone_carat' => $gold ? ['prohibited'] : ['sometimes', 'nullable', 'numeric', 'decimal:0,2', 'gt:0', 'max:9999.99'],
             'stone_clarity' => $gold ? ['prohibited'] : ['sometimes', 'nullable', Rule::in(self::CLARITIES)],

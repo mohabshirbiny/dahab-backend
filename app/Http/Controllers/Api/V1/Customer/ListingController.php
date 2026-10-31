@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Actions\Listings\ChangeListingPriceAction;
+use App\Actions\Listings\ChooseListingLabAction;
 use App\Actions\Listings\CreateListingAction;
 use App\Actions\Listings\ListOwnListingsAction;
 use App\Actions\Listings\ReadListingMediaAction;
@@ -281,5 +282,33 @@ class ListingController extends Controller
         $listing->load(ListOwnListingsAction::RELATIONS);
 
         return response()->json(['data' => ListingResource::make($listing)->resolve($request)], $status);
+    }
+
+    #[OA\Post(
+        path: '/customer/me/listings/{listing}/lab',
+        operationId: 'customerChooseListingLab',
+        summary: 'Choose another lab for a piece whose lab stopped taking pieces',
+        description: 'Only a live piece with needs_lab_choice. The piece takes that branch and its lab cost, shown on the answer, and returns to the market. Idempotent.',
+        security: [['customerBearer' => []]],
+        requestBody: new OA\RequestBody(required: true, content: new OA\JsonContent(required: ['branch_id'], properties: [new OA\Property(property: 'branch_id', type: 'integer')])),
+        tags: ['Customer Listings'],
+        parameters: [
+            new OA\Parameter(name: 'listing', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+            new OA\Parameter(name: 'Idempotency-Key', in: 'header', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'The listing', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/CustomerListing')])),
+            new OA\Response(response: 401, description: 'unauthenticated', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 404, description: 'not_found', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 409, description: 'lab_not_available | illegal_listing_transition | idempotency_in_progress', content: new OA\JsonContent(ref: self::ERR)),
+            new OA\Response(response: 422, description: 'validation_failed | branch_options_required (the lab is open)', content: new OA\JsonContent(ref: self::ERR)),
+        ],
+    )]
+    public function chooseLab(Request $request, string $listing, ChooseListingLabAction $choose, ListOwnListingsAction $list): JsonResponse
+    {
+        $branch = $request->validate(['branch_id' => ['required', 'integer', 'min:1']])['branch_id'];
+        $choose->handle($request->user('customer'), $listing, (int) $branch);
+
+        return $this->show($request, $listing, $list);
     }
 }

@@ -495,6 +495,12 @@ it('documents exactly the customer, dashboard and public endpoints', function ()
     $ops = documentedOperations(generatedOpenApi());
 
     expect(array_keys($ops))->toEqualCanonicalizing([
+        'get /dashboard/banks',
+        'get /dashboard/labs',
+        'post /dashboard/labs',
+        'patch /dashboard/labs/{lab}',
+        'get /reference/labs',
+        'post /customer/me/listings/{listing}/lab',
         ...OPENAPI_CUSTOMER_PATHS,
         ...OPENAPI_DASHBOARD_PATHS,
         ...OPENAPI_CUSTOMER_IDENTITY_PATHS,
@@ -697,6 +703,8 @@ it('documents the request bodies and response schemas the endpoints use', functi
     $doc = generatedOpenApi();
 
     expect(array_keys($doc['components']['schemas']))->toEqualCanonicalizing([
+        'DashboardLab',
+        'DashboardSaveLab',
         'ApiError', 'CustomerProfile', 'StaffProfile', 'Session', 'LoginCustomerRequest',
         'StartRegistrationRequest', 'VerifyRegistrationOtpRequest',
         'StartEmailVerificationRequest', 'VerifyEmailOtpRequest',

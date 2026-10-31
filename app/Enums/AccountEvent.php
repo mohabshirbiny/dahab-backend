@@ -11,4 +11,5 @@ enum AccountEvent: string
     case PASSWORD_RESET = 'password_reset';
     case NEW_DEVICE = 'new_device';
     case ACCOUNT_CLOSED = 'account_closed';
+    case LAB_COST_CHANGED = 'lab_cost_changed';
 }

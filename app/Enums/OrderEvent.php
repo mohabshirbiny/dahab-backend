@@ -12,6 +12,7 @@ enum OrderEvent: string
     case SELLER_CANCELLED = 'seller_cancelled';
     case DEADLINE_MISSED = 'deadline_missed';
     case BRANCH_CHANGED = 'branch_changed';
+    case CERTIFICATE_CORRECTED = 'certificate_corrected';
     case DEADLINE_EXTENDED = 'deadline_extended';
     case RESULT_PASSED = 'result_passed';
     case RESULT_ADJUST = 'result_adjust';

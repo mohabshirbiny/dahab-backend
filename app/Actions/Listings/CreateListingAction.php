@@ -17,6 +17,7 @@ use App\Models\Listing;
 use App\Models\ListingOwnershipDeclaration;
 use App\Support\Controls\Controls;
 use App\Support\DatabaseActor;
+use App\Support\Listings\ListingCertificate;
 use App\Support\Promo\SellerCodeGate;
 use App\Support\RequestContext;
 use Illuminate\Support\Facades\DB;
@@ -73,7 +74,8 @@ final class CreateListingAction
                 'stated_weight_g' => $data['stated_weight_g'] ?? null,
                 'making_charge_per_g' => $data['making_charge_per_g'] ?? null,
                 'asking_price' => $data['asking_price'] ?? null,
-                'certificate_kind' => $data['certificate_kind'] ?? null,
+                'lab_id' => self::labOfBranches($branchIds),
+                ...ListingCertificate::columns($data),
                 'stone_carat' => $data['stone_carat'] ?? null,
                 'stone_clarity' => $data['stone_clarity'] ?? null,
                 'stone_cut' => $data['stone_cut'] ?? null,
@@ -123,6 +125,17 @@ final class CreateListingAction
 
             return $listing->refresh();
         });
+    }
+
+    /** The lab of a chosen branch: it must be taking pieces. */
+    public static function labOfBranches(array $branchIds): int
+    {
+        $lab = Branch::query()->whereKey($branchIds[0])->first()?->lab;
+        if ($lab === null || ! $lab->is_enabled) {
+            throw DomainApiException::labNotAvailable();
+        }
+
+        return $lab->lab_id;
     }
 
     /**

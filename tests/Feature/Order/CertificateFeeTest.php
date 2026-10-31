@@ -60,7 +60,7 @@ it('takes the cost from the seller proceeds onto igi_certificates and leaves the
 });
 
 it('charges nothing for an IGI certificate and nothing before the fee existed', function () {
-    [$order] = paidStone($this, 'igi');
+    [$order] = paidStone($this, 'lab');
 
     expect((string) $order->seller_proceeds)->toBe(bcsub('120000', bcadd('5160', (string) $order->vat_amount, 4), 4))
         ->and(Orders::internal(AccountKind::IGI_CERTIFICATES))->toBe('0.0000');

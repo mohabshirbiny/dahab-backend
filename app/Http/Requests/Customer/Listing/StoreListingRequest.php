@@ -4,6 +4,7 @@ namespace App\Http\Requests\Customer\Listing;
 
 use App\Enums\PieceCategory;
 use App\Exceptions\DomainApiException;
+use App\Support\Listings\ListingCertificate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
@@ -19,12 +20,14 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'stated_weight_g', type: 'string', nullable: true, example: '8.000', description: 'Grams, > 0, at most 3 decimals; required unless diamond'),
         new OA\Property(property: 'making_charge_per_g', type: 'string', nullable: true, example: '250.00', description: 'EGP per gram, >= 0, at most 2 decimals; gold only'),
         new OA\Property(property: 'asking_price', type: 'string', nullable: true, example: '120000.00', description: 'EGP, > 0, at most 2 decimals; diamond and gold_with_diamond only'),
-        new OA\Property(property: 'certificate_kind', type: 'string', enum: ['igi', 'other_lab', 'none'], nullable: true, description: 'Stones only: the certificate the seller brings; its cost is taken from the proceeds'),
+        new OA\Property(property: 'certificate_kind', type: 'string', enum: ['lab', 'other_lab', 'none'], nullable: true, description: 'Stones only: the certificate the seller brings; its cost is taken from the proceeds. igi is still read as lab with the main lab'),
+        new OA\Property(property: 'certificate_lab_id', type: 'integer', nullable: true, description: 'With lab: an enabled lab that issued it (GET /reference/labs); certificate_lab_required otherwise'),
+        new OA\Property(property: 'certificate_other_lab_name', type: 'string', nullable: true, description: 'With other_lab: the name of the lab, 2 to 100 characters; other_lab_name_required otherwise. Never shown on the market'),
         new OA\Property(property: 'stone_carat', type: 'string', nullable: true, example: '0.70', description: 'Stones only: the stone weight in carats as the seller states it, > 0, at most 2 decimals'),
         new OA\Property(property: 'stone_clarity', type: 'string', enum: ['vvs', 'vs', 'si', 'i'], nullable: true, description: 'Stones only'),
         new OA\Property(property: 'stone_cut', type: 'string', enum: ['excellent', 'very_good', 'good'], nullable: true, description: 'Stones only'),
         new OA\Property(property: 'description', type: 'string', nullable: true, description: 'At most 2000 characters; 40 to 2000 are needed to send the listing for review'),
-        new OA\Property(property: 'branch_option_ids', type: 'array', items: new OA\Items(type: 'integer'), description: 'At least one enabled branch the seller is willing to bring the piece to (GET /reference/branches)'),
+        new OA\Property(property: 'branch_option_ids', type: 'array', items: new OA\Items(type: 'integer'), description: 'Exactly one enabled branch of an enabled lab (GET /reference/labs); the listing takes that lab'),
         new OA\Property(property: 'photo_tokens', type: 'array', items: new OA\Items(type: 'string'), description: 'Upload tokens with purpose listing_photo, in display order; at most 6'),
         new OA\Property(property: 'video_token', type: 'string', nullable: true, description: 'Upload token, purpose listing_video'),
         new OA\Property(property: 'invoice_token', type: 'string', nullable: true, description: 'Upload token, purpose listing_invoice; the invoice stays private'),
@@ -47,6 +50,8 @@ class StoreListingRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        $this->merge(ListingCertificate::fromLegacy($this->all()));
+
         $category = PieceCategory::tryFrom((string) $this->input('category'));
 
         if ($category !== null && $category !== PieceCategory::DIAMOND
@@ -71,7 +76,7 @@ class StoreListingRequest extends FormRequest
         return [
             'category' => ['required', Rule::enum(PieceCategory::class)],
             ...($category === null ? [] : ListingRules::for($category, partial: false)),
-            'branch_option_ids' => ['required', 'array', 'min:1', 'max:50'],
+            'branch_option_ids' => ['required', 'array', 'size:1'],
             'branch_option_ids.*' => ['integer', 'distinct'],
             'photo_tokens' => ['sometimes', 'array', 'max:'.config('dahab-listings.max_photos')],
             'photo_tokens.*' => ['string', 'max:200', 'distinct'],

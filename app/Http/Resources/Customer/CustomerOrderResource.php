@@ -23,6 +23,7 @@ use App\Support\Orders\OrderSettlement;
 use App\Support\Orders\OrderTimeline;
 use App\Support\Orders\RatingWindow;
 use App\Support\Orders\SettlementFigures;
+use App\Support\Pricing\Money;
 use App\Support\Pricing\PricingContext;
 use App\Support\Pricing\PricingRates;
 use App\Support\Wallet\HeldByRequest;
@@ -60,6 +61,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'final_total', type: 'string', nullable: true, description: 'Buyer: the total on the measured weight'),
         new OA\Property(property: 'seller_proceeds', type: 'string', nullable: true, description: 'Seller, once paid; after commission, VAT and the certificate fee'),
         new OA\Property(property: 'certificate_fee', type: 'string', nullable: true, description: 'Seller only: what the stone certificate cost, locked at acceptance and taken from the proceeds at payment. Null for the buyer and when nothing is charged.'),
+        new OA\Property(property: 'gold_inspection_fee', type: 'string', nullable: true, description: 'Seller only: the lab gold inspection cost, the same way. Null when there is none.'),
+        new OA\Property(property: 'lab', type: 'object', nullable: true, description: 'The lab that inspects the piece: {id, name_en, name_ar}'),
         new OA\Property(property: 'inspection', type: 'object', nullable: true),
         new OA\Property(property: 'collection', type: 'object', nullable: true),
         new OA\Property(property: 'seller_return', type: 'object', nullable: true),
@@ -152,6 +155,8 @@ class CustomerOrderResource extends JsonResource
             'seller_proceeds' => $seller && $o->seller_proceeds !== null ? bcadd((string) $o->seller_proceeds, '0', 4) : null,
             // Package D: the certificate cost taken from the seller's proceeds (already out of seller_proceeds); null for the buyer and when none.
             'certificate_fee' => $seller && $o->certificate_cost !== null && bccomp((string) $o->certificate_cost, '0', 4) > 0 ? bcadd((string) $o->certificate_cost, '0', 4) : null,
+            'gold_inspection_fee' => $seller && $o->gold_inspection_cost !== null ? bcadd((string) $o->gold_inspection_cost, '0', 4) : null,
+            'lab' => $o->lab?->summary(),
             'inspection' => $result === null ? null : [
                 'inspection_id' => $result->inspection_id,
                 'outcome' => $result->outcome->value,
@@ -245,6 +250,7 @@ class CustomerOrderResource extends JsonResource
             'commission_ordinary_total_egp' => $f->ordinaryCommissionTotal,
             'saved_total_egp' => $f->commissionGivenUpTotal,
             'certificate_fee_egp' => $f->certificateFee,
+            'gold_inspection_fee_egp' => Money::cmp($f->goldInspectionFee, '0') > 0 ? $f->goldInspectionFee : null,
             'proceeds_egp' => $f->proceeds,
             'weight_g' => $f->weight === '' ? null : $f->weight,
             'weight_measured' => $result?->measured_weight_g !== null,
@@ -480,6 +486,7 @@ class CustomerOrderResource extends JsonResource
     {
         return $b === null ? null : [
             'id' => $b->branch_id,
+            'lab_id' => $b->lab_id,
             'name_en' => $b->name_en,
             'name_ar' => $b->name_ar,
             'address_en' => $b->address_en,

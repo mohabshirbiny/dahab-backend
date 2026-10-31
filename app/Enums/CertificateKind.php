@@ -3,24 +3,18 @@
 namespace App\Enums;
 
 /**
- * The certificate a seller brings with a stone piece (Part 3 §5 / OI-3.2). What each kind
- * costs the seller is a setting (the Dashboard's Rates page): an IGI certificate costs
- * nothing, another lab's is reduced, none is the full cost. Stored on the listing.
+ * The certificate a seller brings with a stone piece: from a listed lab (the listing names it),
+ * from another lab (the seller types its name), or none. What it costs depends on the lab that
+ * inspects the piece, see App\Support\Listings\CertificateFee. Stored on the listing.
  */
 enum CertificateKind: string
 {
-    case IGI = 'igi';
+    case LAB = 'lab';
     case OTHER_LAB = 'other_lab';
     case NONE = 'none';
 
-    public function costSetting(): SettingKey
-    {
-        return match ($this) {
-            self::IGI => SettingKey::CERTIFICATE_IGI_COST_EGP,
-            self::OTHER_LAB => SettingKey::CERTIFICATE_OTHER_LAB_COST_EGP,
-            self::NONE => SettingKey::CERTIFICATE_NONE_COST_EGP,
-        };
-    }
+    /** The value older clients send for IGI, read as `lab` with the main lab. */
+    public const LEGACY_IGI = 'igi';
 
     /** Only a piece with a stone carries a certificate. */
     public static function appliesTo(PieceCategory $category): bool

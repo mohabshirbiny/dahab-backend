@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\BranchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * never deleted, only disabled, because records keep referencing them.
  *
  * @property int $branch_id
+ * @property int $lab_id
  * @property string $timezone
  * @property bool $is_enabled
  */
@@ -28,7 +30,7 @@ class Branch extends Model
     public $timestamps = false;
 
     /** The fields the Dashboard edits (the week is replaced separately). */
-    public const EDITABLE = ['name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'timezone', 'is_enabled'];
+    public const EDITABLE = ['lab_id', 'name_en', 'name_ar', 'address_en', 'address_ar', 'contact_phone', 'map_url', 'timezone', 'is_enabled'];
 
     protected $fillable = self::EDITABLE;
 
@@ -36,8 +38,14 @@ class Branch extends Model
     {
         return [
             'branch_id' => 'integer',
+            'lab_id' => 'integer',
             'is_enabled' => 'boolean',
         ];
+    }
+
+    public function lab(): BelongsTo
+    {
+        return $this->belongsTo(Lab::class, 'lab_id', 'lab_id');
     }
 
     public function hours(): HasMany

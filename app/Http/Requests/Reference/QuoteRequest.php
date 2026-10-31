@@ -26,13 +26,17 @@ class QuoteRequest extends FormRequest
                 fn ($attr, $value, $fail) => bccomp((string) $value, '10000', 3) > 0 ? $fail('The weight can be at most 10,000 g.') : null],
             'making_per_g' => ['exclude_unless:category,gold', 'sometimes', 'string', 'regex:/^\d{1,9}(\.\d{1,4})?$/'],
             'asking_price' => ['exclude_if:category,gold', 'required', ...$money],
-            'certificate' => ['exclude_if:category,gold', 'sometimes', 'nullable', 'string', Rule::enum(CertificateKind::class)],
+            'certificate' => ['exclude_if:category,gold', 'sometimes', 'nullable', 'string', Rule::in([...array_column(CertificateKind::cases(), 'value'), CertificateKind::LEGACY_IGI])],
+            'certificate_lab_id' => ['exclude_if:category,gold', 'sometimes', 'nullable', 'integer', 'exists:lab,lab_id'],
+            'lab_id' => ['sometimes', 'nullable', 'integer', 'exists:lab,lab_id'],
         ];
     }
 
     public function certificate(): ?CertificateKind
     {
-        return CertificateKind::tryFrom((string) $this->validated('certificate'));
+        $value = (string) $this->validated('certificate');
+
+        return $value === CertificateKind::LEGACY_IGI ? CertificateKind::LAB : CertificateKind::tryFrom($value);
     }
 
     public function category(): PieceCategory

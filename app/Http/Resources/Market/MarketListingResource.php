@@ -35,7 +35,7 @@ use OpenApi\Attributes as OA;
         ], type: 'object'),
         new OA\Property(property: 'karat', type: 'integer', nullable: true, example: 21, description: 'Null for a pure diamond'),
         new OA\Property(property: 'weight_g', type: 'string', nullable: true, example: '8.000', description: 'Stated by the seller, 3 decimals; null for a pure diamond'),
-        new OA\Property(property: 'stone', type: 'object', nullable: true, description: 'Stone pieces only (null for gold): {certificate_kind: igi|other_lab|none|null, carat (2 dp) | null, clarity: vvs|vs|si|i|null, cut: excellent|very_good|good|null}, as the seller states them; IGI checks them at handover'),
+        new OA\Property(property: 'stone', type: 'object', nullable: true, description: 'Stone pieces only (null for gold): {certificate_kind: lab|other_lab|none|null, certificate_lab: {id, name_en, name_ar}|null, carat (2 dp) | null, clarity: vvs|vs|si|i|null, cut: excellent|very_good|good|null}, as the seller states them; IGI checks them at handover'),
         new OA\Property(property: 'making_charge_per_g', type: 'string', nullable: true, example: '250.0000', description: 'Gold only'),
         new OA\Property(property: 'current_price', type: 'string', nullable: true, example: '58200.0000', description: 'Null when no price can be quoted right now (see price_available)'),
         new OA\Property(property: 'price_available', type: 'boolean'),

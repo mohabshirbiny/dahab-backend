@@ -53,6 +53,8 @@ enum AuditEvent: string
     case KARAT_TOGGLED = 'reference.karat.toggled';
     case BRANCH_CREATED = 'reference.branch.created';
     case BRANCH_UPDATED = 'reference.branch.updated';
+    case LAB_CREATED = 'reference.lab.created';
+    case LAB_UPDATED = 'reference.lab.updated';
     case BRANCH_HOURS_REPLACED = 'reference.branch.hours_replaced';
     case CLOSURE_ADDED = 'reference.closure.added';
     case CLOSURE_REMOVED = 'reference.closure.removed';
@@ -91,6 +93,7 @@ enum AuditEvent: string
     // Spec 012: the order's life after acceptance.
     case ORDER_RECEIVED = 'order.received';
     case ORDER_BRANCH_CHANGED = 'order.branch_changed';
+    case ORDER_CERTIFICATE_CORRECTED = 'order.certificate_corrected';
     case ORDER_DEADLINE_EXTENDED = 'order.deadline_extended';
     case ORDER_PRICE_PROPOSED = 'order.price_proposed';
     case ORDER_HANDED_OVER = 'order.handed_over';
@@ -268,6 +271,8 @@ enum AuditEvent: string
             self::KARAT_TOGGLED => 'Karat turned on or off',
             self::BRANCH_CREATED => 'Branch added',
             self::BRANCH_UPDATED => 'Branch edited',
+            self::LAB_CREATED => 'Lab added',
+            self::LAB_UPDATED => 'Lab edited',
             self::BRANCH_HOURS_REPLACED => 'Branch hours changed',
             self::CLOSURE_ADDED => 'Holiday or closure added',
             self::CLOSURE_REMOVED => 'Holiday or closure removed',
@@ -302,6 +307,7 @@ enum AuditEvent: string
             self::ORDER_CANCELLED => 'Acceptance cancelled',
             self::ORDER_RECEIVED => 'Piece received at the branch',
             self::ORDER_BRANCH_CHANGED => 'Order branch changed',
+            self::ORDER_CERTIFICATE_CORRECTED => 'Certificate corrected at inspection',
             self::ORDER_DEADLINE_EXTENDED => 'Order deadline extended',
             self::ORDER_PRICE_PROPOSED => 'New price proposed after a regrade',
             self::ORDER_HANDED_OVER => 'Piece handed over to the buyer',
@@ -431,14 +437,14 @@ enum AuditEvent: string
             self::PROMO_CREATED, self::PROMO_UPDATED, self::PROMO_DELETED, self::MARKET_MAKER_APPROVED,
             self::PROMO_APPLIED, self::PROMO_REMOVED, self::COMMISSION_CREDIT_GRANTED, self::COMMISSION_CREDIT_SPENT, self::COMMISSION_CREDIT_EXPIRED, self::COMMISSION_CREDIT_VOIDED, self::REFERRAL_JOINED, self::REFERRAL_REWARDED, self::REFERRAL_VOID, self::MARKET_MAKER_LEFT, self::MARKET_MAKER_MEDIA_VIEWED, self::CUSTOMER_TYPE_CHANGED => AuditCategory::PROMO,
             self::FIRST_SALE_ENABLED, self::FIRST_SALE_REVOKED, self::FIRST_SALE_ADVANCED, self::FIRST_SALE_SKIPPED, self::FIRST_SALE_RECOVERED, self::FIRST_SALE_WRITTEN_OFF => AuditCategory::MONEY,
-            self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
+            self::KARAT_CREATED, self::KARAT_TOGGLED, self::BRANCH_CREATED, self::BRANCH_UPDATED, self::LAB_CREATED, self::LAB_UPDATED, self::BRANCH_HOURS_REPLACED, self::CLOSURE_ADDED, self::CLOSURE_REMOVED => AuditCategory::REFERENCE,
             self::SETTING_CHANGED, self::ADJUSTMENT_CHANGED, self::MANUAL_PRICE_ENTERED, self::MANUAL_PRICE_CONFIRMED => AuditCategory::PRICING,
             self::LEDGER_STATEMENT_VIEWED, self::LEDGER_STATEMENT_EXPORTED, self::WALLET_STATEMENT_DOWNLOADED,
             self::TOPUP_MATCHED, self::TOPUP_CREDITED_BY_HAND, self::TOPUP_HELD, self::TOPUP_UNHELD,
             self::TOPUP_REJECTED, self::TOPUP_LIST_EXPORTED,
             self::RECEIVING_ACCOUNT_CREATED, self::RECEIVING_ACCOUNT_UPDATED => AuditCategory::MONEY,
             self::LISTING_APPROVED, self::LISTING_CHANGES_REQUESTED, self::LISTING_REJECTED, self::LISTING_TAKEN_DOWN, self::LISTING_RELISTED, self::LISTING_PRICE_CHANGED => AuditCategory::LISTINGS,
-            self::ORDER_CANCELLED, self::ORDER_RECEIVED, self::ORDER_BRANCH_CHANGED, self::ORDER_DEADLINE_EXTENDED,
+            self::ORDER_CANCELLED, self::ORDER_RECEIVED, self::ORDER_BRANCH_CHANGED, self::ORDER_CERTIFICATE_CORRECTED, self::ORDER_DEADLINE_EXTENDED,
             self::ORDER_PRICE_PROPOSED, self::ORDER_HANDED_OVER, self::ORDER_HANDOVER_FAILED, self::ORDER_RETURN_HANDED_OVER,
             self::INSPECTION_RESULT_RECORDED, self::ORDER_SELLER_CANCELLED, self::ORDER_DECIDED, self::ORDER_PAID,
             self::ORDER_RELISTED, self::ORDER_FORFEITED, self::ORDER_WINDOW_PASSED,

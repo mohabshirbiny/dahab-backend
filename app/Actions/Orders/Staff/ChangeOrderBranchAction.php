@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Staff move an open order to another branch the seller named (spec 012 US3,
+ * Staff move an open order to another open branch of its lab (spec 012 US3,
  * FR-008, research R17; Part 3 §5.2). The reach-branch clock keeps running
  * (locked decision) unless staff also set a later deadline, which is then a
  * deadline extension too. Only while the piece has not reached a branch.
@@ -50,15 +50,20 @@ final class ChangeOrderBranchAction
             if ($order->branch_id === $branchId) {
                 throw ValidationException::withMessages(['branch_id' => ['The order is already at this branch.']]);
             }
-            $branch = $listing->branches()->where('branch.branch_id', $branchId)->where('branch.is_enabled', true)->first();
-            if (! $branch instanceof Branch) {
-                throw DomainApiException::branchNotInOptions();
+            // The lab and its cost stay: any open branch of the order's lab.
+            $labId = Branch::query()->whereKey($order->branch_id)->value('lab_id');
+            $branch = Branch::query()->whereKey($branchId)->where('is_enabled', true)->first();
+            if (! $branch instanceof Branch || (int) $branch->lab_id !== (int) $labId) {
+                throw DomainApiException::branchNotInLab();
             }
 
             $old = $order->reach_branch_deadline;
             if ($extendTo !== null && (! $extendTo->greaterThan($old) || ! $extendTo->isFuture())) {
                 throw DomainApiException::deadlineMustMoveForward();
             }
+
+            // The order guard reads the branch from the listing's options.
+            DB::table('listing_branch_option')->insertOrIgnore(['listing_id' => $listing->listing_id, 'branch_id' => $branchId]);
 
             $from = $order->branch_id;
             $order->forceFill(['branch_id' => $branchId] + ($extendTo !== null

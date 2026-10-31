@@ -34,8 +34,10 @@ final readonly class SettlementFigures
         public string $spreadGivenUp = '0.0000',
         // Package C: the saving VAT included (what an amount credit is spent by); not stored on the order.
         public string $commissionGivenUpTotal = '0.0000',
-        // Package D: the IGI certificate cost taken from the seller's proceeds (already out of `proceeds`); locked on the order at acceptance.
+        // The lab's certificate cost taken from the seller's proceeds (already out of `proceeds`); locked on the order at acceptance.
         public string $certificateFee = '0.0000',
+        // The lab's gold inspection cost, the same way.
+        public string $goldInspectionFee = '0.0000',
         // The ordinary commission VAT included, stored so the seller's saving can be shown whole.
         public string $ordinaryCommissionTotal = '0.0000',
         // A buyer code's discount off the price (2026-10-26), and what pays for it: commission | spread.

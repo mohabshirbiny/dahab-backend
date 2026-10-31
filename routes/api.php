@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\V1\Dashboard\InspectionController as DashboardInspe
 use App\Http\Controllers\Api\V1\Dashboard\InvoiceController as DashboardInvoiceController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratAdjustmentController as DashboardKaratAdjustmentController;
 use App\Http\Controllers\Api\V1\Dashboard\KaratController as DashboardKaratController;
+use App\Http\Controllers\Api\V1\Dashboard\LabController as DashboardLabController;
 use App\Http\Controllers\Api\V1\Dashboard\LegalDocumentController as DashboardLegalDocumentController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingController as DashboardListingController;
 use App\Http\Controllers\Api\V1\Dashboard\ListingReportController as DashboardListingReportController;
@@ -97,6 +98,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/karats', [ReferenceController::class, 'karats'])->name('karats');
             Route::get('/piece-types', [ReferenceController::class, 'pieceTypes'])->name('piece-types');
             Route::get('/branches', [ReferenceController::class, 'branches'])->name('branches');
+            Route::get('/labs', [ReferenceController::class, 'labs'])->name('labs');
             // Spec 017: the list the app shows, and how to reach Dahab.
             Route::get('/legal-documents', [ReferenceController::class, 'legalDocuments'])->name('legal-documents.index');
             Route::get('/support-contacts', [ReferenceController::class, 'supportContacts'])->name('support-contacts');
@@ -320,6 +322,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     // A piece the seller took down goes back live (settings-page-and-relist).
                     Route::post('/{listing}/relist', [CustomerListingController::class, 'relist'])
                         ->whereUuid('listing')->middleware('idempotent')->name('relist');
+                    // The lab of the piece stopped taking pieces: the seller chooses another.
+                    Route::post('/{listing}/lab', [CustomerListingController::class, 'chooseLab'])
+                        ->whereUuid('listing')->middleware(['throttle:customer.listings', 'idempotent'])->name('lab');
                     // Spec 011: the seller answers the first buyer in line.
                     Route::post('/{listing}/accept', [CustomerListingQueueController::class, 'accept'])
                         ->whereUuid('listing')->middleware('idempotent')->name('accept');
@@ -924,6 +929,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                     ->middleware('staff.permission:branches.manage')->name('store');
                 Route::patch('/{branch}', [DashboardBranchController::class, 'update'])
                     ->whereNumber('branch')
+                    ->middleware('staff.permission:branches.manage')->name('update');
+            });
+
+            Route::prefix('labs')->name('labs.')->group(function () {
+                Route::get('/', [DashboardLabController::class, 'index'])
+                    ->middleware('staff.permission:reference.view')->name('index');
+                Route::post('/', [DashboardLabController::class, 'store'])
+                    ->middleware('staff.permission:branches.manage')->name('store');
+                Route::patch('/{lab}', [DashboardLabController::class, 'update'])
+                    ->whereNumber('lab')
                     ->middleware('staff.permission:branches.manage')->name('update');
             });
 
