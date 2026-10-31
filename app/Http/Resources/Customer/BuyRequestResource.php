@@ -35,7 +35,7 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'weight_g', type: 'string', nullable: true),
             new OA\Property(property: 'state', type: 'string', description: 'The listing state now (a listing_state value)'),
             new OA\Property(property: 'queue_count', type: 'integer'),
-            new OA\Property(property: 'photo', ref: '#/components/schemas/ListingMedia', nullable: true, description: 'The first public photo; its url is on the public market and works only while the piece is on the market'),
+            new OA\Property(property: 'photo', ref: '#/components/schemas/ListingMedia', nullable: true, description: 'The first public photo; its url is on the public market and works only while the piece is on the market, or (since 2026-10-29) the order\'s own media route once the request became an order'),
         ], type: 'object'),
         new OA\Property(property: 'queue_position', type: 'integer', description: 'Arrival number on this piece (not the place in line)'),
         new OA\Property(property: 'place_in_line', type: 'integer', nullable: true),
@@ -63,7 +63,8 @@ class BuyRequestResource extends JsonResource
         return [
             'id' => $r->buy_request_id,
             'state' => $r->state->value,
-            'listing' => self::listing($r->relationLoaded('listing') ? $r->listing : null),
+            'listing' => self::listing($r->relationLoaded('listing') ? $r->listing : null,
+                $r->relationLoaded('order') ? $r->order?->order_id : null),
             'queue_position' => $r->queue_position,
             'place_in_line' => $ahead === null ? null : (int) $ahead + 1,
             'ahead_count' => $ahead === null ? null : (int) $ahead,
@@ -80,10 +81,18 @@ class BuyRequestResource extends JsonResource
     }
 
     /** @return array<string, mixed>|null */
-    private static function listing(?Listing $l): ?array
+    private static function listing(?Listing $l, ?string $orderId = null): ?array
     {
         if ($l === null) {
             return null;
+        }
+        $photo = $l->relationLoaded('photos')
+            ? ListingMediaResource::first($l->photos->where('is_private', false), ListingMediaKind::PHOTO, ListingMediaResource::MARKET)
+            : null;
+        // A request that became the buyer's order: the market link ends once the piece leaves the market,
+        // the order's own media route does not (as on the order, CustomerOrderResource::piece).
+        if ($photo !== null && $orderId !== null) {
+            $photo['url'] = route('api.v1.customer.me.orders.media', ['order' => $orderId, 'media' => $photo['id']], false);
         }
 
         return [
@@ -98,9 +107,7 @@ class BuyRequestResource extends JsonResource
             'weight_g' => $l->stated_weight_g === null ? null : bcadd((string) $l->stated_weight_g, '0', 3),
             'state' => $l->state->value,
             'queue_count' => $l->active_queue_count,
-            'photo' => $l->relationLoaded('photos')
-                ? ListingMediaResource::first($l->photos->where('is_private', false), ListingMediaKind::PHOTO, ListingMediaResource::MARKET)
-                : null,
+            'photo' => $photo,
         ];
     }
 }
