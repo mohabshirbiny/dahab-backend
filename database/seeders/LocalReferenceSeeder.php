@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\BranchClosure;
+use App\Models\Lab;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +53,7 @@ class LocalReferenceSeeder extends Seeder
     /** @param  list<int>  $days */
     private function branch(array $attributes, array $days, string $opens, string $closes): void
     {
-        $branch = Branch::query()->firstOrCreate(['name_en' => $attributes['name_en']], $attributes + ['timezone' => 'Africa/Cairo', 'is_enabled' => true]);
+        $branch = Branch::query()->firstOrCreate(['name_en' => $attributes['name_en']], $attributes + ['lab_id' => Lab::main()->lab_id, 'timezone' => 'Africa/Cairo', 'is_enabled' => true]);
 
         if (DB::table('branch_hours')->where('branch_id', $branch->branch_id)->exists()) {
             return;
