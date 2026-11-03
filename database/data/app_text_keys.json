@@ -1602,6 +1602,26 @@
       "max_length": 40
     },
     {
+      "key": "buy.topup_buffer.suggest",
+      "kind": "app",
+      "area": "Buying",
+      "where": "You need a little more",
+      "default_en": "We suggest adding",
+      "default_ar": "ننصحك تحوّل",
+      "placeholders": [],
+      "max_length": 40
+    },
+    {
+      "key": "buy.topup_buffer.note",
+      "kind": "app",
+      "area": "Buying",
+      "where": "You need a little more",
+      "default_en": "The gold price may move until your transfer reaches us. Add a little more (1% of the price) so your wallet still covers the deposit. Anything extra stays in your wallet.",
+      "default_ar": "سعر الدهب ممكن يتغير لحد ما تحويلك يوصلنا. حوّل مبلغ زيادة بسيط (١٪ من سعر القطعة) عشان رصيدك يغطي العربون حتى لو السعر زاد. أي زيادة هتفضل في محفظتك.",
+      "placeholders": [],
+      "max_length": 338
+    },
+    {
       "key": "promo.advance.released_label",
       "kind": "app",
       "area": "Selling",
