@@ -446,6 +446,10 @@ Action needed:   Backend → … · Dashboard → … · Customer App → …
   at acceptance (`branch_id` optional, `needs_branch_choice`), taken from the seller at pay-balance onto `igi_certificates`, `payable_by_lab`
   on the Dahab statement. A disabled lab hides its live pieces (`needs_lab_choice`, `POST /customer/me/listings/{id}/lab`); inspection may
   correct the certificate (`certificate_kind_found`); staff move an order within its lab only. Paying a lab is not built; IGI texts stay until a second lab goes live.
+  Sentry (2026-11-19): `sentry/sentry-laravel` reports unhandled exceptions, warnings and up from the `sentry_logs` log
+  channel, and sampled traces to the Sentry project `dahab-backend` (org `2p-3q`) when `SENTRY_LARAVEL_DSN` is set; our
+  own 4xx `AuthApiException` / `DomainApiException` are dropped (`App\Support\Monitoring\SentryEvents`), request bodies
+  and PII never sent; tests force the DSN to null. The Dashboard and the Flutter app have no Sentry yet.
 - Dashboard: staff auth, customers/identity, staff and roles, Karats, Branches and hours, Gold pricing,
   Commission rates, Audit log, Customer file (with suspend/reinstate and, for `wallet.view`, the wallet panel) and the
   Wallet statement are live; on the Overview the safety figure, "Held on open orders" and Customer wallets are live
