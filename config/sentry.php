@@ -65,6 +65,11 @@ return [
     // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#before_send
     'before_send' => [SentryEvents::class, 'beforeSend'],
 
+    // Dahab: no logged SMS, IPs, phones, emails, codes or tokens in logs and breadcrumbs.
+    // @see: https://docs.sentry.io/platforms/php/guides/laravel/configuration/options/#before_send_log
+    'before_send_log' => [SentryEvents::class, 'beforeSendLog'],
+    'before_breadcrumb' => [SentryEvents::class, 'beforeBreadcrumb'],
+
     // Configures which data is collected automatically, `null` keeps collecting data based on `send_default_pii`
     'data_collection' => null,
 
