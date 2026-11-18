@@ -15,6 +15,7 @@
         "mpdf/mpdf": "^8.2",
         "pragmarx/google2fa": "^8.0",
         "predis/predis": "^3.6",
+        "sentry/sentry-laravel": "^4.30",
         "spatie/laravel-permission": "^8.3"
     },
     "require-dev": {
