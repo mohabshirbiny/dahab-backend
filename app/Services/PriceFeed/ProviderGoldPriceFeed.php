@@ -53,7 +53,12 @@ final class ProviderGoldPriceFeed implements GoldPriceFeed
                 throw GoldFeedException::signInRefused($response->status());
             }
 
-            $token = $response->json('access_token');
+            // The provider sends its JSON object encoded a second time, as a JSON string.
+            $body = $response->json();
+            if (is_string($body)) {
+                $body = json_decode($body, true);
+            }
+            $token = is_array($body) ? ($body['access_token'] ?? null) : null;
 
             return is_string($token) && $token !== '' ? $token : throw GoldFeedException::unusable('the sign-in returned no access_token');
         });
