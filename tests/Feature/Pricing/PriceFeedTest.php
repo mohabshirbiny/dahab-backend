@@ -55,6 +55,18 @@ it('records a changed bid and ask as the current price, attributed to the system
     Http::assertSent(fn ($request) => $request->url() === PRICE_URL && $request->hasHeader('Authorization', 'Bearer token-1'));
 });
 
+it('reads the sign-in when the provider encodes its JSON twice', function () {
+    Http::fake([
+        FEED.'/v1/auth' => Http::response(json_encode(json_encode(['access_token' => 'token-2', 'token_type' => 'Bearer'])), 200, ['Content-Type' => 'application/json']),
+        PRICE_URL => Http::response(['bidPrice' => 6878.4, 'askPrice' => 7000]),
+    ]);
+
+    expect(pullFeed())->toBe(0)
+        ->and((string) GoldPrice::current()->bid_24k)->toBe('6878.4000');
+
+    Http::assertSent(fn ($request) => $request->url() === PRICE_URL && $request->hasHeader('Authorization', 'Bearer token-2'));
+});
+
 it('writes nothing new when the price did not change, but records the good reading', function () {
     fakeProvider(['bidPrice' => 7944, 'askPrice' => 7990]);
     pullFeed();
